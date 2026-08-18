@@ -37,6 +37,12 @@ class AppServiceProvider extends ServiceProvider
         Model::preventLazyLoading(! app()->isProduction());
         Model::preventAccessingMissingAttributes(! app()->isProduction());
 
+        /*
+         * Deliberately unconditional, unlike the two guards above. A missed with() or a
+         * missing column should degrade in production rather than return a 500, but an
+         * attribute silently dropped by fill() loses user data with no trace, and this
+         * project ranks data integrity above the framework default.
+         */
         Model::preventSilentlyDiscardingAttributes();
 
         DB::prohibitDestructiveCommands(

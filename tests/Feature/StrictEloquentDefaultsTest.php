@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\LazyLoadingViolationException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rules\Password;
 
 beforeEach(function (): void {
     Schema::create('strict_parents', function (Blueprint $table): void {
@@ -66,13 +68,21 @@ it('prevents silently discarding attributes without a matching column', function
     ]))->toThrow(MassAssignmentException::class);
 });
 
-it('leaves models unrestricted in production', function (): void {
+it('keeps only the data-loss guard armed in production', function (): void {
     app()->detectEnvironment(fn (): string => 'production');
 
     (new AppServiceProvider(app()))->boot();
 
-    expect(Model::preventsLazyLoading())->toBeFalse();
-})->after(fn () => Model::shouldBeStrict());
+    expect(Model::preventsLazyLoading())->toBeFalse()
+        ->and(Model::preventsAccessingMissingAttributes())->toBeFalse()
+        ->and(Model::preventsSilentlyDiscardingAttributes())->toBeTrue();
+})->after(function (): void {
+    app()->detectEnvironment(fn (): string => 'testing');
+
+    Model::shouldBeStrict();
+    DB::prohibitDestructiveCommands(false);
+    Password::defaults(fn (): ?Password => null);
+});
 
 class StrictParent extends Model
 {
