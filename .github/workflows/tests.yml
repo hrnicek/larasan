@@ -38,11 +38,13 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    # DB_DATABASE is deliberately absent. PHPUnit's <env> entries only apply when the
+    # variable is not already set, so a job-level DB_DATABASE would silently override
+    # phpunit.xml and run the suite against the development database.
     env:
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
-      DB_DATABASE: pm
       DB_USERNAME: pm
       DB_PASSWORD: pm
       REDIS_HOST: 127.0.0.1
@@ -68,7 +70,7 @@ jobs:
         with:
           node-version: '22'
 
-      # phpunit.xml pins the suite to pm_testing, which no service container creates.
+      # phpunit.xml pins the suite to pm_testing; the service container creates pm only.
       - name: Create the test database
         run: PGPASSWORD=pm psql -h 127.0.0.1 -U pm -d pm -c 'CREATE DATABASE pm_testing'
 
