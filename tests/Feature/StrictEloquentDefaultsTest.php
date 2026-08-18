@@ -1,0 +1,98 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Providers\AppServiceProvider;
+use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\Eloquent\MissingAttributeException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\LazyLoadingViolationException;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+beforeEach(function (): void {
+    Schema::create('strict_parents', function (Blueprint $table): void {
+        $table->id();
+    });
+
+    Schema::create('strict_children', function (Blueprint $table): void {
+        $table->id();
+        $table->foreignId('strict_parent_id');
+    });
+});
+
+/**
+ * Eloquent only arms the per-instance lazy loading guard when a query hydrates more
+ * than one row (Builder::hydrate), so an N+1 test must fetch a collection.
+ */
+function createParentsWithChildren(int $count): void
+{
+    foreach (range(1, $count) as $ignored) {
+        StrictChild::create(['strict_parent_id' => StrictParent::create()->id]);
+    }
+}
+
+it('prevents lazy loading outside production', function (): void {
+    createParentsWithChildren(2);
+
+    $parents = StrictParent::query()->get();
+
+    expect(fn (): mixed => $parents->first()->children->first())
+        ->toThrow(LazyLoadingViolationException::class);
+});
+
+it('allows eager loaded relations', function (): void {
+    createParentsWithChildren(2);
+
+    $parents = StrictParent::query()->with('children')->get();
+
+    expect($parents->first()->children)->toHaveCount(1);
+});
+
+it('prevents accessing attributes missing from the selected columns', function (): void {
+    createParentsWithChildren(1);
+
+    $child = StrictChild::query()->select('id')->first();
+
+    expect(fn (): mixed => $child->strict_parent_id)
+        ->toThrow(MissingAttributeException::class);
+});
+
+it('prevents silently discarding attributes without a matching column', function (): void {
+    expect(fn (): Model => StrictChild::create([
+        'strict_parent_id' => StrictParent::create()->id,
+        'not_a_column' => 'value',
+    ]))->toThrow(MassAssignmentException::class);
+});
+
+it('leaves models unrestricted in production', function (): void {
+    app()->detectEnvironment(fn (): string => 'production');
+
+    (new AppServiceProvider(app()))->boot();
+
+    expect(Model::preventsLazyLoading())->toBeFalse();
+})->after(fn () => Model::shouldBeStrict());
+
+class StrictParent extends Model
+{
+    protected $table = 'strict_parents';
+
+    public $timestamps = false;
+
+    protected $guarded = [];
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(StrictChild::class, 'strict_parent_id');
+    }
+}
+
+class StrictChild extends Model
+{
+    protected $table = 'strict_children';
+
+    public $timestamps = false;
+
+    protected $fillable = ['strict_parent_id'];
+}
