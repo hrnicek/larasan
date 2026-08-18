@@ -28,6 +28,19 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Attachments Disk
+    |--------------------------------------------------------------------------
+    |
+    | Domain code resolves the attachment disk through this key rather than
+    | naming a driver, so moving attachments between local storage and any
+    | S3-compatible bucket is configuration only. See ADR-0007.
+    |
+    */
+
+    'attachments' => env('FILESYSTEM_ATTACHMENTS_DISK', 'local'),
+
     'disks' => [
 
         'local' => [

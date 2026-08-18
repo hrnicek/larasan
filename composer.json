@@ -14,8 +14,11 @@
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
+        "laravel/horizon": "^5.48",
+        "laravel/reverb": "^1.11",
         "laravel/tinker": "^3.0",
-        "laravel/wayfinder": "^0.1.14"
+        "laravel/wayfinder": "^0.1.14",
+        "league/flysystem-aws-s3-v3": "^3.35"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
