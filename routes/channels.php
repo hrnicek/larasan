@@ -1,7 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+/**
+ * Laravel's notification broadcasting targets App.Models.User.{id} by convention, while
+ * ADR-0008 specifies private-user.{user}. Phase 170 reconciles the two deliberately
+ * (TASK-170-008); until then this is the framework default and nothing depends on it.
+ */
+Broadcast::channel('App.Models.User.{id}', function (User $user, string $id): bool {
+    return $user->id === (int) $id;
 });

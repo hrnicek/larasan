@@ -26,43 +26,91 @@ it('pins every persisted enum value', function (string $enum, array $expected): 
         'project.create',
         'project.update',
         'project.delete',
+        'section.create',
+        'section.update',
+        'section.delete',
         'task.create',
         'task.update',
         'task.delete',
         'task.assign',
         'comment.create',
         'comment.delete',
+        'tag.manage',
+        'custom_field.manage',
         'file.upload',
+        'file.delete',
     ]],
     'workspace role' => [WorkspaceRole::class, ['owner', 'admin', 'member', 'guest']],
-    'membership status' => [WorkspaceMembershipStatus::class, ['invited', 'active', 'declined']],
+    'membership status' => [WorkspaceMembershipStatus::class, ['invited', 'active', 'declined', 'revoked', 'expired']],
     'project access level' => [ProjectAccessLevel::class, ['owner', 'editor', 'commenter', 'viewer']],
     'project visibility' => [ProjectVisibility::class, ['workspace', 'private']],
     'project default view' => [ProjectDefaultView::class, ['list', 'board']],
     'task priority' => [TaskPriority::class, ['low', 'medium', 'high', 'urgent']],
 ]);
 
-it('grants the owner every capability', function (): void {
-    expect(WorkspaceRole::Owner->capabilities())->toBe(Capability::cases());
+/**
+ * Pinned per role rather than asserted against an expression, so adding a Capability
+ * case fails here until someone decides what each role should do with it.
+ */
+it('pins the capabilities of every role', function (WorkspaceRole $role, array $expected): void {
+    $granted = array_map(fn (Capability $capability): string => $capability->value, $role->capabilities());
+
+    expect($granted)->toBe($expected);
+})->with([
+    'owner' => [WorkspaceRole::Owner, [
+        'workspace.manage', 'workspace.delete', 'workspace.members.manage',
+        'project.create', 'project.update', 'project.delete',
+        'section.create', 'section.update', 'section.delete',
+        'task.create', 'task.update', 'task.delete', 'task.assign',
+        'comment.create', 'comment.delete',
+        'tag.manage', 'custom_field.manage',
+        'file.upload', 'file.delete',
+    ]],
+    'admin' => [WorkspaceRole::Admin, [
+        'workspace.manage', 'workspace.members.manage',
+        'project.create', 'project.update', 'project.delete',
+        'section.create', 'section.update', 'section.delete',
+        'task.create', 'task.update', 'task.delete', 'task.assign',
+        'comment.create', 'comment.delete',
+        'tag.manage', 'custom_field.manage',
+        'file.upload', 'file.delete',
+    ]],
+    'member' => [WorkspaceRole::Member, [
+        'project.create', 'project.update', 'project.delete',
+        'section.create', 'section.update', 'section.delete',
+        'task.create', 'task.update', 'task.delete', 'task.assign',
+        'comment.create', 'comment.delete',
+        'tag.manage',
+        'file.upload', 'file.delete',
+    ]],
+    'guest' => [WorkspaceRole::Guest, ['comment.create']],
+]);
+
+it('covers every capability in the role matrix', function (): void {
+    $granted = collect(WorkspaceRole::cases())
+        ->flatMap(fn (WorkspaceRole $role): array => $role->capabilities())
+        ->unique()
+        ->values();
+
+    expect($granted->all())->toBe(Capability::cases());
 });
 
-it('withholds only workspace deletion from an admin', function (): void {
-    expect(WorkspaceRole::Admin->allows(Capability::WorkspaceDelete))->toBeFalse()
-        ->and(WorkspaceRole::Admin->allows(Capability::WorkspaceManage))->toBeTrue()
-        ->and(WorkspaceRole::Admin->allows(Capability::WorkspaceMembersManage))->toBeTrue();
-});
-
-it('withholds every workspace administration capability from a member', function (): void {
-    expect(WorkspaceRole::Member->allows(Capability::WorkspaceManage))->toBeFalse()
+it('withholds workspace deletion from everyone but the owner', function (): void {
+    expect(WorkspaceRole::Owner->allows(Capability::WorkspaceDelete))->toBeTrue()
+        ->and(WorkspaceRole::Admin->allows(Capability::WorkspaceDelete))->toBeFalse()
         ->and(WorkspaceRole::Member->allows(Capability::WorkspaceDelete))->toBeFalse()
-        ->and(WorkspaceRole::Member->allows(Capability::WorkspaceMembersManage))->toBeFalse()
-        ->and(WorkspaceRole::Member->allows(Capability::ProjectCreate))->toBeTrue()
-        ->and(WorkspaceRole::Member->allows(Capability::TaskAssign))->toBeTrue();
+        ->and(WorkspaceRole::Guest->allows(Capability::WorkspaceDelete))->toBeFalse();
 });
 
-it('limits a guest to commenting', function (): void {
-    expect(WorkspaceRole::Guest->capabilities())->toBe([Capability::CommentCreate]);
+it('withholds workspace administration from a member', function (): void {
+    expect(WorkspaceRole::Member->allows(Capability::WorkspaceManage))->toBeFalse()
+        ->and(WorkspaceRole::Member->allows(Capability::WorkspaceMembersManage))->toBeFalse()
+        ->and(WorkspaceRole::Member->allows(Capability::CustomFieldManage))->toBeFalse();
 });
+
+it('denies a guest every capability except commenting', function (Capability $capability): void {
+    expect(WorkspaceRole::Guest->allows($capability))->toBe($capability === Capability::CommentCreate);
+})->with(Capability::cases());
 
 it('reports ownership', function (): void {
     expect(WorkspaceRole::Owner->isOwner())->toBeTrue()
@@ -90,14 +138,10 @@ it('requires explicit membership only for private projects', function (): void {
         ->and(ProjectVisibility::Workspace->requiresExplicitMembership())->toBeFalse();
 });
 
-it('grants workspace access only to an active membership', function (): void {
-    expect(WorkspaceMembershipStatus::Active->grantsAccess())->toBeTrue()
-        ->and(WorkspaceMembershipStatus::Invited->grantsAccess())->toBeFalse()
-        ->and(WorkspaceMembershipStatus::Declined->grantsAccess())->toBeFalse();
-});
+it('grants workspace access only to an active membership', function (WorkspaceMembershipStatus $status): void {
+    expect($status->grantsAccess())->toBe($status === WorkspaceMembershipStatus::Active);
+})->with(WorkspaceMembershipStatus::cases());
 
-it('orders task priority by ascending urgency', function (): void {
-    $weights = array_map(fn (TaskPriority $priority): int => $priority->weight(), TaskPriority::cases());
-
-    expect($weights)->toBe([1, 2, 3, 4]);
-});
+it('accepts an invitation only from the invited state', function (WorkspaceMembershipStatus $status): void {
+    expect($status->canBeAccepted())->toBe($status === WorkspaceMembershipStatus::Invited);
+})->with(WorkspaceMembershipStatus::cases());

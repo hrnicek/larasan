@@ -9,6 +9,9 @@ namespace App\Domain\Shared\Enums;
  * comparing role strings, and the check is a pure function of the membership row so it
  * behaves identically in HTTP requests, queued jobs, console commands and broadcast
  * authorization.
+ *
+ * This answers only "what may this role do"; it does not know whether the membership is
+ * active. Callers must compose it with WorkspaceMembershipStatus::grantsAccess().
  */
 enum WorkspaceRole: string
 {
@@ -18,27 +21,72 @@ enum WorkspaceRole: string
     case Guest = 'guest';
 
     /**
+     * Listed case by case rather than derived, so adding a Capability forces an
+     * explicit decision for every role instead of silently granting it to the
+     * broadest ones.
+     *
      * @return list<Capability>
      */
     public function capabilities(): array
     {
         return match ($this) {
-            self::Owner => Capability::cases(),
-            self::Admin => array_values(array_filter(
-                Capability::cases(),
-                fn (Capability $capability): bool => $capability !== Capability::WorkspaceDelete,
-            )),
-            self::Member => [
+            self::Owner => [
+                Capability::WorkspaceManage,
+                Capability::WorkspaceDelete,
+                Capability::WorkspaceMembersManage,
                 Capability::ProjectCreate,
                 Capability::ProjectUpdate,
                 Capability::ProjectDelete,
+                Capability::SectionCreate,
+                Capability::SectionUpdate,
+                Capability::SectionDelete,
                 Capability::TaskCreate,
                 Capability::TaskUpdate,
                 Capability::TaskDelete,
                 Capability::TaskAssign,
                 Capability::CommentCreate,
                 Capability::CommentDelete,
+                Capability::TagManage,
+                Capability::CustomFieldManage,
                 Capability::FileUpload,
+                Capability::FileDelete,
+            ],
+            self::Admin => [
+                Capability::WorkspaceManage,
+                Capability::WorkspaceMembersManage,
+                Capability::ProjectCreate,
+                Capability::ProjectUpdate,
+                Capability::ProjectDelete,
+                Capability::SectionCreate,
+                Capability::SectionUpdate,
+                Capability::SectionDelete,
+                Capability::TaskCreate,
+                Capability::TaskUpdate,
+                Capability::TaskDelete,
+                Capability::TaskAssign,
+                Capability::CommentCreate,
+                Capability::CommentDelete,
+                Capability::TagManage,
+                Capability::CustomFieldManage,
+                Capability::FileUpload,
+                Capability::FileDelete,
+            ],
+            self::Member => [
+                Capability::ProjectCreate,
+                Capability::ProjectUpdate,
+                Capability::ProjectDelete,
+                Capability::SectionCreate,
+                Capability::SectionUpdate,
+                Capability::SectionDelete,
+                Capability::TaskCreate,
+                Capability::TaskUpdate,
+                Capability::TaskDelete,
+                Capability::TaskAssign,
+                Capability::CommentCreate,
+                Capability::CommentDelete,
+                Capability::TagManage,
+                Capability::FileUpload,
+                Capability::FileDelete,
             ],
             self::Guest => [
                 Capability::CommentCreate,
