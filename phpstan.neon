@@ -9,5 +9,11 @@ parameters:
         - config/
         - database/
         - routes/
+    # tests/ is deliberately absent. Analysing it reports 61 errors of the form
+    # "Call to an undefined method Pest\PendingCalls\TestCall::get()" — PHPStan does
+    # not understand Pest's functional API. The fix is pestphp/pest-plugin-phpstan,
+    # a dependency that needs approval (TASK-010-026); the bundled
+    # phpstan-pest-extension.neon covers higher-order expectations only and does not
+    # help. Excluding the suite is the honest state, not a silent omission.
 
     level: 7
