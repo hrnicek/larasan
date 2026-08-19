@@ -22,8 +22,14 @@ final readonly class ResolveWorkspaceForUser
             return $this->membershipsOf($user)->where('slug', $slug)->first();
         }
 
+        /*
+         * `created_at` is `timestamp(0)`, so two workspaces joined in the same second tie
+         * and PostgreSQL may answer either first — a user with no remembered workspace
+         * could land somewhere different on consecutive requests. The key is UUIDv7, so
+         * ordering by it breaks the tie in the same direction time would.
+         */
         return $this->membershipsOf($user)->whereKey($user->current_workspace_id)->first()
-            ?? $this->membershipsOf($user)->oldest('created_at')->first();
+            ?? $this->membershipsOf($user)->oldest('created_at')->orderBy('id')->first();
     }
 
     /**
