@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Data;
 
-/**
- * The `fromRequest()` named constructor arrives with TASK-020-011, which is where the
- * FormRequest it takes is created. Adding it now would mean typing against a class that
- * does not exist, or against the base Request, which is the framework coupling this
- * object exists to keep out.
- */
+use App\Http\Requests\Workspace\StoreWorkspaceRequest;
+
 final readonly class CreateWorkspaceData
 {
     public function __construct(
@@ -17,4 +13,13 @@ final readonly class CreateWorkspaceData
         public ?string $slug = null,
         public string $timezone = 'UTC',
     ) {}
+
+    public static function fromRequest(StoreWorkspaceRequest $request): self
+    {
+        return new self(
+            name: $request->string('name')->toString(),
+            slug: $request->string('slug')->value() ?: null,
+            timezone: $request->string('timezone')->value() ?: 'UTC',
+        );
+    }
 }
