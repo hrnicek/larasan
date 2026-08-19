@@ -64,7 +64,7 @@ final readonly class InviteWorkspaceMember
         }
 
         if ($data->role->isOwner()) {
-            throw WorkspaceMembershipException::cannotInviteAsOwner();
+            throw WorkspaceMembershipException::cannotAssignOwner();
         }
 
         if ($workspace->membershipFor(User::query()->findOrFail($data->userId))?->status->grantsAccess() === true) {

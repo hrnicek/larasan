@@ -21,9 +21,9 @@ final class WorkspaceMembershipException extends DomainException
         return new self('That user is already a member of this workspace.');
     }
 
-    public static function cannotInviteAsOwner(): self
+    public static function cannotAssignOwner(): self
     {
-        return new self('A workspace has one owner, set when it is created. Transferring ownership is a separate operation.');
+        return new self('Ownership is transferred, not assigned. A workspace has one owner, set when it is created.');
     }
 
     public static function roleRequiresCapability(WorkspaceRole $role): self
@@ -44,5 +44,15 @@ final class WorkspaceMembershipException extends DomainException
     public static function invitationExpired(): self
     {
         return new self('This invitation has expired. Ask for a new one.');
+    }
+
+    public static function lastOwner(): self
+    {
+        return new self('A workspace keeps at least one owner. Make someone else an owner first.');
+    }
+
+    public static function cannotChangeOwnRole(): self
+    {
+        return new self('A member cannot change their own role.');
     }
 }

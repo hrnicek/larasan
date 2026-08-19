@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Workspace\Models;
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Models\User;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -73,6 +74,25 @@ class Workspace extends Model
     public function membershipFor(User $user): ?WorkspaceMembership
     {
         return $this->memberships()->where('user_id', $user->id)->first();
+    }
+
+    /**
+     * Whether this membership is the only active owner left. ADR-0010's "cannot be
+     * removed or demoted while last owner" has no database constraint behind it — the
+     * count is a query, and the Actions that could break the rule ask it here so they
+     * cannot each answer differently.
+     */
+    public function isLastOwner(WorkspaceMembership $membership): bool
+    {
+        if (! $membership->role->isOwner() || ! $membership->status->grantsAccess()) {
+            return false;
+        }
+
+        return $this->memberships()
+            ->where('role', WorkspaceRole::Owner->value)
+            ->where('status', WorkspaceMembershipStatus::Active->value)
+            ->whereKeyNot($membership->id)
+            ->doesntExist();
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */
