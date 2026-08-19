@@ -155,7 +155,9 @@ it('guards every workspace route with auth and verified', function (): void {
     $routes = collect(Route::getRoutes()->getRoutesByName())
         ->filter(fn ($route, string $name): bool => str_starts_with($name, 'workspaces.'));
 
-    expect($routes)->toHaveCount(6);
+    // The count is deliberate: adding a workspace route should make someone confirm it
+    // is guarded, rather than inherit the assertion silently.
+    expect($routes)->toHaveCount(10);
 
     $routes->each(function ($route): void {
         expect($route->gatherMiddleware())->toContain('auth')->toContain('verified');
