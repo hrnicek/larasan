@@ -8,6 +8,9 @@ use App\Models\User;
 use App\Providers\HorizonServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
+/**
+ * @param  list<string>  $operators
+ */
 function horizonGateIn(string $environment, array $operators = []): void
 {
     app()->detectEnvironment(fn (): string => $environment);
