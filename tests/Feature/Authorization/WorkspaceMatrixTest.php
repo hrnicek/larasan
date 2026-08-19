@@ -43,6 +43,9 @@ function matrixOperation(string $operation, Workspace $workspace, WorkspaceMembe
         'invite member' => ['post', route('workspaces.members.store'), ['email' => 'invitee@example.com', 'role' => 'member']],
         'change role' => ['put', route('workspaces.members.update', $target->id), ['role' => 'member']],
         'remove member' => ['delete', route('workspaces.members.destroy', $target->id), []],
+        // A dataset row naming an operation this function does not know is a typo, and a
+        // typo that silently ran nothing would look like a passing matrix.
+        default => throw new InvalidArgumentException("Unknown matrix operation [{$operation}]."),
     };
 }
 
