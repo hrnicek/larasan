@@ -113,7 +113,7 @@ function confirmRemoval(): void {
                         <span v-if="member.isYou" class="text-muted-foreground text-xs">(you)</span>
                     </p>
                     <p class="text-muted-foreground truncate text-xs">
-                        {{ member.email }} · {{ member.status }}
+                        <template v-if="member.email">{{ member.email }} · </template>{{ member.status }}
                     </p>
                 </div>
 

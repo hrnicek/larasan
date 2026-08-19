@@ -114,3 +114,44 @@ it('lets a lapsed invitation be declined', function (): void {
 
     expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Declined);
 });
+
+it('refuses an invitation whose sender can no longer invite', function (): void {
+    /*
+     * An admin on their way out could otherwise invite an account they control, lose
+     * their membership, and have it accepted afterwards — a back door that survives
+     * their removal.
+     */
+    $workspace = Workspace::factory()->create();
+    $inviter = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+
+    $membership = WorkspaceMembership::factory()->invited($inviter)->create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $invitee->id,
+    ]);
+
+    $workspace->membershipFor($inviter)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
+
+    expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'can no longer invite');
+
+    expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Invited)
+        ->and($invitee->fresh()?->workspaces()->count())->toBe(0);
+});
+
+it('still lets it be declined once the sender has gone', function (): void {
+    $workspace = Workspace::factory()->create();
+    $inviter = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+
+    $membership = WorkspaceMembership::factory()->invited($inviter)->create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $invitee->id,
+    ]);
+
+    $workspace->membershipFor($inviter)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
+
+    app(AnswerWorkspaceInvitation::class)->decline($membership, $invitee);
+
+    expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Declined);
+});

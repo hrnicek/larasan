@@ -16,7 +16,8 @@ export type WorkspaceAbilities = {
 export type WorkspaceMember = {
     id: string;
     name: string;
-    email: string;
+    /** Null unless the viewer manages members, or it is their own row. */
+    email: string | null;
     role: string;
     status: string;
     joinedAt: string | null;

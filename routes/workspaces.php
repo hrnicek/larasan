@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('workspaces.create');
-    Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+    Route::post('workspaces', [WorkspaceController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('workspaces.store');
 
     Route::post('workspaces/{workspace}/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
@@ -23,7 +25,14 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
      * resolution middleware supplies the workspace from the actor's current one.
      */
     Route::get('settings/members', [WorkspaceMemberController::class, 'index'])->name('workspaces.members');
-    Route::post('settings/members', [WorkspaceMemberController::class, 'store'])->name('workspaces.members.store');
+    /*
+     * Throttled: each invitation queues mail to an address the actor names, so without a
+     * limit any account is a mail cannon pointed at any registered address, sending from
+     * this domain.
+     */
+    Route::post('settings/members', [WorkspaceMemberController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('workspaces.members.store');
     Route::put('settings/members/{membership}', [WorkspaceMemberController::class, 'update'])->name('workspaces.members.update');
     Route::delete('settings/members/{membership}', [WorkspaceMemberController::class, 'destroy'])->name('workspaces.members.destroy');
 

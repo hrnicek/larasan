@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Workspace;
 
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
 use App\Domain\Workspace\Actions\InviteWorkspaceMember;
@@ -33,6 +34,18 @@ class WorkspaceMemberController extends Controller
 
         Gate::authorize('view', $workspace);
 
+        $canManage = $request->user()?->can(Capability::WorkspaceMembersManage->value, $workspace) ?? false;
+
+        /*
+         * Counted once rather than per row: `isLastOwner()` is a query, and the screen is
+         * open to every member. It is also the only reason the list needs to know about
+         * owners at all.
+         */
+        $activeOwners = $workspace->memberships()
+            ->where('role', WorkspaceRole::Owner->value)
+            ->where('status', WorkspaceMembershipStatus::Active->value)
+            ->count();
+
         return Inertia::render('settings/Members', [
             'members' => $workspace->memberships()
                 ->with('user')
@@ -42,12 +55,21 @@ class WorkspaceMemberController extends Controller
                 ->map(fn (WorkspaceMembership $membership): array => [
                     'id' => $membership->id,
                     'name' => $membership->user->name,
-                    'email' => $membership->user->email,
+                    /*
+                     * A guest is an outside collaborator (ADR-0006); handing them every
+                     * colleague's address is not part of commenting on a task. Managers
+                     * need it to tell two people apart and to know who they invited.
+                     */
+                    'email' => $canManage || $membership->user_id === $request->user()?->id
+                        ? $membership->user->email
+                        : null,
                     'role' => $membership->role->value,
                     'status' => $membership->status->value,
                     'joinedAt' => $membership->joined_at?->toIso8601String(),
                     'isYou' => $membership->user_id === $request->user()?->id,
-                    'isLastOwner' => $workspace->isLastOwner($membership),
+                    'isLastOwner' => $membership->role->isOwner()
+                        && $membership->status->grantsAccess()
+                        && $activeOwners === 1,
                 ])
                 ->all(),
             /*
@@ -61,7 +83,7 @@ class WorkspaceMemberController extends Controller
                 WorkspaceRole::Guest->value,
             ],
             'can' => [
-                'manageMembers' => $request->user()?->can(Capability::WorkspaceMembersManage->value, $workspace) ?? false,
+                'manageMembers' => $canManage,
             ],
         ]);
     }

@@ -181,3 +181,35 @@ it('refuses an invitation from someone who is in no workspace', function (): voi
         ->post(route('workspaces.members.store'), ['email' => 'new@example.com', 'role' => 'member'])
         ->assertForbidden();
 });
+
+it('shows addresses to a manager and withholds them from everyone else', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $this->actingAs($admin)
+        ->get(route('workspaces.members'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('members.0.email', $admin->email));
+
+    $this->actingAs($member)
+        ->get(route('workspaces.members'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('members.0.email', null)
+            ->where('members.1.email', $member->email));
+});
+
+it('throttles invitations so the endpoint is not a mail cannon', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    User::factory()->create(['email' => 'target@example.com']);
+
+    foreach (range(1, 10) as $attempt) {
+        $this->actingAs($admin)
+            ->post(route('workspaces.members.store'), ['email' => 'target@example.com', 'role' => 'member']);
+    }
+
+    $this->actingAs($admin)
+        ->post(route('workspaces.members.store'), ['email' => 'target@example.com', 'role' => 'member'])
+        ->assertStatus(429);
+});

@@ -7,6 +7,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Artisan;
 
 it('records who invited and when the invitation lapses', function (): void {
     $workspace = Workspace::factory()->create();
@@ -55,4 +56,17 @@ it('treats an accepted membership as having no deadline', function (): void {
 
     expect($membership->expires_at)->toBeNull()
         ->and($membership->hasExpired())->toBeFalse();
+});
+
+it('expires invitations whose deadline has passed', function (): void {
+    $lapsed = WorkspaceMembership::factory()->invited(expiresAt: CarbonImmutable::now()->subDay())->create();
+    $pending = WorkspaceMembership::factory()->invited(expiresAt: CarbonImmutable::now()->addDay())->create();
+    $active = WorkspaceMembership::factory()->active()->create();
+
+    expect(Artisan::call('workspaces:expire-invitations'))->toBe(0);
+
+    expect($lapsed->fresh()?->status)->toBe(WorkspaceMembershipStatus::Expired)
+        ->and($lapsed->fresh()?->expires_at)->toBeNull()
+        ->and($pending->fresh()?->status)->toBe(WorkspaceMembershipStatus::Invited)
+        ->and($active->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active);
 });

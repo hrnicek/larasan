@@ -46,6 +46,11 @@ final class WorkspaceMembershipException extends DomainException
         return new self('This invitation has expired. Ask for a new one.');
     }
 
+    public static function inviterNoLongerMayInvite(): self
+    {
+        return new self('The person who sent this invitation can no longer invite members. Ask someone else for a new one.');
+    }
+
     public static function lastOwner(): self
     {
         return new self('A workspace keeps at least one owner. Make someone else an owner first.');

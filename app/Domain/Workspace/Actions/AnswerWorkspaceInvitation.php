@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Actions;
 
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Events\WorkspaceInvitationAnswered;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
@@ -25,6 +26,10 @@ final readonly class AnswerWorkspaceInvitation
          */
         if ($membership->hasExpired()) {
             throw WorkspaceMembershipException::invitationExpired();
+        }
+
+        if (! $this->inviterStillMayInvite($membership)) {
+            throw WorkspaceMembershipException::inviterNoLongerMayInvite();
         }
 
         return $this->answer($membership, WorkspaceMembershipStatus::Active);
@@ -65,5 +70,22 @@ final readonly class AnswerWorkspaceInvitation
         if (! $membership->status->canBeAccepted()) {
             throw WorkspaceMembershipException::invitationNotPending($membership->status);
         }
+    }
+
+    /**
+     * An invitation is only as good as the authority behind it. Without this, an admin
+     * about to be removed could invite an account they control, lose their membership,
+     * and have it accepted afterwards — a back door that survives their removal.
+     */
+    private function inviterStillMayInvite(WorkspaceMembership $membership): bool
+    {
+        if ($membership->invited_by === null) {
+            return true;
+        }
+
+        $inviter = $membership->invitedBy;
+
+        return $inviter !== null
+            && $membership->workspace->membershipFor($inviter)?->allows(Capability::WorkspaceMembersManage) === true;
     }
 }
