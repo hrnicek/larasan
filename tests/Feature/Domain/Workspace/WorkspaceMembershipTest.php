@@ -43,7 +43,7 @@ it('leaves joined_at empty for a membership that has not been accepted', functio
 it('reads back the enum values that were persisted', function (): void {
     $membership = WorkspaceMembership::factory()->guest()->create();
 
-    $stored = WorkspaceMembership::query()->findOrFail($membership->id);
+    $stored = WorkspaceMembership::query()->whereKey($membership->id)->firstOrFail();
 
     expect($stored->role)->toBe(WorkspaceRole::Guest)
         ->and($stored->getRawOriginal('role'))->toBe('guest');

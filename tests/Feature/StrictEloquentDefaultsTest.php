@@ -84,6 +84,9 @@ it('keeps only the data-loss guard armed in production', function (): void {
     Password::defaults(fn (): ?Password => null);
 });
 
+/**
+ * @property int $id
+ */
 class StrictParent extends Model
 {
     protected $table = 'strict_parents';
@@ -92,12 +95,17 @@ class StrictParent extends Model
 
     protected $guarded = [];
 
+    /** @return HasMany<StrictChild, $this> */
     public function children(): HasMany
     {
         return $this->hasMany(StrictChild::class, 'strict_parent_id');
     }
 }
 
+/**
+ * @property int $id
+ * @property int $strict_parent_id
+ */
 class StrictChild extends Model
 {
     protected $table = 'strict_children';
