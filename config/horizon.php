@@ -19,6 +19,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Horizon Operators
+    |--------------------------------------------------------------------------
+    |
+    | Email addresses that may open the dashboard outside local and testing. Job
+    | payloads are serialised domain objects spanning every workspace, so access is
+    | deliberately not a workspace capability — see docs/adr/0011. An empty list
+    | denies everyone.
+    |
+    */
+
+    'operators' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('HORIZON_OPERATORS', '')),
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
     | Horizon Domain
     |--------------------------------------------------------------------------
     |

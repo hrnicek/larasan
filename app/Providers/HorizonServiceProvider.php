@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Laravel\Horizon\HorizonApplicationServiceProvider;
 
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
@@ -19,11 +20,9 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     }
 
     /**
-     * Failed job payloads are serialised domain objects spanning every workspace, so
-     * this gate is an environment allow-list rather than a "not production" check —
-     * self-registration is enabled, and any staging or demo deployment would otherwise
-     * hand that data to anyone who signs up. Replaced by the workspace.manage
-     * capability in TASK-030-013.
+     * Failed job payloads are serialised domain objects spanning every workspace, so this
+     * is an operator check rather than a workspace capability: `workspace.manage` is held
+     * by the owner of any workspace, and anyone can create one (ADR-0011).
      */
     protected function gate(): void
     {
@@ -32,7 +31,14 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
                 return false;
             }
 
-            return app()->environment(['local', 'testing']);
+            if (app()->environment(['local', 'testing'])) {
+                return true;
+            }
+
+            /** @var list<string> $operators */
+            $operators = config('horizon.operators', []);
+
+            return in_array(Str::lower($user->email), array_map(Str::lower(...), $operators), strict: true);
         });
     }
 }
