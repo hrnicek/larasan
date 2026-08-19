@@ -1,25 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        /*
+         * The seeders below create accounts with a known password. Running them against a
+         * production database would hand anyone who reads this file a way in, so the
+         * refusal is here rather than in a comment asking people not to.
+         */
+        if (app()->isProduction()) {
+            throw new RuntimeException('Seeding is refused in production: these seeders create accounts with a known password.');
+        }
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $this->call(DevelopmentSeeder::class);
     }
 }
