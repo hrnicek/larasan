@@ -82,17 +82,26 @@ class Workspace extends Model
      * count is a query, and the Actions that could break the rule ask it here so they
      * cannot each answer differently.
      */
-    public function isLastOwner(WorkspaceMembership $membership): bool
+    public function isLastOwner(WorkspaceMembership $membership, bool $locking = false): bool
     {
         if (! $membership->role->isOwner() || ! $membership->status->grantsAccess()) {
             return false;
         }
 
-        return $this->memberships()
+        $others = $this->memberships()
             ->where('role', WorkspaceRole::Owner->value)
             ->where('status', WorkspaceMembershipStatus::Active->value)
-            ->whereKeyNot($membership->id)
-            ->doesntExist();
+            ->whereKeyNot($membership->id);
+
+        /*
+         * `locking` is for the Actions, which read this and then write: without the lock,
+         * two requests demoting the two remaining owners each see the other and both
+         * commit, leaving a workspace nobody owns — and no code path can grant Owner
+         * again. The members screen reads it for display and does not lock.
+         */
+        return $locking
+            ? $others->lockForUpdate()->doesntExist()
+            : $others->doesntExist();
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */

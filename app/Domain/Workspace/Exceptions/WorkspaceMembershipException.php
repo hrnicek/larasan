@@ -51,6 +51,11 @@ final class WorkspaceMembershipException extends DomainException
         return new self('A workspace keeps at least one owner. Make someone else an owner first.');
     }
 
+    public static function onlyAnOwnerActsOnAnOwner(): self
+    {
+        return new self('Only an owner can change or remove another owner.');
+    }
+
     public static function cannotChangeOwnRole(): self
     {
         return new self('A member cannot change their own role.');

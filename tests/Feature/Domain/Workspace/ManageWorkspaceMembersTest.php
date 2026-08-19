@@ -127,15 +127,48 @@ it('refuses to assign the owner role', function (): void {
     expect($workspace->membershipFor($member)?->role)->toBe(WorkspaceRole::Member);
 });
 
-it('refuses to demote the last owner', function (): void {
+it('refuses to demote the last owner, even to another owner', function (): void {
     $workspace = Workspace::factory()->create();
-    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $target = memberOf($workspace, WorkspaceRole::Owner);
+    $other = memberOf($workspace, WorkspaceRole::Owner);
+
+    // The second owner is revoked, so the target is the last active one.
+    $workspace->membershipFor($other)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
+    $reinstated = memberOf($workspace, WorkspaceRole::Owner);
+
+    expect(fn (): WorkspaceMembership => changeRole($workspace, $reinstated, $workspace->membershipFor($target), WorkspaceRole::Member))
+        ->not->toThrow(WorkspaceMembershipException::class);
+
+    // Now the reinstated owner is the only active one and cannot be demoted.
+    expect(fn (): WorkspaceMembership => changeRole($workspace, $target->fresh(), $workspace->membershipFor($reinstated), WorkspaceRole::Member))
+        ->toThrow(WorkspaceMembershipException::class);
+});
+
+it('refuses to let an admin touch an owner', function (string $operation): void {
+    $workspace = Workspace::factory()->create();
+    memberOf($workspace, WorkspaceRole::Owner);
+    $target = memberOf($workspace, WorkspaceRole::Owner);
     $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $membership = $workspace->membershipFor($target);
 
-    expect(fn (): WorkspaceMembership => changeRole($workspace, $admin, $workspace->membershipFor($owner), WorkspaceRole::Member))
-        ->toThrow(WorkspaceMembershipException::class, 'at least one owner');
+    $attempt = $operation === 'remove'
+        ? fn (): WorkspaceMembership => remove($workspace, $admin, $membership)
+        : fn (): WorkspaceMembership => changeRole($workspace, $admin, $membership, WorkspaceRole::Member);
 
-    expect($workspace->membershipFor($owner)?->role)->toBe(WorkspaceRole::Owner);
+    expect($attempt)->toThrow(WorkspaceMembershipException::class, 'Only an owner');
+
+    expect($membership->fresh()?->role)->toBe(WorkspaceRole::Owner)
+        ->and($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active);
+})->with(['remove', 'demote']);
+
+it('lets an owner act on another owner', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Owner);
+    $target = memberOf($workspace, WorkspaceRole::Owner);
+
+    changeRole($workspace, $actor, $workspace->membershipFor($target), WorkspaceRole::Admin);
+
+    expect($workspace->membershipFor($target)?->role)->toBe(WorkspaceRole::Admin);
 });
 
 it('refuses a role change by an actor without the capability', function (): void {

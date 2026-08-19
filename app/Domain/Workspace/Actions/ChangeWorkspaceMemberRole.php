@@ -12,6 +12,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 
 final readonly class ChangeWorkspaceMemberRole
 {
@@ -31,17 +32,27 @@ final readonly class ChangeWorkspaceMemberRole
             return $membership;
         }
 
-        $membership->forceFill(['role' => $role])->save();
+        return DB::transaction(function () use ($workspace, $membership, $role, $from): WorkspaceMembership {
+            /*
+             * Inside the transaction and locking: the check and the write have to be one
+             * step, or two requests demoting the two remaining owners both pass.
+             */
+            if ($workspace->isLastOwner($membership, locking: true)) {
+                throw WorkspaceMembershipException::lastOwner();
+            }
 
-        $this->events->dispatch(new WorkspaceMemberRoleChanged(
-            $membership->id,
-            $workspace->id,
-            $membership->user_id,
-            $from,
-            $role,
-        ));
+            $membership->forceFill(['role' => $role])->save();
 
-        return $membership;
+            $this->events->dispatch(new WorkspaceMemberRoleChanged(
+                $membership->id,
+                $workspace->id,
+                $membership->user_id,
+                $from,
+                $role,
+            ));
+
+            return $membership;
+        });
     }
 
     private function guard(
@@ -50,8 +61,18 @@ final readonly class ChangeWorkspaceMemberRole
         WorkspaceMembership $membership,
         WorkspaceRole $role,
     ): void {
-        if (! $workspace->membershipFor($actor)?->allows(Capability::WorkspaceMembersManage)) {
+        $actorMembership = $workspace->membershipFor($actor);
+
+        if (! $actorMembership?->allows(Capability::WorkspaceMembersManage)) {
             throw WorkspaceMembershipException::roleRequiresCapability($role);
+        }
+
+        /*
+         * An admin may manage members, but demoting an owner is permanent — no code path
+         * grants Owner back — so it takes an owner to do it.
+         */
+        if ($membership->role->isOwner() && ! $actorMembership->role->isOwner()) {
+            throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
         }
 
         /*
@@ -67,8 +88,5 @@ final readonly class ChangeWorkspaceMemberRole
             throw WorkspaceMembershipException::cannotAssignOwner();
         }
 
-        if ($workspace->isLastOwner($membership)) {
-            throw WorkspaceMembershipException::lastOwner();
-        }
     }
 }
