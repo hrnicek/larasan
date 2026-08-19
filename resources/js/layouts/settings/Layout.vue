@@ -42,8 +42,9 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
+                <!-- Below md the list scrolls sideways above the content (docs/ui/settings.md). -->
                 <nav
-                    class="flex flex-col space-y-1 space-x-0"
+                    class="flex flex-row gap-1 overflow-x-auto pb-2 md:flex-col md:gap-0 md:space-y-1 md:overflow-x-visible md:pb-0"
                     aria-label="Settings"
                 >
                     <Button
@@ -51,7 +52,7 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         :key="toUrl(item.href)"
                         variant="ghost"
                         :class="[
-                            'w-full justify-start',
+                            'shrink-0 justify-start md:w-full',
                             { 'bg-muted': isCurrentOrParentUrl(item.href) },
                         ]"
                         as-child

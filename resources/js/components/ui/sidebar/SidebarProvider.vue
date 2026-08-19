@@ -2,7 +2,7 @@
 import type { HTMLAttributes, Ref } from "vue"
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core"
 import { TooltipProvider } from "reka-ui"
-import { computed, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { cn } from "@/lib/utils"
 import { provideSidebarContext, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./utils"
 
@@ -19,7 +19,21 @@ const emits = defineEmits<{
   "update:open": [open: boolean]
 }>()
 
-const isMobile = useMediaQuery("(max-width: 768px)")
+/*
+ * The server has no viewport, so it always renders the desktop branch. useMediaQuery
+ * answers truthfully during setup on a narrow client, which is before hydration has
+ * finished — Vue then finds a Sheet where the server put a div, and the trigger icon
+ * pointing the other way. Holding the answer until mounted makes the first client render
+ * agree with the server and lets the switch happen as an ordinary update.
+ */
+const matchesMobileViewport = useMediaQuery("(max-width: 768px)")
+const hasMounted = ref(false)
+
+onMounted(() => {
+  hasMounted.value = true
+})
+
+const isMobile = computed(() => hasMounted.value && matchesMobileViewport.value)
 const openMobile = ref(false)
 
 const open = useVModel(props, "open", emits, {
