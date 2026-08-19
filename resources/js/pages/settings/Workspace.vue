@@ -6,16 +6,31 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { WorkspaceAbilities, WorkspaceSettings } from '@/modules/workspace/types';
+import { edit } from '@/routes/workspaces';
 
-const props = defineProps<{
-    workspace: { id: string; name: string; slug: string; timezone: string };
-    can: { update: boolean; delete: boolean };
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            {
+                title: 'Workspace settings',
+                href: edit(),
+            },
+        ],
+    },
+});
+
+defineProps<{
+    workspace: WorkspaceSettings;
+    can: WorkspaceAbilities;
 }>();
 </script>
 
 <template>
     <div class="flex flex-col space-y-6">
         <Head title="Workspace settings" />
+
+        <h1 class="sr-only">Workspace settings</h1>
 
         <Heading
             variant="small"
@@ -29,7 +44,7 @@ const props = defineProps<{
 
         <Form
             v-else
-            v-bind="WorkspaceController.update.form(props.workspace.slug)"
+            v-bind="WorkspaceController.update.form()"
             class="max-w-lg space-y-6"
             v-slot="{ errors, processing }"
         >

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -46,6 +47,21 @@ class HandleInertiaRequests extends Middleware
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,
             ],
+            /*
+             * The switcher lives in the shell, so the list is shared rather than fetched
+             * per page. Three columns, active memberships only — the query is the same
+             * one the resolution middleware already proved the actor against.
+             */
+            'workspaces' => $request->user() === null ? [] : $request->user()
+                ->workspaces()
+                ->orderBy('name')
+                ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug'])
+                ->map(fn (Workspace $workspace): array => [
+                    'id' => $workspace->id,
+                    'name' => $workspace->name,
+                    'slug' => $workspace->slug,
+                ])
+                ->all(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

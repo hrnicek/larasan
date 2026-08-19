@@ -47,9 +47,16 @@ class WorkspaceController extends Controller
             CreateWorkspaceData::fromRequest($request),
         );
 
+        /*
+         * The creator lands in the workspace they just made. Without this the settings
+         * screen would resolve whichever workspace they were in before, because
+         * resolution reads the stored choice and this request never named one.
+         */
+        $request->user()?->forceFill(['current_workspace_id' => $workspace->id])->save();
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Workspace created.')]);
 
-        return to_route('workspaces.edit', $workspace->slug);
+        return to_route('workspaces.edit');
     }
 
     /**
@@ -71,7 +78,7 @@ class WorkspaceController extends Controller
 
         Gate::authorize('view', $workspace);
 
-        return Inertia::render('workspaces/Settings', [
+        return Inertia::render('settings/Workspace', [
             'workspace' => [
                 'id' => $workspace->id,
                 'name' => $workspace->name,
@@ -87,14 +94,14 @@ class WorkspaceController extends Controller
 
     public function update(UpdateWorkspaceRequest $request, UpdateWorkspace $updateWorkspace): RedirectResponse
     {
-        $workspace = $updateWorkspace->handle(
+        $updateWorkspace->handle(
             $this->current($request),
             UpdateWorkspaceData::fromRequest($request),
         );
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Workspace updated.')]);
 
-        return to_route('workspaces.edit', $workspace->slug);
+        return to_route('workspaces.edit');
     }
 
     /**

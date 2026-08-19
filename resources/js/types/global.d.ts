@@ -1,3 +1,4 @@
+import type { WorkspaceSummary } from '@/modules/workspace/types';
 import type { Auth } from '@/types/auth';
 
 // Extend ImportMeta interface for Vite...
@@ -23,6 +24,8 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             sidebarOpen: boolean;
+            workspace: WorkspaceSummary | null;
+            workspaces: WorkspaceSummary[];
             [key: string]: unknown;
         };
     }

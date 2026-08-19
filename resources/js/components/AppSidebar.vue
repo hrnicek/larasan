@@ -14,6 +14,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
@@ -42,9 +43,11 @@ const footerNavItems: NavItem[] = [
 <template>
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
+            <WorkspaceSwitcher />
+
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
+                    <SidebarMenuButton as-child>
                         <Link :href="dashboard()">
                             <AppLogo />
                         </Link>

@@ -153,8 +153,10 @@
     --chart-5: hsl(340 75% 55%);
     --sidebar-background: hsl(0 0% 7%);
     --sidebar-foreground: hsl(0 0% 95.9%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-primary: hsl(0 0% 100%);
+    /* Was hsl(0 0% 100%): white on white, so anything relying on the pair for contrast
+       rendered invisible in dark mode. Mirrors the light palette, which is 10% on 98%. */
+    --sidebar-primary-foreground: hsl(0 0% 10%);
     --sidebar-accent: hsl(0 0% 15.9%);
     --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
     --sidebar-border: hsl(0 0% 15.9%);

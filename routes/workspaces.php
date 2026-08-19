@@ -16,6 +16,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
 
     Route::post('workspaces/{workspace}/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
 
-    Route::get('workspaces/{workspace}/settings', [WorkspaceController::class, 'edit'])->name('workspaces.edit');
-    Route::put('workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
+    /*
+     * Workspace settings act on the workspace the request is already in, so the route
+     * carries no parameter — docs/ui/settings.md specifies /settings/workspace, and the
+     * resolution middleware supplies the workspace from the actor's current one.
+     */
+    Route::get('settings/workspace', [WorkspaceController::class, 'edit'])->name('workspaces.edit');
+    Route::put('settings/workspace', [WorkspaceController::class, 'update'])->name('workspaces.update');
 });

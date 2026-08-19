@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
-import { create, edit } from '@/routes/workspaces';
+import type { WorkspaceSummary } from '@/modules/workspace/types';
+import { create, edit, switchMethod } from '@/routes/workspaces';
 
 defineProps<{
-    workspaces: Array<{ id: string; name: string; slug: string }>;
+    workspaces: WorkspaceSummary[];
 }>();
+
+const page = usePage();
+const currentId = computed(() => page.props.workspace?.id ?? null);
+
+function open(workspace: WorkspaceSummary): void {
+    router.post(switchMethod(workspace.slug).url);
+}
 </script>
 
 <template>
@@ -18,7 +27,10 @@ defineProps<{
             description="The workspaces you belong to"
         />
 
-        <div v-if="workspaces.length === 0" class="rounded-lg border border-dashed p-8 text-center">
+        <div
+            v-if="workspaces.length === 0"
+            class="rounded-lg border border-dashed p-8 text-center"
+        >
             <p class="text-muted-foreground text-sm">
                 You are not a member of any workspace yet.
             </p>
@@ -27,13 +39,34 @@ defineProps<{
             </Button>
         </div>
 
-        <ul v-else class="divide-y rounded-lg border">
-            <li v-for="workspace in workspaces" :key="workspace.id" class="flex items-center justify-between p-4">
-                <span class="font-medium">{{ workspace.name }}</span>
-                <Button as-child variant="ghost">
-                    <Link :href="edit(workspace.slug)">Settings</Link>
-                </Button>
-            </li>
-        </ul>
+        <template v-else>
+            <ul class="divide-y rounded-lg border">
+                <li
+                    v-for="workspace in workspaces"
+                    :key="workspace.id"
+                    class="flex items-center justify-between gap-4 p-4"
+                >
+                    <div class="min-w-0">
+                        <p class="truncate font-medium">{{ workspace.name }}</p>
+                        <p class="text-muted-foreground truncate text-xs">{{ workspace.slug }}</p>
+                    </div>
+
+                    <Button
+                        v-if="workspace.id === currentId"
+                        as-child
+                        variant="outline"
+                    >
+                        <Link :href="edit()">Settings</Link>
+                    </Button>
+                    <Button v-else variant="ghost" @click="open(workspace)">
+                        Open
+                    </Button>
+                </li>
+            </ul>
+
+            <Button as-child variant="outline" class="self-start">
+                <Link :href="create()">Create a workspace</Link>
+            </Button>
+        </template>
     </div>
 </template>
