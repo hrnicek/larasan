@@ -59,7 +59,9 @@ final readonly class InviteWorkspaceMember
 
     private function guard(Workspace $workspace, User $actor, InviteWorkspaceMemberData $data): void
     {
-        if (! $workspace->membershipFor($actor)?->allows(Capability::WorkspaceMembersManage)) {
+        $actorMembership = $workspace->membershipFor($actor);
+
+        if (! $actorMembership?->allows(Capability::WorkspaceMembersManage)) {
             throw WorkspaceMembershipException::roleRequiresCapability($data->role);
         }
 
@@ -67,8 +69,27 @@ final readonly class InviteWorkspaceMember
             throw WorkspaceMembershipException::cannotAssignOwner();
         }
 
-        if ($workspace->membershipFor(User::query()->findOrFail($data->userId))?->status->grantsAccess() === true) {
+        $existing = $workspace->membershipFor(User::query()->findOrFail($data->userId));
+
+        if ($existing?->status->grantsAccess() === true) {
             throw WorkspaceMembershipException::alreadyAMember();
+        }
+
+        /*
+         * `updateOrCreate` rewrites the row, so inviting a *revoked owner* would demote
+         * them permanently — Owner is never granted again — and strand the `owner_id`
+         * holder. Same rule as removal and demotion: an owner's row takes an owner.
+         */
+        if ($existing?->role->isOwner() === true && ! $actorMembership->role->isOwner()) {
+            throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
+        }
+
+        /*
+         * A live invitation is not re-sent. Without this the endpoint mails the same
+         * address on every call — the throttle caps the rate, not the total.
+         */
+        if ($existing?->status === WorkspaceMembershipStatus::Invited && ! $existing->hasExpired()) {
+            throw WorkspaceMembershipException::alreadyInvited();
         }
     }
 }

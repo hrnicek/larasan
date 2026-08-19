@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, Head, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import WorkspaceMemberController from '@/actions/App/Http/Controllers/Workspace/WorkspaceMemberController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -32,13 +32,21 @@ defineOptions({
     },
 });
 
-defineProps<{
+const props = defineProps<{
     members: WorkspaceMember[];
     roles: string[];
     can: { manageMembers: boolean };
 }>();
 
 const removing = ref<WorkspaceMember | null>(null);
+
+/*
+ * Only an owner may act on an owner (ADR-0010). The server refuses regardless; this
+ * keeps the screen from offering a button whose failure has nowhere to render.
+ */
+const viewerIsOwner = computed(
+    () => props.members.find((member) => member.isYou)?.role === 'owner',
+);
 
 function changeRole(member: WorkspaceMember, role: string): void {
     if (role === member.role) {
@@ -141,7 +149,7 @@ function confirmRemoval(): void {
                     </Select>
 
                     <Button
-                        v-if="can.manageMembers && !member.isLastOwner && !member.isYou"
+                        v-if="can.manageMembers && !member.isLastOwner && !member.isYou && (member.role !== 'owner' || viewerIsOwner)"
                         variant="ghost"
                         @click="removing = member"
                     >

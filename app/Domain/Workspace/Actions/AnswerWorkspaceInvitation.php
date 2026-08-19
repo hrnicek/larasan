@@ -79,8 +79,14 @@ final readonly class AnswerWorkspaceInvitation
      */
     private function inviterStillMayInvite(WorkspaceMembership $membership): bool
     {
+        /*
+         * `invited_by` is null-on-delete, and a non-owner admin may delete their own
+         * account — which would otherwise revive exactly the invitation this check
+         * exists to kill. A legitimately null inviter belongs to a workspace creator,
+         * and those rows are Active, never Invited.
+         */
         if ($membership->invited_by === null) {
-            return true;
+            return false;
         }
 
         $inviter = $membership->invitedBy;

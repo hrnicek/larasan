@@ -76,9 +76,9 @@ final readonly class ChangeWorkspaceMemberRole
         }
 
         /*
-         * Checked before anything else about the target: an admin who could promote
-         * themselves to owner would make the capability model decorative, and the same
-         * check stops an owner demoting themselves out of the last-owner rule.
+         * An admin who could promote themselves to owner would make the capability model
+         * decorative, and the same check stops an owner demoting themselves out of the
+         * last-owner rule.
          */
         if ($membership->user_id === $actor->id) {
             throw WorkspaceMembershipException::cannotChangeOwnRole();

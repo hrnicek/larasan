@@ -14,7 +14,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('workspaces.create');
     Route::post('workspaces', [WorkspaceController::class, 'store'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:workspace-creation')
         ->name('workspaces.store');
 
     Route::post('workspaces/{workspace}/switch', [WorkspaceController::class, 'switch'])->name('workspaces.switch');
@@ -31,7 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
      * this domain.
      */
     Route::post('settings/members', [WorkspaceMemberController::class, 'store'])
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:workspace-invitations')
         ->name('workspaces.members.store');
     Route::put('settings/members/{membership}', [WorkspaceMemberController::class, 'update'])->name('workspaces.members.update');
     Route::delete('settings/members/{membership}', [WorkspaceMemberController::class, 'destroy'])->name('workspaces.members.destroy');

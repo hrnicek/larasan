@@ -21,6 +21,11 @@ final class WorkspaceMembershipException extends DomainException
         return new self('That user is already a member of this workspace.');
     }
 
+    public static function alreadyInvited(): self
+    {
+        return new self('That person already has an invitation waiting.');
+    }
+
     public static function cannotAssignOwner(): self
     {
         return new self('Ownership is transferred, not assigned. A workspace has one owner, set when it is created.');

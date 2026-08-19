@@ -93,15 +93,20 @@ class Workspace extends Model
             ->where('status', WorkspaceMembershipStatus::Active->value)
             ->whereKeyNot($membership->id);
 
+        if (! $locking) {
+            return $others->doesntExist();
+        }
+
         /*
-         * `locking` is for the Actions, which read this and then write: without the lock,
-         * two requests demoting the two remaining owners each see the other and both
-         * commit, leaving a workspace nobody owns — and no code path can grant Owner
-         * again. The members screen reads it for display and does not lock.
+         * `locking` is for the Actions, which read this and then write. `doesntExist()`
+         * would compile to `select exists(... for update)`, which short-circuits and locks
+         * only the first match, and PostgreSQL refuses `FOR UPDATE` with an aggregate at
+         * all — so the rows are fetched and counted here. Locking the row about to be
+         * written as well means a competing transaction blocks rather than deadlocking.
          */
-        return $locking
-            ? $others->lockForUpdate()->doesntExist()
-            : $others->doesntExist();
+        $this->memberships()->whereKey($membership->id)->lockForUpdate()->get();
+
+        return $others->lockForUpdate()->get(['id'])->all() === [];
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */

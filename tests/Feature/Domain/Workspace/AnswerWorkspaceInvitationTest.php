@@ -22,7 +22,11 @@ function pendingInvitation(?CarbonImmutable $expiresAt = null, WorkspaceRole $ro
     $workspace = Workspace::factory()->create();
     $invitee = User::factory()->create();
 
-    $membership = WorkspaceMembership::factory()->invited(expiresAt: $expiresAt)->create([
+    // Always with an inviter who still may invite: that is what the Action produces, and
+    // an invitation with nobody behind it is refused on purpose.
+    $inviter = memberOf($workspace, WorkspaceRole::Admin);
+
+    $membership = WorkspaceMembership::factory()->invited($inviter, $expiresAt)->create([
         'workspace_id' => $workspace->id,
         'user_id' => $invitee->id,
         'role' => $role,
@@ -154,4 +158,38 @@ it('still lets it be declined once the sender has gone', function (): void {
     app(AnswerWorkspaceInvitation::class)->decline($membership, $invitee);
 
     expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Declined);
+});
+
+it('refuses an invitation with nobody behind it', function (): void {
+    /*
+     * `invited_by` is null-on-delete and a non-owner admin may delete their own account,
+     * which would otherwise revive the invitation this guard exists to kill. A
+     * legitimately null inviter belongs to a workspace creator, and those rows are Active.
+     */
+    $workspace = Workspace::factory()->create();
+    $invitee = User::factory()->create();
+
+    $membership = WorkspaceMembership::factory()->invited()->create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $invitee->id,
+    ]);
+
+    expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'can no longer invite');
+});
+
+it('refuses an invitation from someone since demoted, not only someone removed', function (): void {
+    $workspace = Workspace::factory()->create();
+    $inviter = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+
+    $membership = WorkspaceMembership::factory()->invited($inviter)->create([
+        'workspace_id' => $workspace->id,
+        'user_id' => $invitee->id,
+    ]);
+
+    $workspace->membershipFor($inviter)?->forceFill(['role' => WorkspaceRole::Member])->save();
+
+    expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'can no longer invite');
 });

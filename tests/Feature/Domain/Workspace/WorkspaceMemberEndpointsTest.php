@@ -213,3 +213,22 @@ it('throttles invitations so the endpoint is not a mail cannon', function (): vo
         ->post(route('workspaces.members.store'), ['email' => 'target@example.com', 'role' => 'member'])
         ->assertStatus(429);
 });
+
+it('refuses an admin acting on an owner through the endpoints', function (string $method): void {
+    $workspace = Workspace::factory()->create();
+    memberOf($workspace, WorkspaceRole::Owner);
+    $target = memberOf($workspace, WorkspaceRole::Owner);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $membership = $workspace->membershipFor($target);
+
+    $response = $method === 'delete'
+        ? $this->actingAs($admin)->delete(route('workspaces.members.destroy', $membership->id))
+        : $this->actingAs($admin)->put(route('workspaces.members.update', $membership->id), ['role' => 'member']);
+
+    // The controller translates the refusal onto the field the form can show: the
+    // membership for a removal, the role for a demotion.
+    $response->assertInvalid([$method === 'delete' ? 'membership' : 'role' => 'Only an owner']);
+
+    expect($membership->fresh()?->role)->toBe(WorkspaceRole::Owner)
+        ->and($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active);
+})->with(['delete', 'put']);

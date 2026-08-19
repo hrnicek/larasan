@@ -140,3 +140,53 @@ it('does not let an invitation from one workspace grant anything in another', fu
     expect($second->membershipFor($invitee))->toBeNull()
         ->and($invitee->fresh()?->workspaces()->count())->toBe(0);
 });
+
+it('refuses to rewrite a revoked owner through an invitation', function (): void {
+    /*
+     * updateOrCreate overwrites the row, so inviting a revoked owner as a member would
+     * demote them permanently — Owner is never granted again — and strand the owner_id
+     * holder, whose account cannot be deleted while they own a workspace.
+     */
+    $workspace = Workspace::factory()->create();
+    memberOf($workspace, WorkspaceRole::Owner);
+    $formerOwner = memberOf($workspace, WorkspaceRole::Owner, WorkspaceMembershipStatus::Revoked);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    expect(fn (): WorkspaceMembership => invite($workspace, $admin, $formerOwner))
+        ->toThrow(WorkspaceMembershipException::class, 'Only an owner');
+
+    expect($workspace->membershipFor($formerOwner)?->role)->toBe(WorkspaceRole::Owner);
+});
+
+it('lets an owner re-invite a revoked owner', function (): void {
+    $workspace = Workspace::factory()->create();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $formerOwner = memberOf($workspace, WorkspaceRole::Owner, WorkspaceMembershipStatus::Revoked);
+
+    $membership = invite($workspace, $owner, $formerOwner, WorkspaceRole::Admin);
+
+    expect($membership->status)->toBe(WorkspaceMembershipStatus::Invited)
+        ->and($membership->role)->toBe(WorkspaceRole::Admin);
+});
+
+it('does not re-send an invitation that is still waiting', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+
+    invite($workspace, $admin, $invitee);
+
+    expect(fn (): WorkspaceMembership => invite($workspace, $admin, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'already has an invitation');
+});
+
+it('re-invites once the previous invitation has lapsed', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+
+    $membership = invite($workspace, $admin, $invitee);
+    $membership->forceFill(['expires_at' => CarbonImmutable::now()->subDay()])->save();
+
+    expect(invite($workspace, $admin, $invitee)->status)->toBe(WorkspaceMembershipStatus::Invited);
+});
