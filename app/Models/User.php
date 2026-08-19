@@ -3,10 +3,15 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -33,6 +38,27 @@ class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    /** @return HasMany<WorkspaceMembership, $this> */
+    public function workspaceMemberships(): HasMany
+    {
+        return $this->hasMany(WorkspaceMembership::class);
+    }
+
+    /**
+     * Workspaces this user has an active membership in. Ownership is a separate concept:
+     * an owner also holds a membership row, and a workspace whose owner column points
+     * here without one is a bug the membership tests catch.
+     *
+     * @return BelongsToMany<Workspace, $this>
+     */
+    public function workspaces(): BelongsToMany
+    {
+        return $this->belongsToMany(Workspace::class, 'workspace_memberships')
+            ->withPivot(['id', 'role', 'status', 'joined_at'])
+            ->withTimestamps()
+            ->wherePivot('status', WorkspaceMembershipStatus::Active->value);
+    }
 
     /**
      * Get the attributes that should be cast.

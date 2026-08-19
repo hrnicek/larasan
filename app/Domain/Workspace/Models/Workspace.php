@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Models;
 
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Models\User;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -53,6 +56,32 @@ class Workspace extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    /** @return HasMany<WorkspaceMembership, $this> */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(WorkspaceMembership::class);
+    }
+
+    /**
+     * Every membership row, whatever its status. Callers that mean "people who are
+     * actually in this workspace" filter by status; naming this `members()` without the
+     * filter would have invited the opposite assumption.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'workspace_memberships')
+            ->withPivot(['id', 'role', 'status', 'joined_at'])
+            ->withTimestamps();
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function members(): BelongsToMany
+    {
+        return $this->users()->wherePivot('status', WorkspaceMembershipStatus::Active->value);
     }
 
     /** @return array<string, string> */
