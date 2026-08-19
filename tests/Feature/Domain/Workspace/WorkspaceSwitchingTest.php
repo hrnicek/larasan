@@ -21,11 +21,7 @@ function memberOfWorkspaces(int $count): array
     foreach (range(1, $count) as $index) {
         $workspace = Workspace::factory()->create(['slug' => "workspace-{$index}"]);
 
-        WorkspaceMembership::factory()->active()->create([
-            'workspace_id' => $workspace->id,
-            'user_id' => $user->id,
-            'role' => WorkspaceRole::Member,
-        ]);
+        memberOf($workspace, WorkspaceRole::Member, user: $user);
 
         $workspaces[] = $workspace;
     }

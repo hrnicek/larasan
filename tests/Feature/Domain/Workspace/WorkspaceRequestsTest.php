@@ -6,7 +6,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Data\CreateWorkspaceData;
 use App\Domain\Workspace\Data\UpdateWorkspaceData;
 use App\Domain\Workspace\Models\Workspace;
-use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Http\Requests\Workspace\StoreWorkspaceRequest;
 use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
 use App\Models\User;
@@ -25,19 +24,6 @@ beforeEach(function (): void {
         return response()->json(['name' => $data->name, 'slug' => $data->slug, 'timezone' => $data->timezone]);
     });
 });
-
-function memberWithRole(Workspace $workspace, WorkspaceRole $role): User
-{
-    $user = User::factory()->create();
-
-    WorkspaceMembership::factory()->active()->create([
-        'workspace_id' => $workspace->id,
-        'user_id' => $user->id,
-        'role' => $role,
-    ]);
-
-    return $user;
-}
 
 it('builds the data object from a valid create request', function (): void {
     $response = $this->actingAs(User::factory()->create())
@@ -74,7 +60,7 @@ it('rejects a timezone that does not exist', function (): void {
 
 it('lets an admin through the update request', function (): void {
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
-    $admin = memberWithRole($workspace, WorkspaceRole::Admin);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
         ->putJson('workspace-request-probe/acme', ['name' => 'Acme Industries'])
@@ -84,7 +70,7 @@ it('lets an admin through the update request', function (): void {
 
 it('refuses the update request to a member who cannot manage the workspace', function (): void {
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
-    $member = memberWithRole($workspace, WorkspaceRole::Member);
+    $member = memberOf($workspace, WorkspaceRole::Member);
 
     $this->actingAs($member)
         ->putJson('workspace-request-probe/acme', ['name' => 'Acme Industries'])
@@ -93,7 +79,7 @@ it('refuses the update request to a member who cannot manage the workspace', fun
 
 it('lets a workspace keep its own slug on update', function (): void {
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
-    $admin = memberWithRole($workspace, WorkspaceRole::Admin);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
         ->putJson('workspace-request-probe/acme', ['name' => 'Acme', 'slug' => 'acme'])
@@ -104,7 +90,7 @@ it('lets a workspace keep its own slug on update', function (): void {
 it('still rejects a slug that belongs to a different workspace', function (): void {
     Workspace::factory()->create(['slug' => 'taken']);
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
-    $admin = memberWithRole($workspace, WorkspaceRole::Admin);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
         ->putJson('workspace-request-probe/acme', ['name' => 'Acme', 'slug' => 'taken'])

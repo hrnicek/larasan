@@ -11,23 +11,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
-/**
- * @return array{Workspace, User}
- */
-function workspaceWith(WorkspaceRole $role, WorkspaceMembershipStatus $status = WorkspaceMembershipStatus::Active): array
-{
-    $workspace = Workspace::factory()->create();
-    $user = User::factory()->create();
-
-    WorkspaceMembership::factory()->withStatus($status)->create([
-        'workspace_id' => $workspace->id,
-        'user_id' => $user->id,
-        'role' => $role,
-    ]);
-
-    return [$workspace, $user];
-}
-
 it('is the policy the gate resolves for a workspace', function (): void {
     expect(Gate::getPolicyFor(Workspace::class))->toBeInstanceOf(WorkspacePolicy::class);
 });

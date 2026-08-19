@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -16,18 +17,6 @@ beforeEach(function (): void {
         return response()->json(['slug' => $workspace?->slug]);
     });
 });
-
-function memberOf(Workspace $workspace, WorkspaceMembershipStatus $status = WorkspaceMembershipStatus::Active): User
-{
-    $user = User::factory()->create();
-
-    WorkspaceMembership::factory()->withStatus($status)->create([
-        'workspace_id' => $workspace->id,
-        'user_id' => $user->id,
-    ]);
-
-    return $user;
-}
 
 it('resolves the workspace named in the route for a member', function (): void {
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
@@ -47,7 +36,7 @@ it('returns 404 rather than 403 for a workspace the actor is not in', function (
 
 it('treats a non-active membership as no membership at all', function (): void {
     $workspace = Workspace::factory()->create(['slug' => 'acme']);
-    $revoked = memberOf($workspace, WorkspaceMembershipStatus::Revoked);
+    $revoked = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Revoked);
 
     $this->actingAs($revoked)->get('workspace-probe/acme')->assertNotFound();
 });
