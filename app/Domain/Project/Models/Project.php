@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Models;
 
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Workspace\Models\Workspace;
@@ -71,6 +72,18 @@ class Project extends Model
         }
 
         return $candidate;
+    }
+
+    /**
+     * Managing a project takes both halves: the workspace capability says the actor may
+     * change projects at all, the access level says they may change *this* one (ADR-0006
+     * with ADR-0010). Neither alone is enough, and the policy, the Actions and the UI all
+     * ask here so they cannot drift apart.
+     */
+    public function isManageableBy(User $user): bool
+    {
+        return $this->workspace->membershipFor($user)?->allows(Capability::ProjectUpdate) === true
+            && $this->memberFor($user)?->access_level->canManageProject() === true;
     }
 
     public function isArchived(): bool

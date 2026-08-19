@@ -13,6 +13,11 @@ use DomainException;
  */
 final class ProjectException extends DomainException
 {
+    public static function cannotManageProject(): self
+    {
+        return new self('You do not have permission to change this project.');
+    }
+
     public static function cannotCreateProjects(): self
     {
         return new self('You do not have permission to create projects in this workspace.');
