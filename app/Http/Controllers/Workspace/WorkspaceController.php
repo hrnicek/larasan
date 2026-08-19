@@ -52,6 +52,19 @@ class WorkspaceController extends Controller
         return to_route('workspaces.edit', $workspace->slug);
     }
 
+    /**
+     * Switching is a redirect, because the work is already done: the resolution
+     * middleware refuses a workspace the actor has no active membership in and records
+     * the one it resolved. Repeating either here would be a second implementation of the
+     * same rule, and the weaker of the two would eventually win.
+     */
+    public function switch(Request $request): RedirectResponse
+    {
+        $this->current($request);
+
+        return to_route('dashboard');
+    }
+
     public function edit(Request $request): Response
     {
         $workspace = $this->current($request);
