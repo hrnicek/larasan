@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -74,6 +76,30 @@ class Project extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    /**
+     * The actor's membership row, or null. Named like `Workspace::membershipFor()` because
+     * it answers the same shape of question one level down, and the project policy
+     * composes the two.
+     */
+    public function memberFor(User $user): ?ProjectMembership
+    {
+        return $this->memberships()->where('user_id', $user->id)->first();
+    }
+
+    /** @return HasMany<ProjectMembership, $this> */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(ProjectMembership::class);
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'project_memberships')
+            ->withPivot(['id', 'access_level'])
+            ->withTimestamps();
     }
 
     /** @return BelongsTo<Workspace, $this> */

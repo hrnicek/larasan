@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
@@ -45,6 +46,20 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function currentWorkspace(): BelongsTo
     {
         return $this->belongsTo(Workspace::class, 'current_workspace_id');
+    }
+
+    /**
+     * Projects this user is an explicit member of. Workspace-visible projects they can
+     * also see are not here: that is a visibility rule, answered by a query, not a
+     * relationship (ADR-0006).
+     *
+     * @return BelongsToMany<Project, $this>
+     */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_memberships')
+            ->withPivot(['id', 'access_level'])
+            ->withTimestamps();
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */

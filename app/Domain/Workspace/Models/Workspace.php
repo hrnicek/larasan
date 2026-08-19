@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Models;
 
+use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Models\User;
@@ -107,6 +108,18 @@ class Workspace extends Model
         $this->memberships()->whereKey($membership->id)->lockForUpdate()->get();
 
         return $others->lockForUpdate()->get(['id'])->all() === [];
+    }
+
+    /**
+     * Every project in the workspace, archived and active alike. Callers listing projects
+     * for a person filter by visibility and membership as well — that rule lives in one
+     * query object (TASK-040-011), not in each caller.
+     *
+     * @return HasMany<Project, $this>
+     */
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */
