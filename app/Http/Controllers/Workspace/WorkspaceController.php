@@ -1,0 +1,95 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Workspace;
+
+use App\Domain\Workspace\Actions\CreateWorkspace;
+use App\Domain\Workspace\Actions\UpdateWorkspace;
+use App\Domain\Workspace\Data\CreateWorkspaceData;
+use App\Domain\Workspace\Data\UpdateWorkspaceData;
+use App\Domain\Workspace\Models\Workspace;
+use App\Http\Controllers\Controller;
+use App\Http\Middleware\ResolveCurrentWorkspace;
+use App\Http\Requests\Workspace\StoreWorkspaceRequest;
+use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class WorkspaceController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        return Inertia::render('workspaces/Index', [
+            'workspaces' => $request->user()?->workspaces()
+                ->get()
+                ->map(fn (Workspace $workspace): array => [
+                    'id' => $workspace->id,
+                    'name' => $workspace->name,
+                    'slug' => $workspace->slug,
+                ])
+                ->all() ?? [],
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('workspaces/Create');
+    }
+
+    public function store(StoreWorkspaceRequest $request, CreateWorkspace $createWorkspace): RedirectResponse
+    {
+        $workspace = $createWorkspace->handle(
+            $request->user(),
+            CreateWorkspaceData::fromRequest($request),
+        );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Workspace created.')]);
+
+        return to_route('workspaces.edit', $workspace->slug);
+    }
+
+    public function edit(Request $request): Response
+    {
+        $workspace = $this->current($request);
+
+        Gate::authorize('view', $workspace);
+
+        return Inertia::render('workspaces/Settings', [
+            'workspace' => [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'slug' => $workspace->slug,
+                'timezone' => $workspace->timezone,
+            ],
+            'can' => [
+                'update' => $request->user()?->can('update', $workspace) ?? false,
+                'delete' => $request->user()?->can('delete', $workspace) ?? false,
+            ],
+        ]);
+    }
+
+    public function update(UpdateWorkspaceRequest $request, UpdateWorkspace $updateWorkspace): RedirectResponse
+    {
+        $workspace = $updateWorkspace->handle(
+            $this->current($request),
+            UpdateWorkspaceData::fromRequest($request),
+        );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Workspace updated.')]);
+
+        return to_route('workspaces.edit', $workspace->slug);
+    }
+
+    /**
+     * The workspace the resolution middleware already resolved and proved membership
+     * for. Re-reading the route parameter here would be a second, weaker check.
+     */
+    private function current(Request $request): Workspace
+    {
+        return ResolveCurrentWorkspace::from($request) ?? abort(404);
+    }
+}
