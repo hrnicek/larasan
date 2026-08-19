@@ -86,6 +86,27 @@ class Project extends Model
             && $this->memberFor($user)?->access_level->canManageProject() === true;
     }
 
+    /**
+     * Read access. An explicit project membership always grants it; `visibility =
+     * workspace` grants it to workspace **members** without one — and never to a guest,
+     * who reaches only what they were explicitly given (ADR-0006 with ADR-0010).
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        $membership = $this->workspace->membershipFor($user);
+
+        if ($membership?->status->grantsAccess() !== true) {
+            return false;
+        }
+
+        if ($this->memberFor($user) !== null) {
+            return true;
+        }
+
+        return $this->visibility === ProjectVisibility::Workspace
+            && ! $membership->role->isGuest();
+    }
+
     public function isArchived(): bool
     {
         return $this->archived_at !== null;

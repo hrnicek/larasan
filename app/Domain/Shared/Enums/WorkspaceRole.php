@@ -103,4 +103,13 @@ enum WorkspaceRole: string
     {
         return $this === self::Owner;
     }
+
+    /**
+     * Guests are outside collaborators: they reach only what they were explicitly given,
+     * which is why project visibility never grants them anything (ADR-0006 with ADR-0010).
+     */
+    public function isGuest(): bool
+    {
+        return $this === self::Guest;
+    }
 }
