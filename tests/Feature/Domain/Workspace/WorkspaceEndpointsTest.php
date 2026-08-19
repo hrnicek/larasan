@@ -68,7 +68,7 @@ it('updates the workspace for an admin', function (): void {
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
-        ->put(route('workspaces.update'), ['name' => 'Acme Industries', 'timezone' => 'Europe/Prague'])
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Acme Industries', 'timezone' => 'Europe/Prague'])
         ->assertRedirect(route('workspaces.edit'));
 
     expect($workspace->fresh()?->name)->toBe('Acme Industries')
@@ -80,7 +80,7 @@ it('refuses the update to a member who cannot manage the workspace', function ()
     $member = memberOf($workspace, WorkspaceRole::Member);
 
     $this->actingAs($member)
-        ->put(route('workspaces.update'), ['name' => 'Renamed'])
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Renamed'])
         ->assertForbidden();
 
     expect($workspace->fresh()?->name)->toBe('Acme');
@@ -109,4 +109,23 @@ it('shares the actor\'s workspaces with every page for the switcher', function (
             ->has('workspaces', 1)
             ->where('workspaces.0.name', 'Acme')
             ->where('workspace.slug', 'acme'));
+});
+
+it('refuses an update whose form was rendered for another workspace', function (): void {
+    /*
+     * The route names no workspace, so the target is the pointer: open settings for A,
+     * switch to B in another tab, submit. Both are legitimate admins' workspaces, so
+     * every check upstream passes and A's values would land in B.
+     */
+    $current = Workspace::factory()->create(['slug' => 'current', 'name' => 'Current']);
+    $stale = Workspace::factory()->create(['slug' => 'stale', 'name' => 'Stale']);
+    $admin = memberOf($current, WorkspaceRole::Admin);
+    memberOf($stale, WorkspaceRole::Admin, user: $admin);
+
+    $this->actingAs($admin)
+        ->put(route('workspaces.update'), ['id' => $stale->id, 'name' => 'Renamed'])
+        ->assertInvalid('id');
+
+    expect($current->fresh()?->name)->toBe('Current')
+        ->and($stale->fresh()?->name)->toBe('Stale');
 });

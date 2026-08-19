@@ -48,10 +48,13 @@ defineProps<{
             class="max-w-lg space-y-6"
             v-slot="{ errors, processing }"
         >
+            <input type="hidden" name="id" :value="workspace.id" />
+
             <div class="grid gap-2">
                 <Label for="name">Name</Label>
                 <Input id="name" name="name" required :default-value="workspace.name" />
                 <InputError :message="errors.name" />
+                <InputError :message="errors.id" />
             </div>
 
             <div class="grid gap-2">

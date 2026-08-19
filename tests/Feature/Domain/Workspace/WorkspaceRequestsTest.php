@@ -63,7 +63,7 @@ it('lets an admin through the update request', function (): void {
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
-        ->putJson('workspace-request-probe/acme', ['name' => 'Acme Industries'])
+        ->putJson('workspace-request-probe/acme', ['id' => $workspace->id, 'name' => 'Acme Industries'])
         ->assertOk()
         ->assertJson(['name' => 'Acme Industries', 'slug' => null, 'timezone' => null]);
 });
@@ -73,7 +73,7 @@ it('refuses the update request to a member who cannot manage the workspace', fun
     $member = memberOf($workspace, WorkspaceRole::Member);
 
     $this->actingAs($member)
-        ->putJson('workspace-request-probe/acme', ['name' => 'Acme Industries'])
+        ->putJson('workspace-request-probe/acme', ['id' => $workspace->id, 'name' => 'Acme Industries'])
         ->assertForbidden();
 });
 
@@ -82,7 +82,7 @@ it('lets a workspace keep its own slug on update', function (): void {
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
-        ->putJson('workspace-request-probe/acme', ['name' => 'Acme', 'slug' => 'acme'])
+        ->putJson('workspace-request-probe/acme', ['id' => $workspace->id, 'name' => 'Acme', 'slug' => 'acme'])
         ->assertOk()
         ->assertJson(['slug' => 'acme']);
 });
@@ -93,6 +93,6 @@ it('still rejects a slug that belongs to a different workspace', function (): vo
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
-        ->putJson('workspace-request-probe/acme', ['name' => 'Acme', 'slug' => 'taken'])
+        ->putJson('workspace-request-probe/acme', ['id' => $workspace->id, 'name' => 'Acme', 'slug' => 'taken'])
         ->assertJsonValidationErrorFor('slug');
 });
