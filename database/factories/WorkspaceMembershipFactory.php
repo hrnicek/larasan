@@ -9,6 +9,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -29,6 +30,8 @@ class WorkspaceMembershipFactory extends Factory
             'role' => WorkspaceRole::Member,
             'status' => WorkspaceMembershipStatus::Active,
             'joined_at' => now(),
+            'expires_at' => null,
+            'invited_by' => null,
         ];
     }
 
@@ -57,6 +60,19 @@ class WorkspaceMembershipFactory extends Factory
         return $this->state(fn (): array => [
             'status' => WorkspaceMembershipStatus::Active,
             'joined_at' => now(),
+        ]);
+    }
+
+    /**
+     * An invitation as the domain produces one: not joined, and with a deadline.
+     */
+    public function invited(?User $invitedBy = null, ?CarbonImmutable $expiresAt = null): self
+    {
+        return $this->state(fn (): array => [
+            'status' => WorkspaceMembershipStatus::Invited,
+            'joined_at' => null,
+            'expires_at' => $expiresAt ?? CarbonImmutable::now()->addWeek(),
+            'invited_by' => $invitedBy?->id,
         ]);
     }
 

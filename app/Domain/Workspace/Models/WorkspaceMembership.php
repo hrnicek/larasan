@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property WorkspaceRole $role
  * @property WorkspaceMembershipStatus $status
  * @property CarbonImmutable|null $joined_at
+ * @property CarbonImmutable|null $expires_at
+ * @property int|null $invited_by
  */
 #[UseFactory(WorkspaceMembershipFactory::class)]
 class WorkspaceMembership extends Model
@@ -30,7 +32,7 @@ class WorkspaceMembership extends Model
     /** @use HasFactory<WorkspaceMembershipFactory> */
     use HasFactory, HasUuids;
 
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at'];
+    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'expires_at', 'invited_by'];
 
     /**
      * The single composed authorization question for a workspace. Callers ask this and
@@ -55,6 +57,22 @@ class WorkspaceMembership extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<User, $this> */
+    public function invitedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    /**
+     * An invitation past its deadline is not acceptable, whatever its status column says
+     * — the sweep that flips `invited` to `expired` runs on a schedule, and an acceptance
+     * arriving before it must not win the race.
+     */
+    public function hasExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -62,6 +80,7 @@ class WorkspaceMembership extends Model
             'role' => WorkspaceRole::class,
             'status' => WorkspaceMembershipStatus::class,
             'joined_at' => 'immutable_datetime',
+            'expires_at' => 'immutable_datetime',
         ];
     }
 }
