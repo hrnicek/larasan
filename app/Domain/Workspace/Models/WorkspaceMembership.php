@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Models;
 
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Models\User;
@@ -30,6 +31,17 @@ class WorkspaceMembership extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at'];
+
+    /**
+     * The single composed authorization question for a workspace. Callers ask this and
+     * never `role->allows()` directly: the role is a pure function of the role, so it
+     * answers true for an invited, declined, revoked or expired membership, and a rule
+     * every call site has to remember is a rule one call site will forget (ADR-0010).
+     */
+    public function allows(Capability $capability): bool
+    {
+        return $this->status->grantsAccess() && $this->role->allows($capability);
+    }
 
     /** @return BelongsTo<Workspace, $this> */
     public function workspace(): BelongsTo
