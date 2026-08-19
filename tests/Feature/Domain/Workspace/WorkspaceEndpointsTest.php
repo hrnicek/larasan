@@ -6,6 +6,7 @@ use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia;
 
@@ -337,4 +338,49 @@ it('keeps a workspace the actor no longer belongs to out of the listing and the 
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->has('workspaces', 1)
             ->where('workspaces.0.slug', 'kept'));
+});
+
+it('shares only the user fields the client renders', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $this->actingAs($member)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('auth.user', fn (AssertableInertia $user): AssertableInertia => $user
+                ->hasAll(['id', 'name', 'email', 'email_verified_at', 'avatar'])
+                ->etc()
+                ->missing('password')
+                ->missing('two_factor_secret')
+                ->missing('two_factor_recovery_codes')
+                ->missing('remember_token')
+                ->missing('current_workspace_id')));
+});
+
+it('sends the capabilities the actor holds in the resolved workspace', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+
+    $this->actingAs($member)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('auth.capabilities', fn (Collection $capabilities): bool => $capabilities->contains('project.create')
+                && ! $capabilities->contains('workspace.manage')));
+
+    $this->actingAs($guest)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('auth.capabilities', fn (Collection $capabilities): bool => $capabilities->toArray() === ['comment.create']));
+});
+
+it('sends no capabilities on a membership that is not active', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $revoked = memberOf($workspace, WorkspaceRole::Owner, WorkspaceMembershipStatus::Revoked);
+
+    $this->actingAs($revoked)
+        ->get(route('dashboard'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('auth.capabilities', [])
+            ->where('workspace', null));
 });

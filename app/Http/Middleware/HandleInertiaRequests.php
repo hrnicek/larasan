@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -36,13 +37,39 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $workspace = ResolveCurrentWorkspace::from($request);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                /*
+                 * Explicitly listed, never the model. `$request->user()` ships whatever
+                 * columns the table has, so every column added later becomes a public
+                 * API by accident and `#[Hidden]` is the only thing in the way.
+                 */
+                'user' => $request->user() === null ? null : [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'email_verified_at' => $request->user()->email_verified_at?->toIso8601String(),
+                    'avatar' => null,
+                ],
+                /*
+                 * What the actor may do in the workspace this request resolved, as the
+                 * enum's string values. The client renders these; it never derives a
+                 * permission from a role name (ADR-0010).
+                 */
+                'capabilities' => $workspace === null || $request->user() === null
+                    ? []
+                    : array_map(
+                        fn (Capability $capability): string => $capability->value,
+                        $workspace->membershipFor($request->user())?->status->grantsAccess() === true
+                            ? $workspace->membershipFor($request->user())->role->capabilities()
+                            : [],
+                    ),
             ],
-            'workspace' => ($workspace = ResolveCurrentWorkspace::from($request)) === null ? null : [
+            'workspace' => $workspace === null ? null : [
                 'id' => $workspace->id,
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,

@@ -32,7 +32,7 @@ const user = computed(() => page.props.auth.user);
 
     <h1 class="sr-only">Profile settings</h1>
 
-    <div class="flex flex-col space-y-6">
+    <div v-if="user" class="flex flex-col space-y-6">
         <Heading
             variant="small"
             title="Profile"
