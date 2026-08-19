@@ -20,6 +20,12 @@ class ResolveCurrentWorkspace
         //
     }
 
+    /**
+     * The `workspace` route parameter is a **slug**, not an id. Routes that key a
+     * workspace by id resolve to nothing here and 404 before their controller or policy
+     * runs — which is the right answer for an unknown slug and a confusing one for a
+     * misrouted id, so the convention is stated rather than discovered.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();

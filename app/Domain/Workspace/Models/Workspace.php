@@ -58,6 +58,16 @@ class Workspace extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    /**
+     * The actor's membership row, or null when they have none. The policy asks this and
+     * then asks the row — role alone never answers an authorization question, because it
+     * cannot see whether the membership is still live (ADR-0010).
+     */
+    public function membershipFor(User $user): ?WorkspaceMembership
+    {
+        return $this->memberships()->where('user_id', $user->id)->first();
+    }
+
     /** @return HasMany<WorkspaceMembership, $this> */
     public function memberships(): HasMany
     {
