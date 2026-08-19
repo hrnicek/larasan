@@ -6,6 +6,7 @@ use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia;
 
 it('requires authentication', function (): void {
@@ -128,4 +129,212 @@ it('refuses an update whose form was rendered for another workspace', function (
 
     expect($current->fresh()?->name)->toBe('Current')
         ->and($stale->fresh()?->name)->toBe('Stale');
+});
+
+it('requires authentication on every workspace route', function (string $method, string $route): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $url = in_array($route, ['workspaces.switch'], true) ? route($route, $workspace->slug) : route($route);
+
+    $this->{$method}($url)->assertRedirect(route('login'));
+})->with([
+    'index' => ['get', 'workspaces.index'],
+    'create' => ['get', 'workspaces.create'],
+    'store' => ['post', 'workspaces.store'],
+    'switch' => ['post', 'workspaces.switch'],
+    'edit' => ['get', 'workspaces.edit'],
+    'update' => ['put', 'workspaces.update'],
+]);
+
+it('guards every workspace route with auth and verified', function (): void {
+    /*
+     * Asserted at the route table rather than through a request: `verified` cannot
+     * currently block anyone, because App\Models\User does not implement
+     * MustVerifyEmail even though config/fortify.php enables the feature. The middleware
+     * is the stated intent; TASK-020-024 carries the decision. Without this assertion,
+     * removing it from the group would be invisible.
+     */
+    $routes = collect(Route::getRoutes()->getRoutesByName())
+        ->filter(fn ($route, string $name): bool => str_starts_with($name, 'workspaces.'));
+
+    expect($routes)->toHaveCount(6);
+
+    $routes->each(function ($route): void {
+        expect($route->gatherMiddleware())->toContain('auth')->toContain('verified');
+    });
+});
+
+it('renders the create form', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->get(route('workspaces.create'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('workspaces/Create'));
+});
+
+it('renders an empty listing for someone who belongs to no workspace', function (): void {
+    Workspace::factory()->create();
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('workspaces.index'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('workspaces', 0));
+});
+
+it('puts the creator into the workspace they just created', function (): void {
+    $existing = Workspace::factory()->create(['slug' => 'existing']);
+    $user = memberOf($existing, WorkspaceRole::Owner);
+    $user->forceFill(['current_workspace_id' => $existing->id])->save();
+
+    $this->actingAs($user)->post(route('workspaces.store'), ['name' => 'Beta']);
+
+    expect($user->fresh()?->current_workspace_id)->not->toBe($existing->id);
+
+    $this->actingAs($user->fresh())
+        ->get(route('workspaces.edit'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('workspace.slug', 'beta'));
+});
+
+it('persists the slug and timezone the create form sent', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->post(route('workspaces.store'), [
+            'name' => 'Acme Industries',
+            'slug' => 'acme-eu',
+            'timezone' => 'Europe/Prague',
+        ]);
+
+    $this->assertDatabaseHas('workspaces', [
+        'name' => 'Acme Industries',
+        'slug' => 'acme-eu',
+        'timezone' => 'Europe/Prague',
+    ]);
+});
+
+it('creates exactly one membership, for the creator, as an active owner', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post(route('workspaces.store'), ['name' => 'Acme']);
+
+    $this->assertDatabaseCount('workspace_memberships', 1);
+    $this->assertDatabaseHas('workspace_memberships', [
+        'user_id' => $user->id,
+        'role' => WorkspaceRole::Owner->value,
+        'status' => WorkspaceMembershipStatus::Active->value,
+    ]);
+});
+
+it('rejects a create without a name and stores nothing', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->post(route('workspaces.store'), [])
+        ->assertInvalid('name');
+
+    $this->assertDatabaseCount('workspaces', 0);
+});
+
+it('rejects an update with a blank name and leaves the row alone', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $this->actingAs($admin)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => ''])
+        ->assertInvalid('name');
+
+    expect($workspace->fresh()?->name)->toBe('Acme');
+});
+
+it('lets a workspace keep its own slug and rejects one another workspace holds', function (): void {
+    Workspace::factory()->create(['slug' => 'taken']);
+    $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $this->actingAs($admin)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Acme', 'slug' => 'acme'])
+        ->assertValid();
+
+    $this->actingAs($admin)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Acme', 'slug' => 'taken'])
+        ->assertInvalid('slug');
+
+    expect($workspace->fresh()?->slug)->toBe('acme');
+});
+
+it('ignores an owner or settings smuggled through the workspace forms', function (): void {
+    $intruder = User::factory()->create();
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $ownerId = $workspace->owner_id;
+
+    $this->actingAs($admin)->put(route('workspaces.update'), [
+        'id' => $workspace->id,
+        'name' => 'Acme',
+        'owner_id' => $intruder->id,
+        'settings' => ['injected' => true],
+    ]);
+
+    expect($workspace->fresh()?->owner_id)->toBe($ownerId)
+        ->and($workspace->fresh()?->settings)->toBe([]);
+
+    $this->actingAs($admin)->post(route('workspaces.store'), [
+        'name' => 'Beta',
+        'owner_id' => $intruder->id,
+    ]);
+
+    $beta = Workspace::query()->where('slug', 'beta')->firstOrFail();
+
+    expect($beta->owner_id)->toBe($admin->id);
+});
+
+it('lets an owner update the workspace and offers them deletion', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+
+    $this->actingAs($owner)
+        ->get(route('workspaces.edit'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('can.update', true)
+            ->where('can.delete', true));
+
+    $this->actingAs($owner)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Acme Industries'])
+        ->assertRedirect(route('workspaces.edit'));
+
+    expect($workspace->fresh()?->name)->toBe('Acme Industries');
+});
+
+it('refuses the update to a guest', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+
+    $this->actingAs($guest)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Renamed'])
+        ->assertForbidden();
+
+    expect($workspace->fresh()?->name)->toBe('Acme');
+});
+
+it('refuses to read or write the settings on a membership that is not active', function (WorkspaceMembershipStatus $status): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
+    $actor = memberOf($workspace, WorkspaceRole::Owner, $status);
+
+    $this->actingAs($actor)->get(route('workspaces.edit'))->assertNotFound();
+
+    $this->actingAs($actor)
+        ->put(route('workspaces.update'), ['id' => $workspace->id, 'name' => 'Renamed'])
+        ->assertForbidden();
+
+    expect($workspace->fresh()?->name)->toBe('Acme');
+})->with([
+    'invited' => WorkspaceMembershipStatus::Invited,
+    'declined' => WorkspaceMembershipStatus::Declined,
+    'revoked' => WorkspaceMembershipStatus::Revoked,
+    'expired' => WorkspaceMembershipStatus::Expired,
+]);
+
+it('keeps a workspace the actor no longer belongs to out of the listing and the shell', function (): void {
+    $kept = Workspace::factory()->create(['slug' => 'kept', 'name' => 'Kept']);
+    $left = Workspace::factory()->create(['slug' => 'left', 'name' => 'Left']);
+    $user = memberOf($kept, WorkspaceRole::Member);
+    memberOf($left, WorkspaceRole::Member, WorkspaceMembershipStatus::Revoked, user: $user);
+
+    $this->actingAs($user)
+        ->get(route('workspaces.index'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('workspaces', 1)
+            ->where('workspaces.0.slug', 'kept'));
 });
