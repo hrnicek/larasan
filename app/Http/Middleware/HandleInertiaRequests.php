@@ -41,6 +41,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'workspace' => ($workspace = ResolveCurrentWorkspace::from($request)) === null ? null : [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'slug' => $workspace->slug,
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

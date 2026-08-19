@@ -33,6 +33,13 @@ class UserFactory extends Factory
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
+
+            /*
+             * Set explicitly, not left to the column default: strict Eloquent throws on
+             * an attribute the model never retrieved, so a factory that omits a nullable
+             * column hands every test a model that fails on first read.
+             */
+            'current_workspace_id' => null,
         ];
     }
 
