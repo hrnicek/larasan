@@ -1,5 +1,7 @@
 <?php
 
+use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
 test('profile page is displayed', function () {
@@ -82,4 +84,28 @@ test('correct password must be provided to delete account', function () {
         ->assertRedirect(route('profile.edit'));
 
     expect($user->fresh())->not->toBeNull();
+});
+
+it('refuses to delete an account that owns a workspace', function (): void {
+    $owner = User::factory()->create();
+    Workspace::factory()->ownedBy($owner)->create(['name' => 'Acme Industries']);
+
+    $this->actingAs($owner)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertInvalid(['password' => 'Transfer or delete these workspaces first: Acme Industries']);
+
+    expect($owner->fresh())->not->toBeNull();
+    $this->assertAuthenticatedAs($owner);
+});
+
+it('deletes an account that only belongs to workspaces it does not own', function (): void {
+    $workspace = Workspace::factory()->create();
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $this->actingAs($member)
+        ->delete(route('profile.destroy'), ['password' => 'password'])
+        ->assertRedirect('/');
+
+    expect($member->fresh())->toBeNull();
+    $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $member->id]);
 });
