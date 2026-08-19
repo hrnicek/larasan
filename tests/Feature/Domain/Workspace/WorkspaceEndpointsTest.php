@@ -148,11 +148,9 @@ it('requires authentication on every workspace route', function (string $method,
 
 it('guards every workspace route with auth and verified', function (): void {
     /*
-     * Asserted at the route table rather than through a request: `verified` cannot
-     * currently block anyone, because App\Models\User does not implement
-     * MustVerifyEmail even though config/fortify.php enables the feature. The middleware
-     * is the stated intent; TASK-020-024 carries the decision. Without this assertion,
-     * removing it from the group would be invisible.
+     * The route table as well as the behaviour: the request test below proves `verified`
+     * blocks an unverified actor, and this proves the middleware is on every route rather
+     * than on the ones that happen to be tested.
      */
     $routes = collect(Route::getRoutes()->getRoutesByName())
         ->filter(fn ($route, string $name): bool => str_starts_with($name, 'workspaces.'));
@@ -383,4 +381,35 @@ it('sends no capabilities on a membership that is not active', function (): void
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('auth.capabilities', [])
             ->where('workspace', null));
+});
+
+it('keeps an unverified account out of every workspace route', function (string $method, string $route): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $unverified = memberOf(
+        $workspace,
+        WorkspaceRole::Owner,
+        user: User::factory()->unverified()->create(),
+    );
+
+    $url = $route === 'workspaces.switch' ? route($route, $workspace->slug) : route($route);
+
+    $this->actingAs($unverified)->{$method}($url)->assertRedirect(route('verification.notice'));
+})->with([
+    'index' => ['get', 'workspaces.index'],
+    'create' => ['get', 'workspaces.create'],
+    'store' => ['post', 'workspaces.store'],
+    'switch' => ['post', 'workspaces.switch'],
+    'edit' => ['get', 'workspaces.edit'],
+    'update' => ['put', 'workspaces.update'],
+]);
+
+it('lets the same account through once its address is verified', function (): void {
+    $workspace = Workspace::factory()->create(['slug' => 'acme']);
+    $user = memberOf($workspace, WorkspaceRole::Owner, user: User::factory()->unverified()->create());
+
+    $this->actingAs($user)->get(route('workspaces.index'))->assertRedirect(route('verification.notice'));
+
+    $user->markEmailAsVerified();
+
+    $this->actingAs($user->fresh())->get(route('workspaces.index'))->assertOk();
 });
