@@ -53,6 +53,19 @@ it('denies everyone when no operator is configured', function (): void {
     expect(Gate::forUser($user)->allows('viewHorizon'))->toBeFalse();
 });
 
+it('denies someone who merely claims an operator address', function (): void {
+    /*
+     * Registration does not prove mailbox control, and settings/profile lets any account
+     * change its address. An unregistered ops alias would otherwise be a free pass to
+     * every tenant's job payloads.
+     */
+    $claimant = User::factory()->unverified()->create(['email' => 'ops@example.com']);
+
+    horizonGateIn('production', ['ops@example.com']);
+
+    expect(Gate::forUser($claimant)->allows('viewHorizon'))->toBeFalse();
+});
+
 it('allows a configured operator, matching the address case-insensitively', function (): void {
     $operator = User::factory()->create(['email' => 'ops@example.com']);
 

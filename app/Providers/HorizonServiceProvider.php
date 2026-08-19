@@ -35,6 +35,17 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
                 return true;
             }
 
+            /*
+             * Verified, then listed. The list cannot be changed by anyone who compromises
+             * an account, but the address matched against it can: registration does not
+             * prove mailbox control, and `PATCH settings/profile` lets any account change
+             * its address. Without this check, claiming an unregistered ops alias hands
+             * over every tenant's job payloads.
+             */
+            if (! $user->hasVerifiedEmail()) {
+                return false;
+            }
+
             /** @var list<string> $operators */
             $operators = config('horizon.operators', []);
 
