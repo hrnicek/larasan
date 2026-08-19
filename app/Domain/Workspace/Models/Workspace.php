@@ -37,19 +37,26 @@ class Workspace extends Model
      * is the hidden side effect the guidelines forbid, and callers that need to show the
      * slug before saving cannot ask a hook for it.
      *
-     * The suffix closes the collision window that validation cannot: two requests naming
-     * a workspace identically both pass a uniqueness check and one loses to the unique
-     * index. Callers retry with a fresh call.
+     * Collisions resolve by counting, not by randomness. Each candidate is checked, so
+     * the method cannot hand back a slug that is already taken — the first version
+     * returned an unchecked random suffix, which the unique index met as a 500 — and a
+     * counted sequence terminates, which a random one is not guaranteed to.
+     *
+     * A simultaneous insert can still take the candidate between the check and the
+     * write. The database is the authority, not this method, which is why
+     * CreateWorkspace retries once.
      */
     public static function slugFor(string $name): string
     {
         $base = Str::slug($name) ?: 'workspace';
+        $candidate = $base;
+        $suffix = 1;
 
-        if (! static::query()->where('slug', $base)->exists()) {
-            return $base;
+        while (static::query()->where('slug', $candidate)->exists()) {
+            $candidate = $base.'-'.++$suffix;
         }
 
-        return $base.'-'.Str::lower(Str::random(6));
+        return $candidate;
     }
 
     /** @return BelongsTo<User, $this> */

@@ -32,7 +32,7 @@ it('suffixes the slug when the name is already taken', function (): void {
 
     $slug = Workspace::slugFor('Acme');
 
-    expect($slug)->not->toBe('acme')->toStartWith('acme-');
+    expect($slug)->toBe('acme-2');
 });
 
 it('falls back when a name slugifies to nothing', function (): void {
@@ -51,4 +51,16 @@ it('refuses to delete a user who owns a workspace', function (): void {
     Workspace::factory()->ownedBy($owner)->create();
 
     expect(fn (): ?bool => $owner->delete())->toThrow(QueryException::class);
+});
+
+it('counts past every slug that is already taken', function (): void {
+    /*
+     * The first version returned one unchecked random suffix, so a second collision
+     * handed back a slug the unique index would reject. Counting is checked at each
+     * step and terminates; a random suffix pinned for a test would not.
+     */
+    Workspace::factory()->create(['slug' => 'acme']);
+    Workspace::factory()->create(['slug' => 'acme-2']);
+
+    expect(Workspace::slugFor('Acme'))->toBe('acme-3');
 });

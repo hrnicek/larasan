@@ -49,7 +49,8 @@ it('resolves a slug collision rather than failing', function (): void {
     $first = createWorkspace($owner, new CreateWorkspaceData(name: 'Acme'));
     $second = createWorkspace($owner, new CreateWorkspaceData(name: 'Acme'));
 
-    expect($second->slug)->not->toBe($first->slug)->toStartWith('acme-');
+    expect($first->slug)->toBe('acme')
+        ->and($second->slug)->toBe('acme-2');
 });
 
 it('rolls the membership back when the workspace insert fails', function (): void {
