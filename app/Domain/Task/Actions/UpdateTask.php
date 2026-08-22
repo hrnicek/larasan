@@ -59,7 +59,7 @@ final readonly class UpdateTask
 
         $task->save();
 
-        $this->events->dispatch(new TaskUpdated($task->id, $task->workspace_id, $changed));
+        $this->events->dispatch(new TaskUpdated($task->id, $task->workspace_id, $changed, $actor->id));
 
         return $task;
     }

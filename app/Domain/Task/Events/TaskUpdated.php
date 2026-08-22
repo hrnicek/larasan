@@ -13,5 +13,6 @@ final readonly class TaskUpdated
         public string $taskId,
         public string $workspaceId,
         public array $changed,
+        public int $updatedById,
     ) {}
 }
