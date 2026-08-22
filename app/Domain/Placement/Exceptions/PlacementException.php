@@ -23,6 +23,16 @@ final class PlacementException extends DomainException
         return new self('That section is not in this project.');
     }
 
+    public static function cardIsNotInThatColumn(): self
+    {
+        return new self('That card is not in this column.');
+    }
+
+    public static function cannotFollowItself(): self
+    {
+        return new self('A task cannot be placed after itself.');
+    }
+
     /**
      * The rule no foreign key can express: `task_id` and `project_id` each point at a valid
      * row, and the pair is still wrong when the two rows belong to different tenants
