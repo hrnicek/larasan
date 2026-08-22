@@ -35,6 +35,18 @@ final readonly class AssignTask
             throw TaskException::assigneeIsNotAMember();
         }
 
+        /*
+         * And they have to be able to open it (TASK-070-017, answering the question
+         * TASK-060-012 deferred until a task had places). Membership alone is not reach: a
+         * guest holds the projects they were given, so handing one a card inside a project
+         * they cannot open would put work in their list that they cannot read, comment on
+         * or complete. The same rule refuses a member for a task that appears only in a
+         * private project they are not in.
+         */
+        if ($assignee !== null && ! $assignee->can('view', $task)) {
+            throw TaskException::assigneeCannotReachTask();
+        }
+
         if ($task->assignee_id === $assignee?->id) {
             return $task;
         }

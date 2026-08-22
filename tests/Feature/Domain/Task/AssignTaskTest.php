@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\AssignTask;
@@ -90,18 +95,43 @@ it('refuses an account with no membership at all', function (): void {
         ->toThrow(TaskException::class);
 });
 
-it('allows a guest to be assigned, for now', function (): void {
+it('refuses a guest who cannot reach the task', function (): void {
     [$task, $actor] = taskEditableBy();
     $guest = memberOf($task->workspace, WorkspaceRole::Guest);
 
+    /*
+     * The question TASK-060-012 deferred until a task had places, answered in
+     * TASK-070-017: a guest holds the projects they were given, and this task is in none of
+     * them. Work nobody can open is not work anybody can do.
+     */
+    expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $guest))
+        ->toThrow(TaskException::class, 'That person cannot reach this task.');
+
+    expect($task->fresh()?->assignee_id)->toBeNull();
+});
+
+it('assigns a guest a task that is in a project they were given', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $guest = memberOf($task->workspace, WorkspaceRole::Guest);
+    $project = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Editor)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
     app(AssignTask::class)->handle($task, $actor, $guest);
 
-    /*
-     * A guest is an active member, so nothing here refuses them. Whether a guest may hold
-     * work they cannot reach only becomes answerable in Phase 070, when a task has places:
-     * the rule is recorded on TASK-060-012 rather than guessed at now.
-     */
     expect($task->fresh()?->assignee_id)->toBe($guest->id);
+});
+
+it('refuses a member for a task that lives only in a private project they are not in', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $outsider = memberOf($task->workspace, WorkspaceRole::Member);
+    $private = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
+    TaskProjectMembership::factory()->placing($task, $private)->create();
+
+    // Being in the workspace is not being in the room: the card is on a board they cannot
+    // open, so its title is not theirs to read either.
+    expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $outsider))
+        ->toThrow(TaskException::class, 'That person cannot reach this task.');
 });
 
 it('refuses an actor without the task.assign capability', function (): void {

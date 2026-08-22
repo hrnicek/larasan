@@ -53,6 +53,15 @@ final class TaskException extends DomainException
         return new self('A task can only be a subtask of a task in the same workspace.');
     }
 
+    /**
+     * Reach, not membership. A guest is a member and still cannot open a task that is in no
+     * project of theirs, and work nobody can read is not work anybody can do.
+     */
+    public static function assigneeCannotReachTask(): self
+    {
+        return new self('That person cannot reach this task.');
+    }
+
     public static function assigneeIsNotAMember(): self
     {
         return new self('A task can only be assigned to an active member of its workspace.');
