@@ -87,11 +87,20 @@ function projectFor(
     WorkspaceMembershipStatus $status = WorkspaceMembershipStatus::Active,
 ): array {
     $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, $role, $status);
+    $actor = memberOf($workspace, $role);
     $project = Project::factory()->in($workspace)->create(['visibility' => $visibility]);
 
     if ($access !== null) {
         ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
+    }
+
+    /*
+     * The status is applied last, because a project membership can only be created for an
+     * active workspace member (TASK-040-021) — and a lapsed membership with a live project
+     * grant is exactly the shape these tests are about.
+     */
+    if ($status !== WorkspaceMembershipStatus::Active) {
+        $workspace->membershipFor($actor)?->forceFill(['status' => $status])->save();
     }
 
     return [$project, $actor];

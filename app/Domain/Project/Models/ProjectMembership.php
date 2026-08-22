@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Models;
 
+use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Models\User;
 use Database\Factories\ProjectMembershipFactory;
@@ -30,6 +31,27 @@ class ProjectMembership extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = ['project_id', 'user_id', 'access_level'];
+
+    /**
+     * A project membership only means something inside the workspace that owns the project.
+     * Enforced here rather than in one Action because these rows are written from several
+     * places — project creation, membership management, a seeder — and an invariant that
+     * depends on remembering to check it is one that eventually is not checked.
+     *
+     * The database cannot express it: the check spans `projects` and `workspace_memberships`,
+     * and PostgreSQL's `CHECK` cannot see another table (ADR-0005 records the same limit for
+     * cross-aggregate references).
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (ProjectMembership $membership): void {
+            $project = $membership->project ?? Project::query()->find($membership->project_id);
+
+            if ($project instanceof Project && ! $project->workspace->hasActiveMember($membership->user_id)) {
+                throw ProjectException::memberIsNotInTheWorkspace();
+            }
+        });
+    }
 
     /** @return BelongsTo<Project, $this> */
     public function project(): BelongsTo

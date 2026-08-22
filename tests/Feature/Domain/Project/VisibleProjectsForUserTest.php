@@ -54,11 +54,15 @@ it('shows a guest only what they were explicitly given', function (): void {
 
 it('hides everything from someone whose workspace membership is not active', function (WorkspaceMembershipStatus $status): void {
     $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, WorkspaceRole::Owner, $status);
+    $actor = memberOf($workspace, WorkspaceRole::Owner);
     $project = Project::factory()->in($workspace)->create(['name' => 'Open']);
 
-    // Even a live project membership must not survive the workspace one lapsing.
+    // Granted while they were a member, and then the workspace membership lapses — which is
+    // the only way this row can exist at all (TASK-040-021). A live project membership must
+    // not survive the workspace one.
     ProjectMembership::factory()->in($project)->forUser($actor)->create();
+
+    $workspace->membershipFor($actor)?->forceFill(['status' => $status])->save();
 
     expect(visibleProjectNames($workspace, $actor))->toBe([]);
 })->with([

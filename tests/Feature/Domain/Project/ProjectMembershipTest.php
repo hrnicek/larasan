@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\LazyLoadingViolationException;
@@ -79,4 +82,49 @@ it('resolves memberships without an n+1 when eager loaded', function (): void {
 
     expect(fn (): mixed => $lazy->first()->memberships)
         ->toThrow(LazyLoadingViolationException::class);
+});
+
+it('refuses a project membership for somebody who is not in the workspace', function (): void {
+    $project = Project::factory()->create();
+    $stranger = User::factory()->create();
+
+    /*
+     * TASK-040-021's invariant. Access to a project is access inside a workspace, so a grant
+     * to somebody who is not in that workspace means nothing and reads as if it means
+     * something — which is worse than not existing.
+     */
+    expect(fn (): ProjectMembership => ProjectMembership::query()->create([
+        'project_id' => $project->id,
+        'user_id' => $stranger->id,
+        'access_level' => ProjectAccessLevel::Editor,
+    ]))->toThrow(ProjectException::class, 'not an active member');
+
+    expect($project->memberships()->count())->toBe(0);
+});
+
+it('refuses one for somebody whose workspace membership has not been accepted', function (): void {
+    $workspace = Workspace::factory()->create();
+    $invited = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Invited);
+    $project = Project::factory()->in($workspace)->create();
+
+    // An invitation is not a membership: until it is accepted there is nobody to grant to.
+    expect(fn (): ProjectMembership => ProjectMembership::query()->create([
+        'project_id' => $project->id,
+        'user_id' => $invited->id,
+        'access_level' => ProjectAccessLevel::Viewer,
+    ]))->toThrow(ProjectException::class);
+});
+
+it('keeps a grant that was made while the person was still a member', function (): void {
+    $workspace = Workspace::factory()->create();
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->create();
+    $membership = ProjectMembership::factory()->in($project)->forUser($member)->create();
+
+    $workspace->membershipFor($member)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
+
+    // The row survives — what it grants does not, which is `isVisibleTo()`'s answer rather
+    // than the row's existence.
+    expect($membership->fresh())->not->toBeNull()
+        ->and($project->fresh()?->isVisibleTo($member))->toBeFalse();
 });

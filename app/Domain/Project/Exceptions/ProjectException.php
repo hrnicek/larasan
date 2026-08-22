@@ -23,4 +23,14 @@ final class ProjectException extends DomainException implements DomainRefusal
     {
         return new self('You do not have permission to create projects in this workspace.');
     }
+
+    /**
+     * The invariant TASK-040-021 recorded in Phase 040: access to a project is access inside
+     * a workspace, so a project membership for somebody who is not in that workspace is a
+     * grant that means nothing and reads as if it means something.
+     */
+    public static function memberIsNotInTheWorkspace(): self
+    {
+        return new self('That person is not an active member of this project\'s workspace.');
+    }
 }
