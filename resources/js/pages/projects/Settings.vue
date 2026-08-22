@@ -105,17 +105,22 @@ const viewLabels: Record<string, string> = {
 
             <div class="grid gap-2">
                 <Label for="color-trigger">Colour</Label>
-                <Select v-model="color">
-                    <SelectTrigger id="color-trigger" class="w-56">
-                        <SelectValue placeholder="No colour" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="option in props.options.colors" :key="option" :value="option">
-                            <span :class="accentTextClass(option)">●</span>
-                            {{ option }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
+                <div class="flex items-center gap-2">
+                    <Select v-model="color">
+                        <SelectTrigger id="color-trigger" class="w-56">
+                            <SelectValue placeholder="No colour" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem v-for="option in props.options.colors" :key="option" :value="option">
+                                <span :class="accentTextClass(option)">●</span>
+                                {{ option }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <!-- A select cannot offer an empty option, so clearing gets its own control. -->
+                    <Button v-if="color" type="button" variant="ghost" @click="color = ''">Clear</Button>
+                </div>
                 <InputError :message="errors.color" />
             </div>
 

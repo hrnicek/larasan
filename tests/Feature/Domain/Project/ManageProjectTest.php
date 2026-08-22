@@ -11,6 +11,7 @@ use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
@@ -46,6 +47,27 @@ it('updates the mutable attributes and leaves the slug alone', function (): void
     expect($project->fresh()?->name)->toBe('Web Redesign')
         ->and($project->fresh()?->slug)->toBe('web')
         ->and($project->fresh()?->visibility)->toBe(ProjectVisibility::Private);
+});
+
+it('clears a nullable field the caller emptied, and keeps the ones null cannot describe', function (): void {
+    [$project, $actor] = projectManagedBy();
+    $project->forceFill([
+        'description' => 'Old',
+        'color' => ProjectColor::Teal->value,
+        'due_date' => '2026-03-01',
+        'visibility' => ProjectVisibility::Private->value,
+    ])->save();
+
+    app(UpdateProject::class)->handle($project, $actor, new UpdateProjectData(name: 'Web'));
+
+    $updated = $project->fresh();
+
+    expect($updated?->description)->toBeNull()
+        ->and($updated?->color)->toBeNull()
+        ->and($updated?->due_date)->toBeNull()
+        // Not nullable, so a null says nothing about these and they stay as they were.
+        ->and($updated?->visibility)->toBe(ProjectVisibility::Private)
+        ->and($updated?->slug)->toBe('web');
 });
 
 it('never moves a project between workspaces or hands it to someone else', function (): void {
