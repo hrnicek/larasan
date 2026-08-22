@@ -10,7 +10,14 @@ import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
-import type { BoardColumnData, ProjectBoard, ProjectList, TaskAssignee, TaskDetail } from '@/modules/task/types';
+import type {
+    BoardColumnData,
+    ProjectBoard,
+    ProjectList,
+    TaskActivityEntry,
+    TaskAssignee,
+    TaskDetail,
+} from '@/modules/task/types';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -29,6 +36,8 @@ const props = defineProps<{
     priorities: string[];
     /** The open panel, when the URL names a task. */
     taskDetail?: TaskDetail | null;
+    /** Deferred with the panel: absent until its own request lands. */
+    activity?: TaskActivityEntry[];
 }>();
 
 /*
@@ -164,6 +173,7 @@ onUnmounted(() => {
             :dismissible="true"
             :members="members"
             :priorities="priorities"
+            :activity="activity"
             @close="closeTask"
         />
 

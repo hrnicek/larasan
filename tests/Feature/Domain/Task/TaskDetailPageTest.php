@@ -12,6 +12,7 @@ use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use App\Http\Middleware\HandleInertiaRequests;
 use Inertia\Testing\AssertableInertia;
 
 it('requires authentication', function (): void {
@@ -216,4 +217,41 @@ it('refuses to start watching a task the actor cannot reach', function (): void 
         ->assertForbidden();
 
     expect($task->follows()->count())->toBe(0);
+});
+
+it('defers the activity region rather than holding the page for it', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    // The first response carries everything the reader needs and not the region that can be
+    // slow — the case the frontend rule about skeletons was written for.
+    $this->actingAs($actor)
+        ->get(route('tasks.show', $task))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('task')
+            ->missing('activity'));
+});
+
+it('sends the activity when the region asks for it', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    /*
+     * The follow-up request a `<Deferred>` region makes. The asset-version middleware is
+     * skipped because this test is about the deferred prop, not about versioning — with it in
+     * place the request would 409 on a version header a test cannot know.
+     */
+    $this->actingAs($actor)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('tasks.show', $task), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'tasks/Show',
+            'X-Inertia-Partial-Data' => 'activity',
+        ])
+        ->assertOk()
+        ->assertJsonPath('component', 'tasks/Show')
+        // A partial response is JSON rather than a rendered page, so it is read as JSON: the
+        // region asked for `activity` and `activity` is what came back.
+        ->assertJsonStructure(['props' => ['activity']]);
 });

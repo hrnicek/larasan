@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import ActivityFeed from '@/modules/task/components/ActivityFeed.vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import FollowerList from '@/modules/task/components/FollowerList.vue';
@@ -8,7 +9,7 @@ import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import SubtaskList from '@/modules/task/components/SubtaskList.vue';
 import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
-import type { TaskAssignee, TaskDetail } from '@/modules/task/types';
+import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task/types';
 
 /**
  * One task, rendered the same way whether it is a panel over a list or a page of its own.
@@ -16,6 +17,8 @@ import type { TaskAssignee, TaskDetail } from '@/modules/task/types';
  */
 const props = defineProps<{
     detail: TaskDetail;
+    /** Deferred: absent until the follow-up request lands (TASK-100-011). */
+    activity?: TaskActivityEntry[];
     /** A panel can be closed; a page has nowhere to close to. */
     dismissible: boolean;
     members: TaskAssignee[];
@@ -217,5 +220,7 @@ defineExpose({ close });
             :subtasks="detail.subtasks"
             :editable="detail.can.update"
         />
+
+        <ActivityFeed :entries="activity" />
     </section>
 </template>

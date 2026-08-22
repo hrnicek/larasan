@@ -87,3 +87,13 @@ export type TaskDetail = {
     subtasks: { id: string; title: string; completedAt: string | null }[];
     can: { update: boolean; delete: boolean; comment: boolean };
 };
+
+/**
+ * One line of a task's history. Comments and real activity arrive in Phase 110; the shape is
+ * declared here because the region that renders them exists now.
+ */
+export type TaskActivityEntry = {
+    id: string;
+    description: string;
+    at: string;
+};

@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
-import type { TaskAssignee, TaskDetail } from '@/modules/task/types';
+import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task/types';
 
 /**
  * A task's own page: the same component the panel renders, with nothing to close to.
  */
-const props = defineProps<TaskDetail & { members: TaskAssignee[]; priorities: string[] }>();
+const props = defineProps<TaskDetail & {
+    members: TaskAssignee[];
+    priorities: string[];
+    activity?: TaskActivityEntry[];
+}>();
 
 const detail = (): TaskDetail => ({
     task: props.task,
@@ -28,6 +32,7 @@ const detail = (): TaskDetail => ({
             :dismissible="false"
             :members="members"
             :priorities="priorities"
+            :activity="activity"
         />
     </div>
 </template>

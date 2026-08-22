@@ -129,6 +129,12 @@ class ProjectController extends Controller
              * client can tell "no panel" from "not sent this time" on a partial reload.
              */
             'taskDetail' => $open,
+            /*
+             * Deferred with the panel, and only when there is one. The same region the task's
+             * own page defers (TASK-100-011): secondary, possibly slow, and never worth
+             * holding the board back for.
+             */
+            'activity' => $open === null ? null : Inertia::defer(fn (): array => []),
             'members' => $project->workspace->members()->orderBy('name')->get()
                 ->map(fn (User $member): array => [
                     'id' => $member->id,

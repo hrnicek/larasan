@@ -26,6 +26,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Inertia\DeferProp;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -66,7 +67,21 @@ class TaskController extends Controller
                 ->values()
                 ->all(),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
+            'activity' => $this->activity(),
         ]);
+    }
+
+    /**
+     * The task's history, deferred.
+     *
+     * The only deferred region in the application, and the reason Phase 080's list was not
+     * one: activity and comments are secondary and can be slow, while the fields above them
+     * are worth reading immediately. Empty until Phase 110 creates the tables it will read —
+     * the region exists now so the screen has somewhere honest to put "nothing yet".
+     */
+    private function activity(): DeferProp
+    {
+        return Inertia::defer(fn (): array => []);
     }
 
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse
