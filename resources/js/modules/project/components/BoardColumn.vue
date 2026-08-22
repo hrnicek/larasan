@@ -22,6 +22,7 @@ const emit = defineEmits<{
     expand: [columnId: string | null];
     pickup: [event: PointerEvent, card: BoardCardData];
     moveto: [placementId: string, columnKey: string];
+    open: [taskId: string];
 }>();
 </script>
 
@@ -51,6 +52,7 @@ const emit = defineEmits<{
                 :columns="columns"
                 @pickup="(event, picked) => emit('pickup', event, picked)"
                 @moveto="(placementId, columnKey) => emit('moveto', placementId, columnKey)"
+                @open="(taskId) => emit('open', taskId)"
             />
 
             <button

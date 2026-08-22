@@ -37,6 +37,13 @@ class ShowProjectRequest extends FormRequest
              */
             'expand' => ['sometimes', 'array', 'max:20'],
             'expand.*' => ['string', 'max:64'],
+
+            /*
+             * The task whose panel is open over this screen. It lives in the URL because a
+             * panel is a context plus a task: a link that carried only the task could not say
+             * which board it was opened from, and reopening it would lose the context.
+             */
+            'task' => ['sometimes', 'uuid'],
         ];
     }
 
@@ -47,6 +54,11 @@ class ShowProjectRequest extends FormRequest
     public function view(Project $project): ProjectDefaultView
     {
         return $this->enum('view', ProjectDefaultView::class) ?? $project->default_view;
+    }
+
+    public function openTask(): ?string
+    {
+        return $this->string('task')->value() ?: null;
     }
 
     /**

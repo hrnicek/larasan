@@ -13,6 +13,7 @@ use App\Domain\Task\Data\CreateTaskData;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -25,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Tasks are created and edited in place — in a list, on a board, in the detail panel — so
@@ -34,6 +36,19 @@ use Inertia\Inertia;
  */
 class TaskController extends Controller
 {
+    /**
+     * One task, at a real and addressable URL.
+     *
+     * The same payload the panel renders, because the panel and this page are one component
+     * (TASK-100-003): two would drift, and the second would be the one nobody tests.
+     */
+    public function show(Request $request, Task $task, TaskDetailQuery $detail): Response
+    {
+        Gate::authorize('view', $task);
+
+        return Inertia::render('tasks/Show', $detail($task, $this->actor($request)));
+    }
+
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse
     {
         $this->translating(

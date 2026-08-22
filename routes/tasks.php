@@ -30,6 +30,10 @@ Route::bind('task', function (string $id): Task {
 });
 
 Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): void {
+    // A task's own URL. The panel over a list is the list's URL plus `?task=`, because a
+    // panel is a context plus a task and a copied link has to carry both (TASK-100-003).
+    Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
+
     Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');
     Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
 

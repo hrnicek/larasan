@@ -23,6 +23,8 @@ const props = defineProps<{
     editable: boolean;
 }>();
 
+const emit = defineEmits<{ open: [taskId: string] }>();
+
 const row = ref<HTMLElement | null>(null);
 
 const completed = () => props.task.completedAt !== null;
@@ -49,9 +51,11 @@ defineExpose({ focus: () => row.value?.focus() });
         ref="row"
         tabindex="0"
         data-task-row
+        :data-task-id="task.id"
         class="flex flex-col gap-1 px-4 py-2 text-sm outline-none focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
         :class="completed() ? 'text-muted-foreground' : ''"
         @keydown.space.prevent="toggleCompletion"
+        @keydown.enter="emit('open', task.id)"
     >
         <div class="flex items-center gap-3">
             <Form
@@ -75,7 +79,14 @@ defineExpose({ focus: () => row.value?.focus() });
                 aria-hidden="true"
             />
 
-            <span class="flex-1 truncate" :class="completed() ? 'line-through' : ''">{{ task.title }}</span>
+            <button
+                type="button"
+                class="flex-1 truncate text-left"
+                :class="completed() ? 'line-through' : ''"
+                @click="emit('open', task.id)"
+            >
+                {{ task.title }}
+            </button>
         </div>
 
         <!-- Below md this is the second line, indented past the checkbox so the name leads. -->

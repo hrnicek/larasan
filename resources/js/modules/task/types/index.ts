@@ -60,3 +60,27 @@ export type ProjectBoard = {
     perColumn: number;
     can: TaskAbilities;
 };
+
+export type TaskDetailPlacement = {
+    placementId: string;
+    project: { id: string; name: string; color: string | null; archived: boolean };
+    section: { id: string; name: string } | null;
+    canDetach: boolean;
+};
+
+export type TaskDetail = {
+    task: {
+        id: string;
+        title: string;
+        description: string | null;
+        priority: string;
+        dueAt: string | null;
+        completedAt: string | null;
+        parent: { id: string; title: string } | null;
+        assignee: TaskAssignee | null;
+        creator: TaskAssignee | null;
+    };
+    placements: TaskDetailPlacement[];
+    subtasks: { id: string; title: string; completedAt: string | null }[];
+    can: { update: boolean; delete: boolean; comment: boolean };
+};

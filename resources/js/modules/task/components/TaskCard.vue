@@ -21,6 +21,7 @@ defineProps<{
 const emit = defineEmits<{
     pickup: [event: PointerEvent, card: BoardCardData];
     moveto: [placementId: string, columnKey: string];
+    open: [taskId: string];
 }>();
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
@@ -30,6 +31,7 @@ const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
     <article
         tabindex="0"
         data-task-card
+        :data-task-id="card.id"
         :data-placement-id="card.placementId"
         class="rounded-md border bg-card p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         :class="[
@@ -38,8 +40,16 @@ const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
             editable ? 'cursor-grab touch-none active:cursor-grabbing' : '',
         ]"
         @pointerdown="editable ? emit('pickup', $event, card) : undefined"
+        @keydown.enter="emit('open', card.id)"
     >
-        <p class="mb-2 line-clamp-3" :class="card.completedAt ? 'line-through' : ''">{{ card.title }}</p>
+        <button
+            type="button"
+            class="mb-2 line-clamp-3 text-left"
+            :class="card.completedAt ? 'line-through' : ''"
+            @click="emit('open', card.id)"
+        >
+            {{ card.title }}
+        </button>
 
         <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span v-if="card.assignee">{{ card.assignee.name }}</span>

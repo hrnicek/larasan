@@ -19,6 +19,8 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -88,11 +90,13 @@ class ProjectController extends Controller
         Project $project,
         ProjectListQuery $list,
         ProjectBoardQuery $board,
+        TaskDetailQuery $detail,
     ): Response {
         Gate::authorize('view', $project);
 
         $view = $request->view($project);
         $actor = $this->actor($request);
+        $open = $this->openTask($request, $project, $actor, $detail);
 
         return Inertia::render('projects/Show', [
             'project' => [
@@ -120,6 +124,11 @@ class ProjectController extends Controller
              * been accepted is not somebody who can be given work (TASK-060-012) — and the
              * server sends the list rather than the client filtering one it fetched.
              */
+            /*
+             * The panel, when the URL says one is open. `null` rather than absent, so the
+             * client can tell "no panel" from "not sent this time" on a partial reload.
+             */
+            'taskDetail' => $open,
             'members' => $project->workspace->members()->orderBy('name')->get()
                 ->map(fn (User $member): array => [
                     'id' => $member->id,
@@ -130,6 +139,32 @@ class ProjectController extends Controller
                 ->values()
                 ->all(),
         ]);
+    }
+
+    /**
+     * The task whose panel is open, if the URL names one the actor may read.
+     *
+     * Resolved inside the workspace and then through the policy, exactly as `tasks.show`
+     * does: a panel is not a way around the rule that a task in a project somebody was never
+     * given is not theirs to read (TASK-070-017).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function openTask(ShowProjectRequest $request, Project $project, User $actor, TaskDetailQuery $detail): ?array
+    {
+        $id = $request->openTask();
+
+        if ($id === null) {
+            return null;
+        }
+
+        $task = $project->workspace->tasks()->whereKey($id)->first();
+
+        if (! $task instanceof Task || $actor->cannot('view', $task)) {
+            abort(404);
+        }
+
+        return $detail($task, $actor);
     }
 
     public function edit(Request $request, Project $project): Response

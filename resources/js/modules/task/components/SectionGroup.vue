@@ -19,7 +19,10 @@ const props = defineProps<{
     projectId: string;
 }>();
 
-const emit = defineEmits<{ toggle: [sectionId: string | null] }>();
+const emit = defineEmits<{
+    toggle: [sectionId: string | null];
+    open: [taskId: string];
+}>();
 
 const toggle = () => emit('toggle', props.section.id);
 </script>
@@ -46,6 +49,7 @@ const toggle = () => emit('toggle', props.section.id);
                 :members="members"
                 :priorities="priorities"
                 :editable="editable"
+                @open="(taskId) => emit('open', taskId)"
             />
             <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">
                 No tasks

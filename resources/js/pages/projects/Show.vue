@@ -9,7 +9,8 @@ import BoardColumn from '@/modules/project/components/BoardColumn.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
-import type { BoardColumnData, ProjectBoard, ProjectList, TaskAssignee } from '@/modules/task/types';
+import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import type { BoardColumnData, ProjectBoard, ProjectList, TaskAssignee, TaskDetail } from '@/modules/task/types';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -26,6 +27,8 @@ const props = defineProps<{
     board?: ProjectBoard;
     members: TaskAssignee[];
     priorities: string[];
+    /** The open panel, when the URL names a task. */
+    taskDetail?: TaskDetail | null;
 }>();
 
 /*
@@ -46,6 +49,23 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
  * a shared link shows what the sender was looking at — the same rule the view switcher
  * follows.
  */
+/*
+ * The panel is a URL, not a piece of local state: `?task=` on this screen's own address. A
+ * copied link reopens the same board with the same task; back closes it; forward reopens it.
+ * The visit is partial — only `taskDetail` — so the list or board behind it is not re-read.
+ */
+const openTask = (taskId: string): void => {
+    router.get(
+        `${window.location.pathname}${window.location.search.replace(/([?&])task=[^&]*/, '$1').replace(/[?&]$/, '')}`,
+        { ...Object.fromEntries(new URLSearchParams(window.location.search)), task: taskId },
+        { only: ['taskDetail'], preserveState: true, preserveScroll: true },
+    );
+};
+
+const closeTask = (): void => {
+    window.history.back();
+};
+
 const drag = useBoardDragAndDrop(columns, () => editable());
 
 /*
@@ -137,6 +157,14 @@ onUnmounted(() => {
 
         <ProjectHeader :project="project" :view="view" :views="views" />
 
+        <TaskDetailPanel
+            v-if="taskDetail"
+            :key="taskDetail.task.id"
+            :detail="taskDetail"
+            :dismissible="true"
+            @close="closeTask"
+        />
+
         <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
@@ -171,6 +199,7 @@ onUnmounted(() => {
                 @expand="expand"
                 @pickup="drag.pickUp"
                 @moveto="drag.moveTo"
+                @open="openTask"
             />
         </div>
 
@@ -202,6 +231,7 @@ onUnmounted(() => {
                     :collapsed="isCollapsed(section.id)"
                     :loading="reloading"
                     @toggle="toggle"
+                    @open="openTask"
                 />
             </div>
 
