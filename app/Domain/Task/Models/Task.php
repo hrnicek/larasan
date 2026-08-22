@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Models;
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -114,6 +116,17 @@ class Task extends Model
             ->withPivot(['id', 'section_id', 'position'])
             ->withTimestamps()
             ->orderBy('projects.name');
+    }
+
+    /**
+     * What has been said about this task, newest last — a conversation reads in the order it
+     * happened.
+     *
+     * @return MorphMany<Comment, $this>
+     */
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable')->oldest('created_at')->orderBy('id');
     }
 
     /**

@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -40,9 +42,24 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->enforceMorphAliases();
         $this->forgetMembershipsWhenTheyChange();
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
+    }
+
+    /**
+     * Short names for the models a polymorphic column can point at.
+     *
+     * Enforced rather than merely registered: a class name written into `commentable_type` is
+     * a rename waiting to break a table, and `enforceMorphMap()` turns an unmapped model into
+     * an error at the moment somebody writes one instead of a silent row nobody can read back.
+     */
+    protected function enforceMorphAliases(): void
+    {
+        Relation::enforceMorphMap([
+            'task' => Task::class,
+        ]);
     }
 
     /**
