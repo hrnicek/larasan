@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
@@ -70,6 +72,17 @@ it('shows the settings screen with the abilities the actor has', function (): vo
             ->where('can.manageMembers', true));
 });
 
+it('sends the enum options the settings form offers', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
+
+    $this->actingAs($actor)
+        ->get(route('projects.edit', $project))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('options.visibilities', array_column(ProjectVisibility::cases(), 'value'))
+            ->where('options.views', array_column(ProjectDefaultView::cases(), 'value'))
+            ->where('options.colors', array_column(ProjectColor::cases(), 'value')));
+});
+
 it('renders the settings screen read-only for someone who may see but not manage', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
 
@@ -103,6 +116,14 @@ it('archives and restores a project', function (): void {
     expect($project->fresh()?->isArchived())->toBeTrue();
 
     $this->actingAs($actor)->delete(route('projects.restore', $project))->assertRedirect(route('projects.edit', $project));
+    expect($project->fresh()?->isArchived())->toBeFalse();
+});
+
+it('refuses archiving to a member who may see the project but not manage it', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+
+    $this->actingAs($actor)->put(route('projects.archive', $project))->assertForbidden();
+
     expect($project->fresh()?->isArchived())->toBeFalse();
 });
 

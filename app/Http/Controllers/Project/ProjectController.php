@@ -12,6 +12,9 @@ use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Enums\ProjectDefaultView;
+use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -86,6 +89,15 @@ class ProjectController extends Controller
                 'start_date' => $project->start_date?->toDateString(),
                 'due_date' => $project->due_date?->toDateString(),
                 'archived' => $project->isArchived(),
+            ],
+            /*
+             * The enums the form offers come from the server, so a case added later
+             * appears in the UI without a second list to remember.
+             */
+            'options' => [
+                'colors' => array_column(ProjectColor::cases(), 'value'),
+                'views' => array_column(ProjectDefaultView::cases(), 'value'),
+                'visibilities' => array_column(ProjectVisibility::cases(), 'value'),
             ],
             'can' => [
                 'update' => $user->can('update', $project),

@@ -15,6 +15,12 @@ export type ProjectSettings = ProjectSummary & {
     archived: boolean;
 };
 
+export type ProjectOptions = {
+    colors: string[];
+    views: string[];
+    visibilities: string[];
+};
+
 export type ProjectAbilities = {
     update: boolean;
     archive: boolean;
