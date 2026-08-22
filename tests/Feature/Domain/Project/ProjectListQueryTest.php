@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectListQuery;
@@ -123,7 +124,7 @@ it('carries the fields a row draws, and no others', function (): void {
     $row = $list['sections'][0]['tasks'][0];
 
     expect(array_keys($row))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'assignee'])
         ->and($row['priority'])->toBe(TaskPriority::High->value)
         ->and($row['dueAt'])->not->toBeNull()
         ->and($row['assignee']['id'])->toBe($assignee->id);
@@ -201,4 +202,19 @@ it('shows nothing from another project', function (): void {
 
     expect($list['sections'][0]['tasks'])->toHaveCount(1)
         ->and($list['sections'][0]['tasks'][0]['title'])->toBe('Mine');
+});
+
+it('counts a row s comments and leaves the removed ones out', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    Comment::factory()->on($task)->count(3)->create();
+    Comment::factory()->on($task)->create()->delete();
+
+    // The thread still shows the removed one so the conversation reads correctly; a card that
+    // counted it would promise something that is not there.
+    [$list] = listOf($project, $actor);
+
+    expect($list['sections'][0]['tasks'][0]['comments'])->toBe(3);
 });

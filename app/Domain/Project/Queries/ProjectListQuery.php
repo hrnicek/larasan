@@ -87,6 +87,10 @@ final readonly class ProjectListQuery
             ->with(['task' => function (Relation $tasks): void {
                 $tasks
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
+                    // A subquery per card's count, not a query per card. Removed comments are
+                    // excluded by the model's own soft-delete scope rather than by a condition
+                    // written here twice.
+                    ->withCount('comments')
                     ->with('assignee:id,name,email');
             }])
             ->orderBy('position')
@@ -129,6 +133,7 @@ final readonly class ProjectListQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
+            'comments' => (int) ($task->comments_count ?? 0),
             'assignee' => $assignee === null ? null : [
                 'id' => $assignee->id,
                 'name' => $assignee->name,

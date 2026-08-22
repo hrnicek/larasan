@@ -91,6 +91,8 @@ defineExpose({ focus: () => row.value?.focus() });
 
         <!-- Below md this is the second line, indented past the checkbox so the name leads. -->
         <div class="flex items-center gap-3 pl-7 md:ml-auto md:pl-0">
+            <span v-if="task.comments > 0" class="text-xs text-muted-foreground">{{ task.comments }} comments</span>
+
             <AssigneePicker
                 :task-id="task.id"
                 :assignee="task.assignee"

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectBoardQuery;
@@ -171,7 +172,7 @@ it('carries what a card draws, and no more', function (): void {
     $card = boardOf($project, $actor)['columns'][0]['tasks'][0];
 
     expect(array_keys($card))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'subtasks', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'subtasks', 'assignee'])
         ->and($card['subtasks'])->toBe(2)
         ->and($card['assignee']['id'])->toBe($assignee->id);
 });
@@ -221,4 +222,31 @@ it('shows nothing from another project', function (): void {
 
     expect($board['columns'][0]['tasks'])->toHaveCount(1)
         ->and($board['columns'][0]['tasks'][0]['title'])->toBe('Mine 1');
+});
+
+it('counts the comments on a card without a query per card', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+
+    foreach (range(1, 12) as $index) {
+        $task = Task::factory()->in($workspace)->create();
+        TaskProjectMembership::factory()->placing($task, $project)->at($index * SparsePosition::GAP)->create();
+
+        Comment::factory()->on($task)->count($index % 3)->create();
+
+        // Removed comments are not counted: the thread shows them so the conversation still
+        // reads correctly, and a card that counted them would promise something that is not
+        // there.
+        Comment::factory()->on($task)->create()->delete();
+    }
+
+    DB::enableQueryLog();
+    $board = boardOf($project, $actor);
+    $queries = DB::getQueryLog();
+    DB::disableQueryLog();
+
+    // A subquery per count, not a query per card — the bound this query has asserted since
+    // Phase 090 does not move because a column was added to it.
+    expect(array_column($board['columns'][0]['tasks'], 'comments'))
+        ->toBe([1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
+        ->and(count($queries))->toBeLessThanOrEqual(8);
 });

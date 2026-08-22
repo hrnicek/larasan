@@ -155,7 +155,7 @@ final readonly class ProjectBoardQuery
             ->with(['task' => function (Relation $tasks): void {
                 $tasks
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
-                    ->withCount('children')
+                    ->withCount(['children', 'comments'])
                     ->with('assignee:id,name,email');
             }])
             ->orderBy('position')
@@ -224,6 +224,7 @@ final readonly class ProjectBoardQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
+            'comments' => (int) ($task->comments_count ?? 0),
             'subtasks' => (int) ($task->children_count ?? 0),
             'assignee' => $assignee === null ? null : [
                 'id' => $assignee->id,

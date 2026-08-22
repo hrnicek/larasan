@@ -12,6 +12,8 @@ export type TaskRowData = {
     completedAt: string | null;
     dueAt: string | null;
     priority: string;
+    /** Removed comments are not counted: the thread shows them, the card does not. */
+    comments: number;
     assignee: TaskAssignee | null;
 };
 

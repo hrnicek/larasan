@@ -56,6 +56,7 @@ const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
             <span v-if="card.dueAt">{{ card.dueAt.slice(0, 10) }}</span>
             <span class="capitalize">{{ card.priority }}</span>
             <span v-if="card.subtasks > 0">{{ card.subtasks }} subtasks</span>
+            <span v-if="card.comments > 0">{{ card.comments }} comments</span>
 
             <!--
                 Moving without dragging: the phone's path, where a drag across a pager is a
