@@ -56,7 +56,7 @@ final readonly class MoveTaskInProject
             throw PlacementException::sectionBelongsToAnotherProject();
         }
 
-        $this->assertAnchorIsInTheColumn($placement, $section, $target);
+        $this->assertTheAnchorIsNotTheCard($placement, $target);
 
         try {
             $moved = $this->place($placement, $section, $target);
@@ -82,25 +82,15 @@ final readonly class MoveTaskInProject
         return $placement;
     }
 
-    private function assertAnchorIsInTheColumn(
-        TaskProjectMembership $placement,
-        ?Section $section,
-        PlacementTarget $target,
-    ): void {
-        $anchor = $target->after;
-
-        if ($anchor === null) {
-            return;
-        }
-
-        if ($anchor->is($placement)) {
+    /**
+     * The one refusal that cannot be left to `indexIn()`. A card is not among its own
+     * neighbours, so "after itself" would come back as "not in this column" — true, and not
+     * what happened.
+     */
+    private function assertTheAnchorIsNotTheCard(TaskProjectMembership $placement, PlacementTarget $target): void
+    {
+        if ($target->after?->is($placement) === true) {
             throw PlacementException::cannotFollowItself();
-        }
-
-        // "After" is only meaningful among neighbours. An anchor from another project or
-        // another column would otherwise place the card at the front of this one, silently.
-        if ($anchor->project_id !== $placement->project_id || $anchor->section_id !== $section?->id) {
-            throw PlacementException::cardIsNotInThatColumn();
         }
     }
 
