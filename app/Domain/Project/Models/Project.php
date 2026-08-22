@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Models;
 
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
@@ -121,6 +122,18 @@ class Project extends Model
     public function memberFor(User $user): ?ProjectMembership
     {
         return $this->memberships()->where('user_id', $user->id)->first();
+    }
+
+    /**
+     * The project's sections, in the order a board renders them. Ordered here rather than
+     * at each caller: a section list in some other order is not a section list, and
+     * ADR-0009 makes the order a column rather than an accident of insertion.
+     *
+     * @return HasMany<Section, $this>
+     */
+    public function sections(): HasMany
+    {
+        return $this->hasMany(Section::class)->orderBy('position');
     }
 
     /** @return HasMany<ProjectMembership, $this> */
