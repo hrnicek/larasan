@@ -91,6 +91,23 @@ it('keeps a separate position per project', function (): void {
         ->and($there->position)->toBeGreaterThan($neighbour->refresh()->position);
 });
 
+it('moves the card on one board and leaves the other where it was', function (): void {
+    [$task, $first, $second, $actor, $workspace] = taskOnTwoBoards();
+    $column = Section::factory()->in($first)->create();
+    $neighbour = attach(Task::factory()->in($workspace)->create(), $second, $actor);
+
+    $here = $task->placements()->where('project_id', $first->id)->sole();
+    $there = $task->placements()->where('project_id', $second->id)->sole();
+
+    moveTo($here, $actor, $column, PlacementTarget::end());
+
+    // A drag is a change to one placement. Anything that reached the task itself would move
+    // the card on every board the task appears on.
+    expect($there->refresh()->section_id)->toBeNull()
+        ->and($there->position)->toBeLessThan($neighbour->refresh()->position)
+        ->and($here->refresh()->section_id)->toBe($column->id);
+});
+
 it('leaves the other board alone when the task is detached from one', function (): void {
     [$task, $first, $second, $actor] = taskOnTwoBoards();
 
