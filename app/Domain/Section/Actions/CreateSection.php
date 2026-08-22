@@ -51,11 +51,14 @@ final readonly class CreateSection
              * waits rather than computing the same slot. PostgreSQL refuses `FOR UPDATE`
              * with an aggregate, which is why this orders and takes one row instead of
              * asking for `max()` — the same restriction `Workspace::isLastOwner()` met.
+             * `reorder()` rather than `orderByDesc()`: the relationship already orders by
+             * position ascending, and adding a second clause leaves the ascending one
+             * first, which reads the head of the list as if it were the tail.
              *
              * An empty project has no row to lock, so two first appends can still collide;
              * the unique constraint catches that and `handle()` retries.
              */
-            $last = $project->sections()->orderByDesc('position')->lockForUpdate()->value('position');
+            $last = $project->sections()->reorder('position', 'desc')->lockForUpdate()->value('position');
 
             $section = new Section([
                 'name' => $data->name,

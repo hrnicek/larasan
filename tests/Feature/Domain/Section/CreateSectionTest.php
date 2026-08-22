@@ -50,6 +50,23 @@ it('appends a section to the end of the project', function (): void {
         ->and($project->sections()->pluck('name')->all())->toBe(['Backlog', 'In progress']);
 });
 
+it('keeps appending past the second section', function (): void {
+    [$project, $actor] = projectEditableBy();
+
+    $names = ['Backlog', 'In progress', 'Review', 'Done'];
+
+    foreach ($names as $name) {
+        addSection($project, $actor, $name);
+    }
+
+    // Regression: the relationship orders by position, so an `orderByDesc()` bolted onto
+    // it left the ascending clause first and read the head as the tail. The third append
+    // then computed a slot the second already held.
+    expect($project->sections()->pluck('name')->all())->toBe($names)
+        ->and($project->sections()->pluck('position')->all())
+        ->toBe(SparsePosition::spread(count($names)));
+});
+
 it('announces the section it created', function (): void {
     Event::fake();
     [$project, $actor] = projectEditableBy();
