@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Http\Request;
@@ -9,6 +11,14 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    /**
+     * The sidebar shows the projects someone works in, not every project they may open.
+     * Past this many the list stops being navigation, and `projects.index` is one click
+     * away — which is also what keeps this prop from growing with the workspace on every
+     * single request.
+     */
+    private const SIDEBAR_PROJECT_LIMIT = 15;
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -87,6 +97,24 @@ class HandleInertiaRequests extends Middleware
                     'id' => $workspace->id,
                     'name' => $workspace->name,
                     'slug' => $workspace->slug,
+                ])
+                ->all(),
+            /*
+             * The sidebar list, resolved through the same query the endpoints use: the
+             * projects the actor may see in this workspace, archived ones excluded. Asking
+             * the model per row here would be an N+1 on every request in the application.
+             */
+            'projects' => $workspace === null || $request->user() === null ? [] : app(VisibleProjectsForUser::class)
+                ->query($workspace, $request->user())
+                ->orderBy('name')
+                ->limit(self::SIDEBAR_PROJECT_LIMIT)
+                ->get(['id', 'name', 'slug', 'color', 'icon'])
+                ->map(fn (Project $project): array => [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'slug' => $project->slug,
+                    'color' => $project->color?->value,
+                    'icon' => $project->icon,
                 ])
                 ->all(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

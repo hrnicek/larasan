@@ -1,3 +1,4 @@
+import type { ProjectSummary } from '@/modules/project/types';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 import type { Auth } from '@/types/auth';
 
@@ -26,6 +27,7 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             workspace: WorkspaceSummary | null;
             workspaces: WorkspaceSummary[];
+            projects: ProjectSummary[];
             [key: string]: unknown;
         };
     }
