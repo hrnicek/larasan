@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Actions;
 
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Events\WorkspaceMemberRemoved;
@@ -53,6 +55,8 @@ final readonly class RemoveWorkspaceMember
          * would take the activity trail with it. `joined_at` stays: it is when they
          * joined, which remains true.
          */
+        $this->revokeProjectAccess($workspace, $membership);
+
         $membership->forceFill([
             'status' => WorkspaceMembershipStatus::Revoked,
             'expires_at' => null,
@@ -66,5 +70,27 @@ final readonly class RemoveWorkspaceMember
         ));
 
         return $membership;
+    }
+
+    /**
+     * The workspace membership is the ground the project grants stand on, so removing
+     * somebody takes their project access with it, in the same transaction. Leaving the rows
+     * behind would mean a re-invitation silently restored access to every project they were
+     * ever in — and until then, a revoked membership with live `project_memberships` rows is
+     * a grant nothing enforces and every future reader has to remember to ignore.
+     *
+     * Deleted, unlike the workspace membership itself: a project membership records access
+     * rather than history, and the workspace membership is where the record of the person
+     * being here lives.
+     */
+    private function revokeProjectAccess(Workspace $workspace, WorkspaceMembership $membership): void
+    {
+        ProjectMembership::query()
+            ->whereIn('project_id', $workspace->projects()->withTrashed()->select('projects.id'))
+            ->where('user_id', $membership->user_id)
+            ->delete();
+
+        // A mass delete fires no model events, so the request-scoped memo cannot notice it.
+        app(MembershipRegistry::class)->flush();
     }
 }

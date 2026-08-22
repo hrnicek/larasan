@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
@@ -190,4 +194,74 @@ it('does not reach across workspaces', function (): void {
         ->toThrow(WorkspaceMembershipException::class);
 
     expect($theirs->membershipFor($target)?->status)->toBe(WorkspaceMembershipStatus::Active);
+});
+
+it('takes their project access with them', function (): void {
+    $workspace = Workspace::factory()->create();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($project)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
+
+    /*
+     * The workspace membership is the ground a project grant stands on. Left behind, the row
+     * would be a grant nothing enforces — and a re-invitation would silently restore access
+     * to every project the person was ever in.
+     */
+    expect($project->memberships()->where('user_id', $member->id)->exists())->toBeFalse()
+        ->and($project->isVisibleTo($member))->toBeFalse();
+});
+
+it('leaves everybody else s project access alone', function (): void {
+    $workspace = Workspace::factory()->create();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $going = memberOf($workspace, WorkspaceRole::Member);
+    $staying = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($project)->forUser($going)->withAccess(ProjectAccessLevel::Editor)->create();
+    ProjectMembership::factory()->in($project)->forUser($staying)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    remove($workspace, $owner, $workspace->membershipFor($going) ?? throw new RuntimeException('missing membership'));
+
+    expect($project->memberships()->pluck('user_id')->all())->toBe([$staying->id]);
+});
+
+it('does not touch their access in another workspace', function (): void {
+    $workspace = Workspace::factory()->create();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $elsewhere = Workspace::factory()->create();
+    memberOf($elsewhere, WorkspaceRole::Member, user: $member);
+    $theirOtherProject = Project::factory()->in($elsewhere)->create();
+    ProjectMembership::factory()->in($theirOtherProject)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    $here = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($here)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
+
+    // Removal is per tenant. The same account is a stranger here and a colleague there.
+    expect($here->memberships()->count())->toBe(0)
+        ->and($theirOtherProject->memberships()->where('user_id', $member->id)->exists())->toBeTrue();
+});
+
+it('takes access to an archived or deleted project too', function (): void {
+    $workspace = Workspace::factory()->create();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $archived = Project::factory()->in($workspace)->create(['archived_at' => now()]);
+    $deleted = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($archived)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+    ProjectMembership::factory()->in($deleted)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+    $deleted->delete();
+
+    remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
+
+    // A soft-deleted project can be restored, and it must not come back with a stranger on
+    // it — which is why the delete reaches through `withTrashed()`.
+    expect(ProjectMembership::query()->where('user_id', $member->id)->count())->toBe(0);
 });
