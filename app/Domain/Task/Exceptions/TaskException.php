@@ -63,6 +63,16 @@ final class TaskException extends DomainException implements DomainRefusal
         return new self('That person cannot reach this task.');
     }
 
+    /**
+     * Reach again, this time for notifications: subscribing somebody to a task they cannot
+     * open fills an inbox with work nobody can reach (TASK-070-017's rule, applied to
+     * watching).
+     */
+    public static function followerCannotReachTask(): self
+    {
+        return new self('That person cannot reach this task.');
+    }
+
     public static function assigneeIsNotAMember(): self
     {
         return new self('A task can only be assigned to an active member of its workspace.');

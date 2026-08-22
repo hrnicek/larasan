@@ -116,6 +116,25 @@ class Task extends Model
             ->orderBy('projects.name');
     }
 
+    /**
+     * The rows that say who is watching. `followers()` is the people themselves — both exist
+     * because an Action deletes a row and a screen draws a person.
+     *
+     * @return HasMany<TaskFollower, $this>
+     */
+    public function follows(): HasMany
+    {
+        return $this->hasMany(TaskFollower::class);
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_followers')
+            ->withPivot('id')
+            ->orderBy('name');
+    }
+
     /** @return BelongsTo<User, $this> */
     public function assignee(): BelongsTo
     {
