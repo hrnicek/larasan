@@ -6,6 +6,7 @@ namespace App\Domain\Section\Models;
 
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Ordering\SparsePosition;
 use Database\Factories\SectionFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -30,12 +31,8 @@ class Section extends Model
     /** @use HasFactory<SectionFactory> */
     use HasFactory, HasUuids;
 
-    /**
-     * The gap between two neighbouring sections when they are appended (ADR-0009). Sparse
-     * on purpose: inserting between two of them writes the midpoint into one row instead
-     * of rewriting every row after the insertion point.
-     */
-    public const POSITION_GAP = 65536;
+    /** The gap ADR-0009 specifies, defined once in `SparsePosition`. */
+    public const POSITION_GAP = SparsePosition::GAP;
 
     protected $fillable = ['name', 'color', 'position'];
 
