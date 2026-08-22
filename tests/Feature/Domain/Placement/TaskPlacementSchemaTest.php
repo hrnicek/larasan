@@ -146,6 +146,8 @@ it('removes placements with the task', function (): void {
 it('indexes the ordered column read and the reverse lookup', function (): void {
     $indexes = collect(Schema::getIndexes('task_project_memberships'))->pluck('columns');
 
+    // The reverse lookup rides on `UNIQUE(task_id, project_id)`, which leads with `task_id`.
+    // Which index the planner actually chooses is asserted in `TaskPlacementIndexTest`.
     expect($indexes)->toContain(['project_id', 'section_id', 'position'])
-        ->and($indexes)->toContain(['task_id']);
+        ->and($indexes)->toContain(['task_id', 'project_id']);
 });

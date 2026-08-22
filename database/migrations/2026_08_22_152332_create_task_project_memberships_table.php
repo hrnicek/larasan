@@ -34,15 +34,25 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // A task appears in a project once. Two rows would be two cards for one task in
-            // one board, each with its own position.
+            /*
+             * A task appears in a project once. Two rows would be two cards for one task in
+             * one board, each with its own position.
+             *
+             * It is also the index for "where does this task appear" — the task detail
+             * panel, every detach, and the cascade PostgreSQL runs when a task is deleted.
+             * A separate `INDEX(task_id)` would be a prefix of this one: TASK-070-002
+             * planned that lookup with and without it and got the same index scan at the
+             * same cost, so the second index would have cost writes and bought nothing.
+             */
             $table->unique(['task_id', 'project_id']);
 
-            // The ordered column read the board and the list are built on.
+            /*
+             * Every read of a project's placements that does not name a section — the board
+             * load, the list view, a detach-all. Without it that read is a sequential scan
+             * (TASK-070-002): the two partial unique indexes below cannot serve it, because
+             * a partial index only applies to a query that implies its predicate.
+             */
             $table->index(['project_id', 'section_id', 'position']);
-
-            // "Where does this task appear" — the task detail panel, and every detach.
-            $table->index('task_id');
         });
 
         /*
