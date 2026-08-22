@@ -18,6 +18,11 @@ final class PlacementException extends DomainException
         return new self('You do not have permission to change what this project holds.');
     }
 
+    public static function sectionBelongsToAnotherProject(): self
+    {
+        return new self('That section is not in this project.');
+    }
+
     /**
      * The rule no foreign key can express: `task_id` and `project_id` each point at a valid
      * row, and the pair is still wrong when the two rows belong to different tenants
