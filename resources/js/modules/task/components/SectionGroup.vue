@@ -25,7 +25,7 @@ const toggle = () => emit('toggle', props.section.id);
 </script>
 
 <template>
-    <section class="rounded-lg border">
+    <section class="rounded-lg border" data-task-section>
         <button
             type="button"
             class="flex w-full items-center justify-between px-4 py-2 text-sm font-medium"

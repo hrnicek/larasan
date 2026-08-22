@@ -58,6 +58,7 @@ function submit(): void {
         <button
             v-if="!open"
             type="button"
+            data-add-task
             class="text-sm text-muted-foreground hover:text-foreground"
             @click="start"
         >

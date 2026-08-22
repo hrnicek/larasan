@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
+import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
@@ -23,6 +24,10 @@ const props = defineProps<{
 const editable = () => props.list.can.updateTask;
 
 const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
+
+// Named for the element, not the prop: `list` is already the payload.
+const listElement = ref<HTMLElement | null>(null);
+const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 
 /*
  * The rows are part of the page rather than a deferred region: the whole list is one query
@@ -95,7 +100,12 @@ onUnmounted(() => {
                 <button type="button" class="underline" @click="retry">Try again</button>
             </div>
 
-            <div v-if="list.sections.length" class="flex flex-col space-y-4">
+            <div
+                v-if="list.sections.length"
+                ref="listElement"
+                class="flex flex-col space-y-4"
+                @keydown="onKeydown"
+            >
                 <SectionGroup
                     v-for="section in list.sections"
                     :key="section.id ?? 'ungrouped'"
