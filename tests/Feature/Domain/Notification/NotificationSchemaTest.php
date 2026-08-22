@@ -53,22 +53,25 @@ it('goes with the workspace', function (): void {
     expect(DB::table('notifications')->count())->toBe(0);
 });
 
-it('outlives the account it was addressed to, for now', function (): void {
+it('goes with the account it was addressed to', function (): void {
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace);
+    $other = memberOf($workspace);
     insertNotification($workspace, $member);
+    insertNotification($workspace, $other);
 
     $member->delete();
 
     /*
-     * `notifiable_id` is a morph column, so there is no foreign key to cascade through: the row
-     * survives an account that no longer exists. Nobody can read it — there is no one left to
-     * sign in as — but it is data about a deleted person that stays in the table, and removing
-     * it is the domain's job rather than the schema's (TASK-110-017).
+     * A notification is addressed to one person and means nothing without them — the opposite
+     * of a comment or an activity, which outlive their author because other people took part.
      *
-     * Asserted rather than left implicit, so the day it changes a test says so.
+     * `notifiable_id` is a morph column and cannot carry a foreign key, so this cleanup is the
+     * domain's rather than the schema's (TASK-110-017), and somebody else's inbox is not
+     * touched by it.
      */
-    expect(DB::table('notifications')->count())->toBe(1);
+    expect(DB::table('notifications')->where('notifiable_id', $member->id)->count())->toBe(0)
+        ->and(DB::table('notifications')->where('notifiable_id', $other->id)->count())->toBe(1);
 });
 
 it('starts unread', function (): void {

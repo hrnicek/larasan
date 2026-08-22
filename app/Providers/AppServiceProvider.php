@@ -49,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
         $this->enforceMorphAliases();
         $this->writeNotificationsWithTheirWorkspace();
         $this->forgetMembershipsWhenTheyChange();
+        $this->removeNotificationsWithTheAccount();
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
     }
@@ -101,6 +102,23 @@ class AppServiceProvider extends ServiceProvider
             $model::saved($flush);
             $model::deleted($flush);
         }
+    }
+
+    /**
+     * A notification is addressed to one person, so it means nothing without them.
+     *
+     * `notifiable_id` is a morph column and cannot carry a foreign key, so the cleanup is the
+     * domain's. Comments and activities deliberately do the opposite and outlive their author:
+     * other people took part in those, and deleting somebody must not rewrite what happened.
+     */
+    protected function removeNotificationsWithTheAccount(): void
+    {
+        User::deleted(function (User $user): void {
+            DB::table('notifications')
+                ->where('notifiable_type', 'user')
+                ->where('notifiable_id', $user->id)
+                ->delete();
+        });
     }
 
     /**
