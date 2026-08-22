@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\ProjectBoardQuery;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Inertia\Testing\AssertableInertia;
@@ -31,7 +34,46 @@ it('renders the project in the view the project prefers', function (): void {
             ->component('projects/Show')
             ->where('view', ProjectDefaultView::Board->value)
             ->where('project.name', $project->name)
-            ->where('list.sections.0.tasks.0.title', 'Write it down'));
+            ->where('board.columns.0.tasks.0.title', 'Write it down')
+            // Only the payload the view asked for: sending both would read the same
+            // placements twice for a reader who can see one of them.
+            ->missing('list'));
+});
+
+it('sends the list payload for the list view and nothing of the board', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    attach(Task::factory()->in($workspace)->create(['title' => 'Write it down']), $project, $actor);
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', ['project' => $project, 'view' => ProjectDefaultView::List->value]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('list.sections.0.tasks.0.title', 'Write it down')
+            ->missing('board'));
+});
+
+it('expands the column a reader asked for', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $column = Section::factory()->in($project)->create();
+
+    foreach (range(1, ProjectBoardQuery::PER_COLUMN + 2) as $slot) {
+        TaskProjectMembership::factory()
+            ->placing(Task::factory()->in($workspace)->create(), $project)
+            ->inSection($column)
+            ->at($slot * SparsePosition::GAP)
+            ->create();
+    }
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', [
+            'project' => $project,
+            'view' => ProjectDefaultView::Board->value,
+            'expand' => [$column->id],
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('board.columns.0.tasks', ProjectBoardQuery::PER_COLUMN + 2)
+            ->where('board.columns.0.hasMore', false));
 });
 
 it('lets the url override the project s own view for one request', function (): void {

@@ -1,0 +1,57 @@
+<script setup lang="ts">
+import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
+import TaskCard from '@/modules/task/components/TaskCard.vue';
+import type { BoardColumnData } from '@/modules/task/types';
+
+/**
+ * One column. It scrolls on its own, so a long column does not push the board's other columns
+ * off the screen, and it says what it is not showing rather than pretending to be complete.
+ */
+defineProps<{
+    column: BoardColumnData;
+    projectId: string;
+    editable: boolean;
+    creatable: boolean;
+    loading: boolean;
+}>();
+
+const emit = defineEmits<{ expand: [columnId: string | null] }>();
+</script>
+
+<template>
+    <section class="flex w-72 shrink-0 flex-col rounded-lg border" data-task-section>
+        <header class="flex items-center justify-between px-3 py-2 text-sm font-medium">
+            <span>{{ column.name ?? 'No section' }}</span>
+            <span class="text-xs text-muted-foreground">{{ column.count }}</span>
+        </header>
+
+        <div class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto border-t p-2">
+            <p v-if="column.tasks.length === 0" class="rounded border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                No tasks
+            </p>
+
+            <TaskCard
+                v-for="card in column.tasks"
+                :key="card.placementId"
+                :card="card"
+                :editable="editable"
+            />
+
+            <button
+                v-if="column.hasMore"
+                type="button"
+                class="rounded border border-dashed px-3 py-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                :disabled="loading"
+                @click="emit('expand', column.id)"
+            >
+                Show all {{ column.count }}
+            </button>
+        </div>
+
+        <InlineTaskCreate
+            v-if="creatable"
+            :project-id="projectId"
+            :section-id="column.id"
+        />
+    </section>
+</template>

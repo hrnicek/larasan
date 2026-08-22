@@ -37,3 +37,26 @@ export type ProjectList = {
     sections: TaskSectionGroup[];
     can: TaskAbilities;
 };
+
+export type BoardCardData = TaskRowData & {
+    subtasks: number;
+};
+
+/**
+ * A column of the board. `count` is the whole column and `tasks` is the page drawn from it,
+ * so `hasMore` is the server's statement rather than something the client infers.
+ */
+export type BoardColumnData = {
+    id: string | null;
+    name: string | null;
+    color: string | null;
+    count: number;
+    hasMore: boolean;
+    tasks: BoardCardData[];
+};
+
+export type ProjectBoard = {
+    columns: BoardColumnData[];
+    perColumn: number;
+    can: TaskAbilities;
+};

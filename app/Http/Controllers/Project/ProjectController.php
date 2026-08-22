@@ -10,6 +10,7 @@ use App\Domain\Project\Actions\UpdateProject;
 use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\ProjectBoardQuery;
 use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
@@ -82,11 +83,16 @@ class ProjectController extends Controller
      * what the sender saw. An unknown value is a validation error rather than a quiet
      * fallback: a typo that silently renders the list looks like the switcher is broken.
      */
-    public function show(ShowProjectRequest $request, Project $project, ProjectListQuery $list): Response
-    {
+    public function show(
+        ShowProjectRequest $request,
+        Project $project,
+        ProjectListQuery $list,
+        ProjectBoardQuery $board,
+    ): Response {
         Gate::authorize('view', $project);
 
         $view = $request->view($project);
+        $actor = $this->actor($request);
 
         return Inertia::render('projects/Show', [
             'project' => [
@@ -99,11 +105,12 @@ class ProjectController extends Controller
             ],
             'view' => $view->value,
             /*
-             * The board is Phase 090. Until it exists the switcher is honest about it: the
-             * view is what the request asked for, and the payload is the list's, so the
-             * screen renders a list and says the board is not ready rather than pretending.
+             * One screen, two views, and only the payload the view asked for. Sending both
+             * would read the same placements twice for a reader who can see one of them.
              */
-            'list' => $list($project, $this->actor($request)),
+            ...$view === ProjectDefaultView::Board
+                ? ['board' => $board($project, $actor, $request->expandedColumns())]
+                : ['list' => $list($project, $actor)],
             'views' => array_column(ProjectDefaultView::cases(), 'value'),
             // The enum's own cases, so a priority added later appears in the row's control
             // without a second list to remember.

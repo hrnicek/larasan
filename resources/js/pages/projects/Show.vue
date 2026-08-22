@@ -3,10 +3,11 @@ import { Head, router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
+import BoardColumn from '@/modules/project/components/BoardColumn.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
-import type { ProjectList, TaskAssignee } from '@/modules/task/types';
+import type { ProjectBoard, ProjectList, TaskAssignee } from '@/modules/task/types';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -16,12 +17,32 @@ const props = defineProps<{
     project: { id: string; name: string; slug: string; color: string | null; icon: string | null; archived: boolean };
     view: string;
     views: string[];
-    list: ProjectList;
+    // One of the two, decided by `view`: the server sends the payload the view asked for and
+    // not the other, because reading the same placements twice is what "one screen, two
+    // views" is supposed to avoid.
+    list?: ProjectList;
+    board?: ProjectBoard;
     members: TaskAssignee[];
     priorities: string[];
 }>();
 
-const editable = () => props.list.can.updateTask;
+const editable = () => (props.board ?? props.list)?.can.updateTask === true;
+const creatable = () => (props.board ?? props.list)?.can.createTask === true;
+
+/**
+ * Asking for one column in full. The ids live in the URL, so the state survives a reload and
+ * a shared link shows what the sender was looking at — the same rule the view switcher
+ * follows.
+ */
+const expand = (columnId: string | null): void => {
+    const key = columnId ?? 'ungrouped';
+    const current = new URLSearchParams(window.location.search).getAll('expand[]');
+
+    router.reload({
+        only: ['board'],
+        data: { expand: [...current, key] },
+    });
+};
 
 const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
 
@@ -37,7 +58,8 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
  */
 const reloading = ref(false);
 const failed = ref(false);
-const listening = (event: { detail: { visit: { only: string[] } } }) => event.detail.visit.only.includes('list');
+const listening = (event: { detail: { visit: { only: string[] } } }) =>
+    event.detail.visit.only.includes('list') || event.detail.visit.only.includes('board');
 
 const started = (event: { detail: { visit: { only: string[] } } }) => {
     if (listening(event)) {
@@ -61,7 +83,7 @@ const errored = () => {
 };
 
 const retry = () => {
-    router.reload({ only: ['list'] });
+    router.reload({ only: props.board ? ['board'] : ['list'] });
 };
 
 const stops: Array<() => void> = [];
@@ -86,11 +108,20 @@ onUnmounted(() => {
 
         <ProjectHeader :project="project" :view="view" :views="views" />
 
-        <p v-if="view === 'board'" class="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
-            The board view is not built yet. Switch to the list to see this project's tasks.
-        </p>
+        <div v-if="board" class="flex gap-4 overflow-x-auto pb-2">
+            <BoardColumn
+                v-for="column in board.columns"
+                :key="column.id ?? 'ungrouped'"
+                :column="column"
+                :project-id="project.id"
+                :editable="editable()"
+                :creatable="creatable()"
+                :loading="reloading"
+                @expand="expand"
+            />
+        </div>
 
-        <template v-else>
+        <template v-else-if="list">
             <div
                 v-if="failed"
                 class="flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm"
@@ -113,7 +144,7 @@ onUnmounted(() => {
                     :members="members"
                     :priorities="priorities"
                     :editable="editable()"
-                    :creatable="list.can.createTask"
+                    :creatable="creatable()"
                     :project-id="project.id"
                     :collapsed="isCollapsed(section.id)"
                     :loading="reloading"
@@ -123,7 +154,7 @@ onUnmounted(() => {
 
             <div v-else class="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
                 <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
-                <InlineTaskCreate v-if="list.can.createTask" :project-id="project.id" :section-id="null" />
+                <InlineTaskCreate v-if="creatable()" :project-id="project.id" :section-id="null" />
             </div>
         </template>
 
