@@ -4,6 +4,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
+import SubtaskList from '@/modules/task/components/SubtaskList.vue';
 import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
 import type { TaskAssignee, TaskDetail } from '@/modules/task/types';
@@ -204,19 +205,10 @@ defineExpose({ close });
             :editable="detail.can.update"
         />
 
-        <section>
-            <h3 class="mb-1 text-xs text-muted-foreground">Subtasks</h3>
-            <ul v-if="detail.subtasks.length" class="flex flex-col gap-1 text-sm">
-                <li v-for="subtask in detail.subtasks" :key="subtask.id">
-                    <Link
-                        :href="`/tasks/${subtask.id}`"
-                        :class="subtask.completedAt ? 'line-through text-muted-foreground' : ''"
-                    >
-                        {{ subtask.title }}
-                    </Link>
-                </li>
-            </ul>
-            <p v-else class="text-sm text-muted-foreground">No subtasks.</p>
-        </section>
+        <SubtaskList
+            :parent-id="detail.task.id"
+            :subtasks="detail.subtasks"
+            :editable="detail.can.update"
+        />
     </section>
 </template>

@@ -8,6 +8,7 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Inertia\Testing\AssertableInertia;
@@ -131,4 +132,39 @@ it('clears a description with an explicit null and refuses a blank title', funct
         ->from(route('tasks.show', $task))
         ->put(route('tasks.update', $task), ['title' => '   '])
         ->assertSessionHasErrors('title');
+});
+
+it('creates a subtask from the detail', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $parent = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $parent))
+        ->post(route('tasks.store'), ['title' => 'A smaller piece', 'parent_id' => $parent->id])
+        ->assertRedirect(route('tasks.show', $parent));
+
+    expect($parent->children()->pluck('title')->all())->toBe(['A smaller piece']);
+});
+
+it('surfaces the depth limit rather than pre-empting it', function (): void {
+    [$workspace, , $actor] = placeableProject();
+
+    $deepest = Task::factory()->in($workspace)->create();
+
+    foreach (range(1, ParentChain::MAX_DEPTH - 1) as $ignored) {
+        $deepest = Task::factory()->in($workspace)->create(['parent_id' => $deepest->id]);
+    }
+
+    /*
+     * The limit belongs to the Action (`ParentChain::MAX_DEPTH`); the client surfaces its
+     * refusal rather than counting depth itself, because a second copy of the rule is the one
+     * that drifts. `TaskController` translates the refusal onto the field it is about, which
+     * is a better answer than the generic `refusal` key the renderer would give it.
+     */
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $deepest))
+        ->post(route('tasks.store'), ['title' => 'One too deep', 'parent_id' => $deepest->id])
+        ->assertSessionHasErrors(['parent_id' => 'Subtasks cannot be nested that deeply.']);
+
+    expect($deepest->children()->count())->toBe(0);
 });
