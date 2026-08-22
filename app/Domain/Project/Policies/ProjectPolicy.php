@@ -64,10 +64,14 @@ class ProjectPolicy
         return $project->allowsChangesBy($user, Capability::TaskUpdate);
     }
 
+    /**
+     * Creating a task on this board is a change to what the project holds, so it asks the
+     * same question placing an existing one does — including that an archived project is
+     * read-only (TASK-050-013).
+     */
     public function createTask(User $user, Project $project): bool
     {
-        return $this->capableAndAllowed($user, $project, Capability::TaskCreate)
-            && $project->memberFor($user)?->access_level->canEdit() === true;
+        return $project->allowsChangesBy($user, Capability::TaskCreate);
     }
 
     public function comment(User $user, Project $project): bool
