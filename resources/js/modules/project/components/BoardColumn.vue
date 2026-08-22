@@ -15,16 +15,18 @@ defineProps<{
     loading: boolean;
     draggingId: string | null;
     over: boolean;
+    columns: BoardColumnData[];
 }>();
 
 const emit = defineEmits<{
     expand: [columnId: string | null];
     pickup: [event: PointerEvent, card: BoardCardData];
+    moveto: [placementId: string, columnKey: string];
 }>();
 </script>
 
 <template>
-    <section class="flex w-72 shrink-0 flex-col rounded-lg border" data-task-section>
+    <section class="flex shrink-0 flex-col rounded-lg border" data-task-section>
         <header class="flex items-center justify-between px-3 py-2 text-sm font-medium">
             <span>{{ column.name ?? 'No section' }}</span>
             <span class="text-xs text-muted-foreground">{{ column.count }}</span>
@@ -46,7 +48,9 @@ const emit = defineEmits<{
                 :card="card"
                 :editable="editable"
                 :dragging="draggingId === card.placementId"
+                :columns="columns"
                 @pickup="(event, picked) => emit('pickup', event, picked)"
+                @moveto="(placementId, columnKey) => emit('moveto', placementId, columnKey)"
             />
 
             <button

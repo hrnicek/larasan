@@ -17,6 +17,11 @@ export type BoardDrag = {
     commit: (placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]) => void;
     /** The board as it stands, for a caller that is about to change it. */
     snapshot: () => BoardColumnData[];
+    /**
+     * Move a card to the end of a column without dragging it — the phone's path, and a
+     * perfectly good one on a desktop too.
+     */
+    moveTo: (placementId: string, columnKey: string) => void;
 };
 
 const keyOf = (columnId: string | null): string => columnId ?? 'ungrouped';
@@ -146,6 +151,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         draggingId,
         overColumn,
         snapshot,
+        moveTo: (placementId: string, columnKey: string): void => move(placementId, columnKey, null),
 
         commit(placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]): void {
             const target = columns.value.find((column) => keyOf(column.id) === columnKey);

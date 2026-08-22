@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import type { BoardCardData } from '@/modules/task/types';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 /**
  * One card on the board. Comment counts arrive with Phase 110 and tag colours with Phase 140;
@@ -9,9 +15,15 @@ defineProps<{
     card: BoardCardData;
     editable: boolean;
     dragging: boolean;
+    columns: BoardColumnData[];
 }>();
 
-const emit = defineEmits<{ pickup: [event: PointerEvent, card: BoardCardData] }>();
+const emit = defineEmits<{
+    pickup: [event: PointerEvent, card: BoardCardData];
+    moveto: [placementId: string, columnKey: string];
+}>();
+
+const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 </script>
 
 <template>
@@ -34,6 +46,25 @@ const emit = defineEmits<{ pickup: [event: PointerEvent, card: BoardCardData] }>
             <span v-if="card.dueAt">{{ card.dueAt.slice(0, 10) }}</span>
             <span class="capitalize">{{ card.priority }}</span>
             <span v-if="card.subtasks > 0">{{ card.subtasks }} subtasks</span>
+
+            <!--
+                Moving without dragging: the phone's path, where a drag across a pager is a
+                gesture nobody can land — and a perfectly good one with a mouse too.
+            -->
+            <DropdownMenu v-if="editable">
+                <DropdownMenuTrigger class="ml-auto rounded px-1 hover:text-foreground" aria-label="Move to column">
+                    Move…
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                        v-for="column in columns"
+                        :key="keyOf(column)"
+                        @select="emit('moveto', card.placementId, keyOf(column))"
+                    >
+                        {{ column.name ?? 'No section' }}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     </article>
 </template>

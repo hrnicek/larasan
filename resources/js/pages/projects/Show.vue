@@ -47,6 +47,15 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
  * follows.
  */
 const drag = useBoardDragAndDrop(columns, () => editable());
+
+/*
+ * Below `md` the board shows one column at a time. A row of four columns on a phone is four
+ * columns nobody can read, and a drag across a pager is a gesture nobody can land — which is
+ * why every card carries a "Move…" action rather than relying on the drag.
+ */
+const activeColumn = ref(0);
+
+const showColumn = (index: number): boolean => window.innerWidth >= 768 || index === activeColumn.value;
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
 const expand = (columnId: string | null): void => {
@@ -126,9 +135,24 @@ onUnmounted(() => {
         <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
+        <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto md:hidden" aria-label="Columns">
+            <button
+                v-for="(column, index) in columns"
+                :key="column.id ?? 'ungrouped'"
+                type="button"
+                class="rounded border px-3 py-1 text-xs"
+                :class="index === activeColumn ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'"
+                :aria-current="index === activeColumn ? 'true' : undefined"
+                @click="activeColumn = index"
+            >
+                {{ column.name ?? 'No section' }} ({{ column.count }})
+            </button>
+        </nav>
+
         <div v-if="board" class="flex gap-4 overflow-x-auto pb-2" @keydown="keyboard.onKeydown">
             <BoardColumn
-                v-for="column in columns"
+                v-for="(column, index) in columns"
+                v-show="showColumn(index)"
                 :key="column.id ?? 'ungrouped'"
                 :column="column"
                 :project-id="project.id"
@@ -137,8 +161,11 @@ onUnmounted(() => {
                 :loading="reloading"
                 :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
                 :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
+                :columns="columns"
+                class="w-full md:w-72"
                 @expand="expand"
                 @pickup="drag.pickUp"
+                @moveto="drag.moveTo"
             />
         </div>
 
