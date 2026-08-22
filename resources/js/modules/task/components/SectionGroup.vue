@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
-import type { TaskSectionGroup } from '@/modules/task/types';
+import type { TaskAssignee, TaskSectionGroup } from '@/modules/task/types';
 
 /**
  * A column of the list. The count comes from the server alongside the rows it counted, so
@@ -9,6 +9,7 @@ import type { TaskSectionGroup } from '@/modules/task/types';
  */
 const props = defineProps<{
     section: TaskSectionGroup;
+    members: TaskAssignee[];
     editable: boolean;
     creatable: boolean;
     collapsed: boolean;
@@ -37,6 +38,7 @@ const toggle = () => emit('toggle', props.section.id);
                 v-for="task in section.tasks"
                 :key="task.placementId"
                 :task="task"
+                :members="members"
                 :editable="editable"
             />
             <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">

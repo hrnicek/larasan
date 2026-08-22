@@ -7,6 +7,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
@@ -115,4 +116,23 @@ it('keeps a guest out of a project they were not given', function (): void {
     $this->actingAs($guest)
         ->get(route('projects.show', $project))
         ->assertNotFound();
+});
+
+it('sends the people a card can be handed to', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $pending = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Invited);
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', $project))
+        ->assertOk()
+        ->assertInertia(function (AssertableInertia $page) use ($actor, $member, $pending): void {
+            $ids = array_column($page->toArray()['props']['members'], 'id');
+
+            // Active members only: somebody whose invitation is still pending cannot be
+            // given work (TASK-060-012), so offering them would be offering a refusal.
+            expect($ids)->toContain($actor->id)
+                ->and($ids)->toContain($member->id)
+                ->and($ids)->not->toContain($pending->id);
+        });
 });

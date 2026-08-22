@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
-import type { ProjectList } from '@/modules/task/types';
+import type { ProjectList, TaskAssignee } from '@/modules/task/types';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -14,6 +14,7 @@ const props = defineProps<{
     view: string;
     views: string[];
     list: ProjectList;
+    members: TaskAssignee[];
 }>();
 
 const editable = () => props.list.can.updateTask;
@@ -36,6 +37,7 @@ const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
                 v-for="section in list.sections"
                 :key="section.id ?? 'ungrouped'"
                 :section="section"
+                :members="members"
                 :editable="editable()"
                 :creatable="list.can.createTask"
                 :project-id="project.id"

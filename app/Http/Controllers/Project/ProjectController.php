@@ -104,6 +104,20 @@ class ProjectController extends Controller
              */
             'list' => $list($project, $this->actor($request)),
             'views' => array_column(ProjectDefaultView::cases(), 'value'),
+            /*
+             * Who a card can be handed to. Active members only — an invitation that has not
+             * been accepted is not somebody who can be given work (TASK-060-012) — and the
+             * server sends the list rather than the client filtering one it fetched.
+             */
+            'members' => $project->workspace->members()->orderBy('name')->get()
+                ->map(fn (User $member): array => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'avatar' => null,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import type { TaskRowData } from '@/modules/task/types';
+import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
+import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
  * One task, in a line. Completion posts and waits: it is a domain state change with events
@@ -10,6 +11,7 @@ import type { TaskRowData } from '@/modules/task/types';
  */
 const props = defineProps<{
     task: TaskRowData;
+    members: TaskAssignee[];
     editable: boolean;
 }>();
 
@@ -36,7 +38,12 @@ const completed = () => props.task.completedAt !== null;
 
         <span class="flex-1 truncate" :class="completed() ? 'line-through' : ''">{{ task.title }}</span>
 
-        <span v-if="task.assignee" class="text-xs text-muted-foreground">{{ task.assignee.name }}</span>
+        <AssigneePicker
+            :task-id="task.id"
+            :assignee="task.assignee"
+            :members="members"
+            :editable="editable"
+        />
         <span v-if="task.dueAt" class="text-xs text-muted-foreground">{{ task.dueAt.slice(0, 10) }}</span>
         <span class="text-xs capitalize text-muted-foreground">{{ task.priority }}</span>
     </div>
