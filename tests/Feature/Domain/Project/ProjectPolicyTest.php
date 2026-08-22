@@ -10,28 +10,7 @@ use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Support\Facades\Gate;
-
-/**
- * @return array{Project, User}
- */
-function projectFor(
-    WorkspaceRole $role,
-    ?ProjectAccessLevel $access = null,
-    ProjectVisibility $visibility = ProjectVisibility::Workspace,
-    WorkspaceMembershipStatus $status = WorkspaceMembershipStatus::Active,
-): array {
-    $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, $role, $status);
-    $project = Project::factory()->in($workspace)->create(['visibility' => $visibility]);
-
-    if ($access !== null) {
-        ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
-    }
-
-    return [$project, $actor];
-}
 
 it('is the policy the gate resolves for a project', function (): void {
     expect(Gate::getPolicyFor(Project::class))->toBeInstanceOf(ProjectPolicy::class);

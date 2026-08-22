@@ -7,6 +7,7 @@ namespace App\Domain\Project\Data;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Http\Requests\Project\UpdateProjectRequest;
 use Carbon\CarbonImmutable;
 
 /**
@@ -27,4 +28,19 @@ final readonly class UpdateProjectData
         public ?CarbonImmutable $startDate = null,
         public ?CarbonImmutable $dueDate = null,
     ) {}
+
+    public static function fromRequest(UpdateProjectRequest $request): self
+    {
+        return new self(
+            name: $request->string('name')->toString(),
+            slug: $request->string('slug')->value() ?: null,
+            description: $request->string('description')->value() ?: null,
+            color: $request->enum('color', ProjectColor::class),
+            icon: $request->string('icon')->value() ?: null,
+            defaultView: $request->enum('default_view', ProjectDefaultView::class),
+            visibility: $request->enum('visibility', ProjectVisibility::class),
+            startDate: $request->date('start_date')?->toImmutable(),
+            dueDate: $request->date('due_date')?->toImmutable(),
+        );
+    }
 }
