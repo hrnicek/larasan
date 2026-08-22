@@ -17,7 +17,7 @@ use App\Models\User;
  * the right kind — 404 where the actor may not know the project exists, 403 where they may
  * see it but not shape it.
  *
- * Outcomes are written out rather than derived from `allowsSectionChangesBy()`, which would
+ * Outcomes are written out rather than derived from `allowsChangesBy()`, which would
  * assert only that the code agrees with itself.
  */
 

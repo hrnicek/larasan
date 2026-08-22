@@ -10,7 +10,7 @@ use App\Models\User;
 
 /**
  * Sections have no authorization of their own: a column belongs to a project, and who may
- * shape it is the project's answer. This asks `Project::allowsSectionChangesBy()` rather
+ * shape it is the project's answer. This asks `Project::allowsChangesBy()` rather
  * than restating the rule, so the Actions, the requests and the UI cannot drift apart.
  *
  * Creation is not here — there is no section yet to judge. `ProjectPolicy::createSection()`
@@ -25,11 +25,11 @@ class SectionPolicy
 
     public function update(User $user, Section $section): bool
     {
-        return $section->project->allowsSectionChangesBy($user, Capability::SectionUpdate);
+        return $section->project->allowsChangesBy($user, Capability::SectionUpdate);
     }
 
     public function delete(User $user, Section $section): bool
     {
-        return $section->project->allowsSectionChangesBy($user, Capability::SectionDelete);
+        return $section->project->allowsChangesBy($user, Capability::SectionDelete);
     }
 }

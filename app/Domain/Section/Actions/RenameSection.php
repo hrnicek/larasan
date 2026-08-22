@@ -23,7 +23,7 @@ final readonly class RenameSection
 
     public function handle(Section $section, User $actor, UpdateSectionData $data): Section
     {
-        if (! $section->project->allowsSectionChangesBy($actor, Capability::SectionUpdate)) {
+        if (! $section->project->allowsChangesBy($actor, Capability::SectionUpdate)) {
             throw SectionException::cannotManageSections();
         }
 

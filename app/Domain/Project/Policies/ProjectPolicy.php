@@ -51,7 +51,7 @@ class ProjectPolicy
      */
     public function createSection(User $user, Project $project): bool
     {
-        return $project->allowsSectionChangesBy($user, Capability::SectionCreate);
+        return $project->allowsChangesBy($user, Capability::SectionCreate);
     }
 
     public function createTask(User $user, Project $project): bool

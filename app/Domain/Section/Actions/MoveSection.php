@@ -31,7 +31,7 @@ final readonly class MoveSection
      */
     public function handle(Section $section, User $actor, ?Section $after): Section
     {
-        if (! $section->project->allowsSectionChangesBy($actor, Capability::SectionUpdate)) {
+        if (! $section->project->allowsChangesBy($actor, Capability::SectionUpdate)) {
             throw SectionException::cannotManageSections();
         }
 

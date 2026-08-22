@@ -27,7 +27,7 @@ final readonly class DeleteSection
 
     public function handle(Section $section, User $actor): void
     {
-        if (! $section->project->allowsSectionChangesBy($actor, Capability::SectionDelete)) {
+        if (! $section->project->allowsChangesBy($actor, Capability::SectionDelete)) {
             throw SectionException::cannotManageSections();
         }
 

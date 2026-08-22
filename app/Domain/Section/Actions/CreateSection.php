@@ -22,7 +22,7 @@ final readonly class CreateSection
 
     public function handle(Project $project, User $actor, CreateSectionData $data): Section
     {
-        if (! $project->allowsSectionChangesBy($actor, Capability::SectionCreate)) {
+        if (! $project->allowsChangesBy($actor, Capability::SectionCreate)) {
             throw SectionException::cannotManageSections();
         }
 
