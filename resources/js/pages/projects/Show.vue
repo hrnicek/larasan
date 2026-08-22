@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
+import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import type { ProjectList, TaskAssignee } from '@/modules/task/types';
 
@@ -21,6 +23,36 @@ const props = defineProps<{
 const editable = () => props.list.can.updateTask;
 
 const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
+
+/*
+ * The rows are part of the page rather than a deferred region: the whole list is one query
+ * and one round trip, and deferring the main content would trade a fast page for a spinner.
+ * What does take time is a reload of the list alone — the retry after an error, and whatever
+ * later asks for more rows — so the skeleton stands in for exactly that.
+ */
+const reloading = ref(false);
+const listening = (event: { detail: { visit: { only: string[] } } }) => event.detail.visit.only.includes('list');
+
+const started = (event: { detail: { visit: { only: string[] } } }) => {
+    reloading.value = listening(event);
+};
+
+const finished = () => {
+    reloading.value = false;
+};
+
+let stopStart: (() => void) | null = null;
+let stopFinish: (() => void) | null = null;
+
+onMounted(() => {
+    stopStart = router.on('start', started);
+    stopFinish = router.on('finish', finished);
+});
+
+onUnmounted(() => {
+    stopStart?.();
+    stopFinish?.();
+});
 </script>
 
 <template>
@@ -44,10 +76,14 @@ const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
                 :creatable="list.can.createTask"
                 :project-id="project.id"
                 :collapsed="isCollapsed(section.id)"
+                :loading="reloading"
                 @toggle="toggle"
             />
         </div>
 
-        <p v-else class="text-sm text-muted-foreground">Nothing in this project yet.</p>
+        <div v-else class="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
+            <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
+            <InlineTaskCreate v-if="list.can.createTask" :project-id="project.id" :section-id="null" />
+        </div>
     </div>
 </template>

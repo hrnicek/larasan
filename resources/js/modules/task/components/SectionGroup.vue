@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
+import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import type { TaskAssignee, TaskSectionGroup } from '@/modules/task/types';
 
@@ -14,6 +15,7 @@ const props = defineProps<{
     editable: boolean;
     creatable: boolean;
     collapsed: boolean;
+    loading: boolean;
     projectId: string;
 }>();
 
@@ -34,7 +36,9 @@ const toggle = () => emit('toggle', props.section.id);
             <span class="text-xs text-muted-foreground">{{ section.count }}</span>
         </button>
 
-        <div v-if="!collapsed" class="divide-y border-t">
+        <TaskListSkeleton v-if="!collapsed && loading" :rows="Math.max(section.count, 1)" />
+
+        <div v-else-if="!collapsed" class="divide-y border-t">
             <TaskRow
                 v-for="task in section.tasks"
                 :key="task.placementId"

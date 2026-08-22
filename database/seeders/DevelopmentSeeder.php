@@ -9,19 +9,24 @@ use App\Domain\Placement\Actions\MoveTaskInProject;
 use App\Domain\Project\Actions\CreateProject;
 use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Section\Actions\CreateSection;
 use App\Domain\Section\Data\CreateSectionData;
 use App\Domain\Section\Models\Section;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\CreateTask;
 use App\Domain\Task\Data\CreateTaskData;
+use App\Domain\Workspace\Actions\AnswerWorkspaceInvitation;
 use App\Domain\Workspace\Actions\CreateWorkspace;
 use App\Domain\Workspace\Actions\InviteWorkspaceMember;
 use App\Domain\Workspace\Data\CreateWorkspaceData;
 use App\Domain\Workspace\Data\InviteWorkspaceMemberData;
 use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
@@ -53,11 +58,21 @@ class DevelopmentSeeder extends Seeder
         $this->invite($workspace, $owner, $colleague, WorkspaceRole::Member);
         $this->invite($workspace, $owner, $guest, WorkspaceRole::Guest);
 
+        /*
+         * One account that has actually accepted, so the application can be looked at as
+         * somebody other than the owner. The colleague's invitation stays pending on
+         * purpose — it is one of the states this seeder exists to show — and a pending
+         * member cannot be given work or read a board.
+         */
+        $reader = $this->user('reader@example.com', 'Read Only');
+        $this->join($workspace, $owner, $reader, WorkspaceRole::Member);
+
         $website = $this->project($workspace, $owner, 'Website', ProjectVisibility::Workspace);
         $this->project($workspace, $owner, 'Internal Tools', ProjectVisibility::Private);
         $this->project($side, $owner, 'Ideas', ProjectVisibility::Workspace);
 
         $this->cards($website, $owner);
+        $this->readOnlyAccess($website, $reader);
 
         $this->command->info('Log in as hrncir@example.com with the password "'.self::PASSWORD.'".');
     }
@@ -110,6 +125,44 @@ class DevelopmentSeeder extends Seeder
             $inviter,
             new InviteWorkspaceMemberData(userId: $invitee->id, role: $role),
         );
+    }
+
+    /**
+     * An invitation that is immediately accepted: a member who is actually in the workspace,
+     * rather than one who has been asked.
+     */
+    private function join(Workspace $workspace, User $inviter, User $invitee, WorkspaceRole $role): void
+    {
+        $existing = $workspace->membershipFor($invitee);
+
+        if ($existing?->status === WorkspaceMembershipStatus::Active) {
+            return;
+        }
+
+        $this->invite($workspace, $inviter, $invitee, $role);
+
+        $membership = $workspace->membershipFor($invitee);
+
+        if ($membership instanceof WorkspaceMembership) {
+            app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee);
+        }
+    }
+
+    /**
+     * Somebody who can open the board and change nothing on it, so the read-only rendering
+     * can be looked at rather than only asserted.
+     */
+    private function readOnlyAccess(Project $project, User $reader): void
+    {
+        if ($project->memberFor($reader) !== null) {
+            return;
+        }
+
+        ProjectMembership::query()->create([
+            'project_id' => $project->id,
+            'user_id' => $reader->id,
+            'access_level' => ProjectAccessLevel::Viewer,
+        ]);
     }
 
     private function project(Workspace $workspace, User $creator, string $name, ProjectVisibility $visibility): Project
