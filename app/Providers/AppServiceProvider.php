@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('workspace-invitations', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
         RateLimiter::for('workspace-creation', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
+        RateLimiter::for('project-creation', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
     }
 
     /**
