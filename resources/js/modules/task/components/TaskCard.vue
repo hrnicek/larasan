@@ -8,16 +8,24 @@ import type { BoardCardData } from '@/modules/task/types';
 defineProps<{
     card: BoardCardData;
     editable: boolean;
+    dragging: boolean;
 }>();
+
+const emit = defineEmits<{ pickup: [event: PointerEvent, card: BoardCardData] }>();
 </script>
 
 <template>
     <article
         tabindex="0"
         data-task-card
+        :data-placement-id="card.placementId"
         class="rounded-md border bg-card p-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        :class="card.completedAt ? 'text-muted-foreground' : ''"
-        :aria-grabbed="editable ? 'false' : undefined"
+        :class="[
+            card.completedAt ? 'text-muted-foreground' : '',
+            dragging ? 'opacity-50' : '',
+            editable ? 'cursor-grab touch-none active:cursor-grabbing' : '',
+        ]"
+        @pointerdown="editable ? emit('pickup', $event, card) : undefined"
     >
         <p class="mb-2 line-clamp-3" :class="card.completedAt ? 'line-through' : ''">{{ card.title }}</p>
 

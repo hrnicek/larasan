@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
-import type { ProjectBoard, ProjectList, TaskAssignee } from '@/modules/task/types';
+import type { BoardColumnData, ProjectBoard, ProjectList, TaskAssignee } from '@/modules/task/types';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -26,6 +27,16 @@ const props = defineProps<{
     priorities: string[];
 }>();
 
+/*
+ * The board's own copy of the columns, so a card can move before the server has agreed. It is
+ * replaced whenever the server sends a new board — its answer wins over the optimistic one.
+ */
+const columns = ref<BoardColumnData[]>(props.board?.columns ?? []);
+
+watch(() => props.board, (board) => {
+    columns.value = board?.columns ?? [];
+});
+
 const editable = () => (props.board ?? props.list)?.can.updateTask === true;
 const creatable = () => (props.board ?? props.list)?.can.createTask === true;
 
@@ -34,6 +45,8 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
  * a shared link shows what the sender was looking at — the same rule the view switcher
  * follows.
  */
+const drag = useBoardDragAndDrop(columns, () => editable());
+
 const expand = (columnId: string | null): void => {
     const key = columnId ?? 'ungrouped';
     const current = new URLSearchParams(window.location.search).getAll('expand[]');
@@ -110,14 +123,17 @@ onUnmounted(() => {
 
         <div v-if="board" class="flex gap-4 overflow-x-auto pb-2">
             <BoardColumn
-                v-for="column in board.columns"
+                v-for="column in columns"
                 :key="column.id ?? 'ungrouped'"
                 :column="column"
                 :project-id="project.id"
                 :editable="editable()"
                 :creatable="creatable()"
                 :loading="reloading"
+                :dragging-id="drag.draggingId.value"
+                :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
                 @expand="expand"
+                @pickup="drag.pickUp"
             />
         </div>
 

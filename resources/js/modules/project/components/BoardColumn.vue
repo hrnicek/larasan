@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
-import type { BoardColumnData } from '@/modules/task/types';
+import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 /**
  * One column. It scrolls on its own, so a long column does not push the board's other columns
@@ -13,9 +13,14 @@ defineProps<{
     editable: boolean;
     creatable: boolean;
     loading: boolean;
+    draggingId: string | null;
+    over: boolean;
 }>();
 
-const emit = defineEmits<{ expand: [columnId: string | null] }>();
+const emit = defineEmits<{
+    expand: [columnId: string | null];
+    pickup: [event: PointerEvent, card: BoardCardData];
+}>();
 </script>
 
 <template>
@@ -25,7 +30,12 @@ const emit = defineEmits<{ expand: [columnId: string | null] }>();
             <span class="text-xs text-muted-foreground">{{ column.count }}</span>
         </header>
 
-        <div class="flex max-h-[60vh] flex-col gap-2 overflow-y-auto border-t p-2">
+        <!-- The drop target. `data-column-key` is what the drag reads back from the pointer. -->
+        <div
+            class="flex max-h-[60vh] min-h-24 flex-col gap-2 overflow-y-auto border-t p-2"
+            :class="over ? 'bg-accent/40' : ''"
+            :data-column-key="column.id ?? 'ungrouped'"
+        >
             <p v-if="column.tasks.length === 0" class="rounded border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
                 No tasks
             </p>
@@ -35,6 +45,8 @@ const emit = defineEmits<{ expand: [columnId: string | null] }>();
                 :key="card.placementId"
                 :card="card"
                 :editable="editable"
+                :dragging="draggingId === card.placementId"
+                @pickup="(event, picked) => emit('pickup', event, picked)"
             />
 
             <button
