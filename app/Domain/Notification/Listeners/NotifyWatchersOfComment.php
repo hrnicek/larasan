@@ -7,11 +7,20 @@ namespace App\Domain\Notification\Listeners;
 use App\Domain\Comment\Events\CommentCreated;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Task\Models\Task;
+use App\Models\User;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Notification as Notifications;
 
 /**
  * Tell the people watching a task that somebody said something about it.
+ *
+ * Watching is following it or being the person it was given to — an assignee who was never
+ * asked to follow their own work would otherwise hear nothing about it. Each person is told
+ * once however many of those they are.
+ *
+ * Reach is checked on the way out, which is the other half of the rule `FollowTask` enforces on
+ * the way in: somebody can follow a task and then lose the project it lives in, and an inbox
+ * full of work nobody can open is worse than no notification at all (TASK-070-017).
  *
  * Only tasks for now: a comment can hang from anything, but nothing else has followers yet, and
  * a listener that guessed at the others would be guessing about who should hear from them.
@@ -30,17 +39,27 @@ final readonly class NotifyWatchersOfComment
             return;
         }
 
-        // Never the author. Being told about your own comment is the fastest way to teach
-        // somebody to ignore the inbox entirely.
-        $watchers = $task->followers()
-            ->where('users.id', '!=', $event->authorId)
-            ->get();
+        $watchers = $task->followers()->get();
 
-        if ($watchers->isEmpty()) {
+        if ($task->assignee_id !== null && ! $watchers->contains('id', $task->assignee_id)) {
+            $assignee = User::query()->find($task->assignee_id);
+
+            if ($assignee !== null) {
+                $watchers->push($assignee);
+            }
+        }
+
+        $recipients = $watchers
+            // Never the author. Being told about your own comment is the fastest way to teach
+            // somebody to ignore the inbox entirely.
+            ->reject(fn (User $watcher): bool => $watcher->id === $event->authorId)
+            ->filter(fn (User $watcher): bool => $watcher->can('view', $task));
+
+        if ($recipients->isEmpty()) {
             return;
         }
 
-        Notifications::send($watchers, $this->notification($event));
+        Notifications::send($recipients, $this->notification($event));
     }
 
     private function notification(CommentCreated $event): Notification

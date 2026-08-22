@@ -10,19 +10,24 @@ use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 
 /**
- * @return array<int, object>
+ * @return list<object{type: string, workspace_id: string, data: string}>
  */
 function inboxOf(User $user): array
 {
-    return DB::table('notifications')
+    $rows = DB::table('notifications')
         ->where('notifiable_type', 'user')
         ->where('notifiable_id', $user->id)
         ->orderBy('created_at')
-        ->get()
-        ->all();
+        ->get(['type', 'workspace_id', 'data']);
+
+    /** @var list<object{type: string, workspace_id: string, data: string}> $inbox */
+    $inbox = array_values($rows->all());
+
+    return $inbox;
 }
 
 it('tells somebody a task was given to them', function (): void {
@@ -121,7 +126,7 @@ it('refuses to write a database notification that cannot say which workspace it 
 
     // The alternative is a row the Inbox cannot place and the badge cannot count, discovered
     // long after whoever added the notification has moved on.
-    expect(fn () => $user->notify(new class extends Illuminate\Notifications\Notification
+    expect(fn () => $user->notify(new class extends Notification
     {
         /** @return list<string> */
         public function via(mixed $notifiable): array
