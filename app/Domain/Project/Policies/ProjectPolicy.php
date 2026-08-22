@@ -54,6 +54,16 @@ class ProjectPolicy
         return $project->allowsChangesBy($user, Capability::SectionCreate);
     }
 
+    /**
+     * Putting a task on this board, asked of the project because there is no placement yet
+     * to judge. `task.update` rather than `task.create`: attaching an existing task changes
+     * where it appears, and creating one is `createTask()` below.
+     */
+    public function placeTask(User $user, Project $project): bool
+    {
+        return $project->allowsChangesBy($user, Capability::TaskUpdate);
+    }
+
     public function createTask(User $user, Project $project): bool
     {
         return $this->capableAndAllowed($user, $project, Capability::TaskCreate)
