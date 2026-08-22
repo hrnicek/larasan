@@ -70,6 +70,8 @@ export type TaskDetailPlacement = {
 
 export type TaskDetail = {
     availableProjects: { id: string; name: string }[];
+    followers: TaskAssignee[];
+    following: boolean;
     task: {
         id: string;
         title: string;

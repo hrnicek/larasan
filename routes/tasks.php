@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Task\TaskController;
+use App\Http\Controllers\Task\TaskFollowerController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -43,5 +44,9 @@ Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): v
     Route::delete('tasks/{task}/completion', [TaskController::class, 'reopen'])->name('tasks.reopen');
 
     Route::put('tasks/{task}/assignee', [TaskController::class, 'assign'])->name('tasks.assign');
+
+    // Watching is a state with two directions, like completion: POST starts, DELETE stops.
+    Route::post('tasks/{task}/followers', [TaskFollowerController::class, 'store'])->name('tasks.follow');
+    Route::delete('tasks/{task}/followers', [TaskFollowerController::class, 'destroy'])->name('tasks.unfollow');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 });

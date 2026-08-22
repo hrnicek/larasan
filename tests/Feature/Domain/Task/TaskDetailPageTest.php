@@ -8,6 +8,7 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
@@ -167,4 +168,52 @@ it('surfaces the depth limit rather than pre-empting it', function (): void {
         ->assertSessionHasErrors(['parent_id' => 'Subtasks cannot be nested that deeply.']);
 
     expect($deepest->children()->count())->toBe(0);
+});
+
+it('says who is watching and whether the reader is', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $other = memberOf($workspace, WorkspaceRole::Member);
+    $task = Task::factory()->in($workspace)->create();
+
+    app(FollowTask::class)->handle($task, $other);
+
+    $this->actingAs($actor)
+        ->get(route('tasks.show', $task))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('followers', 1)
+            ->where('followers.0.id', $other->id)
+            ->where('following', false));
+});
+
+it('starts and stops watching from the detail', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->post(route('tasks.follow', $task))
+        ->assertRedirect(route('tasks.show', $task));
+
+    expect($task->followers()->pluck('users.id')->all())->toBe([$actor->id]);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->delete(route('tasks.unfollow', $task))
+        ->assertRedirect();
+
+    expect($task->follows()->count())->toBe(0);
+});
+
+it('refuses to start watching a task the actor cannot reach', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $private = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $private)->create();
+
+    $this->actingAs($actor)
+        ->post(route('tasks.follow', $task))
+        ->assertForbidden();
+
+    expect($task->follows()->count())->toBe(0);
 });

@@ -177,11 +177,12 @@ it('carries nothing it cannot yet know about', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Comments, activity and attachments are deferred regions whose tables do not exist;
-    // followers arrive with TASK-100-010. A query that pretended otherwise would be one
-    // somebody has to unpick.
+    // Comments, activity and attachments are deferred regions whose tables do not exist. A
+    // query that pretended otherwise would be one somebody has to unpick — and followers moved
+    // out of this list the moment `task_followers` existed (TASK-100-010), which is what the
+    // list is for.
     expect(array_keys(detailOf($task, $actor)))
-        ->toBe(['task', 'placements', 'availableProjects', 'subtasks', 'can']);
+        ->toBe(['task', 'placements', 'availableProjects', 'subtasks', 'followers', 'following', 'can']);
 });
 
 it('offers only the projects the actor may add the task to', function (): void {

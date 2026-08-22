@@ -32,6 +32,8 @@ final readonly class TaskDetailQuery
      *     placements: list<array<string, mixed>>,
      *     availableProjects: list<array{id: string, name: string}>,
      *     subtasks: list<array<string, mixed>>,
+     *     followers: list<array<string, mixed>>,
+     *     following: bool,
      *     can: array{update: bool, delete: bool, comment: bool},
      * }
      */
@@ -42,6 +44,7 @@ final readonly class TaskDetailQuery
             'creator:id,name,email',
             'parent:id,title',
             'children' => fn (Relation $subtasks) => $subtasks->select(['id', 'parent_id', 'title', 'completed_at']),
+            'followers:id,name,email',
             /*
              * Only the projects the actor can reach. A task can appear in a project they were
              * never given, and listing it here would leak a project name through a task they
@@ -81,6 +84,12 @@ final readonly class TaskDetailQuery
                     'completedAt' => $subtask->completed_at?->toIso8601String(),
                 ])
                 ->all()),
+            'followers' => array_values($task->followers
+                ->map(fn (User $follower): array => $this->person($follower) ?? [])
+                ->all()),
+            // Whether the actor is one of them, so the control knows which way it points
+            // without the client comparing ids the server already compared.
+            'following' => $task->followers->contains('id', $actor->id),
             'can' => [
                 'update' => $actor->can('update', $task),
                 'delete' => $actor->can('delete', $task),
