@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Task\Actions;
 
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Exceptions\TaskException;
@@ -61,9 +62,9 @@ final readonly class UpdateTask
     }
 
     /**
-     * The new parent, proven to be a task of the same workspace and not the task itself.
-     * A longer cycle is TASK-060-014's problem and is refused there; this refuses the two
-     * cases that need no traversal.
+     * The new parent, proven to be a task of the same workspace, not the task itself and
+     * not one of its own descendants. A cycle is not merely invalid data: every read that
+     * walks the chain would run forever.
      */
     private function parentFor(Task $task, ?string $parentId): ?Task
     {
@@ -81,6 +82,41 @@ final readonly class UpdateTask
             throw TaskException::parentBelongsToAnotherWorkspace();
         }
 
+        $parentOf = $this->parentResolver($task->workspace_id);
+
+        if (ParentChain::wouldCycle($task->id, $parent->id, $parentOf)) {
+            throw TaskException::parentWouldCloseALoop();
+        }
+
+        if (ParentChain::depthOf($parent->id, $parentOf) + 1 >= ParentChain::MAX_DEPTH) {
+            throw TaskException::parentChainTooDeep();
+        }
+
         return $parent;
+    }
+
+    /**
+     * Resolves parents one row at a time, memoised for the walk. A chain is bounded by
+     * `ParentChain::MAX_DEPTH`, so this is a handful of primary-key lookups rather than a
+     * recursive query — and it stays honest if the data already contains a loop, which the
+     * walk is written to survive.
+     *
+     * @return callable(string): ?string
+     */
+    private function parentResolver(string $workspaceId): callable
+    {
+        /** @var array<string, string|null> $resolved */
+        $resolved = [];
+
+        return function (string $id) use (&$resolved, $workspaceId): ?string {
+            if (! array_key_exists($id, $resolved)) {
+                $resolved[$id] = Task::query()
+                    ->where('workspace_id', $workspaceId)
+                    ->whereKey($id)
+                    ->value('parent_id');
+            }
+
+            return $resolved[$id];
+        };
     }
 }

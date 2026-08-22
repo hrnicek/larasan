@@ -38,6 +38,16 @@ final class TaskException extends DomainException
         return new self('A task cannot be a subtask of itself.');
     }
 
+    public static function parentWouldCloseALoop(): self
+    {
+        return new self('That would make a task a subtask of itself, through its own subtasks.');
+    }
+
+    public static function parentChainTooDeep(): self
+    {
+        return new self('Subtasks cannot be nested that deeply.');
+    }
+
     public static function parentBelongsToAnotherWorkspace(): self
     {
         return new self('A task can only be a subtask of a task in the same workspace.');

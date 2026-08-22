@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\UpdateTask;
+use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Exceptions\TaskException;
@@ -118,6 +119,53 @@ it('detaches a subtask when no parent is given', function (): void {
     app(UpdateTask::class)->handle($task->fresh(), $actor, new UpdateTaskData(title: 'Untouched'));
 
     expect($task->fresh()?->parent_id)->toBeNull();
+});
+
+it('refuses a parent that is one of the task s own subtasks', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $child = Task::factory()->childOf($task)->create();
+
+    expect(fn (): Task => app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(title: 'Untouched', parentId: $child->id)))
+        ->toThrow(TaskException::class, 'through its own subtasks');
+
+    expect($task->fresh()?->parent_id)->toBeNull()
+        ->and($child->fresh()?->parent_id)->toBe($task->id);
+});
+
+it('refuses a loop several levels down', function (): void {
+    [$root, $actor] = taskEditableBy();
+    $child = Task::factory()->childOf($root)->create();
+    $grandchild = Task::factory()->childOf($child)->create();
+
+    expect(fn (): Task => app(UpdateTask::class)->handle($root, $actor, new UpdateTaskData(title: 'Untouched', parentId: $grandchild->id)))
+        ->toThrow(TaskException::class, 'through its own subtasks');
+});
+
+it('allows a sibling to become a parent', function (): void {
+    [$parent, $actor] = taskEditableBy();
+    $first = Task::factory()->childOf($parent)->create();
+    $second = Task::factory()->childOf($parent)->create();
+
+    app(UpdateTask::class)->handle($second, $actor, new UpdateTaskData(title: $second->title, parentId: $first->id));
+
+    expect($second->fresh()?->parent_id)->toBe($first->id);
+});
+
+it('refuses a chain deeper than the stated maximum', function (): void {
+    [$root, $actor] = taskEditableBy();
+
+    $deepest = $root;
+
+    foreach (range(2, ParentChain::MAX_DEPTH) as $level) {
+        $deepest = Task::factory()->childOf($deepest)->create();
+    }
+
+    $orphan = Task::factory()->in($root->workspace)->create();
+
+    // The limit is a stated rule, not a discovery: without one a chain grows until whatever
+    // walks it becomes the slowest page in the product.
+    expect(fn (): Task => app(UpdateTask::class)->handle($orphan, $actor, new UpdateTaskData(title: $orphan->title, parentId: $deepest->id)))
+        ->toThrow(TaskException::class, 'nested that deeply');
 });
 
 it('refuses an actor without the task.update capability', function (): void {
