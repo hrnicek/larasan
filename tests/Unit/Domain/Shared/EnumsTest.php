@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
@@ -45,6 +46,7 @@ it('pins every persisted enum value', function (string $enum, array $expected): 
     'project access level' => [ProjectAccessLevel::class, ['owner', 'editor', 'commenter', 'viewer']],
     'project visibility' => [ProjectVisibility::class, ['workspace', 'private']],
     'project default view' => [ProjectDefaultView::class, ['list', 'board']],
+    'project color' => [ProjectColor::class, ['slate', 'red', 'amber', 'emerald', 'teal', 'sky', 'violet', 'rose']],
     'task priority' => [TaskPriority::class, ['low', 'medium', 'high', 'urgent']],
 ]);
 

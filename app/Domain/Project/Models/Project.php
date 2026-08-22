@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Project\Models;
 
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Workspace\Models\Workspace;
@@ -28,7 +29,7 @@ use Illuminate\Support\Str;
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property string|null $color
+ * @property ProjectColor|null $color
  * @property string|null $icon
  * @property int|null $owner_id
  * @property int|null $created_by
@@ -167,6 +168,7 @@ class Project extends Model
     protected function casts(): array
     {
         return [
+            'color' => ProjectColor::class,
             'default_view' => ProjectDefaultView::class,
             'visibility' => ProjectVisibility::class,
             'start_date' => 'immutable_date',

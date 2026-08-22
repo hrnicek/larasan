@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Workspace\Models\Workspace;
@@ -50,7 +51,7 @@ it('scopes slug uniqueness to the workspace, not the installation', function ():
     expect(DB::table('projects')->where('slug', 'web')->count())->toBe(2);
 });
 
-it('refuses a visibility or view the domain does not define', function (string $column, string $value): void {
+it('refuses a visibility, view or colour the domain does not define', function (string $column, string $value): void {
     $workspace = Workspace::factory()->create();
 
     expect(fn (): string => insertProject($workspace, [$column => $value]))
@@ -58,7 +59,17 @@ it('refuses a visibility or view the domain does not define', function (string $
 })->with([
     'visibility' => ['visibility', 'secret'],
     'default_view' => ['default_view', 'gantt'],
+    'color' => ['color', 'fuchsia'],
 ]);
+
+it('accepts a palette colour and no colour at all', function (): void {
+    $workspace = Workspace::factory()->create();
+
+    insertProject($workspace, ['slug' => 'accented', 'color' => ProjectColor::Emerald->value]);
+    insertProject($workspace, ['slug' => 'plain', 'color' => null]);
+
+    expect(DB::table('projects')->whereIn('slug', ['accented', 'plain'])->count())->toBe(2);
+});
 
 it('deletes its projects with the workspace', function (): void {
     $workspace = Workspace::factory()->create();

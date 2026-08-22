@@ -9,6 +9,7 @@ use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
@@ -34,6 +35,16 @@ it('creates the project and makes its creator an owner of it', function (): void
         ->and($project->created_by)->toBe($creator->id)
         ->and($project->slug)->toBe('web-redesign')
         ->and($project->memberFor($creator)?->access_level)->toBe(ProjectAccessLevel::Owner);
+});
+
+it('stores the accent colour by name and reads it back as the enum', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+
+    $project = createProject($workspace, $creator, new CreateProjectData(name: 'Web Redesign', color: ProjectColor::Violet));
+
+    expect(DB::table('projects')->where('id', $project->id)->value('color'))->toBe('violet')
+        ->and($project->fresh()?->color)->toBe(ProjectColor::Violet);
 });
 
 it('refuses an actor without the project.create capability', function (WorkspaceRole $role): void {
