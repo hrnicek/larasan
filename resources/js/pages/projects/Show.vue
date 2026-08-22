@@ -166,17 +166,13 @@ onUnmounted(() => {
 
         <ProjectHeader :project="project" :view="view" :views="views" />
 
-        <TaskDetailPanel
-            v-if="taskDetail"
-            :key="taskDetail.task.id"
-            :detail="taskDetail"
-            :dismissible="true"
-            :members="members"
-            :priorities="priorities"
-            :activity="activity"
-            @close="closeTask"
-        />
-
+        <div class="flex flex-col gap-6 md:flex-row md:items-start">
+            <!--
+                Below `md` the detail takes the screen: a panel next to a board on a phone is
+                two things that both need the width. From `md` up it sits beside the content,
+                which stays visible because that is the whole point of a panel.
+            -->
+            <div class="flex flex-1 flex-col space-y-6" :class="taskDetail ? 'hidden md:flex' : ''">
         <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
@@ -251,7 +247,21 @@ onUnmounted(() => {
                 <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
                 <InlineTaskCreate v-if="creatable()" :project-id="project.id" :section-id="null" />
             </div>
-        </template>
+            </template>
+            </div>
 
+            <!-- The panel: full width on a phone, a column beside the content from `md` up. -->
+            <TaskDetailPanel
+                v-if="taskDetail"
+                :key="taskDetail.task.id"
+                class="w-full md:w-96 md:shrink-0"
+                :detail="taskDetail"
+                :dismissible="true"
+                :members="members"
+                :priorities="priorities"
+                :activity="activity"
+                @close="closeTask"
+            />
+        </div>
     </div>
 </template>
