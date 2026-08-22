@@ -79,6 +79,19 @@ class Workspace extends Model
     }
 
     /**
+     * Whether an account is a live member of this workspace. Asked by the Actions that
+     * accept a user id from outside — an assignee, a mention — where the id being valid
+     * says nothing about the person belonging here.
+     */
+    public function hasActiveMember(int $userId): bool
+    {
+        return $this->memberships()
+            ->where('user_id', $userId)
+            ->where('status', WorkspaceMembershipStatus::Active->value)
+            ->exists();
+    }
+
+    /**
      * Whether this membership is the only active owner left. ADR-0010's "cannot be
      * removed or demoted while last owner" has no database constraint behind it — the
      * count is a query, and the Actions that could break the rule ask it here so they
