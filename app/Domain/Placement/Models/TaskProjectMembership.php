@@ -10,6 +10,7 @@ use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use Database\Factories\TaskProjectMembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -49,6 +50,22 @@ class TaskProjectMembership extends Model
      * position would be a route into the sequence for stale data to corrupt.
      */
     protected $fillable = ['task_id', 'project_id', 'section_id'];
+
+    /**
+     * The cards a column actually draws. A soft-deleted task keeps its placement, so that
+     * restoring the task puts the card back where it was — but until then there is nothing
+     * to render, and a board that drew the row would draw a card with no task on it.
+     *
+     * Counting and rendering must both go through here, or a column's header disagrees with
+     * its contents.
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeVisible(Builder $query): Builder
+    {
+        return $query->whereHas('task');
+    }
 
     /** Ungrouped: in the project, in no column — the list view's default bucket. */
     public function isUngrouped(): bool

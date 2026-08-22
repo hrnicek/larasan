@@ -99,7 +99,11 @@ class Project extends Model
      */
     public function allowsChangesBy(User $user, Capability $capability): bool
     {
-        return $this->isVisibleTo($user)
+        // An archived project is a record of what happened, not a board somebody is still
+        // working on. Restoring it goes through `isManageableBy()` instead, so an archived
+        // project is never stuck.
+        return ! $this->isArchived()
+            && $this->isVisibleTo($user)
             && $this->workspace->membershipFor($user)?->allows($capability) === true
             && $this->memberFor($user)?->access_level->canEdit() === true;
     }
