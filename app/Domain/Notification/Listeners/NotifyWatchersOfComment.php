@@ -8,6 +8,7 @@ use App\Domain\Comment\Events\CommentCreated;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Notification as Notifications;
 
@@ -25,8 +26,21 @@ use Illuminate\Support\Facades\Notification as Notifications;
  * Only tasks for now: a comment can hang from anything, but nothing else has followers yet, and
  * a listener that guessed at the others would be guessing about who should hear from them.
  */
-final readonly class NotifyWatchersOfComment
+final readonly class NotifyWatchersOfComment implements ShouldQueue
 {
+    /**
+     * The `notifications` queue Horizon already supervises, below `broadcasts` (ADR-0008): a
+     * slow inbox must never delay a board update, and nobody's request should wait on somebody
+     * else's notification.
+     *
+     * The connection is left to configuration. Pinning it here would send the tests' jobs to a
+     * Redis nobody asked them to need.
+     */
+    public function viaQueue(): string
+    {
+        return 'notifications';
+    }
+
     public function handle(CommentCreated $event): void
     {
         if ($event->subjectType !== 'task') {
