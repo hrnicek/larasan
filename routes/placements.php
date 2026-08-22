@@ -38,7 +38,9 @@ Route::middleware(['auth', 'verified'])->whereUuid(['project', 'placement'])->gr
 
     // A move is its own endpoint: it takes a column and an anchor, never a position
     // (ADR-0009).
-    Route::put('placements/{placement}/move', [PlacementController::class, 'move'])->name('placements.move');
+    Route::put('placements/{placement}/move', [PlacementController::class, 'move'])
+        ->middleware('throttle:task-moves')
+        ->name('placements.move');
 
     Route::delete('placements/{placement}', [PlacementController::class, 'destroy'])->name('placements.destroy');
 });

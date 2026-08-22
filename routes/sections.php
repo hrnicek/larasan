@@ -36,7 +36,9 @@ Route::middleware(['auth', 'verified'])->whereUuid(['project', 'section'])->grou
     Route::put('sections/{section}', [SectionController::class, 'update'])->name('sections.update');
 
     // A move is its own endpoint: it takes an anchor, never a position (ADR-0009).
-    Route::put('sections/{section}/move', [SectionController::class, 'move'])->name('sections.move');
+    Route::put('sections/{section}/move', [SectionController::class, 'move'])
+        ->middleware('throttle:task-moves')
+        ->name('sections.move');
 
     Route::delete('sections/{section}', [SectionController::class, 'destroy'])->name('sections.destroy');
 });

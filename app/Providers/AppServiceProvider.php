@@ -74,6 +74,17 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('workspace-invitations', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
         RateLimiter::for('workspace-creation', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
         RateLimiter::for('project-creation', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
+
+        /*
+         * Moving a card or a column locks the whole column for the length of its transaction
+         * (ADR-0009), and the board sends one request per drop — the first endpoints in this
+         * application that are both frequent and expensive (TASK-070-016).
+         *
+         * Sixty a minute is one drag a second, sustained, which is faster than a person
+         * dragging as fast as they can and far below what a stuck client would produce. It is
+         * a rate, not a round number: the point is to bound a loop, not to ration a user.
+         */
+        RateLimiter::for('task-moves', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->user()?->id));
     }
 
     /**
