@@ -46,6 +46,14 @@ class ProjectPolicy
             && $project->memberFor($user)?->access_level->canManageProject() === true;
     }
 
+    /**
+     * Adding a column, asked of the project because there is no section yet to judge.
+     */
+    public function createSection(User $user, Project $project): bool
+    {
+        return $project->allowsSectionChangesBy($user, Capability::SectionCreate);
+    }
+
     public function createTask(User $user, Project $project): bool
     {
         return $this->capableAndAllowed($user, $project, Capability::TaskCreate)
