@@ -55,7 +55,12 @@ const drag = useBoardDragAndDrop(columns, () => editable());
  */
 const activeColumn = ref(0);
 
-const showColumn = (index: number): boolean => window.innerWidth >= 768 || index === activeColumn.value;
+/*
+ * Which columns are drawn is a CSS question, not a JavaScript one: reading `window.innerWidth`
+ * gives an answer that is right once and then stale — a resize left the desktop board showing
+ * a single column, because nothing re-read the width.
+ */
+const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
 const expand = (columnId: string | null): void => {
@@ -152,7 +157,6 @@ onUnmounted(() => {
         <div v-if="board" class="flex gap-4 overflow-x-auto pb-2" @keydown="keyboard.onKeydown">
             <BoardColumn
                 v-for="(column, index) in columns"
-                v-show="showColumn(index)"
                 :key="column.id ?? 'ungrouped'"
                 :column="column"
                 :project-id="project.id"
@@ -163,6 +167,7 @@ onUnmounted(() => {
                 :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
                 :columns="columns"
                 class="w-full md:w-72"
+                :class="columnVisibility(index)"
                 @expand="expand"
                 @pickup="drag.pickUp"
                 @moveto="drag.moveTo"
