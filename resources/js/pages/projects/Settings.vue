@@ -24,10 +24,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { accentTextClass } from '@/lib/accentColor';
-import type { ProjectAbilities, ProjectOptions, ProjectSettings } from '@/modules/project/types';
+import SectionManager from '@/modules/project/components/SectionManager.vue';
+import type { ProjectAbilities, ProjectOptions, ProjectSection, ProjectSettings } from '@/modules/project/types';
 const props = defineProps<{
     project: ProjectSettings;
     options: ProjectOptions;
+    sections: ProjectSection[];
     can: ProjectAbilities;
 }>();
 
@@ -184,6 +186,12 @@ const viewLabels: Record<string, string> = {
 
             <Button type="submit" :disabled="processing">Save changes</Button>
         </Form>
+
+        <SectionManager
+            :project-id="props.project.id"
+            :sections="props.sections"
+            :can="{ update: props.can.update, createSection: props.can.createSection }"
+        />
 
         <section v-if="props.can.archive" class="space-y-4">
             <Heading

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
@@ -70,6 +71,28 @@ it('shows the settings screen with the abilities the actor has', function (): vo
             ->where('project.slug', $project->slug)
             ->where('can.update', true)
             ->where('can.manageMembers', true));
+});
+
+it('sends the project sections in order with the ability to add one', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
+    Section::factory()->in($project)->at(2 * Section::POSITION_GAP)->create(['name' => 'Second']);
+    Section::factory()->in($project)->at(Section::POSITION_GAP)->create(['name' => 'First']);
+
+    $this->actingAs($actor)
+        ->get(route('projects.edit', $project))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('sections', 2)
+            ->where('sections.0.name', 'First')
+            ->where('sections.1.name', 'Second')
+            ->where('can.createSection', true));
+});
+
+it('tells a viewer they may not add a section', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
+
+    $this->actingAs($actor)
+        ->get(route('projects.edit', $project))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.createSection', false));
 });
 
 it('sends the enum options the settings form offers', function (): void {

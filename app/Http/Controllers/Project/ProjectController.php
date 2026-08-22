@@ -11,6 +11,7 @@ use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
@@ -91,6 +92,17 @@ class ProjectController extends Controller
                 'archived' => $project->isArchived(),
             ],
             /*
+             * The columns, in order, with the abilities the actor has over them. Sections
+             * are edited here until the board and the list screens exist (Phases 080 and
+             * 090) — a project already has one screen, and columns nobody can reach are
+             * columns nobody can fix.
+             */
+            'sections' => $project->sections()->get()->map(fn (Section $section): array => [
+                'id' => $section->id,
+                'name' => $section->name,
+                'color' => $section->color?->value,
+            ])->all(),
+            /*
              * The enums the form offers come from the server, so a case added later
              * appears in the UI without a second list to remember.
              */
@@ -104,6 +116,7 @@ class ProjectController extends Controller
                 'archive' => $user->can('archive', $project),
                 'delete' => $user->can('delete', $project),
                 'manageMembers' => $user->can('manageMembers', $project),
+                'createSection' => $user->can('createSection', $project),
             ],
         ]);
     }
