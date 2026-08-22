@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Task\Models;
 
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Comment\Models\Commentable;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
@@ -41,7 +42,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $created_by
  */
 #[UseFactory(TaskFactory::class)]
-class Task extends Model
+class Task extends Model implements Commentable
 {
     /** @use HasFactory<TaskFactory> */
     use HasFactory, HasUuids, SoftDeletes;
@@ -116,6 +117,15 @@ class Task extends Model
             ->withPivot(['id', 'section_id', 'position'])
             ->withTimestamps()
             ->orderBy('projects.name');
+    }
+
+    /**
+     * A comment carries the workspace of the thing it is about, and this is where a task says
+     * which that is (`Commentable`).
+     */
+    public function workspaceId(): string
+    {
+        return $this->workspace_id;
     }
 
     /**
