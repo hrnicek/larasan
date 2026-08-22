@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Models;
 
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -15,13 +17,14 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * A task belongs to a workspace and to no project (ADR-0003). Where it appears is a
- * separate question answered by `task_project_memberships` in Phase 070, which is why
- * nothing here reaches a project or a section.
+ * separate question, answered by `task_project_memberships`: the relations below read
+ * placement, and no column here records it.
  *
  * @property string $id
  * @property string $workspace_id
@@ -85,6 +88,32 @@ class Task extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id')->oldest('created_at')->orderBy('id');
+    }
+
+    /**
+     * Where this task appears (ADR-0003). Unordered on purpose: a task's placements are a
+     * set, and `position` orders a task against its neighbours in one project rather than
+     * ordering the projects against each other.
+     *
+     * @return HasMany<TaskProjectMembership, $this>
+     */
+    public function placements(): HasMany
+    {
+        return $this->hasMany(TaskProjectMembership::class);
+    }
+
+    /**
+     * The projects this task appears in, by name — the chip list on a task, where the only
+     * order a reader can follow is the one they can read.
+     *
+     * @return BelongsToMany<Project, $this>
+     */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'task_project_memberships')
+            ->withPivot(['id', 'section_id', 'position'])
+            ->withTimestamps()
+            ->orderBy('projects.name');
     }
 
     /** @return BelongsTo<User, $this> */

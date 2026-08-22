@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Models;
 
+use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -147,6 +149,32 @@ class Project extends Model
     public function sections(): HasMany
     {
         return $this->hasMany(Section::class)->orderBy('position');
+    }
+
+    /**
+     * Every card in this project, columns and ungrouped bucket alike. Unordered on purpose:
+     * a board's order is `sections.position` first and `position` second, which is a join
+     * rather than a relation, and ordering by `section_id` would order by a UUID.
+     * `Section::placements()` is where order within a column lives.
+     *
+     * @return HasMany<TaskProjectMembership, $this>
+     */
+    public function placements(): HasMany
+    {
+        return $this->hasMany(TaskProjectMembership::class);
+    }
+
+    /**
+     * The tasks this project holds. A task reached this way is a task, not a copy: it is
+     * owned by the workspace and may appear in other projects too (ADR-0003).
+     *
+     * @return BelongsToMany<Task, $this>
+     */
+    public function tasks(): BelongsToMany
+    {
+        return $this->belongsToMany(Task::class, 'task_project_memberships')
+            ->withPivot(['id', 'section_id', 'position'])
+            ->withTimestamps();
     }
 
     /** @return HasMany<ProjectMembership, $this> */

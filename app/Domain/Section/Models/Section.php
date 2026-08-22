@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Section\Models;
 
+use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Ordering\SparsePosition;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A user-defined grouping inside one project (ADR-0004). The name is content, not a state
@@ -45,6 +47,17 @@ class Section extends Model
     public const DEFAULT_NAMES = ['Backlog', 'In progress', 'Done'];
 
     protected $fillable = ['name', 'color', 'position'];
+
+    /**
+     * The cards in this column, in the order the board draws them. Order means something
+     * here and nowhere else in the placement graph (ADR-0009).
+     *
+     * @return HasMany<TaskProjectMembership, $this>
+     */
+    public function placements(): HasMany
+    {
+        return $this->hasMany(TaskProjectMembership::class)->orderBy('position');
+    }
 
     /** @return BelongsTo<Project, $this> */
     public function project(): BelongsTo
