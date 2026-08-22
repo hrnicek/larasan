@@ -12,7 +12,6 @@ use App\Domain\Section\Actions\RenameSection;
 use App\Domain\Section\Data\CreateSectionData;
 use App\Domain\Section\Data\UpdateSectionData;
 use App\Domain\Section\Models\Section;
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Section\MoveSectionRequest;
 use App\Http\Requests\Section\StoreSectionRequest;
@@ -31,10 +30,7 @@ class SectionController extends Controller
 {
     public function store(StoreSectionRequest $request, Project $project, CreateSection $createSection): RedirectResponse
     {
-        $createSection->handle($project, $this->actor($request), new CreateSectionData(
-            name: $request->string('name')->toString(),
-            color: $request->enum('color', ProjectColor::class),
-        ));
+        $createSection->handle($project, $this->actor($request), CreateSectionData::fromRequest($request));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Section added.')]);
 
@@ -43,10 +39,7 @@ class SectionController extends Controller
 
     public function update(UpdateSectionRequest $request, Section $section, RenameSection $renameSection): RedirectResponse
     {
-        $renameSection->handle($section, $this->actor($request), new UpdateSectionData(
-            name: $request->string('name')->toString(),
-            color: $request->enum('color', ProjectColor::class),
-        ));
+        $renameSection->handle($section, $this->actor($request), UpdateSectionData::fromRequest($request));
 
         return back();
     }

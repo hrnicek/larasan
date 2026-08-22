@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Section\Data;
 
 use App\Domain\Shared\Enums\ProjectColor;
+use App\Http\Requests\Section\UpdateSectionRequest;
 
 /**
  * The position is absent by design: a move is `MoveSection`, expressed as "place this
@@ -16,4 +17,12 @@ final readonly class UpdateSectionData
         public string $name,
         public ?ProjectColor $color = null,
     ) {}
+
+    public static function fromRequest(UpdateSectionRequest $request): self
+    {
+        return new self(
+            name: $request->string('name')->toString(),
+            color: $request->enum('color', ProjectColor::class),
+        );
+    }
 }
