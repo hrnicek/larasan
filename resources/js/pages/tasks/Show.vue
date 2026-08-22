@@ -11,6 +11,7 @@ const props = defineProps<TaskDetail & { members: TaskAssignee[]; priorities: st
 const detail = (): TaskDetail => ({
     task: props.task,
     placements: props.placements,
+    availableProjects: props.availableProjects,
     subtasks: props.subtasks,
     can: props.can,
 });

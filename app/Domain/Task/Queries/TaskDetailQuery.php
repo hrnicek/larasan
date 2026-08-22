@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Task\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -28,6 +30,7 @@ final readonly class TaskDetailQuery
      * @return array{
      *     task: array<string, mixed>,
      *     placements: list<array<string, mixed>>,
+     *     availableProjects: list<array{id: string, name: string}>,
      *     subtasks: list<array<string, mixed>>,
      *     can: array{update: bool, delete: bool, comment: bool},
      * }
@@ -70,6 +73,7 @@ final readonly class TaskDetailQuery
                 'creator' => $this->person($task->creator),
             ],
             'placements' => $this->placements($task, $actor),
+            'availableProjects' => $this->availableProjects($task, $actor),
             'subtasks' => array_values($task->children
                 ->map(fn (Task $subtask): array => [
                     'id' => $subtask->id,
@@ -112,6 +116,35 @@ final readonly class TaskDetailQuery
                 ],
                 'canDetach' => $placement->project->allowsChangesBy($actor, Capability::TaskUpdate),
             ])
+            ->all();
+
+        return array_values($rows);
+    }
+
+    /**
+     * The projects this task could be added to: the ones the actor may change the contents
+     * of, minus the ones it is already in.
+     *
+     * Answered from `VisibleProjectsForUser` rather than from every project in the workspace,
+     * so a private project nobody gave the actor never appears in a menu — the same rule the
+     * placement list follows.
+     *
+     * @return list<array{id: string, name: string}>
+     */
+    private function availableProjects(Task $task, User $actor): array
+    {
+        $already = $task->placements->pluck('project_id')->all();
+
+        $rows = app(VisibleProjectsForUser::class)
+            ->query($task->workspace, $actor)
+            // The workspace comes with them: `allowsChangesBy()` asks it, and asking per
+            // project would be a query per row in a menu.
+            ->with('workspace')
+            ->orderBy('name')
+            ->get()
+            ->reject(fn (Project $project): bool => in_array($project->id, $already, strict: true))
+            ->filter(fn (Project $project): bool => $project->allowsChangesBy($actor, Capability::TaskUpdate))
+            ->map(fn (Project $project): array => ['id' => $project->id, 'name' => $project->name])
             ->all();
 
         return array_values($rows);

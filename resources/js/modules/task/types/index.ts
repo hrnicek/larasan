@@ -69,6 +69,7 @@ export type TaskDetailPlacement = {
 };
 
 export type TaskDetail = {
+    availableProjects: { id: string; name: string }[];
     task: {
         id: string;
         title: string;

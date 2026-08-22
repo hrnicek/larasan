@@ -180,5 +180,24 @@ it('carries nothing it cannot yet know about', function (): void {
     // Comments, activity and attachments are deferred regions whose tables do not exist;
     // followers arrive with TASK-100-010. A query that pretended otherwise would be one
     // somebody has to unpick.
-    expect(array_keys(detailOf($task, $actor)))->toBe(['task', 'placements', 'subtasks', 'can']);
+    expect(array_keys(detailOf($task, $actor)))
+        ->toBe(['task', 'placements', 'availableProjects', 'subtasks', 'can']);
+});
+
+it('offers only the projects the actor may add the task to', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $editable = Project::factory()->in($workspace)->create(['name' => 'Editable']);
+    ProjectMembership::factory()->in($editable)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
+    $readOnly = Project::factory()->in($workspace)->create(['name' => 'Read only']);
+    ProjectMembership::factory()->in($readOnly)->forUser($actor)->withAccess(ProjectAccessLevel::Viewer)->create();
+    Project::factory()->in($workspace)->create(['name' => 'Secret', 'visibility' => ProjectVisibility::Private]);
+
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    $offered = array_column(detailOf($task, $actor)['availableProjects'], 'name');
+
+    // Not the one it is already in, not one they may only read, and never one they were never
+    // given.
+    expect($offered)->toBe(['Editable']);
 });
