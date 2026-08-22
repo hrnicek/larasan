@@ -276,3 +276,43 @@ it('answers the deferred region with the thread itself', function (): void {
         ->assertJsonPath('props.activity.entries.0.kind', 'comment')
         ->assertJsonPath('props.activity.meta.total', 1);
 });
+
+it('sends each thread line with the permissions its controls render from', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    Comment::factory()->on($task)->by($actor)->create(['body' => 'Mine']);
+    Comment::factory()->on($task)->create(['body' => 'Theirs']);
+
+    // The Edit and Delete controls are rendered from these, never from a rule written into the
+    // template — a second copy of the policy in a component is the copy that goes stale.
+    $this->actingAs($actor)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('tasks.show', $task), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'tasks/Show',
+            'X-Inertia-Partial-Data' => 'activity',
+        ])
+        ->assertOk()
+        // Newest first from the server; the component reverses a page to draw it.
+        ->assertJsonPath('props.activity.entries.0.canEdit', false)
+        ->assertJsonPath('props.activity.entries.0.canDelete', true)
+        ->assertJsonPath('props.activity.entries.1.canEdit', true)
+        ->assertJsonPath('props.activity.entries.1.canDelete', true);
+});
+
+it('tells the panel whether a comment form belongs on the screen', function (): void {
+    $workspace = Workspace::factory()->create();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    // A guest may comment on what they were given (ADR-0010), so the form belongs there — the
+    // flag is what the component hides it by, and hiding is right where disabling would be an
+    // affordance that leads nowhere.
+    $this->actingAs($guest)
+        ->get(route('tasks.show', $task))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.comment', true));
+});

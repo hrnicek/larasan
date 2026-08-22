@@ -6,17 +6,22 @@ use App\Domain\Activity\Models\Activity;
 use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Shared\Enums\ActivityType;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
 /**
  * @return array{entries: list<array<string, mixed>>, meta: array{page: int, perPage: int, total: int, hasMore: bool}}
  */
-function feedOf(Task $task, int $page = 1, int $perPage = 30): array
+function feedOf(Task $task, ?User $viewer = null, int $page = 1, int $perPage = 30): array
 {
-    return app(TaskFeedQuery::class)($task, $page, $perPage);
+    $viewer ??= memberOf($task->workspace);
+
+    return app(TaskFeedQuery::class)($task, $viewer, $page, $perPage);
 }
 
 it('interleaves comments and activities by time', function (): void {
@@ -84,17 +89,21 @@ it('reads every actor on a page in one query', function (): void {
         Comment::factory()->on($task)->by(memberOf($workspace))->create(['created_at' => now()->subMinutes($minute)]);
     }
 
+    $viewer = memberOf($workspace);
+    $task->loadMissing('workspace');
+
     DB::enableQueryLog();
-    $feed = feedOf($task);
+    $feed = feedOf($task, $viewer);
     $queries = DB::getQueryLog();
     DB::disableQueryLog();
 
     /*
      * A feed is the one screen where every line has a different person on it, so a lazy
-     * relation here is an N+1 per page. Three reads: the count, the page, and the actors.
+     * relation here is an N+1 per page. Four reads: the count, the page, the actors, and the
+     * one membership lookup that answers the page's permissions.
      */
     expect($feed['entries'])->toHaveCount(10)
-        ->and(count($queries))->toBe(3);
+        ->and(count($queries))->toBe(4);
 });
 
 it('keeps a removed comment in the thread and its words out of it', function (): void {
@@ -178,4 +187,42 @@ it('has nothing to say about a task nothing has happened to', function (): void 
         'entries' => [],
         'meta' => ['page' => 1, 'perPage' => 30, 'total' => 0, 'hasMore' => false],
     ]);
+});
+
+it('sends the permissions the thread renders, and they match what the policy answers', function (): void {
+    $workspace = Workspace::factory()->create();
+    $task = Task::factory()->in($workspace)->create();
+    $author = memberOf($workspace, WorkspaceRole::Member);
+    $moderator = memberOf($workspace, WorkspaceRole::Admin);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $comment = Comment::factory()->on($task)->by($author)->create();
+
+    /*
+     * Reach is settled by the time somebody is reading this feed, so the query answers the two
+     * questions that are left — authorship and `comment.delete` — instead of loading a model
+     * per line to ask the policy again. These assertions are what keeps the two answers the
+     * same one.
+     */
+    foreach ([$author, $moderator, $guest] as $viewer) {
+        $entry = feedOf($task, $viewer)['entries'][0];
+
+        expect($entry['canEdit'])->toBe(Gate::forUser($viewer)->allows('update', $comment))
+            ->and($entry['canDelete'])->toBe(Gate::forUser($viewer)->allows('delete', $comment));
+    }
+});
+
+it('offers nothing to change on an activity or on a removed comment', function (): void {
+    $workspace = Workspace::factory()->create();
+    $task = Task::factory()->in($workspace)->create();
+    $author = memberOf($workspace, WorkspaceRole::Member);
+    Activity::factory()->on($task)->by($author)->create(['created_at' => now()->subMinute()]);
+    $comment = Comment::factory()->on($task)->by($author)->create();
+    $comment->delete();
+
+    // An activity is a record of something that already happened, and a removed comment is no
+    // longer part of the conversation.
+    $entries = feedOf($task, $author)['entries'];
+
+    expect(array_column($entries, 'canEdit'))->toBe([false, false])
+        ->and(array_column($entries, 'canDelete'))->toBe([false, false]);
 });

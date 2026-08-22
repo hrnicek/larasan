@@ -68,7 +68,7 @@ class TaskController extends Controller
                 ->values()
                 ->all(),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
-            'activity' => $this->activity($task),
+            'activity' => $this->activity($task, $actor),
         ]);
     }
 
@@ -79,9 +79,9 @@ class TaskController extends Controller
      * be slow, while the fields above them are worth reading immediately. The region has been
      * answering with an empty array since TASK-100-011; TASK-110-009 gives it the thread.
      */
-    private function activity(Task $task): DeferProp
+    private function activity(Task $task, User $actor): DeferProp
     {
-        return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task));
+        return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor));
     }
 
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse

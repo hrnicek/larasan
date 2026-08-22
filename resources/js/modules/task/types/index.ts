@@ -89,11 +89,28 @@ export type TaskDetail = {
 };
 
 /**
- * One line of a task's history. Comments and real activity arrive in Phase 110; the shape is
- * declared here because the region that renders them exists now.
+ * One line of a task's thread — something somebody said, or something that happened.
+ *
+ * `canEdit` and `canDelete` come from the server (`TaskFeedQuery`). Deriving them here would
+ * put a permission rule in a template and let the two answers drift.
  */
-export type TaskActivityEntry = {
+export type TaskFeedEntry = {
     id: string;
-    description: string;
-    at: string;
+    kind: 'comment' | 'activity';
+    createdAt: string;
+    actor: TaskAssignee | null;
+    /** Null on an activity, and on a comment that was removed. */
+    body: string | null;
+    edited: boolean;
+    deleted: boolean;
+    /** The activity's type, e.g. `task.completed`. Null on a comment. */
+    type: string | null;
+    properties: Record<string, unknown> | null;
+    canEdit: boolean;
+    canDelete: boolean;
+};
+
+export type TaskFeed = {
+    entries: TaskFeedEntry[];
+    meta: { page: number; perPage: number; total: number; hasMore: boolean };
 };

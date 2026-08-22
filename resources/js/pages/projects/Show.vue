@@ -14,7 +14,7 @@ import type {
     BoardColumnData,
     ProjectBoard,
     ProjectList,
-    TaskActivityEntry,
+    TaskFeed,
     TaskAssignee,
     TaskDetail,
 } from '@/modules/task/types';
@@ -37,7 +37,7 @@ const props = defineProps<{
     /** The open panel, when the URL names a task. */
     taskDetail?: TaskDetail | null;
     /** Deferred with the panel: absent until its own request lands. */
-    activity?: TaskActivityEntry[];
+    activity?: TaskFeed;
 }>();
 
 /*

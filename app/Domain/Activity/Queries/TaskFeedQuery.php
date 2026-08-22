@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Activity\Queries;
 
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -46,7 +47,7 @@ final readonly class TaskFeedQuery
      *     meta: array{page: int, perPage: int, total: int, hasMore: bool},
      * }
      */
-    public function __invoke(Task $task, int $page = 1, int $perPage = self::PER_PAGE): array
+    public function __invoke(Task $task, User $viewer, int $page = 1, int $perPage = self::PER_PAGE): array
     {
         $lines = $this->paginate($task, $page, $perPage);
 
@@ -55,8 +56,16 @@ final readonly class TaskFeedQuery
 
         $actors = $this->actors($rows);
 
+        /*
+         * Asked once for the page rather than per line. Reach is already settled — somebody
+         * reading this feed can read the task — so what is left of `CommentPolicy` is
+         * authorship and this one capability (`CommentPolicyTest` and `TaskFeedQueryTest` both
+         * assert the two answers agree).
+         */
+        $canModerate = $task->workspace->membershipFor($viewer)?->allows(Capability::CommentDelete) === true;
+
         return [
-            'entries' => array_map(fn (object $line): array => $this->entry($line, $actors), $rows),
+            'entries' => array_map(fn (object $line): array => $this->entry($line, $actors, $viewer, $canModerate), $rows),
             'meta' => [
                 'page' => $lines->currentPage(),
                 'perPage' => $lines->perPage(),
@@ -145,10 +154,12 @@ final readonly class TaskFeedQuery
      * @param  Collection<int, User>  $actors
      * @return array<string, mixed>
      */
-    private function entry(object $line, Collection $actors): array
+    private function entry(object $line, Collection $actors, User $viewer, bool $canModerate): array
     {
         $actor = $actors->get($line->actor_id);
         $deleted = $line->deleted_at !== null;
+        $isComment = $line->kind === 'comment';
+        $isAuthor = $isComment && $line->actor_id !== null && $line->actor_id === $viewer->id;
 
         return [
             'id' => (string) $line->id,
@@ -173,6 +184,13 @@ final readonly class TaskFeedQuery
             'properties' => $line->properties === null
                 ? null
                 : json_decode((string) $line->properties, true, 512, JSON_THROW_ON_ERROR),
+            /*
+             * The permissions the UI renders come from here, never from a rule written into a
+             * template. An activity is nobody's to change: it is a record of something that
+             * already happened.
+             */
+            'canEdit' => $isComment && $isAuthor && ! $deleted,
+            'canDelete' => $isComment && ! $deleted && ($isAuthor || $canModerate),
         ];
     }
 }

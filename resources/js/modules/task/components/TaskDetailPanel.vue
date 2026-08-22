@@ -9,7 +9,7 @@ import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import SubtaskList from '@/modules/task/components/SubtaskList.vue';
 import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
-import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task/types';
+import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
  * One task, rendered the same way whether it is a panel over a list or a page of its own.
@@ -18,7 +18,7 @@ import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task
 const props = defineProps<{
     detail: TaskDetail;
     /** Deferred: absent until the follow-up request lands (TASK-100-011). */
-    activity?: TaskActivityEntry[];
+    activity?: TaskFeed;
     /** A panel can be closed; a page has nowhere to close to. */
     dismissible: boolean;
     members: TaskAssignee[];
@@ -221,6 +221,6 @@ defineExpose({ close });
             :editable="detail.can.update"
         />
 
-        <ActivityFeed :entries="activity" />
+        <ActivityFeed :task-id="detail.task.id" :feed="activity" :can-comment="detail.can.comment" />
     </section>
 </template>

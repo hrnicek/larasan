@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
-import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task/types';
+import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
  * A task's own page: the same component the panel renders, with nothing to close to.
@@ -9,7 +9,7 @@ import type { TaskActivityEntry, TaskAssignee, TaskDetail } from '@/modules/task
 const props = defineProps<TaskDetail & {
     members: TaskAssignee[];
     priorities: string[];
-    activity?: TaskActivityEntry[];
+    activity?: TaskFeed;
 }>();
 
 const detail = (): TaskDetail => ({
