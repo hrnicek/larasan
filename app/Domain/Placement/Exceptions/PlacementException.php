@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Placement\Exceptions;
 
+use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
 /**
@@ -11,7 +12,7 @@ use DomainException;
  * them first; the Action still checks, because a console command or a queued job arrives
  * without one.
  */
-final class PlacementException extends DomainException
+final class PlacementException extends DomainException implements DomainRefusal
 {
     public static function cannotPlaceTasks(): self
     {

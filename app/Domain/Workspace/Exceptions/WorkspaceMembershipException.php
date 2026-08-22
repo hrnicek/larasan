@@ -6,6 +6,7 @@ namespace App\Domain\Workspace\Exceptions;
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
 /**
@@ -14,7 +15,7 @@ use DomainException;
  * is reached, and the Action still checks, because a console command or a queued job
  * arrives without one.
  */
-final class WorkspaceMembershipException extends DomainException
+final class WorkspaceMembershipException extends DomainException implements DomainRefusal
 {
     public static function alreadyAMember(): self
     {

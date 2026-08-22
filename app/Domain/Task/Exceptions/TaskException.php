@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Exceptions;
 
+use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
 /**
@@ -11,7 +12,7 @@ use DomainException;
  * first; the Action still checks, because a console command, a queued job or the future
  * API arrives without one.
  */
-final class TaskException extends DomainException
+final class TaskException extends DomainException implements DomainRefusal
 {
     public static function cannotCreateTasks(): self
     {

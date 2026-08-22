@@ -31,27 +31,47 @@ const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
  * later asks for more rows — so the skeleton stands in for exactly that.
  */
 const reloading = ref(false);
+const failed = ref(false);
 const listening = (event: { detail: { visit: { only: string[] } } }) => event.detail.visit.only.includes('list');
 
 const started = (event: { detail: { visit: { only: string[] } } }) => {
-    reloading.value = listening(event);
+    if (listening(event)) {
+        reloading.value = true;
+        failed.value = false;
+    }
 };
 
 const finished = () => {
     reloading.value = false;
 };
 
-let stopStart: (() => void) | null = null;
-let stopFinish: (() => void) | null = null;
+/*
+ * Inertia v3's names: `invalid` became `httpException` and `exception` became `networkError`.
+ * Both leave the rows that are already drawn alone — an error region that emptied the screen
+ * would lose the reader's place to tell them something went wrong.
+ */
+const errored = () => {
+    failed.value = true;
+    reloading.value = false;
+};
+
+const retry = () => {
+    router.reload({ only: ['list'] });
+};
+
+const stops: Array<() => void> = [];
 
 onMounted(() => {
-    stopStart = router.on('start', started);
-    stopFinish = router.on('finish', finished);
+    stops.push(
+        router.on('start', started),
+        router.on('finish', finished),
+        router.on('httpException', errored),
+        router.on('networkError', errored),
+    );
 });
 
 onUnmounted(() => {
-    stopStart?.();
-    stopFinish?.();
+    stops.forEach((stop) => stop());
 });
 </script>
 
@@ -65,25 +85,37 @@ onUnmounted(() => {
             The board view is not built yet. Switch to the list to see this project's tasks.
         </p>
 
-        <div v-else-if="list.sections.length" class="flex flex-col space-y-4">
-            <SectionGroup
-                v-for="section in list.sections"
-                :key="section.id ?? 'ungrouped'"
-                :section="section"
-                :members="members"
-                :priorities="priorities"
-                :editable="editable()"
-                :creatable="list.can.createTask"
-                :project-id="project.id"
-                :collapsed="isCollapsed(section.id)"
-                :loading="reloading"
-                @toggle="toggle"
-            />
-        </div>
+        <template v-else>
+            <div
+                v-if="failed"
+                class="flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm"
+                role="alert"
+            >
+                <span>Something went wrong loading this project.</span>
+                <button type="button" class="underline" @click="retry">Try again</button>
+            </div>
 
-        <div v-else class="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
-            <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
-            <InlineTaskCreate v-if="list.can.createTask" :project-id="project.id" :section-id="null" />
-        </div>
+            <div v-if="list.sections.length" class="flex flex-col space-y-4">
+                <SectionGroup
+                    v-for="section in list.sections"
+                    :key="section.id ?? 'ungrouped'"
+                    :section="section"
+                    :members="members"
+                    :priorities="priorities"
+                    :editable="editable()"
+                    :creatable="list.can.createTask"
+                    :project-id="project.id"
+                    :collapsed="isCollapsed(section.id)"
+                    :loading="reloading"
+                    @toggle="toggle"
+                />
+            </div>
+
+            <div v-else class="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
+                <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
+                <InlineTaskCreate v-if="list.can.createTask" :project-id="project.id" :section-id="null" />
+            </div>
+        </template>
+
     </div>
 </template>
