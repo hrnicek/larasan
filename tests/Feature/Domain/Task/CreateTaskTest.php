@@ -6,6 +6,7 @@ use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\CreateTask;
+use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\CreateTaskData;
 use App\Domain\Task\Events\TaskCreated;
 use App\Domain\Task\Exceptions\TaskException;
@@ -97,6 +98,25 @@ it('refuses a parent that does not exist', function (): void {
 
     expect(fn (): Task => createTask($workspace, $creator, new CreateTaskData(title: 'Child', parentId: (string) Str::uuid7())))
         ->toThrow(TaskException::class);
+});
+
+it('refuses to create a subtask past the depth limit', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+
+    $deepest = createTask($workspace, $creator, new CreateTaskData(title: 'Root'));
+
+    foreach (range(2, ParentChain::MAX_DEPTH - 1) as $level) {
+        $deepest = createTask($workspace, $creator, new CreateTaskData(title: "Level {$level}", parentId: $deepest->id));
+    }
+
+    // One more is still legal; the one after it is not. Enforcing the limit only in
+    // UpdateTask would mean a chain that cannot be built by moving a task can still be
+    // built by creating one under its deepest end.
+    $last = createTask($workspace, $creator, new CreateTaskData(title: 'Last legal', parentId: $deepest->id));
+
+    expect(fn (): Task => createTask($workspace, $creator, new CreateTaskData(title: 'Too deep', parentId: $last->id)))
+        ->toThrow(TaskException::class, 'nested that deeply');
 });
 
 it('refuses an assignee who is not an active member', function (WorkspaceMembershipStatus $status): void {
