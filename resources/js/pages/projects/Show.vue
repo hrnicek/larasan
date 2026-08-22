@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
+import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
@@ -46,6 +47,7 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
  * follows.
  */
 const drag = useBoardDragAndDrop(columns, () => editable());
+const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
 const expand = (columnId: string | null): void => {
     const key = columnId ?? 'ungrouped';
@@ -121,7 +123,10 @@ onUnmounted(() => {
 
         <ProjectHeader :project="project" :view="view" :views="views" />
 
-        <div v-if="board" class="flex gap-4 overflow-x-auto pb-2">
+        <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
+        <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
+
+        <div v-if="board" class="flex gap-4 overflow-x-auto pb-2" @keydown="keyboard.onKeydown">
             <BoardColumn
                 v-for="column in columns"
                 :key="column.id ?? 'ungrouped'"
@@ -130,7 +135,7 @@ onUnmounted(() => {
                 :editable="editable()"
                 :creatable="creatable()"
                 :loading="reloading"
-                :dragging-id="drag.draggingId.value"
+                :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
                 :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
                 @expand="expand"
                 @pickup="drag.pickUp"

@@ -6,6 +6,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 
@@ -138,4 +139,40 @@ it('refuses to attach a task from another workspace', function (): void {
         ->assertSessionHasErrors('task');
 
     expect($project->placements()->count())->toBe(0);
+});
+
+it('refuses an anchor that has moved to another column since the board was drawn', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $here = Section::factory()->in($project)->at(SparsePosition::GAP)->create();
+    $elsewhere = Section::factory()->in($project)->at(2 * SparsePosition::GAP)->create();
+
+    $anchor = attach(Task::factory()->in($workspace)->create(), $project, $actor);
+    $moving = attach(Task::factory()->in($workspace)->create(), $project, $actor);
+    moveInto($anchor, $actor, $here);
+    moveInto($moving, $actor, $here);
+
+    // Somebody else drags the anchor out of the column between the read and the drop.
+    moveInto($anchor->refresh(), $actor, $elsewhere);
+
+    $this->actingAs($actor)
+        ->from(route('projects.show', $project))
+        ->put(route('placements.move', $moving), ['section' => $here->id, 'after' => $anchor->id])
+        ->assertSessionHasErrors('after');
+
+    // Refused rather than quietly placed at the front, which is what an anchor nobody can find
+    // would otherwise mean.
+    expect($moving->refresh()->section_id)->toBe($here->id);
+});
+
+it('refuses a card that has been detached since the board was drawn', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $section = Section::factory()->in($project)->create();
+    $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
+    $id = $placement->id;
+
+    $placement->delete();
+
+    $this->actingAs($actor)
+        ->put(route('placements.move', $id), ['section' => $section->id])
+        ->assertNotFound();
 });

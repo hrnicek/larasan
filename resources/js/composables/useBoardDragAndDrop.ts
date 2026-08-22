@@ -8,6 +8,15 @@ export type BoardDrag = {
     draggingId: Ref<string | null>;
     overColumn: Ref<string | null>;
     pickUp: (event: PointerEvent, card: BoardCardData) => void;
+    /**
+     * The request a drop makes, shared with the keyboard path so the two cannot disagree
+     * about what a move means. `rollbackTo` is the board as it was before the move began —
+     * the keyboard path moves a card several times before dropping it, and "before" is where
+     * it was picked up, not where the last arrow left it.
+     */
+    commit: (placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]) => void;
+    /** The board as it stands, for a caller that is about to change it. */
+    snapshot: () => BoardColumnData[];
 };
 
 const keyOf = (columnId: string | null): string => columnId ?? 'ungrouped';
@@ -75,6 +84,32 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         };
     };
 
+    const send = (
+        placementId: string,
+        section: string | null,
+        beforeId: string | null,
+        rollbackTo: BoardColumnData[],
+    ): void => {
+        router.put(
+            PlacementController.move.url(placementId),
+            {
+                section,
+                ...(beforeId === null ? { at: 'front' } : { after: beforeId }),
+            },
+            {
+                preserveScroll: true,
+                onError: () => {
+                    // Back to the exact slot, not merely the column — and then ask the server
+                    // what the board actually looks like. A refusal usually means somebody
+                    // else moved something, and the snapshot is only right about this card.
+                    columns.value = rollbackTo;
+
+                    router.reload({ only: ['board'] });
+                },
+            },
+        );
+    };
+
     const move = (placementId: string, targetKey: string, beforeId: string | null): void => {
         const origin = find(placementId);
         const target = columns.value.find((column) => keyOf(column.id) === targetKey);
@@ -104,25 +139,23 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         // server hears as `at: 'front'` — never as a position.
         const after = index === 0 ? null : target.tasks[index - 1];
 
-        router.put(
-            PlacementController.move.url(placementId),
-            {
-                section: target.id,
-                ...(after === null ? { at: 'front' } : { after: after.placementId }),
-            },
-            {
-                preserveScroll: true,
-                onError: () => {
-                    // Back to the exact slot, not merely the column.
-                    columns.value = previous;
-                },
-            },
-        );
+        send(placementId, target.id, after?.placementId ?? null, previous);
     };
 
     return {
         draggingId,
         overColumn,
+        snapshot,
+
+        commit(placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]): void {
+            const target = columns.value.find((column) => keyOf(column.id) === columnKey);
+
+            if (target === undefined) {
+                return;
+            }
+
+            send(placementId, target.id, beforeId, rollbackTo);
+        },
 
         pickUp(event: PointerEvent, card: BoardCardData): void {
             if (!enabled() || event.button !== 0) {
