@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Task;
 
+use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\CompleteTask;
@@ -67,21 +68,20 @@ class TaskController extends Controller
                 ->values()
                 ->all(),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
-            'activity' => $this->activity(),
+            'activity' => $this->activity($task),
         ]);
     }
 
     /**
-     * The task's history, deferred.
+     * The task's history and its conversation, deferred.
      *
-     * The only deferred region in the application, and the reason Phase 080's list was not
-     * one: activity and comments are secondary and can be slow, while the fields above them
-     * are worth reading immediately. Empty until Phase 110 creates the tables it will read —
-     * the region exists now so the screen has somewhere honest to put "nothing yet".
+     * The only deferred region in the application: activity and comments are secondary and can
+     * be slow, while the fields above them are worth reading immediately. The region has been
+     * answering with an empty array since TASK-100-011; TASK-110-009 gives it the thread.
      */
-    private function activity(): DeferProp
+    private function activity(Task $task): DeferProp
     {
-        return Inertia::defer(fn (): array => []);
+        return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task));
     }
 
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse

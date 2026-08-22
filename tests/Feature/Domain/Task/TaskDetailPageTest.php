@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
@@ -253,5 +254,25 @@ it('sends the activity when the region asks for it', function (): void {
         ->assertJsonPath('component', 'tasks/Show')
         // A partial response is JSON rather than a rendered page, so it is read as JSON: the
         // region asked for `activity` and `activity` is what came back.
-        ->assertJsonStructure(['props' => ['activity']]);
+        ->assertJsonStructure(['props' => ['activity' => ['entries', 'meta']]]);
+});
+
+it('answers the deferred region with the thread itself', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    Comment::factory()->on($task)->by($actor)->create(['body' => 'Looks right to me']);
+
+    // The region has been answering with an empty array since TASK-100-011. This is the task
+    // that gives it something to say.
+    $this->actingAs($actor)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('tasks.show', $task), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'tasks/Show',
+            'X-Inertia-Partial-Data' => 'activity',
+        ])
+        ->assertOk()
+        ->assertJsonPath('props.activity.entries.0.body', 'Looks right to me')
+        ->assertJsonPath('props.activity.entries.0.kind', 'comment')
+        ->assertJsonPath('props.activity.meta.total', 1);
 });
