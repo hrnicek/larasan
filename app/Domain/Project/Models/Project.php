@@ -89,6 +89,19 @@ class Project extends Model
     }
 
     /**
+     * Whether the actor may shape this project's columns. Editing the sections is editing
+     * the project rather than managing it, so Editor access is enough — but the workspace
+     * capability still has to allow it, and an actor who cannot see the project cannot
+     * change anything in it (ADR-0006 with ADR-0010, ADR-0004).
+     */
+    public function allowsSectionChangesBy(User $user, Capability $capability): bool
+    {
+        return $this->isVisibleTo($user)
+            && $this->workspace->membershipFor($user)?->allows($capability) === true
+            && $this->memberFor($user)?->access_level->canEdit() === true;
+    }
+
+    /**
      * Read access. An explicit project membership always grants it; `visibility =
      * workspace` grants it to workspace **members** without one — and never to a guest,
      * who reaches only what they were explicitly given (ADR-0006 with ADR-0010).

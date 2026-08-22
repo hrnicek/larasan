@@ -22,7 +22,7 @@ final readonly class CreateSection
 
     public function handle(Project $project, User $actor, CreateSectionData $data): Section
     {
-        if (! self::allows($project, $actor)) {
+        if (! $project->allowsSectionChangesBy($actor, Capability::SectionCreate)) {
             throw SectionException::cannotManageSections();
         }
 
@@ -41,19 +41,6 @@ final readonly class CreateSection
         $this->events->dispatch(new SectionCreated($section->id, $project->id, $actor->id));
 
         return $section;
-    }
-
-    /**
-     * Both halves of the answer, as everything in a project does: the workspace capability
-     * says the actor may shape projects at all, the access level says they may shape this
-     * one (ADR-0006 with ADR-0010). Editing the columns is editing the project, so Editor
-     * is enough — managing it is not required.
-     */
-    public static function allows(Project $project, User $actor): bool
-    {
-        return $project->isVisibleTo($actor)
-            && $project->workspace->membershipFor($actor)?->allows(Capability::SectionCreate) === true
-            && $project->memberFor($actor)?->access_level->canEdit() === true;
     }
 
     private function append(Project $project, CreateSectionData $data): Section
