@@ -9,8 +9,10 @@ use App\Domain\Project\Events\ProjectCreated;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -75,6 +77,21 @@ final readonly class CreateProject
                 'user_id' => $creator->id,
                 'access_level' => ProjectAccessLevel::Owner,
             ]);
+
+            /*
+             * A new project opens with columns rather than an empty board. Written here
+             * rather than through CreateSection so a project created by a seeder, a console
+             * command or the future API gets them too — and so the creator is not charged a
+             * capability check per column inside the transaction that just made them its
+             * owner.
+             */
+            $positions = SparsePosition::spread(count(Section::DEFAULT_NAMES));
+
+            foreach (Section::DEFAULT_NAMES as $index => $name) {
+                $section = new Section(['name' => $name, 'color' => null, 'position' => $positions[$index]]);
+                $section->project_id = $project->id;
+                $section->save();
+            }
 
             return $project;
         });

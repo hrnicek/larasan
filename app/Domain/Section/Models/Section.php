@@ -34,6 +34,16 @@ class Section extends Model
     /** The gap ADR-0009 specifies, defined once in `SparsePosition`. */
     public const POSITION_GAP = SparsePosition::GAP;
 
+    /**
+     * The columns a new project opens with. Data, not behaviour: these are a starting
+     * point a team renames, and nothing in the application may read them back (ADR-0004).
+     * "Done" here is a column somebody can rename tomorrow — completion is
+     * `tasks.completed_at`.
+     *
+     * @var list<string>
+     */
+    public const DEFAULT_NAMES = ['Backlog', 'In progress', 'Done'];
+
     protected $fillable = ['name', 'color', 'position'];
 
     /** @return BelongsTo<Project, $this> */

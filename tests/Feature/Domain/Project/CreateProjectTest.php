@@ -8,11 +8,13 @@ use App\Domain\Project\Events\ProjectCreated;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -45,6 +47,31 @@ it('stores the accent colour by name and reads it back as the enum', function ()
 
     expect(DB::table('projects')->where('id', $project->id)->value('color'))->toBe('violet')
         ->and($project->fresh()?->color)->toBe(ProjectColor::Violet);
+});
+
+it('opens the project with its default columns', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+
+    $project = createProject($workspace, $creator);
+
+    expect($project->sections()->pluck('name')->all())->toBe(Section::DEFAULT_NAMES)
+        ->and($project->sections()->pluck('position')->all())
+        ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)));
+});
+
+it('rolls the default sections back with the project', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+    Project::factory()->in($workspace)->create(['slug' => 'taken']);
+
+    expect(fn (): Project => DB::transaction(fn (): Project => createProject(
+        $workspace,
+        $creator,
+        new CreateProjectData(name: 'Taken', slug: 'taken'),
+    )))->toThrow(QueryException::class);
+
+    expect(Section::query()->count())->toBe(0);
 });
 
 it('refuses an actor without the project.create capability', function (WorkspaceRole $role): void {
