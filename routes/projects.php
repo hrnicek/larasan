@@ -47,6 +47,10 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
         ->middleware('throttle:project-creation')
         ->name('projects.store');
 
+    // The project itself. `?view=` overrides `projects.default_view` for one request, so the
+    // URL is the state and a shared link shows what the sender saw.
+    Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');
 

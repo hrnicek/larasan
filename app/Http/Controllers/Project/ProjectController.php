@@ -10,6 +10,7 @@ use App\Domain\Project\Actions\UpdateProject;
 use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
@@ -19,6 +20,7 @@ use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
+use App\Http\Requests\Project\ShowProjectRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\User;
@@ -69,6 +71,40 @@ class ProjectController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project created.')]);
 
         return to_route('projects.edit', $project);
+    }
+
+    /**
+     * The project itself: its list or its board, whichever this request asked for.
+     *
+     * `projects.default_view` is the project's own answer, and a `view` parameter overrides
+     * it for this request — the URL is the state, so a reload and a shared link both show
+     * what the sender saw. An unknown value is a validation error rather than a quiet
+     * fallback: a typo that silently renders the list looks like the switcher is broken.
+     */
+    public function show(ShowProjectRequest $request, Project $project, ProjectListQuery $list): Response
+    {
+        Gate::authorize('view', $project);
+
+        $view = $request->view($project);
+
+        return Inertia::render('projects/Show', [
+            'project' => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'slug' => $project->slug,
+                'color' => $project->color?->value,
+                'icon' => $project->icon,
+                'archived' => $project->isArchived(),
+            ],
+            'view' => $view->value,
+            /*
+             * The board is Phase 090. Until it exists the switcher is honest about it: the
+             * view is what the request asked for, and the payload is the list's, so the
+             * screen renders a list and says the board is not ready rather than pretending.
+             */
+            'list' => $list($project, $this->actor($request)),
+            'views' => array_column(ProjectDefaultView::cases(), 'value'),
+        ]);
     }
 
     public function edit(Request $request, Project $project): Response
