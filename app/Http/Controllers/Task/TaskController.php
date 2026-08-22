@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Task;
 
+use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\CompleteTask;
 use App\Domain\Task\Actions\CreateTask;
@@ -46,7 +47,26 @@ class TaskController extends Controller
     {
         Gate::authorize('view', $task);
 
-        return Inertia::render('tasks/Show', $detail($task, $this->actor($request)));
+        $actor = $this->actor($request);
+
+        return Inertia::render('tasks/Show', [
+            ...$detail($task, $actor),
+            /*
+             * The same two lists the project screen sends, because the panel's field controls
+             * are the same components the list row uses — a second copy of either list would
+             * be the one that goes stale.
+             */
+            'members' => $task->workspace->members()->orderBy('name')->get()
+                ->map(fn (User $member): array => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'email' => $member->email,
+                    'avatar' => null,
+                ])
+                ->values()
+                ->all(),
+            'priorities' => array_column(TaskPriority::cases(), 'value'),
+        ]);
     }
 
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse

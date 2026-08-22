@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
-import type { TaskDetail } from '@/modules/task/types';
+import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
+import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
+import PriorityControl from '@/modules/task/components/PriorityControl.vue';
+import TaskTextField from '@/modules/task/components/TaskTextField.vue';
+import type { TaskAssignee, TaskDetail } from '@/modules/task/types';
 
 /**
  * One task, rendered the same way whether it is a panel over a list or a page of its own.
@@ -11,6 +15,8 @@ const props = defineProps<{
     detail: TaskDetail;
     /** A panel can be closed; a page has nowhere to close to. */
     dismissible: boolean;
+    members: TaskAssignee[];
+    priorities: string[];
 }>();
 
 const emit = defineEmits<{ close: [] }>();
@@ -118,9 +124,13 @@ defineExpose({ close });
                 >
                     ↑ {{ detail.task.parent.title }}
                 </Link>
-                <h2 class="text-lg font-semibold" :class="detail.task.completedAt ? 'line-through text-muted-foreground' : ''">
-                    {{ detail.task.title }}
-                </h2>
+                <TaskTextField
+                    :task-id="detail.task.id"
+                    field="title"
+                    :value="detail.task.title"
+                    :editable="detail.can.update"
+                    placeholder="Task name"
+                />
             </div>
 
             <button
@@ -137,15 +147,36 @@ defineExpose({ close });
         <dl class="grid grid-cols-2 gap-2 text-sm">
             <div>
                 <dt class="text-xs text-muted-foreground">Assignee</dt>
-                <dd>{{ detail.task.assignee?.name ?? 'Unassigned' }}</dd>
+                <dd>
+                    <!-- The same components the list row uses, not second copies of them. -->
+                    <AssigneePicker
+                        :task-id="detail.task.id"
+                        :assignee="detail.task.assignee"
+                        :members="members"
+                        :editable="detail.can.update"
+                    />
+                </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Due</dt>
-                <dd>{{ detail.task.dueAt ? detail.task.dueAt.slice(0, 10) : '—' }}</dd>
+                <dd>
+                    <DueDatePicker
+                        :task-id="detail.task.id"
+                        :due-at="detail.task.dueAt"
+                        :editable="detail.can.update"
+                    />
+                </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Priority</dt>
-                <dd class="capitalize">{{ detail.task.priority }}</dd>
+                <dd>
+                    <PriorityControl
+                        :task-id="detail.task.id"
+                        :priority="detail.task.priority"
+                        :priorities="priorities"
+                        :editable="detail.can.update"
+                    />
+                </dd>
             </div>
             <div>
                 <dt class="text-xs text-muted-foreground">Created by</dt>
@@ -155,9 +186,14 @@ defineExpose({ close });
 
         <section>
             <h3 class="mb-1 text-xs text-muted-foreground">Description</h3>
-            <p class="whitespace-pre-line text-sm">
-                {{ detail.task.description || 'No description yet.' }}
-            </p>
+            <TaskTextField
+                :task-id="detail.task.id"
+                field="description"
+                :value="detail.task.description"
+                :editable="detail.can.update"
+                :multiline="true"
+                placeholder="No description yet."
+            />
         </section>
 
         <section>

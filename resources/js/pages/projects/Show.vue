@@ -162,6 +162,8 @@ onUnmounted(() => {
             :key="taskDetail.task.id"
             :detail="taskDetail"
             :dismissible="true"
+            :members="members"
+            :priorities="priorities"
             @close="closeTask"
         />
 

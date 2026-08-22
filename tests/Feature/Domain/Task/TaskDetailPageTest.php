@@ -83,3 +83,52 @@ it('lets a guest read a task in a project they were given', function (): void {
             ->where('can.update', false)
             ->where('can.comment', true));
 });
+
+it('sends the lists the detail s own controls need', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->get(route('tasks.show', $task))
+        ->assertOk()
+        ->assertInertia(function (AssertableInertia $page) use ($member): void {
+            $props = $page->toArray()['props'];
+
+            // The same two lists the project screen sends, because the panel's controls are
+            // the same components the list row uses.
+            expect(array_column($props['members'], 'id'))->toContain($member->id)
+                ->and($props['priorities'])->toContain('urgent');
+        });
+});
+
+it('renames a task from its own page', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create(['title' => 'Old name', 'description' => 'Kept']);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.update', $task), ['title' => 'New name'])
+        ->assertRedirect(route('tasks.show', $task));
+
+    // Only the title was sent, so the description is untouched (TASK-080-008).
+    expect($task->fresh()?->title)->toBe('New name')
+        ->and($task->fresh()?->description)->toBe('Kept');
+});
+
+it('clears a description with an explicit null and refuses a blank title', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create(['description' => 'Going']);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.update', $task), ['description' => null])
+        ->assertRedirect();
+
+    expect($task->fresh()?->description)->toBeNull();
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.update', $task), ['title' => '   '])
+        ->assertSessionHasErrors('title');
+});
