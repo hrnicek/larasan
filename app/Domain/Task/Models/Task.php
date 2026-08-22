@@ -1,0 +1,126 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Task\Models;
+
+use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Database\Factories\TaskFactory;
+use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+/**
+ * A task belongs to a workspace and to no project (ADR-0003). Where it appears is a
+ * separate question answered by `task_project_memberships` in Phase 070, which is why
+ * nothing here reaches a project or a section.
+ *
+ * @property string $id
+ * @property string $workspace_id
+ * @property string|null $parent_id
+ * @property string $title
+ * @property string|null $description
+ * @property TaskPriority $priority
+ * @property CarbonImmutable|null $due_at
+ * @property CarbonImmutable|null $completed_at
+ * @property int|null $completed_by
+ * @property int|null $assignee_id
+ * @property int|null $created_by
+ */
+#[UseFactory(TaskFactory::class)]
+class Task extends Model
+{
+    /** @use HasFactory<TaskFactory> */
+    use HasFactory, HasUuids, SoftDeletes;
+
+    /**
+     * Completion, ownership and authorship are absent by design: each is set by the Action
+     * that owns the operation, and a fillable column is one a request can reach.
+     */
+    protected $fillable = [
+        'parent_id',
+        'title',
+        'description',
+        'priority',
+        'due_at',
+        'assignee_id',
+    ];
+
+    /**
+     * Completion is this column and nothing else. A "Done" column is a name somebody chose
+     * (ADR-0004), and inferring completion from placement is how a rename closes work.
+     */
+    public function isCompleted(): bool
+    {
+        return $this->completed_at !== null;
+    }
+
+    /** @return BelongsTo<Workspace, $this> */
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    /** @return BelongsTo<Task, $this> */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /**
+     * Ordered by creation, then by key: `created_at` is `timestamp(0)`, so two subtasks
+     * added in the same second would otherwise come back in whichever order PostgreSQL
+     * chose that day. The key is UUIDv7, which breaks the tie the way time would.
+     *
+     * @return HasMany<Task, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->oldest('created_at')->orderBy('id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assignee_id');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function completer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'completed_by');
+    }
+
+    /**
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeOpen(Builder $query): Builder
+    {
+        return $query->whereNull('completed_at');
+    }
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'priority' => TaskPriority::class,
+            'due_at' => 'immutable_datetime',
+            'completed_at' => 'immutable_datetime',
+        ];
+    }
+}

@@ -7,6 +7,7 @@ namespace App\Domain\Workspace\Models;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -120,6 +121,17 @@ class Workspace extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
+    }
+
+    /**
+     * Every task in the workspace, whatever project it appears in — including the ones
+     * that appear in none, which are still the workspace's tasks (ADR-0003).
+     *
+     * @return HasMany<Task, $this>
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class);
     }
 
     /** @return HasMany<WorkspaceMembership, $this> */
