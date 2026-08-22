@@ -18,6 +18,16 @@ final class TaskException extends DomainException
         return new self('You do not have permission to create tasks in this workspace.');
     }
 
+    public static function cannotUpdateTask(): self
+    {
+        return new self('You do not have permission to change this task.');
+    }
+
+    public static function cannotBeItsOwnParent(): self
+    {
+        return new self('A task cannot be a subtask of itself.');
+    }
+
     public static function parentBelongsToAnotherWorkspace(): self
     {
         return new self('A task can only be a subtask of a task in the same workspace.');
