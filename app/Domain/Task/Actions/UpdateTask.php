@@ -28,25 +28,28 @@ final readonly class UpdateTask
             throw TaskException::cannotUpdateTask();
         }
 
-        $parent = $this->parentFor($task, $data->parentId);
+        $parent = $data->changes('parent_id') ? $this->parentFor($task, $data->parentId) : null;
 
         /*
          * Nullable columns take a null as "clear this": a description that no longer
          * applies and a due date that has been dropped are both ordinary edits, and the
          * first version of the project Action filtered them out and made the fields
          * write-once (Phase 040's review).
+         *
+         * A field the payload never mentioned is a third case, and it is left alone — a
+         * row editing one field must not clear the ones it does not carry.
          */
-        $task->fill([
+        $task->fill($this->changed($data, [
             'description' => $data->description,
             'due_at' => $data->dueAt,
             'parent_id' => $parent?->id,
-        ]);
+        ]));
 
         // Title and priority cannot be null, so a null says nothing about them.
-        $task->fill(array_filter([
-            'title' => $data->title,
-            'priority' => $data->priority,
-        ], fn (mixed $value): bool => $value !== null));
+        $task->fill(array_filter(
+            $this->changed($data, ['title' => $data->title, 'priority' => $data->priority]),
+            fn (mixed $value): bool => $value !== null,
+        ));
 
         $changed = array_keys($task->getDirty());
 
@@ -59,6 +62,21 @@ final readonly class UpdateTask
         $this->events->dispatch(new TaskUpdated($task->id, $task->workspace_id, $changed));
 
         return $task;
+    }
+
+    /**
+     * The subset of `$values` the payload actually mentioned.
+     *
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function changed(UpdateTaskData $data, array $values): array
+    {
+        return array_filter(
+            $values,
+            fn (string $field): bool => $data->changes($field),
+            ARRAY_FILTER_USE_KEY,
+        );
     }
 
     /**

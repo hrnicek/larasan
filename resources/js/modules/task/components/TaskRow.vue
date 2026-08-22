@@ -2,6 +2,8 @@
 import { Form } from '@inertiajs/vue3';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
+import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
+import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
@@ -12,6 +14,7 @@ import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 const props = defineProps<{
     task: TaskRowData;
     members: TaskAssignee[];
+    priorities: string[];
     editable: boolean;
 }>();
 
@@ -44,7 +47,13 @@ const completed = () => props.task.completedAt !== null;
             :members="members"
             :editable="editable"
         />
-        <span v-if="task.dueAt" class="text-xs text-muted-foreground">{{ task.dueAt.slice(0, 10) }}</span>
-        <span class="text-xs capitalize text-muted-foreground">{{ task.priority }}</span>
+        <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
+
+        <PriorityControl
+            :task-id="task.id"
+            :priority="task.priority"
+            :priorities="priorities"
+            :editable="editable"
+        />
     </div>
 </template>

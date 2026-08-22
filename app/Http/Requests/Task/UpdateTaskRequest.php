@@ -28,7 +28,12 @@ class UpdateTaskRequest extends FormRequest
         $task = $this->task();
 
         return [
-            'title' => ['required', 'string', 'max:255'],
+            /*
+             * `sometimes`, so a row editing one field does not have to send the whole task
+             * back — and `required` when it is there, because a title is not something that
+             * can be blanked.
+             */
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],

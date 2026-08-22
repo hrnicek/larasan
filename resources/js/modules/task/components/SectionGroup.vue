@@ -10,6 +10,7 @@ import type { TaskAssignee, TaskSectionGroup } from '@/modules/task/types';
 const props = defineProps<{
     section: TaskSectionGroup;
     members: TaskAssignee[];
+    priorities: string[];
     editable: boolean;
     creatable: boolean;
     collapsed: boolean;
@@ -39,6 +40,7 @@ const toggle = () => emit('toggle', props.section.id);
                 :key="task.placementId"
                 :task="task"
                 :members="members"
+                :priorities="priorities"
                 :editable="editable"
             />
             <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">

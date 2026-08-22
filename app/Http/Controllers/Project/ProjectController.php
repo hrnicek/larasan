@@ -17,6 +17,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -104,6 +105,9 @@ class ProjectController extends Controller
              */
             'list' => $list($project, $this->actor($request)),
             'views' => array_column(ProjectDefaultView::cases(), 'value'),
+            // The enum's own cases, so a priority added later appears in the row's control
+            // without a second list to remember.
+            'priorities' => array_column(TaskPriority::cases(), 'value'),
             /*
              * Who a card can be handed to. Active members only — an invitation that has not
              * been accepted is not somebody who can be given work (TASK-060-012) — and the

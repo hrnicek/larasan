@@ -15,6 +15,7 @@ const props = defineProps<{
     views: string[];
     list: ProjectList;
     members: TaskAssignee[];
+    priorities: string[];
 }>();
 
 const editable = () => props.list.can.updateTask;
@@ -38,6 +39,7 @@ const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
                 :key="section.id ?? 'ungrouped'"
                 :section="section"
                 :members="members"
+                :priorities="priorities"
                 :editable="editable()"
                 :creatable="list.can.createTask"
                 :project-id="project.id"

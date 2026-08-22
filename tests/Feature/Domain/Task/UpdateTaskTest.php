@@ -186,3 +186,58 @@ it('refuses somebody from another workspace', function (): void {
 
     expect($task->fresh()?->title)->toBe('Untouched');
 });
+
+it('leaves alone the fields a payload never mentioned', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill([
+        'description' => 'Why this matters',
+        'due_at' => now()->addWeek(),
+        'priority' => TaskPriority::High,
+    ])->save();
+
+    // A row editing one field sends one field. Without the third state — absent, as opposed
+    // to null — this would clear the description, because null on a nullable column clears.
+    app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(
+        priority: TaskPriority::Low,
+        fields: ['priority'],
+    ));
+
+    $fresh = $task->fresh();
+
+    expect($fresh?->priority)->toBe(TaskPriority::Low)
+        ->and($fresh?->description)->toBe('Why this matters')
+        ->and($fresh?->due_at)->not->toBeNull()
+        ->and($fresh?->title)->toBe($task->title);
+});
+
+it('still clears a nullable field the payload mentions as null', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill(['due_at' => now()->addWeek(), 'description' => 'Still here'])->save();
+
+    app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(dueAt: null, fields: ['due_at']));
+
+    expect($task->fresh()?->due_at)->toBeNull()
+        ->and($task->fresh()?->description)->toBe('Still here');
+});
+
+it('changes one field over http without touching the others', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill(['description' => 'Keep me', 'priority' => TaskPriority::Low])->save();
+
+    $this->actingAs($actor)
+        ->put(route('tasks.update', $task), ['priority' => TaskPriority::Urgent->value])
+        ->assertRedirect();
+
+    expect($task->fresh()?->priority)->toBe(TaskPriority::Urgent)
+        ->and($task->fresh()?->description)->toBe('Keep me')
+        ->and($task->fresh()?->title)->toBe($task->title);
+});
+
+it('still refuses a blank title when one is sent', function (): void {
+    [$task, $actor] = taskEditableBy();
+
+    $this->actingAs($actor)
+        ->from(route('dashboard'))
+        ->put(route('tasks.update', $task), ['title' => ''])
+        ->assertSessionHasErrors('title');
+});
