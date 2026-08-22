@@ -14,3 +14,4 @@ require __DIR__.'/projects.php';
 require __DIR__.'/sections.php';
 require __DIR__.'/tasks.php';
 require __DIR__.'/placements.php';
+require __DIR__.'/comments.php';
