@@ -23,6 +23,11 @@ final class TaskException extends DomainException
         return new self('You do not have permission to change this task.');
     }
 
+    public static function cannotAssignTask(): self
+    {
+        return new self('You do not have permission to assign this task.');
+    }
+
     public static function cannotBeItsOwnParent(): self
     {
         return new self('A task cannot be a subtask of itself.');
