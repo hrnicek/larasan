@@ -70,7 +70,15 @@ return [
             'queue' => env('REDIS_QUEUE', 'default'),
             'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
             'block_for' => null,
-            'after_commit' => false,
+
+            /*
+             * The rule `.ai/guidelines` states — a queued listener must never see
+             * uncommitted state — made structural rather than left to every Action
+             * dispatching outside its own transaction. An Action that composes two others
+             * has to hold one transaction around both, and without this the inner Actions'
+             * events would be queued while the outer transaction could still roll back.
+             */
+            'after_commit' => true,
         ],
 
         'deferred' => [

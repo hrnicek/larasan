@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import type { TaskSectionGroup } from '@/modules/task/types';
 
@@ -9,7 +10,9 @@ import type { TaskSectionGroup } from '@/modules/task/types';
 const props = defineProps<{
     section: TaskSectionGroup;
     editable: boolean;
+    creatable: boolean;
     collapsed: boolean;
+    projectId: string;
 }>();
 
 const emit = defineEmits<{ toggle: [sectionId: string | null] }>();
@@ -39,6 +42,12 @@ const toggle = () => emit('toggle', props.section.id);
             <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">
                 No tasks
             </p>
+
+            <InlineTaskCreate
+                v-if="creatable"
+                :project-id="projectId"
+                :section-id="section.id"
+            />
         </div>
     </section>
 </template>

@@ -6,6 +6,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\ProjectTaskController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,9 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
     // The project itself. `?view=` overrides `projects.default_view` for one request, so the
     // URL is the state and a shared link shows what the sender saw.
     Route::get('projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+
+    // Adding a task where you are looking: the task and its card, in one request.
+    Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

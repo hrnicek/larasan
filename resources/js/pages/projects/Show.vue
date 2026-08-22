@@ -37,6 +37,8 @@ const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
                 :key="section.id ?? 'ungrouped'"
                 :section="section"
                 :editable="editable()"
+                :creatable="list.can.createTask"
+                :project-id="project.id"
                 :collapsed="isCollapsed(section.id)"
                 @toggle="toggle"
             />
