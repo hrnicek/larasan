@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
-use App\Domain\Workspace\Queries\ResolveWorkspaceForUser;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Placement\PlacementController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -21,7 +21,7 @@ Route::bind('placement', function (string $id): TaskProjectMembership {
         abort(404);
     }
 
-    $workspace = app(ResolveWorkspaceForUser::class)($user) ?? abort(404);
+    $workspace = app(CurrentWorkspace::class)->for($user) ?? abort(404);
 
     $projects = app(VisibleProjectsForUser::class)
         ->query($workspace, $user, includeArchived: true)

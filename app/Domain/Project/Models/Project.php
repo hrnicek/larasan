@@ -6,6 +6,7 @@ namespace App\Domain\Project\Models;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
@@ -141,7 +142,7 @@ class Project extends Model
      */
     public function memberFor(User $user): ?ProjectMembership
     {
-        return $this->memberships()->where('user_id', $user->id)->first();
+        return app(MembershipRegistry::class)->forProject($this, $user);
     }
 
     /**

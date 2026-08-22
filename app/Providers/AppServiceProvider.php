@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -25,7 +29,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Scoped, not singleton: the memo must not survive the request that filled it.
+        $this->app->scoped(MembershipRegistry::class);
+        $this->app->scoped(CurrentWorkspace::class);
     }
 
     /**
@@ -34,8 +40,28 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->forgetMembershipsWhenTheyChange();
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
+    }
+
+    /**
+     * An authorization answer must never outlive the row it came from.
+     * `MembershipRegistry` memoises the two membership lookups for the length of one
+     * request; these events are what stop it from answering with a role that has since
+     * changed — including inside an Action that reads a membership again after writing it.
+     */
+    protected function forgetMembershipsWhenTheyChange(): void
+    {
+        $flush = function (): void {
+            $this->app->make(MembershipRegistry::class)->flush();
+            $this->app->make(CurrentWorkspace::class)->flush();
+        };
+
+        foreach ([WorkspaceMembership::class, ProjectMembership::class] as $model) {
+            $model::saved($flush);
+            $model::deleted($flush);
+        }
     }
 
     /**

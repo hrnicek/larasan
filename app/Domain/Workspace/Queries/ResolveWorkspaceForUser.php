@@ -28,7 +28,13 @@ final readonly class ResolveWorkspaceForUser
          * could land somewhere different on consecutive requests. The key is UUIDv7, so
          * ordering by it breaks the tie in the same direction time would.
          */
-        return $this->membershipsOf($user)->whereKey($user->current_workspace_id)->first()
+        // A null remembered id is not a lookup: `whereKey(null)` is a query that cannot
+        // match, and every first request of a session would pay for it.
+        $remembered = $user->current_workspace_id === null
+            ? null
+            : $this->membershipsOf($user)->whereKey($user->current_workspace_id)->first();
+
+        return $remembered
             ?? $this->membershipsOf($user)->oldest('created_at')->orderBy('id')->first();
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
-use App\Domain\Workspace\Queries\ResolveWorkspaceForUser;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Section\SectionController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -22,7 +22,7 @@ Route::bind('section', function (string $id): Section {
         abort(404);
     }
 
-    $workspace = app(ResolveWorkspaceForUser::class)($user) ?? abort(404);
+    $workspace = app(CurrentWorkspace::class)->for($user) ?? abort(404);
 
     $projects = app(VisibleProjectsForUser::class)
         ->query($workspace, $user, includeArchived: true)

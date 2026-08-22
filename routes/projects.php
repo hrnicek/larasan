@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
-use App\Domain\Workspace\Queries\ResolveWorkspaceForUser;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Project\ProjectController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +27,7 @@ Route::bind('project', function (string $id): Project {
         abort(404);
     }
 
-    $workspace = app(ResolveWorkspaceForUser::class)($user) ?? abort(404);
+    $workspace = app(CurrentWorkspace::class)->for($user) ?? abort(404);
 
     return app(VisibleProjectsForUser::class)
         ->query($workspace, $user, includeArchived: true)

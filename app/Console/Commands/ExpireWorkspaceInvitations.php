@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use Illuminate\Console\Command;
@@ -30,6 +31,9 @@ class ExpireWorkspaceInvitations extends Command
                 'status' => WorkspaceMembershipStatus::Expired->value,
                 'expires_at' => null,
             ]);
+
+        // A mass update fires no model events, so the registry cannot notice it.
+        app(MembershipRegistry::class)->flush();
 
         $this->components->info("Expired {$expired} ".str('invitation')->plural($expired).'.');
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Task\Models\Task;
-use App\Domain\Workspace\Queries\ResolveWorkspaceForUser;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Task\TaskController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -24,7 +24,7 @@ Route::bind('task', function (string $id): Task {
         abort(404);
     }
 
-    $workspace = app(ResolveWorkspaceForUser::class)($user) ?? abort(404);
+    $workspace = app(CurrentWorkspace::class)->for($user) ?? abort(404);
 
     return Task::query()->whereKey($id)->where('workspace_id', $workspace->id)->first() ?? abort(404);
 });

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Workspace\Models;
 
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
@@ -75,7 +76,9 @@ class Workspace extends Model
      */
     public function membershipFor(User $user): ?WorkspaceMembership
     {
-        return $this->memberships()->where('user_id', $user->id)->first();
+        // Through the registry, because one request asks this many times and the row does
+        // not change between the asks — see `MembershipRegistry` for why that is safe.
+        return app(MembershipRegistry::class)->forWorkspace($this, $user);
     }
 
     /**

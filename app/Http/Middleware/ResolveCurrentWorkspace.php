@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Workspace\Models\Workspace;
-use App\Domain\Workspace\Queries\ResolveWorkspaceForUser;
+use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ class ResolveCurrentWorkspace
 {
     public const ATTRIBUTE = 'current_workspace';
 
-    public function __construct(private readonly ResolveWorkspaceForUser $resolve)
+    public function __construct(private readonly CurrentWorkspace $workspaces)
     {
         //
     }
@@ -35,7 +35,7 @@ class ResolveCurrentWorkspace
         }
 
         $slug = $request->route('workspace');
-        $workspace = ($this->resolve)($user, is_string($slug) ? $slug : null);
+        $workspace = $this->workspaces->for($user, is_string($slug) ? $slug : null);
 
         /*
          * A workspace the actor has no active membership for is indistinguishable from
