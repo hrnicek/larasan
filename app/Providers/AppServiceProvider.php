@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Notification\Channels\WorkspaceDatabaseChannel;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
@@ -14,12 +15,15 @@ use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -43,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->enforceMorphAliases();
+        $this->writeNotificationsWithTheirWorkspace();
         $this->forgetMembershipsWhenTheyChange();
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
@@ -59,7 +64,24 @@ class AppServiceProvider extends ServiceProvider
     {
         Relation::enforceMorphMap([
             'task' => Task::class,
+            // A notification is addressed to an account, and `notifiable_type` is a morph
+            // column like any other.
+            'user' => User::class,
         ]);
+    }
+
+    /**
+     * Every database notification carries the workspace it came from.
+     *
+     * The channel is replaced rather than the row written by hand, so everything else the
+     * framework does — the id, the morph, `read_at`, the `Notifiable` relation — keeps working
+     * and only the extra column is this application's business.
+     */
+    protected function writeNotificationsWithTheirWorkspace(): void
+    {
+        Notification::resolved(function (ChannelManager $channels): void {
+            $channels->extend('database', fn (Application $app): WorkspaceDatabaseChannel => $app->make(WorkspaceDatabaseChannel::class));
+        });
     }
 
     /**

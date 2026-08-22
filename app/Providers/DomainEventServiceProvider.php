@@ -11,6 +11,9 @@ use App\Domain\Activity\Listeners\RecordTaskCreated;
 use App\Domain\Activity\Listeners\RecordTaskDetachedFromProject;
 use App\Domain\Activity\Listeners\RecordTaskReopened;
 use App\Domain\Activity\Listeners\RecordTaskUpdated;
+use App\Domain\Comment\Events\CommentCreated;
+use App\Domain\Notification\Listeners\NotifyAssignee;
+use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Placement\Events\TaskAttachedToProject;
 use App\Domain\Placement\Events\TaskDetachedFromProject;
 use App\Domain\Task\Events\TaskAssigned;
@@ -46,9 +49,13 @@ class DomainEventServiceProvider extends ServiceProvider
         TaskUpdated::class => [RecordTaskUpdated::class],
         TaskCompleted::class => [RecordTaskCompleted::class],
         TaskReopened::class => [RecordTaskReopened::class],
-        TaskAssigned::class => [RecordTaskAssigned::class],
+        TaskAssigned::class => [RecordTaskAssigned::class, NotifyAssignee::class],
         TaskAttachedToProject::class => [RecordTaskAttachedToProject::class],
         TaskDetachedFromProject::class => [RecordTaskDetachedFromProject::class],
+
+        // No activity for a comment — the feed reads that table directly — but the people
+        // watching still have to hear about it.
+        CommentCreated::class => [NotifyWatchersOfComment::class],
     ];
 
     /**
