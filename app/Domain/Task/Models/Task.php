@@ -6,6 +6,8 @@ namespace App\Domain\Task\Models;
 
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Comment\Models\Commentable;
+use App\Domain\File\Models\Attachable;
+use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
@@ -42,7 +44,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $created_by
  */
 #[UseFactory(TaskFactory::class)]
-class Task extends Model implements Commentable
+class Task extends Model implements Attachable, Commentable
 {
     /** @use HasFactory<TaskFactory> */
     use HasFactory, HasUuids, SoftDeletes;
@@ -137,6 +139,18 @@ class Task extends Model implements Commentable
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable')->oldest('created_at')->orderBy('id');
+    }
+
+    /**
+     * What is attached to this task, oldest first — then by key, because `created_at` is
+     * `timestamp(0)` and two files uploaded in the same second would otherwise come back in
+     * whichever order PostgreSQL chose that day.
+     *
+     * @return MorphMany<Attachment, $this>
+     */
+    public function attachments(): MorphMany
+    {
+        return $this->morphMany(Attachment::class, 'attachable')->oldest('created_at')->orderBy('id');
     }
 
     /**
