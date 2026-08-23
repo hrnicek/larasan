@@ -39,7 +39,7 @@ return [
     |
     */
 
-    'attachments' => env('FILESYSTEM_ATTACHMENTS_DISK', 'local'),
+    'attachments' => env('FILESYSTEM_ATTACHMENTS_DISK', 'attachments'),
 
     'disks' => [
 
@@ -47,6 +47,21 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        /*
+         * Attachments live on their own disk rather than on `local`, which is registered with
+         * `serve => true` and therefore has a framework route into it. That route is signature
+         * gated, so it is not a hole today — but a disk the framework can serve is one signed
+         * URL away from bypassing the reach check every download goes through (ADR-0007,
+         * TASK-120-010). This disk has no route at all.
+         */
+        'attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/attachments'),
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
