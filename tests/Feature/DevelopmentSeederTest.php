@@ -9,7 +9,6 @@ use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DevelopmentSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
-use RuntimeException;
 
 beforeEach(function (): void {
     // The invitations the seeder sends would otherwise queue mail during the test.
