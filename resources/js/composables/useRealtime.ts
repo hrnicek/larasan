@@ -1,7 +1,7 @@
 import { router, usePage } from '@inertiajs/vue3';
 import type Echo from 'laravel-echo';
-import type { MaybeRefOrGetter } from 'vue';
-import { onBeforeUnmount, onMounted, toValue, watch } from 'vue';
+import type { MaybeRefOrGetter, Ref } from 'vue';
+import { onBeforeUnmount, onMounted, readonly, ref, toValue, watch } from 'vue';
 
 /** The payload every shared-channel broadcast carries (`ViewInvalidated`). */
 export type ViewInvalidated = {
@@ -22,6 +22,92 @@ type PrivateChannel = ReturnType<Echo<'reverb'>['private']>;
  */
 const COALESCE_MS = 250;
 
+/** What the socket is doing, for a screen that wants to say so quietly. */
+export type RealtimeConnection = 'idle' | 'connecting' | 'connected' | 'offline';
+
+/**
+ * The connection is one thing for the whole page — `initializeEcho()` returns a single client —
+ * so its state lives beside it rather than per subscription.
+ */
+const connection = ref<RealtimeConnection>('idle');
+
+/** Called when the socket comes back, so each subscribed region can refetch. */
+const reconnectHandlers = new Set<() => void>();
+
+let bound = false;
+let hasConnected = false;
+
+/**
+ * pusher-js's connection object, narrowed to what is used here. Echo does not type its
+ * connector's transport, and a cast of three members is more honest than an `any` that would
+ * accept anything at all.
+ */
+type SocketConnection = {
+    state: string;
+    bind(event: string, handler: (payload: { current: string; previous: string }) => void): void;
+};
+
+const socketOf = (echo: Echo<'reverb'>): SocketConnection | null => {
+    const connector = echo.connector as unknown as { pusher?: { connection?: SocketConnection } };
+
+    return connector.pusher?.connection ?? null;
+};
+
+const observe = (echo: Echo<'reverb'>): void => {
+    if (bound) {
+        return;
+    }
+
+    const socket = socketOf(echo);
+
+    if (socket === null) {
+        return;
+    }
+
+    bound = true;
+    connection.value = describe(socket.state);
+    hasConnected = socket.state === 'connected';
+
+    socket.bind('state_change', ({ current }): void => {
+        connection.value = describe(current);
+
+        if (current !== 'connected') {
+            return;
+        }
+
+        /*
+         * Missed events are never replayed (ADR-0008), so coming back means asking the server
+         * again — but only coming *back*. The first connection of a page would otherwise refetch
+         * what the page has just rendered, which is a request nobody needed.
+         */
+        if (hasConnected) {
+            reconnectHandlers.forEach((handler) => handler());
+        }
+
+        hasConnected = true;
+    });
+};
+
+const describe = (state: string): RealtimeConnection => {
+    switch (state) {
+        case 'connected':
+            return 'connected';
+        case 'initialized':
+        case 'connecting':
+            return 'connecting';
+        default:
+            return 'offline';
+    }
+};
+
+/**
+ * What the socket is doing. Nothing is gated on it — realtime is an enhancement, and every
+ * screen works by asking the server, which is what it does without a socket too.
+ */
+export function useRealtimeConnection(): Readonly<Ref<RealtimeConnection>> {
+    return readonly(connection);
+}
+
 /**
  * Realtime is collaboration transport, never the source of truth (ADR-0008). An event says
  * that something changed, so the client refetches the affected region and lets the server
@@ -40,6 +126,8 @@ export function useRealtime(options: {
 }): void {
     const page = usePage();
     const refetch = coalesced(() => router.reload(options.only === undefined ? {} : { only: options.only }));
+
+    onReconnect(refetch);
 
     useSubscription(options.channels, (channel) => {
         channel.listen('.view.invalidated', (event: ViewInvalidated) => {
@@ -64,10 +152,29 @@ export function useInboxRealtime(only: string[] = ['unreadNotifications']): void
     const page = usePage();
     const refetch = coalesced(() => router.reload({ only }));
 
+    onReconnect(refetch);
+
     useSubscription(
         () => (page.props.auth.user === null ? [] : [`user.${page.props.auth.user.id}`]),
         (channel) => channel.notification(refetch),
     );
+}
+
+/**
+ * Refetch when the socket comes back, and stop when the screen goes away.
+ *
+ * The handler is the region's own coalesced refetch, so several subscribed regions coming back
+ * at once is still one request each rather than one per event they missed — and a reconnect
+ * cannot stampede.
+ */
+function onReconnect(handler: () => void): void {
+    onMounted(() => {
+        reconnectHandlers.add(handler);
+    });
+
+    onBeforeUnmount(() => {
+        reconnectHandlers.delete(handler);
+    });
 }
 
 /**
@@ -133,6 +240,7 @@ function useSubscription(
         const { initializeEcho } = await import('@/echo');
 
         echo ??= initializeEcho();
+        observe(echo);
         leave();
 
         names.forEach((name) => subscribe(echo!.private(name)));
