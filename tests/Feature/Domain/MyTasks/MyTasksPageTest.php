@@ -6,6 +6,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
+use App\Http\Middleware\HandleInertiaRequests;
 use Inertia\Testing\AssertableInertia;
 
 it('requires authentication', function (): void {
@@ -97,4 +98,66 @@ it('tells the screen whether the reader may tick anything off', function (): voi
     $this->actingAs($guest)
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.updateTask', false));
+});
+
+it('answers a tab switch with the list region alone', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    Task::factory()->in($workspace)->create(['title' => 'Late', 'assignee_id' => $actor->id, 'due_at' => now()->subWeek()]);
+
+    /*
+     * The partial reload the tabs make. The shell and the tab list are already correct, so the
+     * server is asked for the two props that changed rather than for the page again.
+     */
+    $this->actingAs($actor)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('my-tasks.index', ['tab' => 'overdue']), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'my-tasks/Index',
+            'X-Inertia-Partial-Data' => 'tasks,meta',
+        ])
+        ->assertOk()
+        ->assertJsonPath('props.meta.tab', 'overdue')
+        ->assertJsonPath('props.tasks.0.title', 'Late')
+        // The props it did not ask for are absent, which is the point of asking.
+        ->assertJsonMissingPath('props.can');
+});
+
+it('pages without repeating a row', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+
+    foreach (range(1, 30) as $index) {
+        Task::factory()->in($workspace)->create([
+            'title' => "Task {$index}",
+            'assignee_id' => $actor->id,
+            'due_at' => now()->startOfHour()->addMinutes($index),
+        ]);
+    }
+
+    $first = $this->actingAs($actor)->get(route('my-tasks.index'));
+    $second = $this->actingAs($actor)->get(route('my-tasks.index', ['page' => 2]));
+
+    $titles = array_merge(
+        array_column($first->viewData('page')['props']['tasks'], 'title'),
+        array_column($second->viewData('page')['props']['tasks'], 'title'),
+    );
+
+    // Twenty-five then five, each row once: "load more" adds to a list rather than shuffling it.
+    expect($titles)->toHaveCount(30)
+        ->and(array_unique($titles))->toHaveCount(30);
+});
+
+it('refuses to be paged past the end into nothing sensible', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
+
+    // A page nobody has is an empty page, not an error: a stale link should still render.
+    $this->actingAs($actor)
+        ->get(route('my-tasks.index', ['page' => 9]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('tasks', 0)
+            ->where('meta.hasMore', false));
 });

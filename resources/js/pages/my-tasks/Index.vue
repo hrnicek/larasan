@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { ref, watch } from 'vue';
+import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
+import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import type { MyTaskRow } from '@/modules/task/types';
 
@@ -11,7 +14,7 @@ import type { MyTaskRow } from '@/modules/task/types';
  * projects a task belongs to, which is where multi-project membership becomes visible
  * (`docs/ui/inbox.md`).
  */
-defineProps<{
+const props = defineProps<{
     tasks: MyTaskRow[];
     tabs: string[];
     meta: { tab: string; page: number; perPage: number; total: number; hasMore: boolean };
@@ -19,7 +22,7 @@ defineProps<{
 }>();
 
 defineOptions({
-    layout: { breadcrumbs: [{ title: 'My Tasks', href: '/my-tasks' }] },
+    layout: { breadcrumbs: [{ title: 'My Tasks', href: MyTasksController.index.url() }] },
 });
 
 const labels: Record<string, string> = {
@@ -29,7 +32,10 @@ const labels: Record<string, string> = {
     completed: 'Completed',
 };
 
-/** The empty state says what is true of *this* tab. An empty Overdue is a good outcome. */
+/**
+ * Per tab, because "nothing here" means something different in each. An empty Overdue is a good
+ * outcome and reads like one.
+ */
 const emptyMessages: Record<string, string> = {
     today: 'Nothing due today.',
     upcoming: 'Nothing coming up.',
@@ -37,13 +43,55 @@ const emptyMessages: Record<string, string> = {
     completed: 'Nothing finished yet.',
 };
 
+/*
+ * The rows the screen is showing, which is the server's page plus any pages appended since.
+ * "Load more" adds to a list; replacing it would make the button scroll the reader backwards.
+ */
+const rows = ref<MyTaskRow[]>([...props.tasks]);
+const loading = ref(false);
+
+watch(() => props.tasks, (tasks) => {
+    rows.value = props.meta.page === 1 ? [...tasks] : [...rows.value, ...tasks];
+});
+
+/** Only the list region: the tabs and the shell are already correct. */
+const reloadList = (tab: string, page: number): void => {
+    loading.value = true;
+
+    router.get(
+        MyTasksController.index.url({ query: { tab, page } }),
+        {},
+        {
+            only: ['tasks', 'meta'],
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                loading.value = false;
+            },
+        },
+    );
+};
+
 const show = (tab: string): void => {
-    // The tab lives in the URL so a link carries the view and a refresh lands back on it.
-    router.get('/my-tasks', { tab }, { preserveScroll: true, preserveState: true });
+    if (tab === props.meta.tab) {
+        return;
+    }
+
+    // A new tab is a new list, so the appended pages go with it.
+    rows.value = [];
+    reloadList(tab, 1);
+};
+
+const loadMore = (): void => {
+    if (!props.meta.hasMore || loading.value) {
+        return;
+    }
+
+    reloadList(props.meta.tab, props.meta.page + 1);
 };
 
 const open = (taskId: string): void => {
-    router.get(`/tasks/${taskId}`);
+    router.get(TaskController.show.url(taskId));
 };
 </script>
 
@@ -56,7 +104,7 @@ const open = (taskId: string): void => {
                 v-for="tab in tabs"
                 :key="tab"
                 type="button"
-                class="rounded px-2 py-1 text-sm"
+                class="rounded px-2 py-1 text-sm whitespace-nowrap"
                 :class="tab === meta.tab ? 'bg-muted font-medium' : 'text-muted-foreground'"
                 :aria-current="tab === meta.tab ? 'page' : undefined"
                 @click="show(tab)"
@@ -65,8 +113,8 @@ const open = (taskId: string): void => {
             </button>
         </nav>
 
-        <ul v-if="tasks.length" class="flex flex-col gap-1">
-            <li v-for="task in tasks" :key="task.id" class="flex flex-col">
+        <ul v-if="rows.length" class="flex flex-col gap-1">
+            <li v-for="task in rows" :key="task.id" class="flex flex-col">
                 <TaskRow
                     :task="task"
                     :members="[]"
@@ -81,6 +129,18 @@ const open = (taskId: string): void => {
             </li>
         </ul>
 
-        <p v-else class="text-sm text-muted-foreground">{{ emptyMessages[meta.tab] ?? 'Nothing here.' }}</p>
+        <p v-else-if="!loading" class="text-sm text-muted-foreground">
+            {{ emptyMessages[meta.tab] ?? 'Nothing here.' }}
+        </p>
+
+        <button
+            v-if="meta.hasMore"
+            type="button"
+            class="self-start rounded border border-input px-2 py-1 text-xs"
+            :disabled="loading"
+            @click="loadMore"
+        >
+            {{ loading ? 'Loading…' : 'Load more' }}
+        </button>
     </div>
 </template>
