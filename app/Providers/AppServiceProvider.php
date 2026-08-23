@@ -150,6 +150,10 @@ class AppServiceProvider extends ServiceProvider
          * and far below what a stuck client produces.
          */
         RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
+
+        // An upload writes bytes and is the most expensive thing a member can ask for without
+        // anybody approving it. Twenty a minute is faster than anybody picks files.
+        RateLimiter::for('attachments', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
     }
 
     /**
