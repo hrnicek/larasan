@@ -78,8 +78,11 @@ final readonly class MyTasksQuery
         $query = Task::query()
             ->where('workspace_id', $workspace->id)
             ->where('assignee_id', $actor->id)
-            ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at'])
+            ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
+            // The count the row draws, as a subquery rather than a read per row (TASK-110-015).
+            ->withCount('comments')
             ->with([
+                'assignee:id,name,email',
                 // Only the placements whose project the reader can open, and the project itself
                 // — one query for the page rather than one per row.
                 'placements' => fn (Relation $placements) => $placements
@@ -136,12 +139,25 @@ final readonly class MyTasksQuery
      */
     private function row(Task $task): array
     {
+        $assignee = $task->assignee;
+
         return [
             'id' => $task->id,
             'title' => $task->title,
             'dueAt' => $task->due_at?->toIso8601String(),
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
+            'comments' => (int) ($task->comments_count ?? 0),
+            /*
+             * Always the reader, and sent anyway: the row is the list view's component, and a
+             * shape that differs by screen is the shape one of the two screens gets wrong.
+             */
+            'assignee' => $assignee === null ? null : [
+                'id' => $assignee->id,
+                'name' => $assignee->name,
+                'email' => $assignee->email,
+                'avatar' => null,
+            ],
             // Where the task lives, which is where multi-project membership becomes visible
             // (`docs/ui/inbox.md`) — and only the parts of it this reader may know about.
             'projects' => array_values($task->placements

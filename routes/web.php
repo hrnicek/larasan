@@ -16,3 +16,4 @@ require __DIR__.'/tasks.php';
 require __DIR__.'/placements.php';
 require __DIR__.'/comments.php';
 require __DIR__.'/files.php';
+require __DIR__.'/my-tasks.php';

@@ -6,7 +6,8 @@ export type TaskAssignee = {
 };
 
 export type TaskRowData = {
-    placementId: string;
+    /** The list and the board address a card by its placement; My Tasks has no single one. */
+    placementId?: string;
     id: string;
     title: string;
     completedAt: string | null;
@@ -41,7 +42,16 @@ export type ProjectList = {
 };
 
 export type BoardCardData = TaskRowData & {
+    placementId: string;
     subtasks: number;
+};
+
+/**
+ * A My Tasks row: the list view's row, plus where the task lives. The projects are only the
+ * ones this reader can reach — the server decides that, not the screen.
+ */
+export type MyTaskRow = TaskRowData & {
+    projects: { id: string; name: string; color: string | null }[];
 };
 
 /**

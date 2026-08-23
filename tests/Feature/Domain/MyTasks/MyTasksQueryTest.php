@@ -72,9 +72,13 @@ it('sorts by due date and then by priority', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 
-    Task::factory()->in($workspace)->create(['title' => 'Low today', 'assignee_id' => $actor->id, 'due_at' => now(), 'priority' => TaskPriority::Low]);
-    Task::factory()->in($workspace)->create(['title' => 'Urgent today', 'assignee_id' => $actor->id, 'due_at' => now(), 'priority' => TaskPriority::Urgent]);
-    Task::factory()->in($workspace)->create(['title' => 'High today', 'assignee_id' => $actor->id, 'due_at' => now(), 'priority' => TaskPriority::High]);
+    // The same instant for all three, written out: `due_at` is `timestamp(0)`, so rows created
+    // a second apart would be sorted by date before priority ever came into it.
+    $due = now()->startOfHour();
+
+    Task::factory()->in($workspace)->create(['title' => 'Low today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::Low]);
+    Task::factory()->in($workspace)->create(['title' => 'Urgent today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::Urgent]);
+    Task::factory()->in($workspace)->create(['title' => 'High today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::High]);
 
     // The enum's values sort the wrong way as strings, which is why the order is written out.
     expect(array_column(myTasks($workspace, $actor)['tasks'], 'title'))
