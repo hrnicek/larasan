@@ -43,6 +43,36 @@ const sentence = (notification: InboxNotification): string => {
     }
 };
 
+/**
+ * Clicking a line marks it read and goes to it. Read state is the server's answer, so the row
+ * is not ticked off locally — the visit that follows re-renders it from what came back.
+ */
+const openNotification = (notification: InboxNotification): void => {
+    const destination = notification.subject?.url ?? null;
+
+    if (!notification.read) {
+        router.put(InboxController.read.url(notification.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                if (destination !== null) {
+                    router.get(destination);
+                }
+            },
+        });
+
+        return;
+    }
+
+    if (destination !== null) {
+        router.get(destination);
+    }
+};
+
+const markAllRead = (): void => {
+    router.put(InboxController.readAll.url(), {}, { preserveScroll: true });
+};
+
 const loadMore = (): void => {
     if (!props.meta.hasMore || loading.value) {
         return;
@@ -69,9 +99,20 @@ const loadMore = (): void => {
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <Head title="Inbox" />
 
-        <h1 class="text-sm text-muted-foreground">
-            Inbox<span v-if="unread > 0"> — {{ unread }} unread</span>
-        </h1>
+        <div class="flex items-baseline gap-3">
+            <h1 class="text-sm text-muted-foreground">
+                Inbox<span v-if="unread > 0"> — {{ unread }} unread</span>
+            </h1>
+
+            <button
+                v-if="unread > 0"
+                type="button"
+                class="text-xs text-muted-foreground underline"
+                @click="markAllRead"
+            >
+                Mark all read
+            </button>
+        </div>
 
         <ul v-if="rows.length" class="flex flex-col gap-2">
             <li v-for="notification in rows" :key="notification.id" class="flex items-baseline gap-2 text-sm">
@@ -81,7 +122,19 @@ const loadMore = (): void => {
                     :aria-label="notification.read ? undefined : 'Unread'"
                 />
 
-                <span>{{ sentence(notification) }}</span>
+                <!-- A line whose subject is gone, or which this reader can no longer open, is
+                     text: a link that leads nowhere is worse than a sentence that explains
+                     itself. -->
+                <button
+                    v-if="notification.subject?.url"
+                    type="button"
+                    class="text-left underline"
+                    @click="openNotification(notification)"
+                >
+                    {{ sentence(notification) }}
+                </button>
+
+                <span v-else>{{ sentence(notification) }}</span>
 
                 <time class="ml-auto text-xs text-muted-foreground">{{ notification.createdAt?.slice(0, 16).replace('T', ' ') }}</time>
             </li>

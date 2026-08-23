@@ -5,6 +5,12 @@ declare(strict_types=1);
 use App\Domain\Comment\Actions\CreateComment;
 use App\Domain\Comment\Data\CreateCommentData;
 use App\Domain\Notification\Queries\InboxQuery;
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Models\Task;
@@ -46,7 +52,12 @@ it('reads what is waiting for one person here', function (): void {
     expect($row['type'])->toBe('task.assigned')
         ->and($row['read'])->toBeFalse()
         ->and($row['actor']['id'])->toBe($actor->id)
-        ->and($row['subject'])->toBe(['type' => 'task', 'id' => $task->id, 'title' => 'Fix login']);
+        ->and($row['subject'])->toBe([
+            'type' => 'task',
+            'id' => $task->id,
+            'title' => 'Fix login',
+            'url' => route('tasks.show', $task->id),
+        ]);
 });
 
 it('says what the task is called today, not when the notification was written', function (): void {
@@ -230,4 +241,59 @@ it('has nothing to say when nothing has happened', function (): void {
         'notifications' => [],
         'meta' => ['page' => 1, 'perPage' => 25, 'total' => 0, 'hasMore' => false, 'unread' => 0],
     ]);
+});
+
+it('gives a line no address when the reader can no longer reach the task', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Owner);
+    $reader = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Owner)->create();
+
+    $task = assignTo($workspace, $actor, $reader, 'Still mine');
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    $project->forceFill(['visibility' => ProjectVisibility::Private])->save();
+
+    /*
+     * They were told about it while they could open it, and the project has since become
+     * private. A link they cannot follow is worse than a sentence they can still read.
+     */
+    $subject = inbox($workspace, $reader)['notifications'][0]['subject'];
+
+    expect($subject['title'])->toBe('Still mine')
+        ->and($subject['url'])->toBeNull();
+});
+
+it('gives a guest an address for what they were given', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Owner);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+
+    $task = Task::factory()->in($workspace)->create(['title' => 'Given']);
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+    app(AssignTask::class)->handle($task, $actor, $guest);
+
+    /*
+     * A guest can only be given work inside a project they hold — `AssignTask` refuses the rest
+     * (TASK-070-017), which is why a guest's inbox never contains a task filed nowhere. The
+     * counts this query reads answer the same question anyway, for the day something else writes
+     * a notification.
+     */
+    expect(inbox($workspace, $guest)['notifications'][0]['subject']['url'])
+        ->toBe(route('tasks.show', $task->id));
+});
+
+it('gives a member an address for a task filed nowhere', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Owner);
+    $reader = memberOf($workspace, WorkspaceRole::Member);
+
+    $task = assignTo($workspace, $actor, $reader, 'Filed nowhere');
+
+    // Workspace work: a member may read it, so the line leads somewhere.
+    expect(inbox($workspace, $reader)['notifications'][0]['subject']['url'])
+        ->toBe(route('tasks.show', $task->id));
 });

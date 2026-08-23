@@ -11,5 +11,12 @@ export type InboxNotification = {
     readAt: string | null;
     read: boolean;
     actor: { id: number; name: string; email: string } | null;
-    subject: { type: 'task'; id: string; title: string } | null;
+    subject: {
+        type: 'task';
+        id: string;
+        title: string;
+        /** Null where this reader can no longer reach it: a link they cannot follow is worse
+         *  than a sentence they can still read. */
+        url: string | null;
+    } | null;
 };

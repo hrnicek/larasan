@@ -6,6 +6,7 @@ namespace App\Domain\Notification\Queries;
 
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
+use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -31,6 +32,8 @@ final readonly class InboxQuery
 {
     public const PER_PAGE = 25;
 
+    public function __construct(private VisibleProjectsForUser $visibleProjects) {}
+
     /**
      * @return array{
      *     notifications: list<array<string, mixed>>,
@@ -45,11 +48,11 @@ final readonly class InboxQuery
         $rows = $notifications->getCollection();
 
         $actors = $this->actors($rows);
-        $subjects = $this->subjects($rows);
+        $subjects = $this->subjects($rows, $workspace, $reader);
 
         return [
             'notifications' => array_values($rows
-                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects))
+                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects, $workspace, $reader))
                 ->all()),
             'meta' => [
                 'page' => $notifications->currentPage(),
@@ -123,7 +126,7 @@ final readonly class InboxQuery
      * @param  Collection<int, DatabaseNotification>  $rows
      * @return Collection<string, Task>
      */
-    private function subjects(Collection $rows): Collection
+    private function subjects(Collection $rows, Workspace $workspace, User $reader): Collection
     {
         $ids = $rows
             ->map(fn (DatabaseNotification $notification): ?string => $this->taskId($notification))
@@ -135,7 +138,25 @@ final readonly class InboxQuery
             return collect();
         }
 
-        return Task::query()->whereIn('id', $ids)->get(['id', 'workspace_id', 'title'])->keyBy('id');
+        $visible = $this->visibleProjects
+            ->query($workspace, $reader, includeArchived: true)
+            ->select('projects.id');
+
+        /*
+         * Reach, asked for the whole page in one read rather than per row through the policy.
+         * The two counts are `TaskPolicy::view()` written as arithmetic: a task is reachable if
+         * it appears in a project the reader can open, or if it appears in no project at all and
+         * the reader is not a guest — guests hold projects, and a task in none was never given
+         * to them.
+         */
+        return Task::query()
+            ->whereIn('id', $ids)
+            ->withCount([
+                'placements',
+                'placements as reachable_placements_count' => fn (Builder $placements) => $placements->whereIn('project_id', $visible),
+            ])
+            ->get(['id', 'workspace_id', 'title'])
+            ->keyBy('id');
     }
 
     /**
@@ -143,7 +164,7 @@ final readonly class InboxQuery
      * @param  Collection<string, Task>  $subjects
      * @return array<string, mixed>
      */
-    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects): array
+    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects, Workspace $workspace, User $reader): array
     {
         $actorId = $this->actorId($notification);
         $actor = $actorId === null ? null : $actors->get($actorId);
@@ -166,14 +187,39 @@ final readonly class InboxQuery
                 'name' => $actor->name,
                 'email' => $actor->email,
             ],
-            // Resolved now, so the line says what the task is called today. A subject that has
-            // since been deleted is null, and TASK-130-008 decides how that renders.
+            /*
+             * Resolved now, so the line says what the task is called today. Null when the task
+             * has since been deleted — a notification outlives what it points at, and the screen
+             * says so rather than linking nowhere.
+             */
             'subject' => $task === null ? null : [
                 'type' => 'task',
                 'id' => $task->id,
                 'title' => $task->title,
+                /*
+                 * The address, or null where this reader can no longer reach it. Somebody can be
+                 * told about a task and then lose the project it lives in; a link they cannot
+                 * follow is worse than a sentence they can still read.
+                 */
+                'url' => $this->reaches($task, $workspace, $reader) ? route('tasks.show', $task->id) : null,
             ],
         ];
+    }
+
+    /**
+     * `TaskPolicy::view()`, answered from counts this query already fetched. Membership is not
+     * asked again: a reader with none has no inbox here at all.
+     */
+    private function reaches(Task $task, Workspace $workspace, User $reader): bool
+    {
+        if ((int) ($task->reachable_placements_count ?? 0) > 0) {
+            return true;
+        }
+
+        // The workspace in hand rather than the task's own relation: they are the same
+        // workspace, and reading it from the task would be a query per row.
+        return (int) ($task->placements_count ?? 0) === 0
+            && $workspace->membershipFor($reader)?->role->isGuest() === false;
     }
 
     private function shortType(DatabaseNotification $notification): string
