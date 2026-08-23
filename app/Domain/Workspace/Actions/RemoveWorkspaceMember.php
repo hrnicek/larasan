@@ -8,10 +8,9 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
-use App\Domain\Task\Actions\AssignTask;
-use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Events\WorkspaceMemberRemoved;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
+use App\Domain\Workspace\Jobs\ReleaseRemovedMembersWork;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
@@ -20,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class RemoveWorkspaceMember
 {
-    public function __construct(private Dispatcher $events, private AssignTask $assignTask) {}
+    public function __construct(private Dispatcher $events) {}
 
     public function handle(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
     {
@@ -77,7 +76,7 @@ final readonly class RemoveWorkspaceMember
     }
 
     /**
-     * Work assigned to somebody who has been removed goes back to the project.
+     * Work assigned to somebody who has been removed goes back to the project — on a queue.
      *
      * The alternative — leaving it assigned to a person who can no longer open it — makes work
      * nobody sees: it is in no list, and the only trace of it is a name on a card that leads
@@ -86,20 +85,14 @@ final readonly class RemoveWorkspaceMember
      * (`docs/architecture/domains.md`).
      *
      * Through `AssignTask` rather than a mass update, so each task produces the same
-     * `TaskAssigned` event any other unassignment does and the history reads as one thing.
+     * `TaskAssigned` event any other unassignment does and the history reads as one thing — and
+     * through a job rather than this request, because that is four queries per task and somebody
+     * leaving may be holding hundreds (TASK-180-019). The revocation above is the security
+     * answer and stays here; this is bookkeeping and can arrive a moment later.
      */
     private function releaseTheirWork(Workspace $workspace, User $actor, WorkspaceMembership $membership): void
     {
-        $assigned = Task::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('assignee_id', $membership->user_id)
-            // The workspace each task is about to be checked against is the one in hand.
-            ->with('workspace')
-            ->get();
-
-        foreach ($assigned as $task) {
-            $this->assignTask->handle($task, $actor, null);
-        }
+        ReleaseRemovedMembersWork::dispatch($workspace->id, $membership->user_id, $actor->id);
     }
 
     /**
