@@ -8,6 +8,8 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Task\Actions\AssignTask;
+use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Events\WorkspaceMemberRemoved;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
 use App\Domain\Workspace\Models\Workspace;
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class RemoveWorkspaceMember
 {
-    public function __construct(private Dispatcher $events) {}
+    public function __construct(private Dispatcher $events, private AssignTask $assignTask) {}
 
     public function handle(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
     {
@@ -62,6 +64,8 @@ final readonly class RemoveWorkspaceMember
             'expires_at' => null,
         ])->save();
 
+        $this->releaseTheirWork($workspace, $actor, $membership);
+
         $this->events->dispatch(new WorkspaceMemberRemoved(
             $membership->id,
             $workspace->id,
@@ -70,6 +74,32 @@ final readonly class RemoveWorkspaceMember
         ));
 
         return $membership;
+    }
+
+    /**
+     * Work assigned to somebody who has been removed goes back to the project.
+     *
+     * The alternative — leaving it assigned to a person who can no longer open it — makes work
+     * nobody sees: it is in no list, and the only trace of it is a name on a card that leads
+     * nowhere. Unassigning used to be the harder choice because it threw away the answer to
+     * "who had this?"; since Phase 110 the activity table keeps that answer, so nothing is lost
+     * (`docs/architecture/domains.md`).
+     *
+     * Through `AssignTask` rather than a mass update, so each task produces the same
+     * `TaskAssigned` event any other unassignment does and the history reads as one thing.
+     */
+    private function releaseTheirWork(Workspace $workspace, User $actor, WorkspaceMembership $membership): void
+    {
+        $assigned = Task::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('assignee_id', $membership->user_id)
+            // The workspace each task is about to be checked against is the one in hand.
+            ->with('workspace')
+            ->get();
+
+        foreach ($assigned as $task) {
+            $this->assignTask->handle($task, $actor, null);
+        }
     }
 
     /**

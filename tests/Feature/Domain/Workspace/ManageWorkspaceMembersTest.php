@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Activity\Models\Activity;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\Capability;
@@ -9,6 +10,8 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Actions\AssignTask;
+use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
 use App\Domain\Workspace\Actions\RemoveWorkspaceMember;
 use App\Domain\Workspace\Events\WorkspaceMemberRemoved;
@@ -264,4 +267,60 @@ it('takes access to an archived or deleted project too', function (): void {
     // A soft-deleted project can be restored, and it must not come back with a stranger on
     // it — which is why the delete reaches through `withTrashed()`.
     expect(ProjectMembership::query()->where('user_id', $member->id)->count())->toBe(0);
+});
+
+it('gives the work back to the project when somebody is removed', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $leaving = memberOf($workspace, WorkspaceRole::Member);
+    $staying = memberOf($workspace, WorkspaceRole::Member);
+
+    $theirs = Task::factory()->in($workspace)->count(2)->create(['assignee_id' => $leaving->id]);
+    $somebodyElses = Task::factory()->in($workspace)->create(['assignee_id' => $staying->id]);
+
+    remove($workspace, $admin, $workspace->membershipFor($leaving));
+
+    /*
+     * The decision TASK-070-018 was opened for, now recorded in
+     * `docs/architecture/domains.md`: leaving a task assigned to somebody who can no longer
+     * open it makes work nobody sees — it is in no list, and the only trace is a name on a card
+     * that leads nowhere.
+     */
+    expect($theirs->map(fn (Task $task): ?int => $task->fresh()?->assignee_id)->all())->toBe([null, null])
+        ->and($somebodyElses->fresh()?->assignee_id)->toBe($staying->id);
+});
+
+it('keeps the answer to who was holding it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $leaving = memberOf($workspace, WorkspaceRole::Member);
+    $task = Task::factory()->in($workspace)->create();
+
+    app(AssignTask::class)->handle($task, $admin, $leaving);
+
+    remove($workspace, $admin, $workspace->membershipFor($leaving));
+
+    /*
+     * Unassigning used to be the harder choice because it discarded who had the task. Since
+     * Phase 110 the history keeps it, which is what makes this rule safe — and the unassignment
+     * goes through `AssignTask` so it reads as one thing rather than as a mass update nothing
+     * recorded.
+     */
+    expect(Activity::query()->where('subject_id', $task->id)->pluck('properties')->all())
+        ->toBe([['assignee_id' => $leaving->id], ['assignee_id' => null]]);
+});
+
+it('does not touch tasks in another workspace', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $leaving = memberOf($workspace, WorkspaceRole::Member);
+
+    $elsewhere = Workspace::factory()->create();
+    memberOf($elsewhere, WorkspaceRole::Member, user: $leaving);
+    $stillTheirs = Task::factory()->in($elsewhere)->create(['assignee_id' => $leaving->id]);
+
+    remove($workspace, $admin, $workspace->membershipFor($leaving));
+
+    // They were removed from one workspace, not from the installation.
+    expect($stillTheirs->fresh()?->assignee_id)->toBe($leaving->id);
 });
