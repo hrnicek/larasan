@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Bell, CheckSquare, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { BookOpen, Bell, CheckSquare, FolderGit2, LayoutGrid, Search as SearchIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
+import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -42,6 +43,11 @@ const mainNavItems: NavItem[] = [
         title: 'Inbox',
         href: InboxController.index.url(),
         icon: Bell,
+    },
+    {
+        title: 'Search',
+        href: SearchController.index.url(),
+        icon: SearchIcon,
     },
 ];
 

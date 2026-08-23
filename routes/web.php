@@ -20,3 +20,4 @@ require __DIR__.'/my-tasks.php';
 require __DIR__.'/inbox.php';
 require __DIR__.'/tags.php';
 require __DIR__.'/custom-fields.php';
+require __DIR__.'/search.php';
