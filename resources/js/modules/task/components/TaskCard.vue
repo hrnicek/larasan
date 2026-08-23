@@ -5,11 +5,14 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { accentTextClass } from '@/lib/accentColor';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 /**
- * One card on the board. Comment counts arrive with Phase 110 and tag colours with Phase 140;
- * the card ships without them rather than waiting for tables that do not exist.
+ * One card on the board: what it is called, who has it, when it is due, how much conversation
+ * it has and what it is about. The counts arrived with Phase 110 and the tag chips with Phase
+ * 140 — the card shipped in Phase 090 without either rather than waiting for tables that did
+ * not exist.
  */
 defineProps<{
     card: BoardCardData;
@@ -57,6 +60,14 @@ const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
             <span class="capitalize">{{ card.priority }}</span>
             <span v-if="card.subtasks > 0">{{ card.subtasks }} subtasks</span>
             <span v-if="card.comments > 0">{{ card.comments }} comments</span>
+            <span
+                v-for="tag in card.tags"
+                :key="tag.id"
+                class="rounded border border-input px-1 text-[0.65rem]"
+                :class="accentTextClass(tag.color)"
+            >
+                {{ tag.name }}
+            </span>
 
             <!--
                 Moving without dragging: the phone's path, where a drag across a pager is a

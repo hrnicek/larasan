@@ -5,6 +5,13 @@ export type TaskAssignee = {
     avatar: string | null;
 };
 
+/** A word a workspace uses for its work, with the accent it is drawn in. */
+export type TaskTag = {
+    id: string;
+    name: string;
+    color: string | null;
+};
+
 export type TaskRowData = {
     /** The list and the board address a card by its placement; My Tasks has no single one. */
     placementId?: string;
@@ -15,6 +22,8 @@ export type TaskRowData = {
     priority: string;
     /** Removed comments are not counted: the thread shows them, the card does not. */
     comments: number;
+    /** What the task is about, drawn as chips (TASK-140-008). */
+    tags: TaskTag[];
     assignee: TaskAssignee | null;
 };
 
@@ -138,13 +147,6 @@ export type TaskAttachment = {
     uploadedAt: string | null;
     uploader: TaskAssignee | null;
     canDelete: boolean;
-};
-
-/** A word a workspace uses for its work, with the accent it is drawn in. */
-export type TaskTag = {
-    id: string;
-    name: string;
-    color: string | null;
 };
 
 export type TaskFeed = {

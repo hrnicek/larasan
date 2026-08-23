@@ -8,6 +8,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -94,7 +95,7 @@ final readonly class ProjectListQuery
                     // excluded by the model's own soft-delete scope rather than by a condition
                     // written here twice.
                     ->withCount('comments')
-                    ->with('assignee:id,name,email');
+                    ->with(['assignee:id,name,email', 'tags:id,name,color']);
             }])
             ->orderBy('position')
             ->get()
@@ -137,6 +138,13 @@ final readonly class ProjectListQuery
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
+            'tags' => array_values($task->tags
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
             'assignee' => $assignee === null ? null : [
                 'id' => $assignee->id,
                 'name' => $assignee->name,

@@ -8,6 +8,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Database\Query\Builder;
@@ -162,7 +163,8 @@ final readonly class ProjectBoardQuery
                 $tasks
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
                     ->withCount(['children', 'comments'])
-                    ->with('assignee:id,name,email');
+                    // The chips a card draws: one read for the page's tags, not one per card.
+                    ->with(['assignee:id,name,email', 'tags:id,name,color']);
             }])
             ->orderBy('position')
             ->get()
@@ -231,6 +233,13 @@ final readonly class ProjectBoardQuery
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
+            'tags' => array_values($task->tags
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
             'subtasks' => (int) ($task->children_count ?? 0),
             'assignee' => $assignee === null ? null : [
                 'id' => $assignee->id,

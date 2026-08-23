@@ -124,7 +124,7 @@ it('carries the fields a row draws, and no others', function (): void {
     $row = $list['sections'][0]['tasks'][0];
 
     expect(array_keys($row))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'tags', 'assignee'])
         ->and($row['priority'])->toBe(TaskPriority::High->value)
         ->and($row['dueAt'])->not->toBeNull()
         ->and($row['assignee']['id'])->toBe($assignee->id);

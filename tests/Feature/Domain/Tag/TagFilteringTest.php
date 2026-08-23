@@ -6,6 +6,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectBoardQuery;
 use App\Domain\Project\Queries\ProjectListQuery;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Tag\Models\Tag;
@@ -147,4 +148,35 @@ it('refuses a filter that is not a list of ids', function (): void {
     $this->actingAs($actor)
         ->get(route('projects.show', [$project, 'tags' => ['not-a-uuid']]))
         ->assertSessionHasErrors('tags.0');
+});
+
+it('draws each card s tags without a query per card', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $bug = Tag::factory()->in($workspace)->named('Bug')->create();
+    $urgent = Tag::factory()->in($workspace)->named('Urgent')->create();
+
+    foreach (range(1, 10) as $index) {
+        taggedCard($project, $actor, "Task {$index}", [$bug, $urgent], $index);
+    }
+
+    $queries = [];
+    DB::listen(function (QueryExecuted $query) use (&$queries): void {
+        $queries[] = $query->sql;
+    });
+
+    $board = app(ProjectBoardQuery::class)($project, $actor);
+
+    // The chips the cards have been leaving room for since Phase 090 cost one read for the page.
+    expect(array_column($board['columns'][0]['tasks'][0]['tags'], 'name'))->toBe(['Bug', 'Urgent'])
+        ->and(count($queries))->toBeLessThanOrEqual(9);
+});
+
+it('draws a row s tags in the list too', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $bug = Tag::factory()->in($workspace)->named('Bug')->create(['color' => ProjectColor::Rose]);
+    taggedCard($project, $actor, 'Tagged', [$bug], 1);
+
+    $row = app(ProjectListQuery::class)($project, $actor)['sections'][0]['tasks'][0];
+
+    expect($row['tags'])->toBe([['id' => $bug->id, 'name' => 'Bug', 'color' => 'rose']]);
 });

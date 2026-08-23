@@ -172,7 +172,7 @@ it('carries what a card draws, and no more', function (): void {
     $card = boardOf($project, $actor)['columns'][0]['tasks'][0];
 
     expect(array_keys($card))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'subtasks', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'tags', 'subtasks', 'assignee'])
         ->and($card['subtasks'])->toBe(2)
         ->and($card['assignee']['id'])->toBe($assignee->id);
 });
@@ -248,5 +248,5 @@ it('counts the comments on a card without a query per card', function (): void {
     // Phase 090 does not move because a column was added to it.
     expect(array_column($board['columns'][0]['tasks'], 'comments'))
         ->toBe([1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
-        ->and(count($queries))->toBeLessThanOrEqual(8);
+        ->and(count($queries))->toBeLessThanOrEqual(9);
 });
