@@ -99,6 +99,10 @@ const open = (taskId: string): void => {
     <div class="flex h-full flex-1 flex-col gap-4 p-4">
         <Head title="My Tasks" />
 
+        <!-- The screen's name in the outline. The design carries it in the tab title
+            and the sidebar rather than on the page, so it is announced rather than drawn. -->
+        <h1 class="sr-only">My Tasks</h1>
+
         <nav class="flex gap-1 overflow-x-auto" aria-label="My Tasks views">
             <button
                 v-for="tab in tabs"

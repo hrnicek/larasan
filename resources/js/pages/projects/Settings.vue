@@ -59,8 +59,10 @@ const viewLabels: Record<string, string> = {
     <div class="flex flex-col space-y-8">
         <Head :title="`${props.project.name} settings`" />
 
+        <!-- The page's own name, set small by the design and still the top of its outline. -->
         <Heading
             variant="small"
+            level="h1"
             :title="props.project.name"
             description="Details, visibility and the view this project opens in"
         />

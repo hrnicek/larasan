@@ -49,6 +49,10 @@ const detail = (): TaskDetail => ({
     <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
         <Head :title="task.title" />
 
+        <!-- The task is what this page is. The panel renders the title as a field, which is
+             a control rather than a heading. -->
+        <h1 class="sr-only">{{ task.title }}</h1>
+
         <TaskDetailPanel
             :detail="detail()"
             :dismissible="false"
