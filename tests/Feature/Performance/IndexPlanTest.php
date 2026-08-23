@@ -1,0 +1,248 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/*
+ * An index that exists and an index the planner uses are two different claims (TASK-180-004).
+ * `TaskPlacementIndexTest` already makes the second one for the board; this makes it for the
+ * other hot reads, and checks the whole schema for the kind of index nobody notices paying for.
+ */
+
+/**
+ * Every index in the application's own tables, with the columns it covers.
+ *
+ * @return list<array{table: string, name: string, columns: string, partial: bool}>
+ */
+function applicationIndexes(): array
+{
+    /** @var list<object{table: string, name: string, definition: string, partial: bool}> $rows */
+    $rows = DB::select(<<<'SQL'
+        select
+            t.relname as "table",
+            i.relname as "name",
+            pg_get_indexdef(i.oid) as "definition",
+            ix.indpred is not null as "partial"
+        from pg_index ix
+        join pg_class i on i.oid = ix.indexrelid
+        join pg_class t on t.oid = ix.indrelid
+        join pg_namespace n on n.oid = t.relnamespace
+        where n.nspname = 'public'
+          and t.relname not in (
+            'migrations', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs',
+            'sessions', 'password_reset_tokens'
+          )
+        order by t.relname, i.relname
+    SQL);
+
+    return array_map(static fn (object $row): array => [
+        'table' => $row->table,
+        'name' => $row->name,
+        // Everything between the first bracket and the matching close, which is the column list.
+        'columns' => (string) Str::of($row->definition)->after('(')->before(')'),
+        'partial' => (bool) $row->partial,
+    ], $rows);
+}
+
+/**
+ * The plan PostgreSQL chose, as text. Named for what it returns rather than `planOf`, which
+ * `TaskPlacementIndexTest` already declares with a different shape — Pest loads every test file
+ * into one namespace, so a second `planOf` would be a fatal, not a failure.
+ *
+ * @param  list<mixed>  $bindings
+ */
+function explainText(string $sql, array $bindings = []): string
+{
+    /** @var list<object{'QUERY PLAN': string}> $rows */
+    $rows = DB::select('EXPLAIN (ANALYZE, FORMAT TEXT) '.$sql, $bindings);
+
+    return implode("\n", array_map(static fn (object $row): string => ((array) $row)['QUERY PLAN'], $rows));
+}
+
+/**
+ * Every non-partial index whose columns are a leading prefix of another index on the same table.
+ *
+ * Partial indexes are exempt: they cover only part of the table, so a full index over the same
+ * columns is not the same index — `task_project_memberships` deliberately carries both.
+ *
+ * @return list<string>
+ */
+function prefixIndexes(): array
+{
+    $byTable = collect(applicationIndexes())
+        ->reject(fn (array $index): bool => $index['partial'])
+        ->groupBy('table');
+
+    $redundant = [];
+
+    foreach ($byTable as $table => $indexes) {
+        foreach ($indexes as $candidate) {
+            foreach ($indexes as $other) {
+                if ($candidate['name'] === $other['name'] || $candidate['columns'] === $other['columns']) {
+                    continue;
+                }
+
+                if (str_starts_with($other['columns'].',', $candidate['columns'].',')) {
+                    $redundant[] = "{$table}.{$candidate['name']} ({$candidate['columns']}) is a prefix of {$other['name']}";
+                }
+            }
+        }
+    }
+
+    return $redundant;
+}
+
+it('carries no index that is a prefix of another on the same table', function (): void {
+    expect(prefixIndexes())->toBe([]);
+})->with([
+    'the cost of an index is paid on every write, and a prefix of another index is paid for
+    twice',
+]);
+
+it('notices when an index is a prefix of another', function (): void {
+    // PostgreSQL takes DDL inside a transaction, so this index exists for this test and is
+    // rolled back with it. Without it the check above passes whether it works or not.
+    DB::statement('CREATE INDEX projects_prefix_probe ON projects (workspace_id)');
+
+    $redundant = prefixIndexes();
+
+    expect($redundant)->toContain(
+        'projects.projects_prefix_probe (workspace_id) is a prefix of projects_workspace_id_archived_at_index',
+    );
+})->with([
+    'a schema check that cannot fail is a schema check nobody should trust',
+]);
+
+it('plans my tasks on the index built for it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+
+    seedTaskRows($workspace, $actor, 5_000);
+
+    DB::statement('ANALYZE tasks');
+
+    $plan = explainText(
+        'select id from tasks where workspace_id = ? and assignee_id = ? and completed_at is null limit 50',
+        [$workspace->id, $actor->id],
+    );
+
+    expect($plan)->toContain('tasks_workspace_id_assignee_id_completed_at_index');
+})->with([
+    'My Tasks reads exactly those three columns, which is the order TASK-130 built the index in',
+]);
+
+it('plans the inbox on the workspace index rather than the frameworks own', function (): void {
+    $workspace = Workspace::factory()->create();
+    $reader = memberOf($workspace);
+
+    seedNotificationRows($workspace, $reader, 5_000);
+
+    DB::statement('ANALYZE notifications');
+
+    $plan = explainText(
+        "select id from notifications where workspace_id = ? and notifiable_type = 'user' and notifiable_id = ? and read_at is null limit 25",
+        [$workspace->id, $reader->id],
+    );
+
+    expect($plan)->toContain('notifications_workspace_id_notifiable_id_read_at_index');
+})->with([
+    'the Inbox is per workspace, and the framework index leads with notifiable_type — which
+    every row in this application shares',
+]);
+
+it('plans a comment thread on its own index', function (): void {
+    $workspace = Workspace::factory()->create();
+    $author = memberOf($workspace);
+
+    $thread = (string) Str::uuid7();
+    seedCommentRows($workspace, $author, $thread, 3_000);
+
+    DB::statement('ANALYZE comments');
+
+    $plan = explainText(
+        "select id from comments where commentable_type = 'task' and commentable_id = ? order by created_at limit 50",
+        [$thread],
+    );
+
+    expect($plan)->toContain('comments_commentable_type_commentable_id_created_at_index');
+});
+
+/**
+ * Rows inserted in bulk: a plan test needs a table big enough that a sequential scan would win
+ * if the index did not fit, and factories cannot make five thousand rows quickly.
+ */
+function seedTaskRows(Workspace $workspace, User $assignee, int $count): void
+{
+    $now = now();
+    $rows = [];
+
+    foreach (range(1, $count) as $index) {
+        $rows[] = [
+            'id' => (string) Str::uuid7(),
+            'workspace_id' => $workspace->id,
+            'title' => "Task {$index}",
+            'priority' => TaskPriority::Medium->value,
+            // One in fifty is this person's, so the index is worth using rather than incidental.
+            'assignee_id' => $index % 50 === 0 ? $assignee->id : null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+    }
+
+    foreach (array_chunk($rows, 1_000) as $chunk) {
+        DB::table('tasks')->insert($chunk);
+    }
+}
+
+function seedNotificationRows(Workspace $workspace, User $reader, int $count): void
+{
+    $now = now();
+    $rows = [];
+    $other = User::factory()->create();
+
+    foreach (range(1, $count) as $index) {
+        $rows[] = [
+            'id' => (string) Str::uuid7(),
+            'workspace_id' => $workspace->id,
+            'type' => 'App\\Domain\\Notification\\Notifications\\TaskAssignedNotification',
+            'notifiable_type' => 'user',
+            'notifiable_id' => $index % 50 === 0 ? $reader->id : $other->id,
+            'data' => json_encode(['task_id' => (string) Str::uuid7(), 'assigned_by_id' => $other->id]),
+            'read_at' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+    }
+
+    foreach (array_chunk($rows, 1_000) as $chunk) {
+        DB::table('notifications')->insert($chunk);
+    }
+}
+
+function seedCommentRows(Workspace $workspace, User $author, string $thread, int $count): void
+{
+    $now = now();
+    $rows = [];
+
+    foreach (range(1, $count) as $index) {
+        $rows[] = [
+            'id' => (string) Str::uuid7(),
+            'workspace_id' => $workspace->id,
+            'commentable_type' => 'task',
+            'commentable_id' => $index % 50 === 0 ? $thread : (string) Str::uuid7(),
+            'author_id' => $author->id,
+            'body' => "Comment {$index}",
+            'created_at' => $now,
+            'updated_at' => $now,
+        ];
+    }
+
+    foreach (array_chunk($rows, 1_000) as $chunk) {
+        DB::table('comments')->insert($chunk);
+    }
+}
