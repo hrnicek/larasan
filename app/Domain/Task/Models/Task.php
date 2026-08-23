@@ -6,6 +6,7 @@ namespace App\Domain\Task\Models;
 
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Comment\Models\Commentable;
+use App\Domain\CustomField\Models\TaskCustomFieldValue;
 use App\Domain\File\Models\Attachable;
 use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
@@ -140,6 +141,16 @@ class Task extends Model implements Attachable, Commentable
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable')->oldest('created_at')->orderBy('id');
+    }
+
+    /**
+     * The answers this task has given to its projects' custom fields (Phase 150).
+     *
+     * @return HasMany<TaskCustomFieldValue, $this>
+     */
+    public function customFieldValues(): HasMany
+    {
+        return $this->hasMany(TaskCustomFieldValue::class);
     }
 
     /**

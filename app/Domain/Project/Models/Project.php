@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Models;
 
+use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Access\MembershipRegistry;
@@ -155,6 +156,21 @@ class Project extends Model
     public function sections(): HasMany
     {
         return $this->hasMany(Section::class)->orderBy('position');
+    }
+
+    /**
+     * The workspace fields this project shows on its screens.
+     *
+     * A workspace can define more than any one project wants, so this is a decision per project
+     * rather than a consequence of defining (Phase 150).
+     *
+     * @return BelongsToMany<CustomField, $this>
+     */
+    public function customFields(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomField::class, 'project_custom_fields')
+            ->withPivot('position')
+            ->orderBy('project_custom_fields.position');
     }
 
     /**
