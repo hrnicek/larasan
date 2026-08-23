@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Shared\Enums;
 
+use Carbon\CarbonImmutable;
+
 /**
  * What a custom field holds, and therefore **which column stores it**.
  *
@@ -67,5 +69,28 @@ enum CustomFieldType: string
     public function isSelect(): bool
     {
         return $this === self::Select;
+    }
+
+    /**
+     * The value as its column wants it.
+     *
+     * One place, because a value arrives from a form as a string whatever it is: `"12.5"` is a
+     * number, `"1"` is a boolean and `"2026-08-23"` is a date, and each column refuses the
+     * others. A null is a cleared answer and stays one.
+     */
+    public function normalise(mixed $value): string|float|bool|CarbonImmutable|null
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($this) {
+            self::Text, self::Select => trim((string) $value),
+            self::Number => (float) $value,
+            self::Date => CarbonImmutable::parse((string) $value)->startOfDay(),
+            // `filter_var` rather than a cast: `(bool) "false"` is true, which is the wrong
+            // answer to every checkbox anybody has ever unticked.
+            self::Boolean => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false,
+        };
     }
 }
