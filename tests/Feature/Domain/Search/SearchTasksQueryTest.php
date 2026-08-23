@@ -17,6 +17,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * @param  array{project?: string, assignee?: int, completed?: bool}  $filters
  * @return list<string>
  */
 function found(Workspace $workspace, User $actor, string $term, array $filters = []): array
