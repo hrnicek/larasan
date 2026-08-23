@@ -3,38 +3,9 @@
 declare(strict_types=1);
 
 use App\Domain\Project\Models\Project;
-use App\Domain\Project\Queries\VisibleProjectsForUser;
-use App\Domain\Workspace\Queries\CurrentWorkspace;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\ProjectTaskController;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
-
-/*
- * The {project} parameter resolves inside the workspace the actor is currently in, and
- * only among the projects they may see. A project from another workspace, or a private
- * one they were never given, is indistinguishable from one that does not exist — 403
- * would confirm the id, which is what makes a leaked UUID worth something.
- *
- * Resolved here rather than by implicit binding plus a check afterwards: the binding runs
- * before this application's middleware in the web group, so a check placed after it would
- * depend on an ordering that is easy to break and silent when broken. Archived projects
- * still resolve — their settings screen is where they are restored.
- */
-Route::bind('project', function (string $id): Project {
-    $user = request()->user();
-
-    if (! $user instanceof User) {
-        abort(404);
-    }
-
-    $workspace = app(CurrentWorkspace::class)->for($user) ?? abort(404);
-
-    return app(VisibleProjectsForUser::class)
-        ->query($workspace, $user, includeArchived: true)
-        ->whereKey($id)
-        ->first() ?? abort(404);
-});
 
 Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function (): void {
     Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
