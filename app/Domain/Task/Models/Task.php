@@ -11,6 +11,7 @@ use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -139,6 +140,17 @@ class Task extends Model implements Attachable, Commentable
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable')->oldest('created_at')->orderBy('id');
+    }
+
+    /**
+     * What this task is about. Ordered by name so a card's chips do not reshuffle between
+     * requests for no reason anybody can see.
+     *
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'task_tag')->orderBy('name');
     }
 
     /**
