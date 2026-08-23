@@ -9,6 +9,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -32,6 +33,8 @@ final readonly class TaskDetailQuery
      *     task: array<string, mixed>,
      *     placements: list<array<string, mixed>>,
      *     availableProjects: list<array{id: string, name: string}>,
+     *     tags: list<array<string, mixed>>,
+     *     availableTags: list<array<string, mixed>>,
      *     attachments: list<array<string, mixed>>,
      *     subtasks: list<array<string, mixed>>,
      *     followers: list<array<string, mixed>>,
@@ -50,6 +53,7 @@ final readonly class TaskDetailQuery
             // The file behind each attachment and the person who uploaded it: a list of
             // documents is one query, not one per row.
             'attachments.file.uploader:id,name,email',
+            'tags:id,name,color',
             /*
              * Only the projects the actor can reach. A task can appear in a project they were
              * never given, and listing it here would leak a project name through a task they
@@ -80,6 +84,27 @@ final readonly class TaskDetailQuery
                 'assignee' => $this->person($task->assignee),
                 'creator' => $this->person($task->creator),
             ],
+            'tags' => array_values($task->tags
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
+            /*
+             * The workspace's whole vocabulary, so the picker can offer it without a second
+             * request. A workspace has tens of tags, not thousands — this is the one list on the
+             * screen small enough to send whole.
+             */
+            'availableTags' => array_values($task->workspace->tags()
+                ->orderBy('name')
+                ->get(['id', 'name', 'color'])
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
             'attachments' => $this->attachments($task, $actor),
             'placements' => $this->placements($task, $actor),
             'availableProjects' => $this->availableProjects($task, $actor),

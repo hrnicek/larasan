@@ -8,6 +8,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Database\Factories\WorkspaceFactory;
@@ -137,6 +138,16 @@ class Workspace extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
+    }
+
+    /**
+     * The workspace's own vocabulary (Phase 140).
+     *
+     * @return HasMany<Tag, $this>
+     */
+    public function tags(): HasMany
+    {
+        return $this->hasMany(Tag::class);
     }
 
     /**

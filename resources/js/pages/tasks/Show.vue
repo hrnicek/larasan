@@ -19,6 +19,8 @@ const detail = (): TaskDetail => ({
     followers: props.followers,
     following: props.following,
     subtasks: props.subtasks,
+    tags: props.tags,
+    availableTags: props.availableTags,
     attachments: props.attachments,
     can: props.can,
 });

@@ -97,6 +97,9 @@ export type TaskDetail = {
     };
     placements: TaskDetailPlacement[];
     subtasks: { id: string; title: string; completedAt: string | null }[];
+    tags: TaskTag[];
+    /** The workspace's whole vocabulary, small enough to send whole. */
+    availableTags: TaskTag[];
     attachments: TaskAttachment[];
     can: { update: boolean; delete: boolean; comment: boolean; attach: boolean };
 };
@@ -135,6 +138,13 @@ export type TaskAttachment = {
     uploadedAt: string | null;
     uploader: TaskAssignee | null;
     canDelete: boolean;
+};
+
+/** A word a workspace uses for its work, with the accent it is drawn in. */
+export type TaskTag = {
+    id: string;
+    name: string;
+    color: string | null;
 };
 
 export type TaskFeed = {

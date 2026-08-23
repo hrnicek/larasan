@@ -7,8 +7,10 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Models\Task;
@@ -315,4 +317,33 @@ it('tells the panel whether a comment form belongs on the screen', function (): 
         ->get(route('tasks.show', $task))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.comment', true));
+});
+
+it('sends a task s tags and the workspace vocabulary to pick from', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $applied = Tag::factory()->in($workspace)->named('Bug')->create(['color' => ProjectColor::Rose]);
+    Tag::factory()->in($workspace)->named('Docs')->create();
+    tagTask($task, $applied, $actor);
+
+    // The picker offers what the workspace already has; making a tag is a different permission
+    // and a different control (TASK-140-004).
+    $this->actingAs($actor)
+        ->get(route('tasks.show', $task))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('tags', 1)
+            ->where('tags.0.name', 'Bug')
+            ->where('tags.0.color', 'rose')
+            ->has('availableTags', 2));
+});
+
+it('offers no tags from another workspace', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    Tag::factory()->create(['name' => 'Somebody else s']);
+
+    $this->actingAs($actor)
+        ->get(route('tasks.show', $task))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('availableTags', 0));
 });
