@@ -2,11 +2,30 @@
 
 namespace Tests;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Http\Response;
+use Illuminate\Testing\TestResponse;
 use Laravel\Fortify\Features;
 
 abstract class TestCase extends BaseTestCase
 {
+    /**
+     * Ask `broadcasting/auth` whether this user may subscribe to this channel — the real
+     * door, opened the way a client opens it.
+     *
+     * @return TestResponse<Response>
+     */
+    protected function subscribeTo(User $user, string $channel): TestResponse
+    {
+        broadcastChannels();
+
+        return $this->actingAs($user)->postJson('/broadcasting/auth', [
+            'channel_name' => $channel,
+            'socket_id' => '1234.5678',
+        ]);
+    }
+
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void
     {
         if (! Features::enabled($feature)) {

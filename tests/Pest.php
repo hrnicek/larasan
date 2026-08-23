@@ -41,6 +41,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
+use Illuminate\Support\Facades\Broadcast;
 
 /**
  * A user with a membership in the given workspace. Defaults to the case most tests
@@ -104,4 +105,48 @@ function projectFor(
     }
 
     return [$project, $actor];
+}
+
+/**
+ * Point the application at the broadcast connection production uses and register the
+ * channel callbacks on it.
+ *
+ * The suite's default connection is `null`, whose `auth()` decides nothing and would let
+ * every subscription through whatever `routes/channels.php` says. Reverb is the Pusher
+ * broadcaster, and its auth path is entirely local — it runs the channel callback and
+ * signs the answer with HMAC, reaching no server. `Broadcast::channel()` registers on
+ * whichever driver was the default when the file first ran, so the file is read again
+ * here: it is the subject of these tests, not a workaround (TASK-170-002).
+ *
+ * @return array<string, Closure>
+ */
+function broadcastChannels(): array
+{
+    config([
+        'broadcasting.default' => 'reverb',
+        'broadcasting.connections.reverb.key' => 'channel-authorization-key',
+        'broadcasting.connections.reverb.secret' => 'channel-authorization-secret',
+        'broadcasting.connections.reverb.app_id' => 'channel-authorization-app',
+    ]);
+
+    require base_path('routes/channels.php');
+
+    return Broadcast::driver()->getChannels()->all();
+}
+
+/**
+ * The authorization callback registered for a channel pattern, asked directly.
+ *
+ * Necessary rather than redundant: `{project}` resolves through the explicit route binder
+ * in `routes/projects.php`, which already refuses a project the actor may not see. A
+ * callback that answered `true` unconditionally would therefore pass every request-level
+ * test in this suite, and this is what catches it.
+ */
+function channelCallback(string $pattern): Closure
+{
+    $callback = broadcastChannels()[$pattern] ?? null;
+
+    expect($callback)->toBeInstanceOf(Closure::class, "no channel is declared for [{$pattern}]");
+
+    return $callback;
 }

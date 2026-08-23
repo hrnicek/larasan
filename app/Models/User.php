@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -81,6 +82,17 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             ->withPivot(['id', 'role', 'status', 'joined_at'])
             ->withTimestamps()
             ->wherePivot('status', WorkspaceMembershipStatus::Active->value);
+    }
+
+    /**
+     * ADR-0008 names the user's channel `private-user.{user}`, while Laravel's
+     * notification broadcasting defaults to `App.Models.User.{id}`. Reconciled here in one
+     * direction, so the application has one user channel that `routes/channels.php`
+     * authorizes rather than two half-working ones.
+     */
+    public function receivesBroadcastNotificationsOn(Notification $notification): string
+    {
+        return 'user.'.$this->id;
     }
 
     /**

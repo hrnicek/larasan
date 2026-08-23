@@ -16,8 +16,17 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
-        channels: __DIR__.'/../routes/channels.php',
         health: '/up',
+    )
+    /*
+     * Subscribing is reached through the same coarse gate the screens are: `auth` and
+     * `verified`. The framework's default registers `broadcasting/auth` behind `web`
+     * alone, which would let an account that has never confirmed its address open a
+     * socket to data every HTTP route refuses it (TASK-170-002).
+     */
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        attributes: ['middleware' => ['web', 'auth', 'verified']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
