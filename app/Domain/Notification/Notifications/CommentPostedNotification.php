@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Notification\Notifications;
 
+use App\Domain\Notification\Contracts\DeduplicatesNotifications;
 use App\Domain\Notification\Contracts\WorkspaceNotification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
@@ -11,7 +12,7 @@ use Illuminate\Notifications\Notification;
 /**
  * Somebody said something about a task you are watching.
  */
-final class CommentPostedNotification extends Notification implements WorkspaceNotification
+final class CommentPostedNotification extends Notification implements DeduplicatesNotifications, WorkspaceNotification
 {
     use BroadcastsToInbox;
 
@@ -45,6 +46,15 @@ final class CommentPostedNotification extends Notification implements WorkspaceN
             'task_id' => $this->taskId,
             'author_id' => $this->authorId,
         ];
+    }
+
+    /**
+     * A comment is created once, so its id is exactly what makes this notification the same
+     * notification. A retried job writes nothing new.
+     */
+    public function deduplicationKey(): string
+    {
+        return 'comment.posted:'.$this->commentId;
     }
 
     public function workspaceId(): string

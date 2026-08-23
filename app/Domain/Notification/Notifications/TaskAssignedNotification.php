@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Notification\Notifications;
 
+use App\Domain\Notification\Contracts\DeduplicatesNotifications;
 use App\Domain\Notification\Contracts\WorkspaceNotification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
@@ -14,7 +15,7 @@ use Illuminate\Notifications\Notification;
  * Ids and nothing else, for the reason an activity carries ids: a notification read a week
  * later must show the task as it is, not as it was when the row was written.
  */
-final class TaskAssignedNotification extends Notification implements WorkspaceNotification
+final class TaskAssignedNotification extends Notification implements DeduplicatesNotifications, WorkspaceNotification
 {
     use BroadcastsToInbox;
 
@@ -46,6 +47,16 @@ final class TaskAssignedNotification extends Notification implements WorkspaceNo
             'task_id' => $this->taskId,
             'assigned_by_id' => $this->assignedById,
         ];
+    }
+
+    /**
+     * Who gave what to whom. An assignment repeated after an unassignment is the same sentence
+     * twice, and one of them is enough — which is the trade this key makes deliberately, since
+     * the event carries nothing that separates one occurrence from the next.
+     */
+    public function deduplicationKey(): string
+    {
+        return 'task.assigned:'.$this->taskId.':'.$this->assignedById;
     }
 
     public function workspaceId(): string

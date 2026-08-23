@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Notification\Channels;
 
+use App\Domain\Notification\Contracts\DeduplicatesNotifications;
 use App\Domain\Notification\Contracts\WorkspaceNotification;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Notifications\Channels\DatabaseChannel;
 use Illuminate\Notifications\Notification;
 use LogicException;
@@ -38,6 +40,34 @@ class WorkspaceDatabaseChannel extends DatabaseChannel
         return [
             ...parent::buildPayload($notifiable, $notification),
             'workspace_id' => $notification->workspaceId(),
+            'dedupe_key' => $notification instanceof DeduplicatesNotifications
+                ? $notification->deduplicationKey()
+                : null,
         ];
+    }
+
+    /**
+     * Write the row, unless this person already has it.
+     *
+     * The queued listeners that send these are retried, and a job that failed after its insert
+     * used to leave a second line in an Inbox for the same comment. The unique index is what
+     * makes that impossible; this is what turns the collision into silence rather than a job
+     * that fails forever on its own success (TASK-180-021).
+     */
+    public function send(mixed $notifiable, Notification $notification): Model
+    {
+        if (! $notification instanceof DeduplicatesNotifications) {
+            return parent::send($notifiable, $notification);
+        }
+
+        $payload = $this->buildPayload($notifiable, $notification);
+
+        $existing = $notifiable->routeNotificationFor('database', $notification)
+            ->where('dedupe_key', $payload['dedupe_key'])
+            ->first();
+
+        return $existing instanceof Model
+            ? $existing
+            : parent::send($notifiable, $notification);
     }
 }
