@@ -12,15 +12,28 @@ use App\Domain\Activity\Listeners\RecordTaskDetachedFromProject;
 use App\Domain\Activity\Listeners\RecordTaskReopened;
 use App\Domain\Activity\Listeners\RecordTaskUpdated;
 use App\Domain\Comment\Events\CommentCreated;
+use App\Domain\Comment\Listeners\BroadcastCommentChange;
 use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Placement\Events\TaskAttachedToProject;
 use App\Domain\Placement\Events\TaskDetachedFromProject;
+use App\Domain\Placement\Events\TaskPlacementMoved;
+use App\Domain\Placement\Listeners\BroadcastPlacementChange;
+use App\Domain\Project\Events\ProjectArchived;
+use App\Domain\Project\Events\ProjectUpdated;
+use App\Domain\Project\Listeners\BroadcastProjectChange;
+use App\Domain\Section\Events\SectionCreated;
+use App\Domain\Section\Events\SectionDeleted;
+use App\Domain\Section\Events\SectionMoved;
+use App\Domain\Section\Events\SectionUpdated;
+use App\Domain\Section\Listeners\BroadcastSectionChange;
 use App\Domain\Task\Events\TaskAssigned;
 use App\Domain\Task\Events\TaskCompleted;
 use App\Domain\Task\Events\TaskCreated;
+use App\Domain\Task\Events\TaskDeleted;
 use App\Domain\Task\Events\TaskReopened;
 use App\Domain\Task\Events\TaskUpdated;
+use App\Domain\Task\Listeners\BroadcastTaskChange;
 use App\Domain\Task\Listeners\FollowAssignedTask;
 use App\Domain\Task\Listeners\FollowCommentedTask;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -37,6 +50,11 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
  * worker is down. Notifications, which are slow and external, are queued instead
  * (TASK-110-016).
  *
+ * The broadcast listeners are not queued either, and for a different reason: the channels a
+ * change may go to depend on where the task is placed **now**, and a listener that ran a second
+ * later could answer for a placement that has since changed. They resolve the channels and hand
+ * the slow half — the broadcast itself — to the `broadcasts` queue (TASK-170-003).
+ *
  * Comments are absent on purpose: the feed reads the `comments` table directly (TASK-110-009),
  * so recording an activity for each one would show every comment twice. So is `TaskDeleted` —
  * a deleted task's history has nobody left to read it.
@@ -47,13 +65,32 @@ class DomainEventServiceProvider extends ServiceProvider
      * @var array<class-string, list<class-string>>
      */
     protected $listen = [
-        TaskCreated::class => [RecordTaskCreated::class],
-        TaskUpdated::class => [RecordTaskUpdated::class],
-        TaskCompleted::class => [RecordTaskCompleted::class],
-        TaskReopened::class => [RecordTaskReopened::class],
-        TaskAssigned::class => [RecordTaskAssigned::class, NotifyAssignee::class, FollowAssignedTask::class],
-        TaskAttachedToProject::class => [RecordTaskAttachedToProject::class],
-        TaskDetachedFromProject::class => [RecordTaskDetachedFromProject::class],
+        TaskCreated::class => [RecordTaskCreated::class, BroadcastTaskChange::class],
+        TaskUpdated::class => [RecordTaskUpdated::class, BroadcastTaskChange::class],
+        TaskCompleted::class => [RecordTaskCompleted::class, BroadcastTaskChange::class],
+        TaskReopened::class => [RecordTaskReopened::class, BroadcastTaskChange::class],
+        TaskAssigned::class => [
+            RecordTaskAssigned::class,
+            NotifyAssignee::class,
+            FollowAssignedTask::class,
+            BroadcastTaskChange::class,
+        ],
+
+        // No activity for a deleted task — its history has nobody left to read it — but the
+        // boards showing the card have to lose it.
+        TaskDeleted::class => [BroadcastTaskChange::class],
+
+        TaskAttachedToProject::class => [RecordTaskAttachedToProject::class, BroadcastPlacementChange::class],
+        TaskDetachedFromProject::class => [RecordTaskDetachedFromProject::class, BroadcastPlacementChange::class],
+        TaskPlacementMoved::class => [BroadcastPlacementChange::class],
+
+        SectionCreated::class => [BroadcastSectionChange::class],
+        SectionUpdated::class => [BroadcastSectionChange::class],
+        SectionMoved::class => [BroadcastSectionChange::class],
+        SectionDeleted::class => [BroadcastSectionChange::class],
+
+        ProjectUpdated::class => [BroadcastProjectChange::class],
+        ProjectArchived::class => [BroadcastProjectChange::class],
 
         // No activity for a comment — the feed reads that table directly — but the people
         // watching still have to hear about it.
@@ -63,6 +100,7 @@ class DomainEventServiceProvider extends ServiceProvider
             // already refuses.
             FollowCommentedTask::class,
             NotifyWatchersOfComment::class,
+            BroadcastCommentChange::class,
         ],
     ];
 
