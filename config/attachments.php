@@ -47,4 +47,18 @@ return [
         'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Retention after removal
+    |--------------------------------------------------------------------------
+    |
+    | Removing an attachment soft-deletes the file and leaves the object alone;
+    | `files:sweep` deletes the bytes this many days later. The window exists so
+    | that the one irreversible step in this application happens on a schedule,
+    | where a mistake is noticed before it is permanent (TASK-120-007).
+    |
+    */
+
+    'sweep_after_days' => (int) env('ATTACHMENTS_SWEEP_AFTER_DAYS', 30),
+
 ];
