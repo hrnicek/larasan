@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { BookOpen, Bell, CheckSquare, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { computed } from 'vue';
+import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
+import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -19,11 +22,26 @@ import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
+const page = usePage();
+
+/** The badge is the server's count, shared with every screen (TASK-130-009). */
+const unread = computed<number>(() => page.props.unreadNotifications);
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'My Tasks',
+        href: MyTasksController.index.url(),
+        icon: CheckSquare,
+    },
+    {
+        title: 'Inbox',
+        href: InboxController.index.url(),
+        icon: Bell,
     },
 ];
 
@@ -58,7 +76,7 @@ const footerNavItems: NavItem[] = [
         </SidebarHeader>
 
         <SidebarContent>
-            <NavMain :items="mainNavItems" />
+            <NavMain :items="mainNavItems" :badges="{ Inbox: unread }" />
             <ProjectNavList />
         </SidebarContent>
 

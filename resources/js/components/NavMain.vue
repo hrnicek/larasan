@@ -12,6 +12,8 @@ import type { NavItem } from '@/types';
 
 defineProps<{
     items: NavItem[];
+    /** Counts to show beside an item, keyed by its title. Zero draws nothing. */
+    badges?: Record<string, number>;
 }>();
 
 const { isCurrentUrl } = useCurrentUrl();
@@ -30,6 +32,12 @@ const { isCurrentUrl } = useCurrentUrl();
                     <Link :href="item.href">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
+                        <span
+                            v-if="(badges?.[item.title] ?? 0) > 0"
+                            class="ml-auto rounded bg-primary px-1 text-xs text-primary-foreground"
+                        >
+                            {{ badges?.[item.title] }}
+                        </span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Notification\Queries\InboxQuery;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
@@ -117,6 +118,14 @@ class HandleInertiaRequests extends Middleware
                     'icon' => $project->icon,
                 ])
                 ->all(),
+            /*
+             * The shell's unread badge, scoped to the workspace this request resolved. One
+             * count, on the index TASK-110-014 built for it — and none at all when nobody is
+             * signed in, because a query to answer "zero" is a query nobody needed.
+             */
+            'unreadNotifications' => $workspace === null || $request->user() === null
+                ? 0
+                : app(InboxQuery::class)->unreadCount($workspace, $request->user()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

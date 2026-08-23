@@ -28,6 +28,8 @@ declare module '@inertiajs/core' {
             workspace: WorkspaceSummary | null;
             workspaces: WorkspaceSummary[];
             projects: ProjectSummary[];
+            /** The shell's badge: unread notifications for this person in this workspace. */
+            unreadNotifications: number;
             [key: string]: unknown;
         };
     }
