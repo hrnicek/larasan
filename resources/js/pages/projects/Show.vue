@@ -4,6 +4,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
+import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
@@ -58,6 +59,16 @@ watch(() => props.board, (board) => {
 });
 
 const editable = () => (props.board ?? props.list)?.can.updateTask === true;
+
+/*
+ * Somebody else moved a card, renamed a column or commented: refetch what this screen draws
+ * and let the server answer (ADR-0008). Only the two view props, so an open detail panel is
+ * not thrown away by somebody else's edit elsewhere on the board.
+ */
+useRealtime({
+    channels: () => [`project.${props.project.id}`],
+    only: ['board', 'list'],
+});
 const creatable = () => (props.board ?? props.list)?.can.createTask === true;
 
 /**

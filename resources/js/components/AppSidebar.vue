@@ -18,6 +18,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useInboxRealtime } from '@/composables/useRealtime';
 import ProjectNavList from '@/modules/project/components/ProjectNavList.vue';
 import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
 import { dashboard } from '@/routes';
@@ -27,6 +28,13 @@ const page = usePage();
 
 /** The badge is the server's count, shared with every screen (TASK-130-009). */
 const unread = computed<number>(() => page.props.unreadNotifications);
+
+/*
+ * The shell is the one component on every authenticated screen, so it is where the badge
+ * learns about a notification without being asked (TASK-170-005). Echo is imported
+ * dynamically inside the composable and is not in the entry chunk.
+ */
+useInboxRealtime();
 
 const mainNavItems: NavItem[] = [
     {
