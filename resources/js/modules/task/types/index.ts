@@ -24,6 +24,12 @@ export type TaskRowData = {
     comments: number;
     /** What the task is about, drawn as chips (TASK-140-008). */
     tags: TaskTag[];
+    /**
+     * This row's answers, keyed by field id (TASK-150-008). Keyed rather than positional: a
+     * project whose fields changed between two requests would otherwise shift every row's
+     * values sideways.
+     */
+    fields?: Record<string, string | number | boolean>;
     assignee: TaskAssignee | null;
 };
 
@@ -31,6 +37,13 @@ export type TaskRowData = {
  * A column of the list. A null id is the ungrouped bucket — tasks in the project and in no
  * column — which is a place rather than an absence.
  */
+/** A column of the list: one of the project's custom fields. */
+export type ListFieldColumn = {
+    id: string;
+    name: string;
+    type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+};
+
 export type TaskSectionGroup = {
     id: string | null;
     name: string | null;
@@ -47,6 +60,8 @@ export type TaskAbilities = {
 
 export type ProjectList = {
     sections: TaskSectionGroup[];
+    /** The project's fields, once — each row answers them by id. */
+    fields: ListFieldColumn[];
     can: TaskAbilities;
 };
 

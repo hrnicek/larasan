@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Queries;
 
+use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -29,17 +31,33 @@ use Illuminate\Support\Collection as Grouped;
  *   throws outside production and is an N+1 inside it (TASK-070-015), and the answer is the
  *   same for every card on the board anyway.
  */
-final readonly class ProjectListQuery
+final class ProjectListQuery
 {
+    /**
+     * The project's fields, keyed by id, set once per read. A row answers the columns above it,
+     * so the definitions are the project's rather than the workspace's — a value for a field
+     * this project does not show is not a column anybody is looking at.
+     *
+     * @var Collection<string, CustomField>
+     */
+    private Collection $fields;
+
     /**
      * @param  list<string>  $tags
      * @return array{
+     *     fields: list<array{id: string, name: string, type: string}>,
      *     sections: list<array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}>,
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
      */
     public function __invoke(Project $project, User $actor, array $tags = []): array
     {
+        $project->loadMissing('customFields');
+
+        /** @var Collection<string, CustomField> $fields */
+        $fields = $project->customFields->keyBy('id');
+        $this->fields = $fields;
+
         $cards = $this->cards($project, $tags);
 
         $sections = $project->sections()->get()
@@ -61,6 +79,17 @@ final readonly class ProjectListQuery
 
         return [
             'sections' => array_values($sections),
+            /*
+             * The project's fields, once, as the columns the rows answer. Sending the definition
+             * per row would repeat it as many times as there are cards.
+             */
+            'fields' => array_values($project->customFields
+                ->map(fn (CustomField $field): array => [
+                    'id' => $field->id,
+                    'name' => $field->name,
+                    'type' => $field->type->value,
+                ])
+                ->all()),
             /*
              * The permissions the screen renders, answered by the server. Three different
              * questions, not one: creating a task and placing it here is `createTask`,
@@ -95,7 +124,9 @@ final readonly class ProjectListQuery
                     // excluded by the model's own soft-delete scope rather than by a condition
                     // written here twice.
                     ->withCount('comments')
-                    ->with(['assignee:id,name,email', 'tags:id,name,color']);
+                    // The answers for the whole page in one read: a column of values is worth
+                    // nothing if drawing it costs a query per row.
+                    ->with(['assignee:id,name,email', 'tags:id,name,color', 'customFieldValues']);
             }])
             ->orderBy('position')
             ->get()
@@ -119,6 +150,43 @@ final readonly class ProjectListQuery
     }
 
     /**
+     * This row's answers, keyed by field id.
+     *
+     * @return array<string, string|float|bool|null>
+     */
+    private function answers(Task $task): array
+    {
+        $answers = [];
+
+        foreach ($task->customFieldValues as $value) {
+            $field = $this->fields->get($value->custom_field_id);
+
+            if (! $field instanceof CustomField) {
+                continue;
+            }
+
+            if ($value->value($field) === null) {
+                continue;
+            }
+
+            /*
+             * Each branch reads its own column. A decimal reads back as a string, and a number
+             * sent as `"12.500000"` sorts like text on the client — which is the sort of thing
+             * that only shows up in somebody's ordering.
+             */
+            $answers[$field->id] = match ($field->type) {
+                CustomFieldType::Number => (float) $value->value_number,
+                CustomFieldType::Boolean => (bool) $value->value_boolean,
+                CustomFieldType::Date => $value->value_date?->toDateString(),
+                CustomFieldType::Text => (string) $value->value_text,
+                CustomFieldType::Select => (string) $value->value_option_id,
+            };
+        }
+
+        return $answers;
+    }
+
+    /**
      * Listed column by column rather than handed the model: a model would ship every column
      * the table grows later as a public API by accident.
      *
@@ -138,6 +206,12 @@ final readonly class ProjectListQuery
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
+            /*
+             * Keyed by field, because a row answers the columns above it — a list would have to
+             * be read positionally, and a project whose fields changed between two requests
+             * would then shift every row's values sideways.
+             */
+            'fields' => $this->answers($task),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,

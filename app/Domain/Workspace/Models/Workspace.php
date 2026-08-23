@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Workspace\Models;
 
+use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
@@ -138,6 +139,16 @@ class Workspace extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(Project::class);
+    }
+
+    /**
+     * What the workspace has decided to record about its work (Phase 150).
+     *
+     * @return HasMany<CustomField, $this>
+     */
+    public function customFields(): HasMany
+    {
+        return $this->hasMany(CustomField::class);
     }
 
     /**

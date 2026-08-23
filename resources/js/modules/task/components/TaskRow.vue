@@ -22,9 +22,26 @@ const props = defineProps<{
     members: TaskAssignee[];
     priorities: string[];
     editable: boolean;
+    /** The project's field columns, when this row is drawn inside one (TASK-150-008). */
+    fields?: { id: string; name: string; type: string }[];
 }>();
 
 const emit = defineEmits<{ open: [taskId: string] }>();
+
+/**
+ * A field's answer as a person reads it. A boolean is a tick rather than the word "true", and a
+ * field nobody answered is a dash rather than a gap you would have to count columns to
+ * interpret.
+ */
+const answerOf = (fieldId: string, type: string): string => {
+    const value = props.task.fields?.[fieldId];
+
+    if (value === undefined || value === null || value === '') {
+        return '—';
+    }
+
+    return type === 'boolean' ? (value ? '✓' : '—') : String(value);
+};
 
 const row = ref<HTMLElement | null>(null);
 
@@ -92,6 +109,15 @@ defineExpose({ focus: () => row.value?.focus() });
 
         <!-- Below md this is the second line, indented past the checkbox so the name leads. -->
         <div class="flex items-center gap-3 pl-7 md:ml-auto md:pl-0">
+            <span
+                v-for="field in fields"
+                :key="field.id"
+                class="hidden text-xs text-muted-foreground md:inline"
+                :title="field.name"
+            >
+                {{ answerOf(field.id, field.type) }}
+            </span>
+
             <span v-if="task.comments > 0" class="text-xs text-muted-foreground">{{ task.comments }} comments</span>
 
             <span

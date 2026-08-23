@@ -17,6 +17,8 @@ const props = defineProps<{
     collapsed: boolean;
     loading: boolean;
     projectId: string;
+    /** The project's field columns, passed through to each row (TASK-150-008). */
+    fields?: { id: string; name: string; type: string }[];
 }>();
 
 const emit = defineEmits<{
@@ -49,6 +51,7 @@ const toggle = () => emit('toggle', props.section.id);
                 :members="members"
                 :priorities="priorities"
                 :editable="editable"
+                :fields="fields"
                 @open="(taskId) => emit('open', taskId)"
             />
             <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">

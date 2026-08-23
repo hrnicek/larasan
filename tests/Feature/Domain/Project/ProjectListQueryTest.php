@@ -124,7 +124,7 @@ it('carries the fields a row draws, and no others', function (): void {
     $row = $list['sections'][0]['tasks'][0];
 
     expect(array_keys($row))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'tags', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'fields', 'tags', 'assignee'])
         ->and($row['priority'])->toBe(TaskPriority::High->value)
         ->and($row['dueAt'])->not->toBeNull()
         ->and($row['assignee']['id'])->toBe($assignee->id);
@@ -153,7 +153,7 @@ it('reads a whole board without a query per card', function (): void {
      * lookups are memoised per request (TASK-040-020) and a test is one request.
      */
     expect($list['sections'][0]['tasks'])->toHaveCount(12)
-        ->and(count($queries))->toBeLessThanOrEqual(8);
+        ->and(count($queries))->toBeLessThanOrEqual(10);
 });
 
 it('never asks the placement policy per card', function (): void {

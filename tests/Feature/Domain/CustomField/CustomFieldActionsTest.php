@@ -14,11 +14,15 @@ use App\Domain\CustomField\Models\CustomFieldOption;
 use App\Domain\CustomField\Models\TaskCustomFieldValue;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 
 /**
  * A field defined in the workspace, attached to the project, on a task that is in it.
@@ -213,4 +217,56 @@ it('refuses a value on a task in another workspace', function (): void {
 
     expect(fn (): ?TaskCustomFieldValue => setValue($task, $elsewhere, $actor, 'Two days'))
         ->toThrow(CustomFieldException::class, 'That field is not in this workspace.');
+});
+
+it('carries a project s fields as columns and each row s answers', function (): void {
+    [$task, $field, $actor, $project] = fieldOnATask(CustomFieldType::Number);
+    setValue($task, $field, $actor, '12.5');
+
+    $untouched = Task::factory()->in($task->workspace)->create();
+    TaskProjectMembership::factory()->placing($untouched, $project)->at(2 * SparsePosition::GAP)->create();
+
+    $list = app(ProjectListQuery::class)($project, $actor);
+
+    /*
+     * The definition once, at the top, and each row's answers keyed by field id — a positional
+     * list would shift every row's values sideways the moment the project's fields changed
+     * between two requests.
+     */
+    expect(array_column($list['fields'], 'name'))->toBe(['Estimate'])
+        ->and($list['sections'][0]['tasks'][0]['fields'])->toBe([$field->id => 12.5])
+        ->and($list['sections'][0]['tasks'][1]['fields'])->toBe([]);
+});
+
+it('reads a list of answered rows without a query per row', function (): void {
+    [$task, $field, $actor, $project] = fieldOnATask(CustomFieldType::Text);
+    setValue($task, $field, $actor, 'First');
+
+    foreach (range(2, 10) as $index) {
+        $other = Task::factory()->in($task->workspace)->create();
+        TaskProjectMembership::factory()->placing($other, $project)->at($index * SparsePosition::GAP)->create();
+        setValue($other, $field, $actor, "Answer {$index}");
+    }
+
+    $queries = [];
+    DB::listen(function (QueryExecuted $query) use (&$queries): void {
+        $queries[] = $query->sql;
+    });
+
+    $list = app(ProjectListQuery::class)($project, $actor);
+
+    // A column of values is worth nothing if drawing it costs a query per row.
+    expect($list['sections'][0]['tasks'])->toHaveCount(10)
+        ->and(count($queries))->toBeLessThanOrEqual(10);
+});
+
+it('leaves a project with no fields exactly as it was', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    $list = app(ProjectListQuery::class)($project, $actor);
+
+    expect($list['fields'])->toBe([])
+        ->and($list['sections'][0]['tasks'][0]['fields'])->toBe([]);
 });

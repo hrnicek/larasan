@@ -12,10 +12,10 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
@@ -186,21 +186,25 @@ final readonly class TaskDetailQuery
     }
 
     /**
-     * The answer as the screen wants it: a date as a date, a number as a number, and a missing
-     * one as null rather than as an empty string that would look like an answer.
+     * The answer as the screen wants it, decided by the **field's type** rather than by what PHP
+     * happens to hand back: a decimal column reads as a string, and sending `"12.500000"` where
+     * the client expects a number is the kind of thing that only shows up in somebody's sort
+     * order.
      */
     private function answer(CustomField $field, ?TaskCustomFieldValue $answer): string|float|bool|null
     {
-        if ($answer === null) {
+        if ($answer === null || $answer->value($field) === null) {
             return null;
         }
 
-        $value = $answer->value($field);
-
-        return match (true) {
-            $value instanceof CarbonImmutable => $value->toDateString(),
-            is_string($value), is_bool($value), $value === null => $value,
-            default => (float) $value,
+        // Each branch reads its own column, which is what "the type decides where the value
+        // lives" means when it is written down rather than described.
+        return match ($field->type) {
+            CustomFieldType::Number => (float) $answer->value_number,
+            CustomFieldType::Boolean => (bool) $answer->value_boolean,
+            CustomFieldType::Date => $answer->value_date?->toDateString(),
+            CustomFieldType::Text => (string) $answer->value_text,
+            CustomFieldType::Select => (string) $answer->value_option_id,
         };
     }
 
