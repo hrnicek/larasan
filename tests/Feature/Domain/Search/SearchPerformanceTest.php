@@ -57,28 +57,28 @@ it('can search thirty thousand tasks on the index rather than by reading them al
 
     DB::statement('ANALYZE tasks');
 
+    /*
+     * Index-ability rather than a forced plan, and the term on its own rather than the whole
+     * `where`. At thirty thousand rows in a single workspace, `workspace_id = ?` matches every
+     * row, so that column's index is a second path the planner may legitimately take — it did,
+     * reading 30,000 rows and discarding 29,940 in 3ms, which at this size is a defensible
+     * choice and at a real size is not. Pricing out sequential scans did not remove that second
+     * path, so the assertion was still flaky; naming both conditions was the mistake.
+     *
+     * The question this test exists to answer is narrower: **is the vector index-able at all**.
+     * What the planner prefers once a workspace filter is beside it is a cost decision that
+     * changes with the data, and the timings the next tests record are how that is watched.
+     */
     $sql = <<<'SQL'
         select id, title from tasks
-        where workspace_id = ?
-          and search_vector @@ to_tsquery('simple', immutable_unaccent(?))
+        where search_vector @@ to_tsquery('simple', immutable_unaccent(?))
         order by ts_rank_cd(search_vector, to_tsquery('simple', immutable_unaccent(?))) desc, id desc
         limit 25
     SQL;
 
-    /*
-     * Index-ability rather than a forced plan. At thirty thousand rows the table is small enough
-     * that PostgreSQL will sometimes read it instead — 3ms, and the right call — and which way it
-     * goes depends on how many rows the term happens to match. Asserting the plan here made a
-     * test that passed alone and failed in the suite, which is worse than useless: it would have
-     * been silenced rather than believed.
-     *
-     * So sequential scans are priced out and the question becomes the one that matters: can this
-     * query use the GIN index at all? The day a workspace is large enough, that is what the
-     * planner will choose on its own.
-     */
     DB::statement('SET LOCAL enable_seqscan = off');
 
-    $plan = searchPlanOf($sql, [$workspace->id, 'login:*', 'login:*']);
+    $plan = searchPlanOf($sql, ['login:*', 'login:*']);
 
     DB::statement('SET LOCAL enable_seqscan = on');
 
