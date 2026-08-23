@@ -142,6 +142,14 @@ class AppServiceProvider extends ServiceProvider
          * a rate, not a round number: the point is to bound a loop, not to ration a user.
          */
         RateLimiter::for('task-moves', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->user()?->id));
+
+        /*
+         * Writing a comment is cheap for the server and expensive for everybody else: each one
+         * notifies every follower and the assignee (TASK-110-011), so a loop here fills other
+         * people's inboxes rather than a table. Thirty a minute is faster than anybody types
+         * and far below what a stuck client produces.
+         */
+        RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
     }
 
     /**
