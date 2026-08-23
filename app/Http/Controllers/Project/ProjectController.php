@@ -115,12 +115,27 @@ class ProjectController extends Controller
              */
             ...$view === ProjectDefaultView::Board
                 ? ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())]
-                : ['list' => $list($project, $actor, $request->tags())],
+                : ['list' => $list(
+                    $project,
+                    $actor,
+                    $request->tags(),
+                    $request->sort($project->customFields),
+                    $request->fieldFilters(),
+                )],
             /*
              * The filter, echoed back, and the workspace's vocabulary to pick from. The screen
              * renders what the server understood rather than what the client thinks it asked
              * for — a stale tag id in a link matches nothing and is quietly dropped here.
              */
+            /*
+             * What the server understood of the ordering, echoed back so the screen renders the
+             * view it actually got rather than the one the client asked for.
+             */
+            'sort' => [
+                'field' => $request->sort($project->customFields)?->field->id,
+                'direction' => $request->sort($project->customFields)?->direction() ?? 'asc',
+                'filters' => (object) $request->fieldFilters(),
+            ],
             'tags' => [
                 'active' => $request->tags(),
                 'available' => $project->workspace->tags()

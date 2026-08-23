@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Queries;
 
+use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
@@ -13,8 +14,10 @@ use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection as Grouped;
 
 /**
@@ -44,21 +47,27 @@ final class ProjectListQuery
 
     /**
      * @param  list<string>  $tags
+     * @param  array<string, string>  $fieldFilters  field id => the answer a row must carry
      * @return array{
      *     fields: list<array{id: string, name: string, type: string}>,
      *     sections: list<array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}>,
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
      */
-    public function __invoke(Project $project, User $actor, array $tags = []): array
-    {
+    public function __invoke(
+        Project $project,
+        User $actor,
+        array $tags = [],
+        ?FieldSort $sort = null,
+        array $fieldFilters = [],
+    ): array {
         $project->loadMissing('customFields');
 
         /** @var Collection<string, CustomField> $fields */
         $fields = $project->customFields->keyBy('id');
         $this->fields = $fields;
 
-        $cards = $this->cards($project, $tags);
+        $cards = $this->cards($project, $tags, $sort, $fieldFilters);
 
         $sections = $project->sections()->get()
             ->map(fn (Section $section): array => $this->group(
@@ -109,11 +118,12 @@ final class ProjectListQuery
      * the placements and one for their tasks, whatever the board's size.
      *
      * @param  list<string>  $tags
+     * @param  array<string, string>  $fieldFilters
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
      */
-    private function cards(Project $project, array $tags): Grouped
+    private function cards(Project $project, array $tags, ?FieldSort $sort, array $fieldFilters): Grouped
     {
-        return TaskProjectMembership::query()
+        $query = TaskProjectMembership::query()
             ->visible()
             ->taggedWithAll($tags)
             ->where('project_id', $project->id)
@@ -128,7 +138,32 @@ final class ProjectListQuery
                     // nothing if drawing it costs a query per row.
                     ->with(['assignee:id,name,email', 'tags:id,name,color', 'customFieldValues']);
             }])
-            ->orderBy('position')
+            ->orderBy('position');
+
+        foreach ($fieldFilters as $fieldId => $answer) {
+            $field = $this->fields->get($fieldId);
+
+            if (! $field instanceof CustomField) {
+                // A field this project does not show filters nothing. A stale link renders the
+                // list rather than an error, the way a deleted tag does (TASK-140-005).
+                continue;
+            }
+
+            $stored = $field->type->normalise($answer);
+
+            $query->whereHas(
+                'task.customFieldValues',
+                fn (Builder $values): Builder => $values
+                    ->where('custom_field_id', $field->id)
+                    ->where($field->type->column(), $stored),
+            );
+        }
+
+        if ($sort instanceof FieldSort) {
+            $this->orderByField($query, $sort);
+        }
+
+        return $query
             ->get()
             ->groupBy(fn (TaskProjectMembership $card): string => $card->section_id ?? '');
     }
@@ -147,6 +182,47 @@ final class ProjectListQuery
             'count' => $cards->count(),
             'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
         ];
+    }
+
+    /**
+     * Order by a field's answer, in the database.
+     *
+     * A left join rather than a subquery per row, and **nulls last** in both directions: a row
+     * nobody has answered is not the smallest value, it is an absence, and burying it at the top
+     * of an ascending list is how a column of blanks becomes the first thing anybody sees.
+     *
+     * The column is the type's, which is the whole reason the values are stored in typed columns
+     * — a number sorts numerically and a date chronologically without a cast per row.
+     *
+     * @param  Builder<TaskProjectMembership>  $query
+     */
+    private function orderByField(Builder $query, FieldSort $sort): void
+    {
+        /*
+         * Written out rather than interpolated from a method call: this string reaches the
+         * database as SQL, and the only safe kind of that is one the code states literally.
+         */
+        $column = match ($sort->field->type) {
+            CustomFieldType::Text => 'value_text',
+            CustomFieldType::Number => 'value_number',
+            CustomFieldType::Date => 'value_date',
+            CustomFieldType::Boolean => 'value_boolean',
+            CustomFieldType::Select => 'value_option_id',
+        };
+
+        $direction = $sort->descending ? 'desc' : 'asc';
+
+        $query
+            ->leftJoin('task_custom_field_values', function (JoinClause $join) use ($sort): void {
+                $join->on('task_custom_field_values.task_id', '=', 'task_project_memberships.task_id')
+                    ->where('task_custom_field_values.custom_field_id', '=', $sort->field->id);
+            })
+            ->select('task_project_memberships.*')
+            ->reorder()
+            ->orderByRaw("task_custom_field_values.{$column} {$direction} nulls last")
+            // Then by position, so two rows with the same answer keep the order somebody put
+            // them in rather than swapping between requests.
+            ->orderBy('task_project_memberships.position');
     }
 
     /**

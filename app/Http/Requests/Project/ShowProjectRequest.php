@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Project;
 
+use App\Domain\CustomField\Data\FieldSort;
+use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class ShowProjectRequest extends FormRequest
@@ -52,6 +55,14 @@ class ShowProjectRequest extends FormRequest
              */
             'tags' => ['sometimes', 'array', 'max:20'],
             'tags.*' => ['uuid'],
+
+            /*
+             * Ordering and narrowing by a field's answer, both in the URL for the reason the tag
+             * filter is: this is a view somebody sends, not a preference they describe.
+             */
+            'sort' => ['sometimes', 'uuid'],
+            'direction' => ['sometimes', 'in:asc,desc'],
+            'field' => ['sometimes', 'array', 'max:10'],
         ];
     }
 
@@ -67,6 +78,50 @@ class ShowProjectRequest extends FormRequest
     public function openTask(): ?string
     {
         return $this->string('task')->value() ?: null;
+    }
+
+    /**
+     * The field this view is ordered by, when the project still shows it. A stale id orders by
+     * nothing rather than 404ing, the way a stale tag filters nothing.
+     *
+     * @param  Collection<int, CustomField>  $available
+     */
+    public function sort(Collection $available): ?FieldSort
+    {
+        $id = $this->string('sort')->value();
+
+        if ($id === '') {
+            return null;
+        }
+
+        $field = $available->firstWhere('id', $id);
+
+        return $field instanceof CustomField
+            ? new FieldSort($field, descending: $this->string('direction')->value() === 'desc')
+            : null;
+    }
+
+    /**
+     * The answers a row must carry, keyed by field id.
+     *
+     * @return array<string, string>
+     */
+    public function fieldFilters(): array
+    {
+        /** @var array<array-key, mixed> $filters */
+        $filters = $this->input('field', []);
+
+        $answers = [];
+
+        foreach ($filters as $fieldId => $answer) {
+            // Both halves have to be readable: a key that is not an id and a value that is not
+            // a scalar are a URL somebody built by hand, and neither filters anything.
+            if (is_string($fieldId) && (is_string($answer) || is_numeric($answer)) && (string) $answer !== '') {
+                $answers[$fieldId] = (string) $answer;
+            }
+        }
+
+        return $answers;
     }
 
     /**

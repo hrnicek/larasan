@@ -5,6 +5,7 @@ import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
+import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
@@ -38,6 +39,8 @@ const props = defineProps<{
     priorities: string[];
     /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
     tags: { active: string[]; available: TaskTag[] };
+    /** What the server ordered and narrowed by (TASK-150-009). */
+    sort: { field: string | null; direction: string; filters: Record<string, string> };
     /** The open panel, when the URL names a task. */
     taskDetail?: TaskDetail | null;
     /** Deferred with the panel: absent until its own request lands. */
@@ -169,6 +172,14 @@ onUnmounted(() => {
         <Head :title="project.name" />
 
         <ProjectHeader :project="project" :view="view" :views="views" />
+
+        <FieldSortControl
+            v-if="list?.fields.length"
+            :project-id="project.id"
+            :view="view"
+            :fields="list.fields"
+            :sort="sort"
+        />
 
         <TagFilter
             :project-id="project.id"
