@@ -47,8 +47,10 @@ trait BroadcastsToInbox
     }
 
     /**
-     * One event name for every notification. Which kind it is belongs in the payload, where the
-     * client reads it, rather than in an event name every screen has to know the list of.
+     * The payload's `type`. The event's own name on the wire stays the framework's
+     * `BroadcastNotificationCreated`, which is what Echo's `notification()` listens for — so
+     * this is what a client reads to know it is looking at a notification, and `kind` is what it
+     * reads to know which one.
      */
     public function broadcastType(): string
     {
