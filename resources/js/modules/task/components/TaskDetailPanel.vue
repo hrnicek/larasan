@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import AttachmentList from '@/modules/file/components/AttachmentList.vue';
 import ActivityFeed from '@/modules/task/components/ActivityFeed.vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
@@ -219,6 +220,12 @@ defineExpose({ close });
             :parent-id="detail.task.id"
             :subtasks="detail.subtasks"
             :editable="detail.can.update"
+        />
+
+        <AttachmentList
+            :task-id="detail.task.id"
+            :attachments="detail.attachments"
+            :can-attach="detail.can.attach"
         />
 
         <ActivityFeed :task-id="detail.task.id" :feed="activity" :can-comment="detail.can.comment" />

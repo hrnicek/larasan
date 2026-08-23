@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\File\Models\Attachment;
+use App\Domain\File\Models\File;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
@@ -125,7 +127,8 @@ it('answers the permissions once, for the task', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    expect(detailOf($task, $actor)['can'])->toBe(['update' => true, 'delete' => true, 'comment' => true]);
+    expect(detailOf($task, $actor)['can'])
+        ->toBe(['update' => true, 'delete' => true, 'comment' => true, 'attach' => true]);
 });
 
 it('tells a guest what they may not do', function (): void {
@@ -137,9 +140,9 @@ it('tells a guest what they may not do', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     // A guest given the project reads the task and edits nothing; commenting is the one thing
-    // their role does carry (ADR-0010).
+    // their role does carry (ADR-0010), and adding documents is not part of it.
     expect(detailOf($task, $guest)['can'])
-        ->toBe(['update' => false, 'delete' => false, 'comment' => true]);
+        ->toBe(['update' => false, 'delete' => false, 'comment' => true, 'attach' => false]);
 });
 
 it('reads a task with several subtasks and placements without a query per row', function (): void {
@@ -169,7 +172,7 @@ it('reads a task with several subtasks and placements without a query per row', 
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(14);
+        ->and(count($queries))->toBeLessThanOrEqual(15);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -177,12 +180,11 @@ it('carries nothing it cannot yet know about', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Comments, activity and attachments are deferred regions whose tables do not exist. A
-    // query that pretended otherwise would be one somebody has to unpick — and followers moved
-    // out of this list the moment `task_followers` existed (TASK-100-010), which is what the
-    // list is for.
+    // Tags are Phase 140 and custom field values Phase 150; the comment thread and the activity
+    // feed are the deferred region rather than part of this read. Attachments joined the list
+    // the moment their tables existed (TASK-120-008), which is what the list is for.
     expect(array_keys(detailOf($task, $actor)))
-        ->toBe(['task', 'placements', 'availableProjects', 'subtasks', 'followers', 'following', 'can']);
+        ->toBe(['task', 'attachments', 'placements', 'availableProjects', 'subtasks', 'followers', 'following', 'can']);
 });
 
 it('offers only the projects the actor may add the task to', function (): void {
@@ -201,4 +203,56 @@ it('offers only the projects the actor may add the task to', function (): void {
     // Not the one it is already in, not one they may only read, and never one they were never
     // given.
     expect($offered)->toBe(['Editable']);
+});
+
+it('lists what is attached, with the permissions the controls render from', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $moderator = memberOf($workspace, WorkspaceRole::Admin);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $task = Task::factory()->in($workspace)->create();
+
+    $mine = File::factory()->in($workspace)->by($actor)->create(['original_name' => 'mine.pdf', 'size' => 1024]);
+    $theirs = File::factory()->in($workspace)->create(['original_name' => 'theirs.pdf']);
+    Attachment::factory()->attaching($mine, $task)->create();
+    Attachment::factory()->attaching($theirs, $task)->create();
+
+    $attachments = detailOf($task, $actor)['attachments'];
+
+    // The stored path is generated and is nobody's business outside its table: a download goes
+    // through the endpoint that asks a question first (ADR-0007).
+    expect(array_column($attachments, 'name'))->toBe(['mine.pdf', 'theirs.pdf'])
+        ->and($attachments[0]['size'])->toBe(1024)
+        ->and($attachments[0]['uploader']['id'])->toBe($actor->id)
+        ->and($attachments[0])->not->toHaveKey('path');
+
+    /*
+     * `file.delete` is every full member's under ADR-0010, the same shape as `comment.delete`,
+     * so a member and an admin may both remove anybody's. A guest holds neither that nor an
+     * upload of their own, and may remove nothing.
+     */
+    expect(array_column($attachments, 'canDelete'))->toBe([true, true])
+        ->and(array_column(detailOf($task, $moderator)['attachments'], 'canDelete'))->toBe([true, true])
+        ->and(array_column(detailOf($task, $guest)['attachments'], 'canDelete'))->toBe([false, false]);
+});
+
+it('reads a task s attachments without a query per file', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    foreach (range(1, 6) as $index) {
+        $file = File::factory()->in($workspace)->create(['original_name' => "file-{$index}.pdf"]);
+        Attachment::factory()->attaching($file, $task)->create();
+    }
+
+    $queries = [];
+    DB::listen(function (QueryExecuted $query) use (&$queries): void {
+        $queries[] = $query->sql;
+    });
+
+    $detail = detailOf($task, $actor);
+
+    // Six files by six different people cost the same three reads one would: the attachments,
+    // their files, and the uploaders.
+    expect($detail['attachments'])->toHaveCount(6)
+        ->and(count($queries))->toBeLessThanOrEqual(16);
 });

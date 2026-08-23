@@ -87,7 +87,8 @@ export type TaskDetail = {
     };
     placements: TaskDetailPlacement[];
     subtasks: { id: string; title: string; completedAt: string | null }[];
-    can: { update: boolean; delete: boolean; comment: boolean };
+    attachments: TaskAttachment[];
+    can: { update: boolean; delete: boolean; comment: boolean; attach: boolean };
 };
 
 /**
@@ -109,6 +110,20 @@ export type TaskFeedEntry = {
     type: string | null;
     properties: Record<string, unknown> | null;
     canEdit: boolean;
+    canDelete: boolean;
+};
+
+/**
+ * A file hanging from a task. There is no path here: it is generated, it is nobody's business
+ * outside its table, and the download goes through an endpoint that asks a question first.
+ */
+export type TaskAttachment = {
+    id: string;
+    name: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string | null;
+    uploader: TaskAssignee | null;
     canDelete: boolean;
 };
 

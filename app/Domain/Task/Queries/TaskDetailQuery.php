@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Queries;
 
+use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
@@ -31,10 +32,11 @@ final readonly class TaskDetailQuery
      *     task: array<string, mixed>,
      *     placements: list<array<string, mixed>>,
      *     availableProjects: list<array{id: string, name: string}>,
+     *     attachments: list<array<string, mixed>>,
      *     subtasks: list<array<string, mixed>>,
      *     followers: list<array<string, mixed>>,
      *     following: bool,
-     *     can: array{update: bool, delete: bool, comment: bool},
+     *     can: array{update: bool, delete: bool, comment: bool, attach: bool},
      * }
      */
     public function __invoke(Task $task, User $actor): array
@@ -45,6 +47,9 @@ final readonly class TaskDetailQuery
             'parent:id,title',
             'children' => fn (Relation $subtasks) => $subtasks->select(['id', 'parent_id', 'title', 'completed_at']),
             'followers:id,name,email',
+            // The file behind each attachment and the person who uploaded it: a list of
+            // documents is one query, not one per row.
+            'attachments.file.uploader:id,name,email',
             /*
              * Only the projects the actor can reach. A task can appear in a project they were
              * never given, and listing it here would leak a project name through a task they
@@ -75,6 +80,7 @@ final readonly class TaskDetailQuery
                 'assignee' => $this->person($task->assignee),
                 'creator' => $this->person($task->creator),
             ],
+            'attachments' => $this->attachments($task, $actor),
             'placements' => $this->placements($task, $actor),
             'availableProjects' => $this->availableProjects($task, $actor),
             'subtasks' => array_values($task->children
@@ -97,8 +103,42 @@ final readonly class TaskDetailQuery
                 // that hides the form is built now, and a flag added later is a form somebody
                 // forgets to hide.
                 'comment' => $task->workspace->membershipFor($actor)?->allows(Capability::CommentCreate) === true,
+                'attach' => $task->workspace->membershipFor($actor)?->allows(Capability::FileUpload) === true,
             ],
         ];
+    }
+
+    /**
+     * What is attached to this task.
+     *
+     * `canDelete` is answered here rather than in the template, and answered the way
+     * `AttachmentPolicy` answers it — reach is already settled for anybody reading this task, so
+     * what is left is authorship of the upload and one capability, asked once for the page.
+     *
+     * The stored path is not sent. It is generated, it is nobody's business outside its table,
+     * and a download goes through the endpoint that asks a question first (ADR-0007).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function attachments(Task $task, User $actor): array
+    {
+        $canModerate = $task->workspace->membershipFor($actor)?->allows(Capability::FileDelete) === true;
+
+        return array_values($task->attachments
+            ->map(function (Attachment $attachment) use ($actor, $canModerate): array {
+                $file = $attachment->file;
+
+                return [
+                    'id' => $attachment->id,
+                    'name' => $file->original_name,
+                    'size' => $file->size,
+                    'mimeType' => $file->mime_type,
+                    'uploadedAt' => $file->created_at?->toIso8601String(),
+                    'uploader' => $this->person($file->uploader),
+                    'canDelete' => $file->uploaded_by === $actor->id || $canModerate,
+                ];
+            })
+            ->all());
     }
 
     /**
