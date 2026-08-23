@@ -6,6 +6,7 @@ use App\Domain\File\Models\Attachment;
 use App\Domain\File\Models\File;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,7 +33,7 @@ it('deletes the objects of files removed longer ago than the window', function (
     $workspace = Workspace::factory()->create();
     $old = removedFile($workspace, 40);
 
-    $this->artisan('files:sweep')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0);
 
     /*
      * The only place in this application where bytes are destroyed: on a schedule, after a
@@ -46,7 +47,7 @@ it('leaves a file that was removed recently', function (): void {
     $workspace = Workspace::factory()->create();
     $recent = removedFile($workspace, 2);
 
-    $this->artisan('files:sweep')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0);
 
     // The window is what makes the irreversible step recoverable at all.
     Storage::disk($recent->disk)->assertExists($recent->path);
@@ -64,7 +65,7 @@ it('never touches a file something still points at', function (): void {
      * attachment first. This is the belt: the sweep is the one operation that cannot be undone,
      * so it refuses to act on anything still referenced rather than trusting the invariant.
      */
-    $this->artisan('files:sweep')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0);
 
     Storage::disk($file->disk)->assertExists($file->path);
     expect(DB::table('files')->where('id', $file->id)->exists())->toBeTrue();
@@ -75,7 +76,7 @@ it('leaves files nobody removed alone', function (): void {
     $file = File::factory()->in($workspace)->create();
     Storage::disk($file->disk)->put($file->path, 'the contents');
 
-    $this->artisan('files:sweep')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0);
 
     Storage::disk($file->disk)->assertExists($file->path);
     expect(File::query()->whereKey($file->id)->exists())->toBeTrue();
@@ -92,7 +93,7 @@ it('reads the disk from the row rather than from configuration', function (): vo
 
     // A file written before `FILESYSTEM_ATTACHMENTS_DISK` changed is still findable, which is
     // why the row records its disk at all (ADR-0007).
-    $this->artisan('files:sweep')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0);
 
     Storage::disk('legacy')->assertMissing($file->path);
 });
@@ -102,5 +103,6 @@ it('says how many it swept', function (): void {
     removedFile($workspace, 40);
     removedFile($workspace, 40);
 
-    $this->artisan('files:sweep')->expectsOutputToContain('Swept 2 files.')->assertSuccessful();
+    expect(Artisan::call('files:sweep'))->toBe(0)
+        ->and(Artisan::output())->toContain('Swept 2 files.');
 });
