@@ -19,6 +19,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
@@ -113,8 +114,25 @@ class ProjectController extends Controller
              * would read the same placements twice for a reader who can see one of them.
              */
             ...$view === ProjectDefaultView::Board
-                ? ['board' => $board($project, $actor, $request->expandedColumns())]
-                : ['list' => $list($project, $actor)],
+                ? ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())]
+                : ['list' => $list($project, $actor, $request->tags())],
+            /*
+             * The filter, echoed back, and the workspace's vocabulary to pick from. The screen
+             * renders what the server understood rather than what the client thinks it asked
+             * for — a stale tag id in a link matches nothing and is quietly dropped here.
+             */
+            'tags' => [
+                'active' => $request->tags(),
+                'available' => $project->workspace->tags()
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'color'])
+                    ->map(fn (Tag $tag): array => [
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                        'color' => $tag->color?->value,
+                    ])
+                    ->all(),
+            ],
             'views' => array_column(ProjectDefaultView::cases(), 'value'),
             // The enum's own cases, so a priority added later appears in the row's control
             // without a second list to remember.

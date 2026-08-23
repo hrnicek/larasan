@@ -7,6 +7,7 @@ import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
+import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
@@ -16,6 +17,7 @@ import type {
     ProjectList,
     TaskFeed,
     TaskAssignee,
+    TaskTag,
     TaskDetail,
 } from '@/modules/task/types';
 
@@ -34,6 +36,8 @@ const props = defineProps<{
     board?: ProjectBoard;
     members: TaskAssignee[];
     priorities: string[];
+    /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
+    tags: { active: string[]; available: TaskTag[] };
     /** The open panel, when the URL names a task. */
     taskDetail?: TaskDetail | null;
     /** Deferred with the panel: absent until its own request lands. */
@@ -165,6 +169,13 @@ onUnmounted(() => {
         <Head :title="project.name" />
 
         <ProjectHeader :project="project" :view="view" :views="views" />
+
+        <TagFilter
+            :project-id="project.id"
+            :view="view"
+            :active="tags.active"
+            :available="tags.available"
+        />
 
         <div class="flex flex-col gap-6 md:flex-row md:items-start">
             <!--

@@ -67,6 +67,37 @@ class TaskProjectMembership extends Model
         return $query->whereHas('task');
     }
 
+    /**
+     * Cards whose task carries **every** one of these tags.
+     *
+     * All rather than any: a filter that widened as you added terms would be the opposite of
+     * what picking a second tag means. An empty list is no filter at all rather than a filter
+     * nothing matches.
+     *
+     * Counting and rendering must both go through here too, or a column's header disagrees with
+     * its contents — the same rule `visible()` exists for.
+     *
+     * @param  Builder<$this>  $query
+     * @param  list<string>  $tags
+     * @return Builder<$this>
+     */
+    public function scopeTaggedWithAll(Builder $query, array $tags): Builder
+    {
+        if ($tags === []) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'task',
+            fn (Builder $tasks): Builder => $tasks->whereHas(
+                'tags',
+                fn (Builder $carried): Builder => $carried->whereIn('tags.id', $tags),
+                '=',
+                count(array_unique($tags)),
+            ),
+        );
+    }
+
     /** Ungrouped: in the project, in no column — the list view's default bucket. */
     public function isUngrouped(): bool
     {

@@ -41,16 +41,17 @@ final readonly class ProjectBoardQuery
 
     /**
      * @param  list<string>  $expanded  columns the reader has asked to see in full
+     * @param  list<string>  $tags  every one of which a card must carry
      * @return array{
      *     columns: list<array{id: string|null, name: string|null, color: string|null, count: int, hasMore: bool, tasks: list<array<string, mixed>>}>,
      *     perColumn: int,
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
      */
-    public function __invoke(Project $project, User $actor, array $expanded = []): array
+    public function __invoke(Project $project, User $actor, array $expanded = [], array $tags = []): array
     {
-        $counts = $this->counts($project);
-        $cards = $this->cards($project, $expanded);
+        $counts = $this->counts($project, $tags);
+        $cards = $this->cards($project, $expanded, $tags);
 
         $columns = $project->sections()->get()
             ->map(fn (Section $section): array => $this->column(
@@ -92,13 +93,15 @@ final readonly class ProjectBoardQuery
     /**
      * How many visible cards each column holds, whatever the page shows.
      *
+     * @param  list<string>  $tags
      * @return array<string, int>
      */
-    private function counts(Project $project): array
+    private function counts(Project $project, array $tags): array
     {
         /** @var Grouped<int, object{section: string|null, total: int}> $rows */
         $rows = TaskProjectMembership::query()
             ->visible()
+            ->taggedWithAll($tags)
             ->where('project_id', $project->id)
             ->toBase()
             ->selectRaw('section_id as section, count(*) as total')
@@ -119,12 +122,14 @@ final readonly class ProjectBoardQuery
      * purpose, rather than a board-wide limit somebody can turn off.
      *
      * @param  list<string>  $expanded
+     * @param  list<string>  $tags
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
      */
-    private function cards(Project $project, array $expanded): Grouped
+    private function cards(Project $project, array $expanded, array $tags): Grouped
     {
         $paged = TaskProjectMembership::query()
             ->visible()
+            ->taggedWithAll($tags)
             ->where('project_id', $project->id)
             ->toBase()
             ->selectRaw('id, row_number() over (partition by section_id order by position) as rank')
@@ -138,6 +143,7 @@ final readonly class ProjectBoardQuery
 
         $query = TaskProjectMembership::query()
             ->visible()
+            ->taggedWithAll($tags)
             ->where('project_id', $project->id)
             ->where(function (Builder $rows) use ($ids, $expanded): void {
                 $rows->whereIn('id', $ids);

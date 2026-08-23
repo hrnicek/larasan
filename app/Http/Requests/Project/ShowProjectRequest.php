@@ -44,6 +44,14 @@ class ShowProjectRequest extends FormRequest
              * which board it was opened from, and reopening it would lose the context.
              */
             'task' => ['sometimes', 'uuid'],
+
+            /*
+             * The tags a card must carry, all of them. In the URL because a filtered view is a
+             * link somebody sends — "the bugs in this project" is a thing people share, not a
+             * setting they describe over chat.
+             */
+            'tags' => ['sometimes', 'array', 'max:20'],
+            'tags.*' => ['uuid'],
         ];
     }
 
@@ -59,6 +67,24 @@ class ShowProjectRequest extends FormRequest
     public function openTask(): ?string
     {
         return $this->string('task')->value() ?: null;
+    }
+
+    /**
+     * The tags this view is filtered by. Ids the workspace does not have simply match nothing,
+     * which is the honest answer to a stale link — a 404 for a deleted tag would throw away a
+     * board somebody can still read.
+     *
+     * @return list<string>
+     */
+    public function tags(): array
+    {
+        /** @var array<int, mixed> $tags */
+        $tags = $this->input('tags', []);
+
+        return array_values(array_unique(array_filter(
+            array_map(fn (mixed $id): string => is_string($id) ? $id : '', $tags),
+            fn (string $id): bool => $id !== '',
+        )));
     }
 
     /**

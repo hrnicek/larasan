@@ -31,14 +31,15 @@ use Illuminate\Support\Collection as Grouped;
 final readonly class ProjectListQuery
 {
     /**
+     * @param  list<string>  $tags
      * @return array{
      *     sections: list<array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}>,
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
      */
-    public function __invoke(Project $project, User $actor): array
+    public function __invoke(Project $project, User $actor, array $tags = []): array
     {
-        $cards = $this->cards($project);
+        $cards = $this->cards($project, $tags);
 
         $sections = $project->sections()->get()
             ->map(fn (Section $section): array => $this->group(
@@ -77,12 +78,14 @@ final readonly class ProjectListQuery
      * Every visible card in the project, in position order, keyed by section — one query for
      * the placements and one for their tasks, whatever the board's size.
      *
+     * @param  list<string>  $tags
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
      */
-    private function cards(Project $project): Grouped
+    private function cards(Project $project, array $tags): Grouped
     {
         return TaskProjectMembership::query()
             ->visible()
+            ->taggedWithAll($tags)
             ->where('project_id', $project->id)
             ->with(['task' => function (Relation $tasks): void {
                 $tasks
