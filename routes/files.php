@@ -43,4 +43,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])
         ->whereUuid('attachment')
         ->name('attachments.download');
+
+    Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])
+        ->whereUuid('attachment')
+        ->name('attachments.destroy');
 });

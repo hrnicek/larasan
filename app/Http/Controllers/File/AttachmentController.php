@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\File;
 
 use App\Domain\File\Actions\AttachFile;
+use App\Domain\File\Actions\DetachFile;
 use App\Domain\File\Models\Attachment;
 use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
@@ -63,6 +64,17 @@ class AttachmentController extends Controller
         // The name people recognise, not the path it was stored under — which is generated and
         // is nobody's business outside this table.
         return $disk->download($file->path, $file->original_name);
+    }
+
+    public function destroy(Request $request, Attachment $attachment, DetachFile $detachFile): RedirectResponse
+    {
+        Gate::authorize('delete', $attachment);
+
+        $detachFile->handle($attachment, $this->actor($request));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('File removed.')]);
+
+        return back();
     }
 
     private function actor(Request $request): User
