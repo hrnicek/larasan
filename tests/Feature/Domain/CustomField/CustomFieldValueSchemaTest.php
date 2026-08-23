@@ -150,3 +150,61 @@ it('indexes each value column under its field', function (): void {
         ->and($indexes)->toContain(['custom_field_id', 'value_option_id'])
         ->and($indexes)->toContain(['task_id', 'custom_field_id']);
 });
+
+it('indexes the option a value points at', function (): void {
+    $indexes = collect(Schema::getIndexes('task_custom_field_values'))->pluck('columns');
+
+    /*
+     * Found by the Phase 150 review. `value_option_id` is nulled when an option is deleted, and
+     * PostgreSQL does not index the referencing side of a foreign key — the composite index
+     * leads with `custom_field_id`, so without this, deleting one choice from one list scanned
+     * every answer in the installation.
+     */
+    expect($indexes)->toContain(['value_option_id']);
+});
+
+it('finds the answers to null by the option rather than by scanning', function (): void {
+    $workspace = Workspace::factory()->create();
+    $field = insertCustomField($workspace, 'Stage', ['type' => CustomFieldType::Select->value]);
+    $option = insertOption($field, 'Draft', 1);
+
+    // Three thousand answers, `ANALYZE`d, so the planner is choosing from statistics.
+    $tasks = Task::factory()->in($workspace)->count(100)->create()->pluck('id')->all();
+    $rows = [];
+
+    foreach (range(1, 30) as $index) {
+        $other = insertCustomField($workspace, "Field {$index}", ['type' => CustomFieldType::Select->value]);
+        $otherOption = insertOption($other, 'Something', 1);
+
+        foreach ($tasks as $taskId) {
+            $rows[] = [
+                'id' => (string) Str::uuid7(),
+                'task_id' => $taskId,
+                'custom_field_id' => $index === 1 ? $field : $other,
+                'value_text' => null,
+                'value_number' => null,
+                'value_date' => null,
+                'value_boolean' => null,
+                'value_option_id' => $index === 1 ? $option : $otherOption,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+    }
+
+    foreach (array_chunk($rows, 500) as $chunk) {
+        DB::table('task_custom_field_values')->insert($chunk);
+    }
+
+    DB::statement('ANALYZE task_custom_field_values');
+
+    $query = DB::table('task_custom_field_values')->where('value_option_id', $option);
+    $explained = DB::select('EXPLAIN (FORMAT JSON) '.$query->toSql(), $query->getBindings());
+
+    /** @var string $json */
+    $json = ((array) $explained[0])['QUERY PLAN'];
+    $plan = (string) json_encode(json_decode($json, true, 512, JSON_THROW_ON_ERROR));
+
+    expect($plan)->toContain('task_custom_field_values_value_option_id_index')
+        ->and($plan)->not->toContain('Seq Scan');
+});
