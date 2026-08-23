@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Notification;
 
+use App\Domain\Notification\Actions\MarkInboxRead;
 use App\Domain\Notification\Actions\MarkNotificationRead;
 use App\Domain\Notification\Queries\InboxQuery;
 use App\Domain\Workspace\Models\Workspace;
@@ -44,6 +45,24 @@ class InboxController extends Controller
     public function read(Request $request, DatabaseNotification $notification, MarkNotificationRead $markRead): RedirectResponse
     {
         $markRead->handle($notification);
+
+        return back();
+    }
+
+    public function readAll(Request $request, MarkInboxRead $markInboxRead): RedirectResponse
+    {
+        $workspace = ResolveCurrentWorkspace::from($request);
+
+        if (! $workspace instanceof Workspace) {
+            abort(404);
+        }
+
+        $cleared = $markInboxRead->handle($workspace, $this->actor($request));
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => trans_choice('Marked :count notification read|Marked :count notifications read', $cleared, ['count' => $cleared]),
+        ]);
 
         return back();
     }
