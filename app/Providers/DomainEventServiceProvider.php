@@ -21,6 +21,8 @@ use App\Domain\Task\Events\TaskCompleted;
 use App\Domain\Task\Events\TaskCreated;
 use App\Domain\Task\Events\TaskReopened;
 use App\Domain\Task\Events\TaskUpdated;
+use App\Domain\Task\Listeners\FollowAssignedTask;
+use App\Domain\Task\Listeners\FollowCommentedTask;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 /**
@@ -49,13 +51,19 @@ class DomainEventServiceProvider extends ServiceProvider
         TaskUpdated::class => [RecordTaskUpdated::class],
         TaskCompleted::class => [RecordTaskCompleted::class],
         TaskReopened::class => [RecordTaskReopened::class],
-        TaskAssigned::class => [RecordTaskAssigned::class, NotifyAssignee::class],
+        TaskAssigned::class => [RecordTaskAssigned::class, NotifyAssignee::class, FollowAssignedTask::class],
         TaskAttachedToProject::class => [RecordTaskAttachedToProject::class],
         TaskDetachedFromProject::class => [RecordTaskDetachedFromProject::class],
 
         // No activity for a comment — the feed reads that table directly — but the people
         // watching still have to hear about it.
-        CommentCreated::class => [NotifyWatchersOfComment::class],
+        CommentCreated::class => [
+            // Following first, so the author is watching before anybody is told about the
+            // comment — and never notified about their own, which `NotifyWatchersOfComment`
+            // already refuses.
+            FollowCommentedTask::class,
+            NotifyWatchersOfComment::class,
+        ],
     ];
 
     /**
