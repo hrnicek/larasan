@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Notification\Notifications;
 
 use App\Domain\Notification\Contracts\WorkspaceNotification;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -12,6 +13,8 @@ use Illuminate\Notifications\Notification;
  */
 final class CommentPostedNotification extends Notification implements WorkspaceNotification
 {
+    use BroadcastsToInbox;
+
     public function __construct(
         private readonly string $commentId,
         private readonly string $taskId,
@@ -24,7 +27,12 @@ final class CommentPostedNotification extends Notification implements WorkspaceN
      */
     public function via(mixed $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
+    }
+
+    public function toBroadcast(mixed $notifiable): BroadcastMessage
+    {
+        return $this->inboxBroadcast($notifiable, 'comment.posted');
     }
 
     /**
