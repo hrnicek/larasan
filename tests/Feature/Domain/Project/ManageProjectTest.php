@@ -150,7 +150,7 @@ it('stays quiet when archiving something already archived', function (): void {
     [$project, $actor] = projectManagedBy();
 
     app(ArchiveProject::class)->archive($project, $actor);
-    app(ArchiveProject::class)->archive($project->fresh(), $actor);
+    app(ArchiveProject::class)->archive($project->refresh(), $actor);
 
     Event::assertDispatchedTimes(ProjectArchived::class, 1);
 });

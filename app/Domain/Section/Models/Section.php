@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $name
  * @property ProjectColor|null $color
  * @property int $position
+ * @property-read Project $project
  */
 #[UseFactory(SectionFactory::class)]
 class Section extends Model

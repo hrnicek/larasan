@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $size
  * @property string $checksum
  * @property array<string, mixed> $metadata
+ * @property-read Workspace $workspace
  */
 #[UseFactory(FileFactory::class)]
 class File extends Model

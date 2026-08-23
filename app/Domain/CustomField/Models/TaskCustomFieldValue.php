@@ -28,6 +28,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $value_date
  * @property bool|null $value_boolean
  * @property string|null $value_option_id
+ * @property-read Task $task
+ * @property-read CustomField $field
  */
 #[UseFactory(TaskCustomFieldValueFactory::class)]
 class TaskCustomFieldValue extends Model

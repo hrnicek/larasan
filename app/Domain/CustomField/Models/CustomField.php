@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $workspace_id
  * @property string $name
  * @property CustomFieldType $type
+ * @property-read Workspace $workspace
  */
 #[UseFactory(CustomFieldFactory::class)]
 class CustomField extends Model

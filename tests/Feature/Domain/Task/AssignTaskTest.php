@@ -31,7 +31,7 @@ it('unassigns when nobody is given', function (): void {
     $assignee = memberOf($task->workspace, WorkspaceRole::Member);
     app(AssignTask::class)->handle($task, $actor, $assignee);
 
-    app(AssignTask::class)->handle($task->fresh(), $actor, null);
+    app(AssignTask::class)->handle($task->refresh(), $actor, null);
 
     expect($task->fresh()?->assignee_id)->toBeNull();
 });
@@ -45,7 +45,7 @@ it('announces the assignment and the unassignment', function (): void {
     Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event): bool => $event->assigneeId === $assignee->id
         && $event->assignedById === $actor->id);
 
-    app(AssignTask::class)->handle($task->fresh(), $actor, null);
+    app(AssignTask::class)->handle($task->refresh(), $actor, null);
     Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event): bool => $event->assigneeId === null);
 });
 
@@ -55,11 +55,11 @@ it('stays quiet when the assignment does not change', function (): void {
     app(AssignTask::class)->handle($task, $actor, $assignee);
     Event::fake();
 
-    app(AssignTask::class)->handle($task->fresh(), $actor, $assignee);
+    app(AssignTask::class)->handle($task->refresh(), $actor, $assignee);
     Event::assertNotDispatched(TaskAssigned::class);
 
-    app(AssignTask::class)->handle($task->fresh(), $actor, null);
-    app(AssignTask::class)->handle($task->fresh(), $actor, null);
+    app(AssignTask::class)->handle($task->refresh(), $actor, null);
+    app(AssignTask::class)->handle($task->refresh(), $actor, null);
     Event::assertDispatchedTimes(TaskAssigned::class, 1);
 });
 

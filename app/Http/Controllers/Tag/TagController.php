@@ -14,7 +14,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Tag\StoreTagRequest;
 use App\Http\Requests\Tag\UpdateTagRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -75,12 +74,5 @@ class TagController extends Controller
         $color = $request->input('color');
 
         return is_string($color) ? ProjectColor::tryFrom($color) : null;
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

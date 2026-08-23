@@ -34,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $project_id
  * @property string|null $section_id
  * @property int $position
+ * @property-read Task $task
+ * @property-read Project $project
  */
 #[UseFactory(TaskProjectMembershipFactory::class)]
 class TaskProjectMembership extends Model

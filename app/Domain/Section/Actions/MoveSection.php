@@ -124,7 +124,7 @@ final readonly class MoveSection
             $index = $anchor + 1;
         }
 
-        $before = $index === 0 ? null : $others[$index - 1]->position;
+        $before = $index === 0 ? null : $others->get($index - 1)?->position;
         $next = $others->get($index)?->position;
 
         $current = $ordered->search(fn (Section $candidate): bool => $candidate->is($section));
@@ -142,7 +142,7 @@ final readonly class MoveSection
      */
     private function alreadyBetween(Collection $ordered, int $current, ?int $before, ?int $next): bool
     {
-        $previousPosition = $current === 0 ? null : $ordered[$current - 1]->position;
+        $previousPosition = $current === 0 ? null : $ordered->get($current - 1)?->position;
         $nextPosition = $ordered->get($current + 1)?->position;
 
         return $previousPosition === $before && $nextPosition === $next;

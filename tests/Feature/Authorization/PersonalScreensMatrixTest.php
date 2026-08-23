@@ -100,11 +100,11 @@ it('changes both screens when the workspace changes', function (): void {
     // The memo is per request; a test makes several through one container (TASK-130-002).
     app(CurrentWorkspace::class)->flush();
 
-    $this->actingAs($reader->fresh())
+    $this->actingAs($reader->refresh())
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.title', 'There'));
 
-    $this->actingAs($reader->fresh())
+    $this->actingAs($reader->refresh())
         ->get(route('inbox.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('notifications.0.subject.title', 'Told there')

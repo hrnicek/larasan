@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property ActivityType $type
  * @property array<string, mixed> $properties
  * @property CarbonImmutable $created_at
+ * @property-read Workspace $workspace
  */
 #[UseFactory(ActivityFactory::class)]
 class Activity extends Model

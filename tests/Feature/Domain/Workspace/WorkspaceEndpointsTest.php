@@ -187,7 +187,7 @@ it('puts the creator into the workspace they just created', function (): void {
 
     expect($user->fresh()?->current_workspace_id)->not->toBe($existing->id);
 
-    $this->actingAs($user->fresh())
+    $this->actingAs($user->refresh())
         ->get(route('workspaces.edit'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('workspace.slug', 'beta'));
 });
@@ -413,5 +413,5 @@ it('lets the same account through once its address is verified', function (): vo
 
     $user->markEmailAsVerified();
 
-    $this->actingAs($user->fresh())->get(route('workspaces.index'))->assertOk();
+    $this->actingAs($user->refresh())->get(route('workspaces.index'))->assertOk();
 });

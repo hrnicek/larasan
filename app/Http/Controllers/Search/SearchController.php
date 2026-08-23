@@ -12,7 +12,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Search\SearchRequest;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -56,12 +55,5 @@ class SearchController extends Controller
                 ->values()
                 ->all(),
         ]);
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property string $file_id
  * @property string $attachable_type
  * @property string $attachable_id
+ * @property-read File $file
  */
 #[UseFactory(AttachmentFactory::class)]
 class Attachment extends Model

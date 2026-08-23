@@ -10,7 +10,6 @@ use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Data\CreateTaskData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectTaskRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -37,12 +36,5 @@ class ProjectTaskController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task added.')]);
 
         return back();
-    }
-
-    private function actor(StoreProjectTaskRequest $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $expires_at
  * @property int|null $invited_by
  * @property-read User|null $invitedBy
+ * @property-read Workspace $workspace
+ * @property-read User $user
  */
 #[UseFactory(WorkspaceMembershipFactory::class)]
 class WorkspaceMembership extends Model

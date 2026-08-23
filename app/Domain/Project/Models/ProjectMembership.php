@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $project_id
  * @property int $user_id
  * @property ProjectAccessLevel $access_level
+ * @property-read Project $project
+ * @property-read User $user
  */
 #[UseFactory(ProjectMembershipFactory::class)]
 class ProjectMembership extends Model

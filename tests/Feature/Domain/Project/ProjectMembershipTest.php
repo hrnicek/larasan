@@ -80,7 +80,7 @@ it('resolves memberships without an n+1 when eager loaded', function (): void {
 
     $lazy = Project::query()->get();
 
-    expect(fn (): mixed => $lazy->first()->memberships)
+    expect(fn (): mixed => $lazy->firstOrFail()->memberships)
         ->toThrow(LazyLoadingViolationException::class);
 });
 

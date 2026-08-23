@@ -43,7 +43,7 @@ class WorkspaceController extends Controller
     public function store(StoreWorkspaceRequest $request, CreateWorkspace $createWorkspace): RedirectResponse
     {
         $workspace = $createWorkspace->handle(
-            $request->user(),
+            $this->actor($request),
             CreateWorkspaceData::fromRequest($request),
         );
 

@@ -8,7 +8,6 @@ use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Actions\UnfollowTask;
 use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -41,12 +40,5 @@ class TaskFollowerController extends Controller
         $unfollowTask->handle($task, $this->actor($request));
 
         return back();
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

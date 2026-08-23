@@ -116,7 +116,7 @@ it('detaches a subtask when no parent is given', function (): void {
     $parent = Task::factory()->in($task->workspace)->create();
     $task->forceFill(['parent_id' => $parent->id])->save();
 
-    app(UpdateTask::class)->handle($task->fresh(), $actor, new UpdateTaskData(title: 'Untouched'));
+    app(UpdateTask::class)->handle($task->refresh(), $actor, new UpdateTaskData(title: 'Untouched'));
 
     expect($task->fresh()?->parent_id)->toBeNull();
 });

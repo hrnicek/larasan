@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $id
  * @property string $task_id
  * @property int $user_id
+ * @property-read Task $task
+ * @property-read User $user
  */
 #[UseFactory(TaskFollowerFactory::class)]
 class TaskFollower extends Model

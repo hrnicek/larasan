@@ -44,6 +44,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $completed_by
  * @property int|null $assignee_id
  * @property int|null $created_by
+ * @property-read Workspace $workspace
  */
 #[UseFactory(TaskFactory::class)]
 class Task extends Model implements Attachable, Commentable

@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $workspace_id
  * @property string $name
  * @property ProjectColor|null $color
+ * @property-read Workspace $workspace
  */
 #[UseFactory(TagFactory::class)]
 class Tag extends Model

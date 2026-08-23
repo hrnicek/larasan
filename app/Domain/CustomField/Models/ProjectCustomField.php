@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $project_id
  * @property string $custom_field_id
  * @property int $position
+ * @property-read Project $project
+ * @property-read CustomField $field
  */
 #[UseFactory(ProjectCustomFieldFactory::class)]
 class ProjectCustomField extends Model

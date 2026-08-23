@@ -39,7 +39,7 @@ it('sets and clears the colour', function (): void {
 
     // Null clears a nullable column rather than meaning "unchanged" — the rule Phase 040's
     // review settled after the same bug made project fields write-once.
-    renameSection($section->fresh(), $actor, new UpdateSectionData(name: $section->name));
+    renameSection($section->refresh(), $actor, new UpdateSectionData(name: $section->name));
     expect($section->fresh()?->color)->toBeNull();
 });
 

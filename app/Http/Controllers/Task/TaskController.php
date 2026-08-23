@@ -175,11 +175,4 @@ class TaskController extends Controller
     {
         return ResolveCurrentWorkspace::from($request) ?? abort(404);
     }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
-    }
 }

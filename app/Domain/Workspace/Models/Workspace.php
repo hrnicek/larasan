@@ -29,6 +29,7 @@ use Illuminate\Support\Str;
  * @property string $slug
  * @property string $timezone
  * @property array<string, mixed> $settings
+ * @property-read User $owner
  */
 #[UseFactory(WorkspaceFactory::class)]
 class Workspace extends Model

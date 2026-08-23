@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $label
  * @property ProjectColor|null $color
  * @property int $position
+ * @property-read CustomField $field
  */
 #[UseFactory(CustomFieldOptionFactory::class)]
 class CustomFieldOption extends Model

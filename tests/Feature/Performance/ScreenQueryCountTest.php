@@ -43,8 +43,10 @@ function realisticWorkspace(int $tasks): array
      * row points at grows too. With one colleague, an inbox that resolved its actor per row would
      * still make one query, and this test would have proved nothing.
      */
-    $colleagues = collect(range(1, max(2, intdiv($tasks, 3))))
-        ->map(fn (): User => memberOf($workspace, WorkspaceRole::Member));
+    $colleagues = array_map(
+        fn (): User => memberOf($workspace, WorkspaceRole::Member),
+        range(1, max(2, intdiv($tasks, 3))),
+    );
 
     $projects = Project::factory()->count(3)->in($workspace)->create();
     $tags = Tag::factory()->count(4)->in($workspace)->create();
@@ -61,7 +63,7 @@ function realisticWorkspace(int $tasks): array
     foreach (range(1, $tasks) as $index) {
         $task = Task::factory()->in($workspace)->create([
             'title' => "Task {$index} about the login screen",
-            'assignee_id' => $index % 2 === 0 ? $actor->id : $colleagues[$index % $colleagues->count()]->id,
+            'assignee_id' => $index % 2 === 0 ? $actor->id : $colleagues[$index % count($colleagues)]->id,
         ]);
 
         $project = $projects[$index % 3];
@@ -78,7 +80,7 @@ function realisticWorkspace(int $tasks): array
             'workspace_id' => $workspace->id,
             'commentable_type' => 'task',
             'commentable_id' => $task->id,
-            'author_id' => $colleagues[$index % $colleagues->count()]->id,
+            'author_id' => $colleagues[$index % count($colleagues)]->id,
         ]);
 
         // An inbox with nothing in it measures nothing, and the Inbox is a screen whose rows are
@@ -86,7 +88,7 @@ function realisticWorkspace(int $tasks): array
         $actor->notify(new TaskAssignedNotification(
             $task->id,
             $workspace->id,
-            $colleagues[$index % $colleagues->count()]->id,
+            $colleagues[$index % count($colleagues)]->id,
         ));
     }
 

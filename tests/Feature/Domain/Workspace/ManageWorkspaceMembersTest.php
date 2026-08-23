@@ -147,7 +147,7 @@ it('refuses to demote the last owner, even to another owner', function (): void 
         ->not->toThrow(WorkspaceMembershipException::class);
 
     // Now the reinstated owner is the only active one and cannot be demoted.
-    expect(fn (): WorkspaceMembership => changeRole($workspace, $target->fresh(), $workspace->membershipFor($reinstated), WorkspaceRole::Member))
+    expect(fn (): WorkspaceMembership => changeRole($workspace, $target->refresh(), $workspace->membershipFor($reinstated), WorkspaceRole::Member))
         ->toThrow(WorkspaceMembershipException::class);
 });
 

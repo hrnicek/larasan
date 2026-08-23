@@ -68,7 +68,7 @@ it('breaks a created_at tie by key, so the fallback is the earlier workspace', f
 
     $expected = collect([$first, $second])->sortBy('id')->first();
 
-    $resolved = app(ResolveWorkspaceForUser::class)($user->fresh());
+    $resolved = app(ResolveWorkspaceForUser::class)($user->refresh());
 
     expect($resolved?->slug)->toBe($expected?->slug);
 });

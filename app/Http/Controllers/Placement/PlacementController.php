@@ -12,7 +12,6 @@ use App\Domain\Project\Models\Project;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Placement\MovePlacementRequest;
 use App\Http\Requests\Placement\StorePlacementRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -54,12 +53,5 @@ class PlacementController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Task removed from the project.')]);
 
         return back();
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

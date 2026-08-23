@@ -56,12 +56,14 @@ it('reorders a column through an anchor rather than a position', function (): vo
     [$workspace, $project, $actor] = placeableProject();
     $section = Section::factory()->in($project)->create();
 
-    $cards = collect(['A', 'B', 'C'])->map(function (string $title) use ($workspace, $project, $actor, $section): TaskProjectMembership {
+    // A list rather than a collection: the request below names two of these by position, and an
+    // offset on a collection is a `TaskProjectMembership|null` that this test does not mean.
+    $cards = array_map(function (string $title) use ($workspace, $project, $actor, $section): TaskProjectMembership {
         $placement = attach(Task::factory()->in($workspace)->create(['title' => $title]), $project, $actor);
         moveInto($placement, $actor, $section);
 
         return $placement->refresh();
-    });
+    }, ['A', 'B', 'C']);
 
     $this->actingAs($actor)
         ->put(route('placements.move', $cards[2]), ['section' => $section->id, 'after' => $cards[0]->id])

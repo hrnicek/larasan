@@ -40,7 +40,7 @@ it('prevents lazy loading outside production', function (): void {
 
     $parents = StrictParent::query()->get();
 
-    expect(fn (): mixed => $parents->first()->children->first())
+    expect(fn (): mixed => $parents->firstOrFail()->children->first())
         ->toThrow(LazyLoadingViolationException::class);
 });
 
@@ -49,13 +49,13 @@ it('allows eager loaded relations', function (): void {
 
     $parents = StrictParent::query()->with('children')->get();
 
-    expect($parents->first()->children)->toHaveCount(1);
+    expect($parents->firstOrFail()->children)->toHaveCount(1);
 });
 
 it('prevents accessing attributes missing from the selected columns', function (): void {
     createParentsWithChildren(1);
 
-    $child = StrictChild::query()->select('id')->first();
+    $child = StrictChild::query()->select('id')->firstOrFail();
 
     expect(fn (): mixed => $child->strict_parent_id)
         ->toThrow(MissingAttributeException::class);

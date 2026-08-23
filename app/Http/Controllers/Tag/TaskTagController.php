@@ -9,7 +9,6 @@ use App\Domain\Tag\Actions\DetachTagFromTask;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -48,12 +47,5 @@ class TaskTagController extends Controller
             ->whereKey((string) $request->string('tag'))
             ->where('workspace_id', $task->workspace_id)
             ->first() ?? abort(404);
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

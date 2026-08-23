@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $author_id
  * @property string $body
  * @property CarbonImmutable|null $edited_at
+ * @property-read Workspace $workspace
  */
 #[UseFactory(CommentFactory::class)]
 class Comment extends Model

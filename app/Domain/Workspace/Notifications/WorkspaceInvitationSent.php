@@ -39,8 +39,9 @@ class WorkspaceInvitationSent extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject(__('You have been invited to :workspace', ['workspace' => $membership->workspace->name]))
             ->line(__(':inviter invited you to join :workspace as a :role.', [
-                // The column is nullable: the inviter's account may be gone by now.
-                'inviter' => $membership->invited_by === null ? __('Someone') : $membership->invitedBy->name,
+                // The column is nullable, and so is the row it points at: the inviter's account
+                // may have been deleted between the invitation and this mail being built.
+                'inviter' => $membership->invitedBy->name ?? __('Someone'),
                 'workspace' => $membership->workspace->name,
                 'role' => $membership->role->value,
             ]))

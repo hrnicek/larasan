@@ -58,7 +58,7 @@ it('survives a new session', function (): void {
 
     $this->flushSession();
 
-    $this->actingAs($user->fresh())
+    $this->actingAs($user->refresh())
         ->get(route('dashboard'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('workspace.slug', $second->slug));

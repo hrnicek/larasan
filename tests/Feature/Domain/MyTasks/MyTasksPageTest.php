@@ -79,7 +79,7 @@ it('shows the workspace the actor is standing in, and not the other one', functi
      */
     app(CurrentWorkspace::class)->flush();
 
-    $this->actingAs($actor->fresh())
+    $this->actingAs($actor->refresh())
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.title', 'There'));
 });

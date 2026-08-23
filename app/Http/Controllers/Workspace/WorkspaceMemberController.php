@@ -95,7 +95,7 @@ class WorkspaceMemberController extends Controller
 
         $this->translating(fn () => $invite->handle(
             $workspace,
-            $request->user(),
+            $this->actor($request),
             new InviteWorkspaceMemberData(
                 userId: $invitee->id,
                 role: $request->enum('role', WorkspaceRole::class) ?? WorkspaceRole::Member,
@@ -113,7 +113,7 @@ class WorkspaceMemberController extends Controller
 
         $this->translating(fn () => $changeRole->handle(
             $workspace,
-            $request->user(),
+            $this->actor($request),
             $this->membership($workspace, $membership),
             $request->enum('role', WorkspaceRole::class) ?? WorkspaceRole::Member,
         ), 'role');
@@ -131,7 +131,7 @@ class WorkspaceMemberController extends Controller
 
         $this->translating(fn () => $remove->handle(
             $workspace,
-            $request->user(),
+            $this->actor($request),
             $this->membership($workspace, $membership),
         ), 'membership');
 

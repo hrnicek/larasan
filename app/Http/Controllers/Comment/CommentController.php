@@ -14,7 +14,6 @@ use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Comment\StoreCommentRequest;
 use App\Http\Requests\Comment\UpdateCommentRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -52,12 +51,5 @@ class CommentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Comment removed.')]);
 
         return back();
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

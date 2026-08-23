@@ -29,7 +29,7 @@ it('reopens by clearing both columns', function (): void {
     [$task, $actor] = taskEditableBy();
     app(CompleteTask::class)->complete($task, $actor);
 
-    app(CompleteTask::class)->reopen($task->fresh(), $actor);
+    app(CompleteTask::class)->reopen($task->refresh(), $actor);
 
     $fresh = $task->fresh();
 
@@ -47,7 +47,7 @@ it('stays quiet when nothing changes', function (): void {
     Event::assertNotDispatched(TaskReopened::class);
 
     app(CompleteTask::class)->complete($task, $actor);
-    app(CompleteTask::class)->complete($task->fresh(), $actor);
+    app(CompleteTask::class)->complete($task->refresh(), $actor);
     Event::assertDispatchedTimes(TaskCompleted::class, 1);
 });
 
@@ -59,7 +59,7 @@ it('announces both directions', function (): void {
     Event::assertDispatched(TaskCompleted::class, fn (TaskCompleted $event): bool => $event->taskId === $task->id
         && $event->completedById === $actor->id);
 
-    app(CompleteTask::class)->reopen($task->fresh(), $actor);
+    app(CompleteTask::class)->reopen($task->refresh(), $actor);
     Event::assertDispatched(TaskReopened::class, fn (TaskReopened $event): bool => $event->taskId === $task->id);
 });
 
@@ -103,7 +103,7 @@ it('refuses somebody from another workspace in both directions', function (): vo
     $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
     app(CompleteTask::class)->complete($task, $actor);
 
-    expect(fn (): Task => app(CompleteTask::class)->reopen($task->fresh(), $outsider))
+    expect(fn (): Task => app(CompleteTask::class)->reopen($task->refresh(), $outsider))
         ->toThrow(TaskException::class);
 
     expect($task->fresh()?->isCompleted())->toBeTrue();

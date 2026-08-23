@@ -43,7 +43,7 @@ it('lists the workspaces a user actively belongs to', function (): void {
     ]);
 
     expect($user->workspaces)->toHaveCount(1)
-        ->and($user->workspaces->first()->is($joined))->toBeTrue()
+        ->and($user->workspaces->firstOrFail()->is($joined))->toBeTrue()
         ->and($user->workspaceMemberships)->toHaveCount(2);
 });
 
@@ -65,7 +65,7 @@ it('carries the role on the pivot so a listing needs no second query', function 
  * (Builder::hydrate), so this fetches collections rather than a single model.
  */
 it('resolves memberships without an n+1 when eager loaded', function (): void {
-    $users = User::factory()->count(2)->create();
+    $users = User::factory()->count(2)->create()->all();
     $workspaces = Workspace::factory()->count(2)->create();
 
     foreach ($workspaces as $index => $workspace) {
@@ -81,6 +81,6 @@ it('resolves memberships without an n+1 when eager loaded', function (): void {
 
     $lazy = Workspace::query()->get();
 
-    expect(fn (): mixed => $lazy->first()->memberships)
+    expect(fn (): mixed => $lazy->firstOrFail()->memberships)
         ->toThrow(LazyLoadingViolationException::class);
 });

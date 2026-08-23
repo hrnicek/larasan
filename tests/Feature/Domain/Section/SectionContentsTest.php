@@ -58,7 +58,7 @@ it('counts a column the same way it draws it', function (): void {
     [$project, $actor] = projectEditableBy(ProjectAccessLevel::Editor, WorkspaceRole::Owner);
     $section = addSection($project, $actor, 'Doing');
 
-    $tasks = collect(range(1, 3))->map(function () use ($project, $actor, $section): Task {
+    $tasks = array_map(function () use ($project, $actor, $section): Task {
         $task = Task::factory()->in($project->workspace)->create();
         app(MoveTaskInProject::class)->handle(
             app(AttachTaskToProject::class)->handle($task, $project, $actor),
@@ -67,7 +67,7 @@ it('counts a column the same way it draws it', function (): void {
         );
 
         return $task;
-    });
+    }, range(1, 3));
 
     app(DeleteTask::class)->handle($tasks[1], $actor);
 

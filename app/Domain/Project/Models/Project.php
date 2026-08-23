@@ -43,6 +43,7 @@ use Illuminate\Support\Str;
  * @property CarbonImmutable|null $start_date
  * @property CarbonImmutable|null $due_date
  * @property CarbonImmutable|null $archived_at
+ * @property-read Workspace $workspace
  */
 #[UseFactory(ProjectFactory::class)]
 class Project extends Model

@@ -120,7 +120,7 @@ it('normalises when the neighbours have closed up, and still lands in the right 
 
 it('keeps every position unique through a long shuffle', function (): void {
     [$project, $actor] = projectEditableBy();
-    $sections = collect(['A', 'B', 'C', 'D'])->map(fn (string $name): Section => addSection($project, $actor, $name));
+    $sections = array_map(fn (string $name): Section => addSection($project, $actor, $name), ['A', 'B', 'C', 'D']);
 
     foreach (range(1, 12) as $round) {
         $moving = $sections[$round % 4];
@@ -130,7 +130,7 @@ it('keeps every position unique through a long shuffle', function (): void {
             $anchor = null;
         }
 
-        move($moving->fresh() ?? $moving, $actor, $anchor?->fresh());
+        move($moving->refresh(), $actor, $anchor?->refresh());
     }
 
     $positions = $project->sections()->pluck('position')->all();

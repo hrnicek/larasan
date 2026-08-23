@@ -146,7 +146,9 @@ function channelCallback(string $pattern): Closure
 {
     $callback = broadcastChannels()[$pattern] ?? null;
 
-    expect($callback)->toBeInstanceOf(Closure::class, "no channel is declared for [{$pattern}]");
+    if (! $callback instanceof Closure) {
+        throw new InvalidArgumentException("No channel is declared for [{$pattern}].");
+    }
 
     return $callback;
 }

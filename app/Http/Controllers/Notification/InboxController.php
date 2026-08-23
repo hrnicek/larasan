@@ -10,7 +10,6 @@ use App\Domain\Notification\Queries\InboxQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -65,12 +64,5 @@ class InboxController extends Controller
         ]);
 
         return back();
-    }
-
-    private function actor(Request $request): User
-    {
-        $user = $request->user();
-
-        return $user instanceof User ? $user : abort(403);
     }
 }

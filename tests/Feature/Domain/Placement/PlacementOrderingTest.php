@@ -18,21 +18,23 @@ use Illuminate\Support\Str;
 /**
  * A column with `$count` cards in it, titled 'A', 'B', 'C'… so the order reads.
  *
- * @return array{Section, Collection<int, TaskProjectMembership>, User, Project}
+ * A list rather than a collection: every test here indexes it by position, and an offset on a
+ * collection is a `TaskProjectMembership|null` that none of them mean.
+ *
+ * @return array{Section, list<TaskProjectMembership>, User, Project}
  */
 function column(int $count = 3): array
 {
     [$workspace, $project, $actor] = placeableProject();
     $section = Section::factory()->in($project)->create();
 
-    /** @var Collection<int, TaskProjectMembership> $cards */
-    $cards = new Collection;
+    $cards = [];
 
     foreach (range(0, $count - 1) as $index) {
         $task = Task::factory()->in($workspace)->create(['title' => chr(65 + $index)]);
         $placement = attach($task, $project, $actor);
         moveInto($placement, $actor, $section);
-        $cards->push($placement->refresh());
+        $cards[] = $placement->refresh();
     }
 
     return [$section, $cards, $actor, $project];
@@ -181,11 +183,11 @@ it('refuses a card placed after itself', function (): void {
 it('orders the ungrouped bucket the same way', function (): void {
     [$workspace, $project, $actor] = placeableProject();
 
-    $cards = collect(['A', 'B', 'C'])->map(fn (string $title): TaskProjectMembership => attach(
+    $cards = array_map(fn (string $title): TaskProjectMembership => attach(
         Task::factory()->in($workspace)->create(['title' => $title]),
         $project,
         $actor,
-    ));
+    ), ['A', 'B', 'C']);
 
     moveTo($cards[2], $actor, null, PlacementTarget::front());
 
