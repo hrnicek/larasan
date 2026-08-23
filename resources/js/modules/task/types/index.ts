@@ -106,6 +106,8 @@ export type TaskDetail = {
     };
     placements: TaskDetailPlacement[];
     subtasks: { id: string; title: string; completedAt: string | null }[];
+    /** The fields this task's projects record, with this task's answers (TASK-150-007). */
+    customFields: TaskCustomField[];
     tags: TaskTag[];
     /** The workspace's whole vocabulary, small enough to send whole. */
     availableTags: TaskTag[];
@@ -147,6 +149,20 @@ export type TaskAttachment = {
     uploadedAt: string | null;
     uploader: TaskAssignee | null;
     canDelete: boolean;
+};
+
+/**
+ * A field one of the task's projects records, and this task's answer to it.
+ *
+ * `value` is already the shape its type wants — a date as `YYYY-MM-DD`, a choice as an option id
+ * — because the server knows which column it came out of and the screen does not.
+ */
+export type TaskCustomField = {
+    id: string;
+    name: string;
+    type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+    options: { id: string; label: string; color: string | null }[];
+    value: string | number | boolean | null;
 };
 
 export type TaskFeed = {

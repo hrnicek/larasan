@@ -172,7 +172,7 @@ it('reads a task with several subtasks and placements without a query per row', 
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(17);
+        ->and(count($queries))->toBeLessThanOrEqual(19);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -180,13 +180,13 @@ it('carries nothing it cannot yet know about', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Custom field values are Phase 150; the comment thread and the activity feed are the
-    // deferred region rather than part of this read. Attachments joined the list in
-    // TASK-120-008 and tags in TASK-140-004, each the moment their tables existed — which is
-    // what the list is for.
+    // The comment thread and the activity feed are the deferred region rather than part of this
+    // read. Attachments joined the list in TASK-120-008, tags in TASK-140-004 and custom fields
+    // in TASK-150-007, each the moment their tables existed — which is what the list is for.
     expect(array_keys(detailOf($task, $actor)))
         ->toBe([
             'task',
+            'customFields',
             'tags',
             'availableTags',
             'attachments',
@@ -266,5 +266,5 @@ it('reads a task s attachments without a query per file', function (): void {
     // Six files by six different people cost the same three reads one would: the attachments,
     // their files, and the uploaders.
     expect($detail['attachments'])->toHaveCount(6)
-        ->and(count($queries))->toBeLessThanOrEqual(18);
+        ->and(count($queries))->toBeLessThanOrEqual(19);
 });

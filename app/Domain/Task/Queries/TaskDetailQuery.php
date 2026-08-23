@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Queries;
 
+use App\Domain\CustomField\Models\CustomField;
+use App\Domain\CustomField\Models\CustomFieldOption;
+use App\Domain\CustomField\Models\TaskCustomFieldValue;
 use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
@@ -12,6 +15,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
@@ -33,6 +37,7 @@ final readonly class TaskDetailQuery
      *     task: array<string, mixed>,
      *     placements: list<array<string, mixed>>,
      *     availableProjects: list<array{id: string, name: string}>,
+     *     customFields: list<array<string, mixed>>,
      *     tags: list<array<string, mixed>>,
      *     availableTags: list<array<string, mixed>>,
      *     attachments: list<array<string, mixed>>,
@@ -54,6 +59,10 @@ final readonly class TaskDetailQuery
             // documents is one query, not one per row.
             'attachments.file.uploader:id,name,email',
             'tags:id,name,color',
+            'customFieldValues',
+            // The fields this task's projects show, with their choices: one read for the page
+            // rather than one per field.
+            'placements.project.customFields.options',
             /*
              * Only the projects the actor can reach. A task can appear in a project they were
              * never given, and listing it here would leak a project name through a task they
@@ -84,6 +93,7 @@ final readonly class TaskDetailQuery
                 'assignee' => $this->person($task->assignee),
                 'creator' => $this->person($task->creator),
             ],
+            'customFields' => $this->customFields($task, $actor),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,
@@ -131,6 +141,67 @@ final readonly class TaskDetailQuery
                 'attach' => $task->workspace->membershipFor($actor)?->allows(Capability::FileUpload) === true,
             ],
         ];
+    }
+
+    /**
+     * The fields this task's projects show, each with this task's answer.
+     *
+     * Taken from the placements the reader can see, so a field only a private project shows is
+     * not named to somebody who cannot open that project — the rule the placement list follows.
+     * A field on two of the task's projects is one field here, not two.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function customFields(Task $task, User $actor): array
+    {
+        $answers = $task->customFieldValues->keyBy('custom_field_id');
+
+        $fields = $task->placements
+            ->filter(fn (TaskProjectMembership $placement): bool => $placement->project->isVisibleTo($actor))
+            ->flatMap(fn (TaskProjectMembership $placement) => $placement->project->customFields)
+            ->unique('id')
+            ->values();
+
+        return array_values($fields
+            ->map(function (CustomField $field) use ($answers): array {
+                $answer = $answers->get($field->id);
+
+                return [
+                    'id' => $field->id,
+                    'name' => $field->name,
+                    'type' => $field->type->value,
+                    // Only a choice field has any, and an empty list on the others keeps the
+                    // shape one shape.
+                    'options' => array_values($field->options
+                        ->map(fn (CustomFieldOption $option): array => [
+                            'id' => $option->id,
+                            'label' => $option->label,
+                            'color' => $option->color?->value,
+                        ])
+                        ->all()),
+                    'value' => $this->answer($field, $answer),
+                ];
+            })
+            ->all());
+    }
+
+    /**
+     * The answer as the screen wants it: a date as a date, a number as a number, and a missing
+     * one as null rather than as an empty string that would look like an answer.
+     */
+    private function answer(CustomField $field, ?TaskCustomFieldValue $answer): string|float|bool|null
+    {
+        if ($answer === null) {
+            return null;
+        }
+
+        $value = $answer->value($field);
+
+        return match (true) {
+            $value instanceof CarbonImmutable => $value->toDateString(),
+            is_string($value), is_bool($value), $value === null => $value,
+            default => (float) $value,
+        };
     }
 
     /**

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import CustomFieldList from '@/modules/custom-field/components/CustomFieldList.vue';
 import AttachmentList from '@/modules/file/components/AttachmentList.vue';
 import TaskTags from '@/modules/tag/components/TaskTags.vue';
 import ActivityFeed from '@/modules/task/components/ActivityFeed.vue';
@@ -220,6 +221,12 @@ defineExpose({ close });
         <SubtaskList
             :parent-id="detail.task.id"
             :subtasks="detail.subtasks"
+            :editable="detail.can.update"
+        />
+
+        <CustomFieldList
+            :task-id="detail.task.id"
+            :fields="detail.customFields"
             :editable="detail.can.update"
         />
 
