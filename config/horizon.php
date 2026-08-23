@@ -114,6 +114,17 @@ return [
     */
 
     'waits' => [
+        /*
+         * Every configured queue, with the threshold each one's contents deserve — a queue
+         * nobody watches is a queue nobody notices stopping (TASK-170-013).
+         *
+         * Ten seconds for broadcasts, because a board update that has waited ten seconds has
+         * stopped being an update: the person it was for has already scrolled past, clicked
+         * something else, or reloaded. Sixty for the other two, where lateness is an
+         * inconvenience rather than a wrong screen.
+         */
+        'redis:broadcasts' => 10,
+        'redis:notifications' => 60,
         'redis:default' => 60,
     ],
 
@@ -229,6 +240,11 @@ return [
         ],
     ],
 
+    /*
+     * Every `APP_ENV` this application runs under. An environment missing from here leaves
+     * Horizon with no supervisor at all and nothing said about it — the queue simply stops being
+     * worked (TASK-170-013).
+     */
     'environments' => [
         'production' => [
             'supervisor-1' => [
@@ -241,6 +257,14 @@ return [
         'local' => [
             'supervisor-1' => [
                 'maxProcesses' => 3,
+            ],
+        ],
+
+        // The suite queues synchronously and never starts Horizon, but an environment with no
+        // supervisor is a silent failure everywhere else, so it is named rather than omitted.
+        'testing' => [
+            'supervisor-1' => [
+                'maxProcesses' => 1,
             ],
         ],
     ],
