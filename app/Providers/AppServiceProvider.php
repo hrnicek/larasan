@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\ExceptionResponse;
+use Inertia\Inertia;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -52,6 +54,33 @@ class AppServiceProvider extends ServiceProvider
         $this->removeNotificationsWithTheAccount();
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
+        $this->renderErrorsAsThisApplication();
+    }
+
+    /**
+     * A refusal or a wrong address is answered by this application rather than by the framework.
+     *
+     * `local` is left alone deliberately: Inertia's development modal says far more about what
+     * went wrong than a page ever should, and the person reading it is the one who broke it.
+     * `testing` is **not** excluded, because a page nobody can test is a page nobody knows works.
+     *
+     * A request that asked for JSON keeps getting JSON — `shouldRenderJsonWhen` in
+     * `bootstrap/app.php` decides that, and an error page would be a surprising answer to an
+     * `Accept: application/json` (TASK-180-009).
+     */
+    private function renderErrorsAsThisApplication(): void
+    {
+        Inertia::handleExceptionsUsing(function (ExceptionResponse $response): ?ExceptionResponse {
+            if ($this->app->environment('local') || $response->request->expectsJson()) {
+                return null;
+            }
+
+            if (! in_array($response->statusCode(), [403, 404, 500, 503], true)) {
+                return null;
+            }
+
+            return $response->render('Error', ['status' => $response->statusCode()])->withSharedData();
+        });
     }
 
     /**

@@ -11,7 +11,11 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
+            // The error page and the marketing page both stand on their own: an error is often
+            // an answer to somebody who is not signed in, and the shell would have nothing to
+            // put in its sidebar.
             case name === 'Welcome':
+            case name === 'Error':
                 return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
