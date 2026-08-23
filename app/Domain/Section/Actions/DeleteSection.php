@@ -49,8 +49,16 @@ final readonly class DeleteSection
 
     /**
      * The column's cards, in the order they were in, appended to the end of the project's
-     * ungrouped bucket. Both ends are locked inside the transaction so a concurrent move
-     * cannot take a slot between the read and the write.
+     * ungrouped bucket.
+     *
+     * One statement rather than one per card (TASK-180-020). The loop this replaced cost a
+     * write per card in the request — twenty cards were twenty-seven queries and forty were
+     * forty-seven — and a column is exactly the thing a person is allowed to fill.
+     *
+     * The tail is read with a lock so a concurrent append cannot take the slot between the read
+     * and the write; the `UPDATE` locks the rows it touches by itself. `row_number()` carries
+     * the order across, tie-broken by id so two cards that somehow share a position still land
+     * in a defined sequence rather than whichever one PostgreSQL read first.
      */
     private function emptyIntoTheUngroupedBucket(Section $section): void
     {
@@ -60,12 +68,19 @@ final readonly class DeleteSection
             ->lockForUpdate()
             ->value('position');
 
-        $last = $tail === null ? null : (int) $tail;
+        $table = $section->placements()->getModel()->getTable();
 
-        foreach ($section->placements()->lockForUpdate()->get() as $placement) {
-            $last = SparsePosition::append($last);
-
-            $placement->forceFill(['section_id' => null, 'position' => $last])->save();
-        }
+        DB::update(<<<SQL
+            update {$table} as target
+            set section_id = null,
+                position = ? + ordered.rank * ?,
+                updated_at = ?
+            from (
+                select id, row_number() over (order by position, id) as rank
+                from {$table}
+                where section_id = ?
+            ) as ordered
+            where target.id = ordered.id
+        SQL, [$tail === null ? 0 : (int) $tail, SparsePosition::GAP, now(), $section->id]);
     }
 }
