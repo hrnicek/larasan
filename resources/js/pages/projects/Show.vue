@@ -3,7 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
-import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
+import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useRealtime } from '@/composables/useRealtime';
@@ -23,6 +23,7 @@ import type {
     ProjectList,
     TaskFeed,
     TaskAssignee,
+    TaskSectionGroup,
     TaskTag,
     TaskDetail,
 } from '@/modules/task/types';
@@ -89,6 +90,22 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
 const { open: openTask, close: closeTask } = useTaskPanel();
 
 const drag = useBoardDragAndDrop(columns, () => editable());
+
+/*
+ * The list's own copy of its sections, for the same reason the board keeps one: a row moves
+ * locally, the request confirms it, and a refusal puts it back in the slot it came from. The
+ * server's answer replaces it whenever a new list arrives.
+ */
+const sections = ref<TaskSectionGroup[]>(props.list?.sections ?? []);
+
+watch(() => props.list, (list) => {
+    sections.value = list?.sections ?? [];
+});
+
+const listDrag = useTaskDragAndDrop(sections, () => editable(), {
+    cardSelector: '[data-task-row]',
+    reloadKey: 'list',
+});
 
 /*
  * Below `md` the board shows one column at a time. A row of four columns on a phone is four
@@ -276,7 +293,7 @@ onUnmounted(() => {
                 @keydown="onKeydown"
             >
                 <SectionGroup
-                    v-for="section in list.sections"
+                    v-for="section in sections"
                     :key="section.id ?? 'ungrouped'"
                     :section="section"
                     :members="members"
@@ -285,10 +302,12 @@ onUnmounted(() => {
                     :creatable="creatable()"
                     :project-id="project.id"
                     :fields="list?.fields"
+                :dragging-id="listDrag.draggingId.value"
                 :collapsed="isCollapsed(section.id)"
                     :loading="reloading"
                     @toggle="toggle"
                     @open="openTask"
+                @pickup="(event, task) => listDrag.pickUp(event, task)"
                 />
             </div>
 

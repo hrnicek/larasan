@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, router } from '@inertiajs/vue3';
-import { Check, ChevronRight, MessageSquare } from '@lucide/vue';
+import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { accentChipClass } from '@/lib/accentColor';
@@ -26,11 +26,13 @@ const props = defineProps<{
     editable: boolean;
     /** Its place in the section, drawn as a number so a row can be referred to out loud. */
     index?: number;
+    /** Whether this row is the one currently being dragged. */
+    dragging?: boolean;
     /** The project's field columns, when this row is drawn inside one (TASK-150-008). */
     fields?: { id: string; name: string; type: string }[];
 }>();
 
-const emit = defineEmits<{ open: [taskId: string] }>();
+const emit = defineEmits<{ open: [taskId: string]; pickup: [event: PointerEvent, task: TaskRowData] }>();
 
 /**
  * A field's answer as a person reads it. A boolean is a tick rather than the word "true", and a
@@ -74,11 +76,28 @@ defineExpose({ focus: () => row.value?.focus() });
         tabindex="0"
         data-task-row
         :data-task-id="task.id"
-        class="group/row flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
-        :class="completed() ? 'text-muted-foreground' : ''"
+        :data-placement-id="task.placementId"
+        class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
+        :class="[completed() ? 'text-muted-foreground' : '', dragging ? 'opacity-50' : '']"
         @keydown.space.prevent="toggleCompletion"
         @keydown.enter="emit('open', task.id)"
     >
+        <!--
+            The grip, revealed on hover. Reordering is a pointer gesture with a keyboard
+            alternative behind it (`useTaskListKeyboard`), so the handle is the affordance rather
+            than the mechanism — and it is `md`-only, because a drag inside a scrolling phone
+            list fights the scroll.
+        -->
+        <button
+            v-if="editable && task.placementId"
+            type="button"
+            class="absolute top-1/2 left-0 hidden size-5 -translate-y-1/2 cursor-grab items-center justify-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none active:cursor-grabbing md:flex"
+            :aria-label="`Reorder ${task.title}`"
+            @pointerdown="emit('pickup', $event, task)"
+        >
+            <GripVertical class="size-4" />
+        </button>
+
         <div class="flex items-center gap-3">
             <!-- A row you can name out loud. Hidden below `md`, where the row is two lines and a
                  column of numbers is width spent on something nobody is counting on a phone. -->

@@ -4,6 +4,26 @@ import type { Ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
+/**
+ * What this needs of a card and of a column, and nothing more.
+ *
+ * The board's columns and the list's sections are different shapes carrying different fields;
+ * what a *move* is does not depend on any of them. Typed structurally so the two views share one
+ * implementation of "this card, into this group, after that one" rather than growing a second
+ * one that will disagree with the first about a rollback.
+ */
+type Movable = { placementId?: string };
+type Grouped<T extends Movable> = { id: string | null; tasks: T[] };
+
+export type DragSurface = {
+    /** What a draggable element is called in the DOM. The board draws cards, the list draws rows. */
+    cardSelector: string;
+    /** The prop to re-read when the server refuses a move. */
+    reloadKey: string;
+};
+
+const BOARD: DragSurface = { cardSelector: '[data-task-card]', reloadKey: 'board' };
+
 export type BoardDrag = {
     draggingId: Ref<string | null>;
     overColumn: Ref<string | null>;
@@ -48,10 +68,22 @@ const THRESHOLD = 4;
  * already flashes it.
  */
 export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: () => boolean): BoardDrag {
+    return useTaskDragAndDrop(columns, enabled, BOARD) as BoardDrag;
+}
+
+/**
+ * The same picking-up and putting-down, for any view that groups placements into ordered
+ * columns. The board is one caller; the list is the other.
+ */
+export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
+    columns: Ref<C[]>,
+    enabled: () => boolean,
+    surface: DragSurface,
+) {
     const draggingId = ref<string | null>(null);
     const overColumn = ref<string | null>(null);
 
-    const find = (placementId: string): { column: BoardColumnData; index: number } | null => {
+    const find = (placementId: string): { column: C; index: number } | null => {
         for (const column of columns.value) {
             const index = column.tasks.findIndex((card) => card.placementId === placementId);
 
@@ -63,8 +95,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         return null;
     };
 
-    const snapshot = (): BoardColumnData[] =>
-        columns.value.map((column) => ({ ...column, tasks: [...column.tasks] }));
+    const snapshot = (): C[] => columns.value.map((column) => ({ ...column, tasks: [...column.tasks] }));
 
     /** The column under the pointer, and which card the dragged one would land above. */
     const targetUnder = (x: number, y: number): { key: string; before: string | null } | null => {
@@ -75,7 +106,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
             return null;
         }
 
-        const cards = Array.from(column.querySelectorAll<HTMLElement>('[data-task-card]'));
+        const cards = Array.from(column.querySelectorAll<HTMLElement>(surface.cardSelector));
 
         const before = cards.find((card) => {
             const box = card.getBoundingClientRect();
@@ -93,7 +124,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         placementId: string,
         section: string | null,
         beforeId: string | null,
-        rollbackTo: BoardColumnData[],
+        rollbackTo: C[],
     ): void => {
         router.put(
             PlacementController.move.url(placementId),
@@ -109,7 +140,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
                     // else moved something, and the snapshot is only right about this card.
                     columns.value = rollbackTo;
 
-                    router.reload({ only: ['board'] });
+                    router.reload({ only: [surface.reloadKey] });
                 },
             },
         );
@@ -153,7 +184,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
         snapshot,
         moveTo: (placementId: string, columnKey: string): void => move(placementId, columnKey, null),
 
-        commit(placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]): void {
+        commit(placementId: string, columnKey: string, beforeId: string | null, rollbackTo: C[]): void {
             const target = columns.value.find((column) => keyOf(column.id) === columnKey);
 
             if (target === undefined) {
@@ -163,7 +194,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
             send(placementId, target.id, beforeId, rollbackTo);
         },
 
-        pickUp(event: PointerEvent, card: BoardCardData): void {
+        pickUp(event: PointerEvent, card: T): void {
             if (!enabled() || event.button !== 0) {
                 return;
             }
@@ -178,7 +209,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
                 }
 
                 dragging = true;
-                draggingId.value = card.placementId;
+                draggingId.value = card.placementId ?? null;
                 overColumn.value = targetUnder(moved.clientX, moved.clientY)?.key ?? null;
             };
 
@@ -198,7 +229,7 @@ export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: ()
 
                 const target = targetUnder(up.clientX, up.clientY);
 
-                if (target !== null) {
+                if (target !== null && card.placementId !== undefined) {
                     move(card.placementId, target.key, target.before);
                 }
             };

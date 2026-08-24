@@ -5,7 +5,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
-import type { TaskAssignee, TaskSectionGroup } from '@/modules/task/types';
+import type { TaskAssignee, TaskRowData, TaskSectionGroup } from '@/modules/task/types';
 import { create } from '@/routes/tasks';
 
 /**
@@ -20,6 +20,8 @@ const props = defineProps<{
     creatable: boolean;
     collapsed: boolean;
     loading: boolean;
+    /** The row being dragged, so it can be drawn as picked up. */
+    draggingId?: string | null;
     projectId: string;
     /** The project's field columns, passed through to each row (TASK-150-008). */
     fields?: { id: string; name: string; type: string }[];
@@ -28,6 +30,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     toggle: [sectionId: string | null];
     open: [taskId: string];
+    pickup: [event: PointerEvent, task: TaskRowData];
 }>();
 
 const toggle = () => emit('toggle', props.section.id);
@@ -63,17 +66,25 @@ const toggle = () => emit('toggle', props.section.id);
 
         <TaskListSkeleton v-if="!collapsed && loading" :rows="Math.max(section.count, 1)" />
 
-        <div v-else-if="!collapsed" class="divide-y border-t">
+        <!-- `data-column-key` is what the drag reads back from the pointer, exactly as a board
+             column does: one implementation of what a move means, two views using it. -->
+        <div
+            v-else-if="!collapsed"
+            class="divide-y border-t"
+            :data-column-key="section.id ?? 'ungrouped'"
+        >
             <TaskRow
                 v-for="(task, position) in section.tasks"
                 :key="task.placementId"
                 :task="task"
                 :index="position + 1"
+                :dragging="draggingId !== null && draggingId === task.placementId"
                 :members="members"
                 :priorities="priorities"
                 :editable="editable"
                 :fields="fields"
                 @open="(taskId) => emit('open', taskId)"
+                @pickup="(event, dragged) => emit('pickup', event, dragged)"
             />
             <EmptyState
                 v-if="section.tasks.length === 0"
