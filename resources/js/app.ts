@@ -5,12 +5,16 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { applyModalLayer, configureModalLayer } from '@/lib/modalLayer';
 import { initializeOfflineNotice } from '@/lib/offlineNotice';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+configureModalLayer();
+
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
+    withApp: applyModalLayer,
     layout: (name) => {
         switch (true) {
             // The error page and the marketing page both stand on their own: an error is often

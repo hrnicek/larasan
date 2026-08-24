@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form } from '@inertiajs/vue3';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
-import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import ModalShell from '@/components/ModalShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 </script>
 
 <template>
-    <div class="flex flex-col space-y-6">
-        <Head title="Create a project" />
-
-        <Heading title="Create a project" description="Tasks, sections and members live inside a project" />
-
-        <Form v-bind="ProjectController.store.form()" class="max-w-lg space-y-6" v-slot="{ errors, processing }">
+    <ModalShell title="Create a project" description="Tasks, sections and members live inside a project" v-slot="{ close }">
+        <Form v-bind="ProjectController.store.form()" class="space-y-5" v-slot="{ errors, processing }">
             <div class="grid gap-2">
                 <Label for="name">Name</Label>
                 <Input id="name" name="name" required autofocus placeholder="Web redesign" />
@@ -27,7 +23,10 @@ import { Label } from '@/components/ui/label';
                 <InputError :message="errors.slug" />
             </div>
 
-            <Button type="submit" :disabled="processing">Create project</Button>
+            <div class="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="ghost" @click="close">Cancel</Button>
+                <Button type="submit" :disabled="processing">Create project</Button>
+            </div>
         </Form>
-    </div>
+    </ModalShell>
 </template>

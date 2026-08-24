@@ -12,6 +12,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
+use App\Http\Responses\ModalResponse;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -29,6 +30,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
+use Inertia\ResponseFactory;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -55,6 +57,22 @@ class AppServiceProvider extends ServiceProvider
         $this->registerCapabilityGates();
         $this->configureRateLimiting();
         $this->renderErrorsAsThisApplication();
+        $this->answerModalsWithTheirOwnUrl();
+    }
+
+    /**
+     * `Inertia::modal()` builds this application's modal response rather than the package's.
+     *
+     * The package registers the macro in its own service provider; replacing it here is what
+     * makes every modal route in the application deep-linkable, without a fork or a patch file.
+     * `App\Http\Responses\ModalResponse` says what the difference is and why it exists.
+     */
+    private function answerModalsWithTheirOwnUrl(): void
+    {
+        ResponseFactory::macro(
+            'modal',
+            fn (string $component, array $props = []): ModalResponse => new ModalResponse($component, $props),
+        );
     }
 
     /**

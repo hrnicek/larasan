@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d4f643ca05d521b311703413840b4946",
+    "content-hash": "9e5c38e63884a3d87f215d5c9f7cf132",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -1609,6 +1609,69 @@
                 "source": "https://github.com/inertiajs/inertia-laravel/tree/v3.3.1"
             },
             "time": "2026-08-04T21:58:51+00:00"
+        },
+        {
+            "name": "inertiaui/modal",
+            "version": "3.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/inertiaui/modal.git",
+                "reference": "e6cfbddc9b8795b2460a73a863bd3934b0dcebca"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/inertiaui/modal/zipball/e6cfbddc9b8795b2460a73a863bd3934b0dcebca",
+                "reference": "e6cfbddc9b8795b2460a73a863bd3934b0dcebca",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/contracts": "^12.0||^13.0",
+                "inertiajs/inertia-laravel": "^3.0",
+                "php": "^8.2"
+            },
+            "conflict": {
+                "friendsofphp/php-cs-fixer": "<3.74.0"
+            },
+            "require-dev": {
+                "larastan/larastan": "^3.9",
+                "laravel/dusk": "^8.3",
+                "laravel/pint": "^1.14",
+                "orchestra/testbench": "^10.0||^11.0",
+                "rector/rector": "^1.0.3||^2.3"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "InertiaUI\\Modal\\ModalServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
+                "psr-4": {
+                    "InertiaUI\\Modal\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Inertia Modal",
+            "homepage": "https://github.com/inertiaui/modal",
+            "support": {
+                "issues": "https://github.com/inertiaui/modal/issues",
+                "source": "https://github.com/inertiaui/modal/tree/3.1.2"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/pascalbaljet",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-06-04T21:57:11+00:00"
         },
         {
             "name": "laravel/chisel",

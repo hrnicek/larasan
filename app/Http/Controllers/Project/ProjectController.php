@@ -34,6 +34,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use InertiaUI\Modal\Modal;
 
 class ProjectController extends Controller
 {
@@ -58,11 +59,19 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    /**
+     * Creating a project is a modal with an address of its own.
+     *
+     * Entering `/projects/create` directly renders the project list underneath it, so the
+     * screen behind the dialog is never blank; opening it from inside the application keeps
+     * whichever page the person was already on, because the package prefers the referer over
+     * the base route declared here.
+     */
+    public function create(Request $request): Modal
     {
         Gate::authorize(Capability::ProjectCreate->value, $this->currentWorkspace($request));
 
-        return Inertia::render('projects/Create');
+        return Inertia::modal('projects/Create')->baseRoute('projects.index');
     }
 
     public function store(StoreProjectRequest $request, CreateProject $createProject): RedirectResponse

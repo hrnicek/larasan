@@ -5,6 +5,9 @@
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
+/* Inertia Modal ships compiled, so its utility classes are only visible in its bundle. */
+@source '../../node_modules/@inertiaui/modal-vue/dist/inertiaui-modal.js';
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

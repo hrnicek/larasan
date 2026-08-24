@@ -64,13 +64,24 @@ function layoutsFor(string $page): array
 /**
  * Whether a source renders the top of a screen's outline.
  *
- * Three shapes, because the application has three: a literal `<h1>`, the shared `Heading`
- * component in its default variant — which renders `h1` — and `Heading` told explicitly which
- * level it is, which is how a page whose title is set small still opens the outline.
+ * Four shapes, because the application has four: a literal `<h1>`, the shared `Heading`
+ * component in its default variant — which renders `h1` — `Heading` told explicitly which
+ * level it is, which is how a page whose title is set small still opens the outline, and
+ * `ModalShell` with a title.
+ *
+ * A modal is the fourth because it is named differently. It renders over a page that already
+ * opens an outline, so a second `<h1>` would give a reader two level-one headings in one
+ * document. What names a dialog is `aria-labelledby`, and `ModalShell` is the one component
+ * that wires it — so requiring the shell and its title is the same guarantee, expressed the way
+ * a dialog expresses it.
  */
 function opensAnOutline(string $source): bool
 {
     if (str_contains($source, '<h1') || str_contains($source, 'level="h1"')) {
+        return true;
+    }
+
+    if (preg_match('/<ModalShell\b[^>]*\btitle=/s', $source) === 1) {
         return true;
     }
 
