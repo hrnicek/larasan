@@ -35,3 +35,14 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+/*
+ * The service worker caches the app shell — hashed build assets and fonts, never a page (see
+ * `public/sw.js`). It is registered in production only: in development a cached asset is a
+ * debugging session nobody enjoys, and Vite is already serving from memory.
+ */
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        void navigator.serviceWorker.register('/sw.js');
+    });
+}
