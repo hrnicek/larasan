@@ -136,7 +136,7 @@ function onKeydown(event: KeyboardEvent): void {
             <PopoverTrigger
                 :disabled="saving"
                 :aria-label="assignee ? `Assigned to ${assignee.name}. Change assignee` : 'Unassigned. Assign someone'"
-                class="flex items-center gap-1.5 rounded-md text-left transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                class="flex min-h-11 items-center gap-1.5 rounded-md text-left transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
                 :class="
                     variant === 'field'
                         ? 'h-8 border border-border px-1.5 pr-2 text-sm hover:bg-accent'

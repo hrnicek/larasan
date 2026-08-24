@@ -98,7 +98,7 @@ function change(event: Event): void {
     <button
         v-else
         type="button"
-        class="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-xs transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+        class="inline-flex min-h-11 items-center gap-1 rounded-md px-1 py-0.5 text-xs transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-6"
         :class="overdue ? 'text-destructive' : 'text-muted-foreground'"
         :aria-label="dueAt === null ? 'Set a due date' : `Due ${label}${overdue ? ', overdue' : ''}. Change it`"
         @click="edit"

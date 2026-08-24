@@ -59,7 +59,7 @@ function submit(): void {
             v-if="!open"
             type="button"
             data-add-task
-            class="text-sm text-muted-foreground hover:text-foreground"
+            class="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:text-foreground md:min-h-6"
             @click="start"
         >
             + Add task

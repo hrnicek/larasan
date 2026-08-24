@@ -81,7 +81,7 @@ const submit = (): void => {
             <button
                 v-if="!open"
                 type="button"
-                class="text-xs text-muted-foreground hover:text-foreground"
+                class="inline-flex min-h-11 items-center md:min-h-6 text-xs text-muted-foreground hover:text-foreground"
                 @click="start"
             >
                 + Add subtask

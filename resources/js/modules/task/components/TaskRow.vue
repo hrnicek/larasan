@@ -83,14 +83,24 @@ defineExpose({ focus: () => row.value?.focus() });
                 v-bind="completed() ? TaskController.reopen.form(task.id) : TaskController.complete.form(task.id)"
                 #default="{ processing }"
             >
+                <!--
+                    The hit area is 44px on a touch width and the drawn box stays 16px inside it.
+                    A 16px checkbox is a 16px checkbox whatever the pointer is; what changes with
+                    the pointer is how much room it needs around it.
+                -->
                 <button
                     type="submit"
                     :disabled="processing"
                     :aria-label="completed() ? 'Reopen task' : 'Complete task'"
                     :aria-pressed="completed()"
-                    class="size-4 rounded border border-input disabled:opacity-50"
-                    :class="completed() ? 'bg-primary' : ''"
-                />
+                    class="-m-2 flex size-11 items-center justify-center disabled:opacity-50 md:-m-0.5 md:size-5"
+                >
+                    <span
+                        class="size-4 rounded border border-input"
+                        :class="completed() ? 'bg-primary' : ''"
+                        aria-hidden="true"
+                    />
+                </button>
             </Form>
             <span
                 v-else
@@ -101,7 +111,7 @@ defineExpose({ focus: () => row.value?.focus() });
 
             <button
                 type="button"
-                class="flex-1 truncate text-left"
+                class="flex min-h-11 flex-1 items-center truncate text-left md:min-h-6"
                 :class="completed() ? 'line-through' : ''"
                 @click="emit('open', task.id)"
             >

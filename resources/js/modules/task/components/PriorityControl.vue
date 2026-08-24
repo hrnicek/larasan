@@ -45,7 +45,7 @@ function change(priority: string): void {
 
     <DropdownMenu v-else v-model:open="open">
         <DropdownMenuTrigger
-            class="rounded px-1 text-xs capitalize text-muted-foreground hover:text-foreground disabled:opacity-50"
+            class="inline-flex min-h-11 items-center md:min-h-6 rounded px-1 text-xs text-muted-foreground capitalize hover:text-foreground disabled:opacity-50"
             :disabled="saving"
             aria-label="Priority"
         >

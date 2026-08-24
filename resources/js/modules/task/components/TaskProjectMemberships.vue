@@ -77,7 +77,7 @@ const detach = (): void => {
                 <button
                     v-if="editable && placement.canDetach"
                     type="button"
-                    class="ml-auto rounded px-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    class="ml-auto inline-flex min-h-11 items-center md:min-h-6 rounded px-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                     :disabled="working"
                     :aria-label="`Remove from ${placement.project.name}`"
                     :title="placements.length === 1 ? 'This is the last project — the task will only be reachable from My Tasks and search.' : undefined"
