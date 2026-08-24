@@ -82,17 +82,31 @@ const save = (): void => {
             @keydown.enter.ctrl.prevent="save"
         />
 
-        <input
-            v-else
-            v-model="draft"
-            type="text"
-            :disabled="!editable || saving"
-            :placeholder="placeholder"
-            class="w-full rounded-md border border-transparent bg-transparent hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
-            :class="size === 'row' ? 'min-h-11 px-1 text-sm md:min-h-6' : 'px-1 text-lg font-semibold'"
-            @blur="save"
-            @keydown.enter.prevent="save"
-        />
+        <!--
+            In a row the field is only as wide as what is written in it: the rest of the cell
+            belongs to the row, which opens the task. An input will not size itself to its value,
+            so a hidden twin of the text does the measuring and both share one grid cell.
+        -->
+        <div v-else class="grid min-w-0 max-w-full">
+            <span
+                v-if="size === 'row'"
+                class="invisible col-start-1 row-start-1 min-w-8 truncate px-1 text-sm whitespace-pre"
+                aria-hidden="true"
+            >
+                {{ draft || placeholder || ' ' }}
+            </span>
+
+            <input
+                v-model="draft"
+                type="text"
+                :disabled="!editable || saving"
+                :placeholder="placeholder"
+                class="col-start-1 row-start-1 w-full rounded-md border border-transparent bg-transparent hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
+                :class="size === 'row' ? 'min-h-11 px-1 text-sm md:min-h-6' : 'px-1 text-lg font-semibold'"
+                @blur="save"
+                @keydown.enter.prevent="save"
+            />
+        </div>
 
         <p v-if="failed" class="text-xs text-destructive">
             Could not save. Your text is still here — try again.

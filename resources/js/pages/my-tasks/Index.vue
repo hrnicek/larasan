@@ -6,6 +6,7 @@ import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksContro
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -124,31 +125,37 @@ const { open, close: closeTask } = useTaskPanel();
     <div class="flex h-full flex-1 flex-col">
         <Head title="My Tasks" />
 
-        <PageHeader title="My Tasks" :description="workspaceName">
-            <template #tabs>
-                <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="My Tasks views">
-                    <button
-                        v-for="tab in tabs"
-                        :key="tab"
-                        type="button"
-                        class="shrink-0 border-b-2 px-3 pt-1 pb-2.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                        :class="
-                            tab === meta.tab
-                                ? 'border-primary text-foreground'
-                                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-                        "
-                        :aria-current="tab === meta.tab ? 'page' : undefined"
-                        @click="show(tab)"
-                    >
-                        {{ labels[tab] ?? tab }}
-                    </button>
-                </nav>
-            </template>
-        </PageHeader>
+        <!-- Title, tabs and column names are one pinned block, as they are in a project: the tab
+             you are on is what the rows below mean. -->
+        <div class="sticky top-0 z-20 bg-background">
+            <PageHeader title="My Tasks" :description="workspaceName">
+                <template #tabs>
+                    <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="My Tasks views">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab"
+                            type="button"
+                            class="shrink-0 border-b-2 px-3 pt-1 pb-2.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                            :class="
+                                tab === meta.tab
+                                    ? 'border-primary text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                            "
+                            :aria-current="tab === meta.tab ? 'page' : undefined"
+                            @click="show(tab)"
+                        >
+                            {{ labels[tab] ?? tab }}
+                        </button>
+                    </nav>
+                </template>
+            </PageHeader>
 
-        <div class="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
+            <TaskListHeader v-if="rows.length" :numbered="false" />
+        </div>
 
-        <ul v-if="rows.length" class="flex flex-col gap-1">
+        <div class="flex flex-1 flex-col gap-4 pb-4">
+
+        <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-b border-border">
             <li v-for="task in rows" :key="task.id" class="flex flex-col">
                 <TaskRow
                     :task="task"
@@ -158,7 +165,9 @@ const { open, close: closeTask } = useTaskPanel();
                     @open="open"
                 />
 
-                <p v-if="task.projects.length" class="pl-7 text-xs text-muted-foreground">
+                <!-- Where the task lives, under its name: this is the one screen that shows tasks
+                     from several projects at once, so the project is part of reading the row. -->
+                <p v-if="task.projects.length" class="pb-1 pl-7 text-xs text-muted-foreground md:pl-11">
                     <span v-for="project in task.projects" :key="project.id" class="mr-2">{{ project.name }}</span>
                 </p>
             </li>
@@ -166,6 +175,7 @@ const { open, close: closeTask } = useTaskPanel();
 
         <EmptyState
             v-else-if="!loading"
+            class="mx-4 mt-4 md:mx-6"
             :title="emptyMessages[meta.tab] ?? 'Nothing here.'"
             :description="emptyDescriptions[meta.tab]"
             :icon="CheckCheck"
@@ -184,7 +194,7 @@ const { open, close: closeTask } = useTaskPanel();
         <button
             v-if="meta.hasMore"
             type="button"
-            class="self-start rounded border border-input px-2 py-1 text-xs"
+            class="mx-4 self-start rounded border border-input px-2 py-1 text-xs md:mx-6"
             :disabled="loading"
             @click="loadMore"
         >

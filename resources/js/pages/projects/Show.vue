@@ -15,6 +15,7 @@ import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
     BoardColumnData,
@@ -193,44 +194,53 @@ onUnmounted(() => {
     <div class="flex flex-col">
         <Head :title="project.name" />
 
-        <ProjectHeader :project="project" :view="view" :views="views" />
-
         <!--
-            The toolbar: what this view is showing and how to change it, on one line above the
-            content. Adding comes first because it is the thing done most.
+            The project's name, its views, the toolbar and the list's column names are one block
+            pinned to the top of the canvas: at the bottom of a long list you still need to know
+            which project this is, which view you are in and what the fourth column means.
         -->
-        <div class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
-            <Link
-                v-if="creatable()"
-                :href="createTask({ query: { project: project.id } })"
-                class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-            >
-                <Plus class="size-4" />
-                Add task
-            </Link>
+        <div class="sticky top-0 z-20 bg-background">
+            <ProjectHeader :project="project" :view="view" :views="views" />
 
-            <TagFilter
-                :project-id="project.id"
-                :view="view"
-                :active="tags.active"
-                :available="tags.available"
-            />
+            <!--
+                The toolbar: what this view is showing and how to change it, on one line above the
+                content. Adding comes first because it is the thing done most.
+            -->
+            <div class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+                <Link
+                    v-if="creatable()"
+                    :href="createTask({ query: { project: project.id } })"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                    <Plus class="size-4" />
+                    Add task
+                </Link>
 
-            <FieldSortControl
-                v-if="list?.fields.length"
-                :project-id="project.id"
-                :view="view"
-                :fields="list.fields"
-                :sort="sort"
-            />
+                <TagFilter
+                    :project-id="project.id"
+                    :view="view"
+                    :active="tags.active"
+                    :available="tags.available"
+                />
+
+                <FieldSortControl
+                    v-if="list?.fields.length"
+                    :project-id="project.id"
+                    :view="view"
+                    :fields="list.fields"
+                    :sort="sort"
+                />
+            </div>
+
+            <TaskListHeader v-if="list && list.sections.length" :fields="list.fields" />
         </div>
 
-        <div class="flex flex-col gap-6 px-4 pb-6 md:px-6">
-            <div class="flex flex-1 flex-col space-y-6">
+        <div class="flex flex-col pb-6">
+            <div class="flex flex-1 flex-col">
         <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
-        <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto md:hidden" aria-label="Columns">
+        <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6" aria-label="Columns">
             <button
                 v-for="(column, index) in columns"
                 :key="column.id ?? 'ungrouped'"
@@ -250,7 +260,7 @@ onUnmounted(() => {
         -->
         <div
             v-if="board"
-            class="flex gap-4 overflow-x-auto pb-3 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+            class="flex gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
             @keydown="keyboard.onKeydown"
         >
             <BoardColumn
@@ -282,7 +292,7 @@ onUnmounted(() => {
         <template v-else-if="list">
             <div
                 v-if="failed"
-                class="flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm"
+                class="mx-4 mt-4 flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
                 role="alert"
             >
                 <span>Something went wrong loading this project.</span>
@@ -292,7 +302,7 @@ onUnmounted(() => {
             <div
                 v-if="list.sections.length"
                 ref="listElement"
-                class="flex flex-col space-y-4"
+                class="flex flex-col"
                 @keydown="onKeydown"
             >
                 <SectionGroup
@@ -322,6 +332,7 @@ onUnmounted(() => {
 
             <EmptyState
                 v-else
+                class="mx-4 mt-4 md:mx-6"
                 :icon="ListTodo"
                 title="This project is empty"
                 :description="

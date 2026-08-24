@@ -6,7 +6,6 @@ import SectionController from '@/actions/App/Http/Controllers/Section/SectionCon
 import EmptyState from '@/components/EmptyState.vue';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
-import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import type { TaskAssignee, TaskRowData, TaskSectionGroup } from '@/modules/task/types';
@@ -85,8 +84,8 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
 </script>
 
 <template>
-    <section class="rounded-lg border" data-task-section>
-        <div class="group/section flex items-center gap-1 pr-2">
+    <section class="border-b border-border" data-task-section>
+        <div class="group/section flex items-center gap-1 px-4 pr-2">
             <button
                 type="button"
                 class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
@@ -149,10 +148,8 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
 
         <!-- `data-column-key` is what the drag reads back from the pointer, exactly as a board
              column does: one implementation of what a move means, two views using it. -->
-        <div v-else-if="!collapsed" class="border-t">
-            <TaskListHeader v-if="section.tasks.length" :fields="fields" />
-
-            <div class="divide-y" :data-column-key="section.id ?? 'ungrouped'">
+        <div v-else-if="!collapsed" class="border-t border-border">
+            <div class="divide-y divide-border" :data-column-key="section.id ?? 'ungrouped'">
             <template v-for="(task, position) in section.tasks" :key="task.placementId ?? task.id">
                 <div v-if="isDropSlot(task.placementId)" class="relative h-0">
                     <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />

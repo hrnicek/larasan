@@ -54,7 +54,9 @@ function submit(): void {
 </script>
 
 <template>
-    <div class="px-4 py-2">
+    <!-- From `md` the prompt starts where the task names start, so it reads as the next empty
+         row of the column rather than as a control under it. -->
+    <div class="px-4 py-2 md:pl-21">
         <button
             v-if="!open"
             type="button"

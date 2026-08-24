@@ -12,9 +12,14 @@ import { listColumns } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
- * One task, in a line. Completion posts and waits: it is a domain state change with events
- * behind it, and a checkbox that ticks itself back a second later is worse than one that
+ * One task, in a line of cells. Completion posts and waits: it is a domain state change with
+ * events behind it, and a checkbox that ticks itself back a second later is worse than one that
  * takes a moment.
+ *
+ * From `md` the line is a table row — every field is a cell with a line to its right and a hover
+ * of its own, so it is never a guess which control a click is about to land in. The name cell is
+ * the exception that carries two intents: the field is exactly as wide as its text, and the rest
+ * of the cell opens the task, which is what the pointer says when it is over it.
  *
  * The row itself is focusable, so the list can be walked with the keyboard. Below `md` the
  * secondary fields drop to a second line under the name rather than being hidden: a phone
@@ -78,7 +83,7 @@ defineExpose({ focus: () => row.value?.focus() });
         data-task-row
         :data-task-id="task.id"
         :data-placement-id="task.placementId"
-        class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
+        class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-muted/40 focus-visible:bg-accent md:flex-row md:items-stretch md:gap-0 md:px-0 md:py-0"
         :class="[completed() ? 'text-muted-foreground' : '', dragging ? 'opacity-50' : '']"
         @keydown.space.prevent="toggleCompletion"
         @keydown.enter.self="emit('open', task.id)"
@@ -92,24 +97,34 @@ defineExpose({ focus: () => row.value?.focus() });
         <button
             v-if="editable && task.placementId"
             type="button"
-            class="absolute top-1/2 left-0 hidden size-5 -translate-y-1/2 cursor-grab items-center justify-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none active:cursor-grabbing md:flex"
+            class="absolute top-1/2 left-0 z-10 hidden size-5 -translate-y-1/2 cursor-grab items-center justify-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none active:cursor-grabbing md:flex"
             :aria-label="`Reorder ${task.title}`"
             @pointerdown="emit('pickup', $event, task)"
         >
             <GripVertical class="size-4" />
         </button>
 
-        <div class="flex items-center gap-3">
-            <!-- A row you can name out loud. Hidden below `md`, where the row is two lines and a
-                 column of numbers is width spent on something nobody is counting on a phone. -->
-            <span
-                v-if="index !== undefined"
-                class="hidden w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground/70 md:inline"
-                aria-hidden="true"
-            >
-                {{ index }}
-            </span>
+        <!-- A row you can name out loud. Hidden below `md`, where the row is two lines and a
+             column of numbers is width spent on something nobody is counting on a phone. -->
+        <span
+            v-if="index !== undefined"
+            class="hidden items-center text-xs tabular-nums text-muted-foreground/70 md:flex"
+            :class="[listColumns.index, listColumns.cell]"
+            aria-hidden="true"
+        >
+            {{ index }}
+        </span>
 
+        <!--
+            The name cell. Clicking the room around the field opens the task — that is what the
+            pointer promises when it is over it — while the field itself stays a field, because
+            renaming is the thing done most often to a row.
+        -->
+        <div
+            class="flex items-center gap-2 md:cursor-pointer"
+            :class="[listColumns.name, listColumns.cell, listColumns.hover]"
+            @click.self="emit('open', task.id)"
+        >
             <Form
                 v-if="editable"
                 v-bind="completed() ? TaskController.reopen.form(task.id) : TaskController.complete.form(task.id)"
@@ -149,21 +164,15 @@ defineExpose({ focus: () => row.value?.focus() });
             </Form>
             <span
                 v-else
-                class="flex size-[18px] items-center justify-center rounded-full border border-input"
+                class="flex size-[18px] shrink-0 items-center justify-center rounded-full border border-input"
                 :class="completed() ? 'border-emerald-600 bg-emerald-600 text-white' : ''"
                 aria-hidden="true"
             >
                 <Check v-if="completed()" class="size-3" />
             </span>
 
-            <!--
-                The name is the field, not a link. Renaming is the thing done most often to a row
-                and it used to need the panel; opening the task is the `›` beside it and `Enter`
-                on the row, which is what the reference does too.
-            -->
             <TaskTextField
                 v-if="editable"
-                class="flex-1"
                 :task-id="task.id"
                 field="title"
                 :value="task.title"
@@ -172,16 +181,33 @@ defineExpose({ focus: () => row.value?.focus() });
                 @click.stop
             />
 
-            <span v-else class="flex min-h-11 flex-1 items-center truncate md:min-h-6">{{ task.title }}</span>
+            <span v-else class="flex min-h-11 min-w-0 items-center truncate md:min-h-6">{{ task.title }}</span>
+
+            <!-- Beside the name, because a tag says what the task is about, and a count says how
+                 much has been said about it. -->
+            <span
+                v-for="tag in task.tags"
+                :key="tag.id"
+                class="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium"
+                :class="accentChipClass(tag.color)"
+            >
+                {{ tag.name }}
+            </span>
+
+            <span v-if="task.comments > 0" class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                <MessageSquare class="size-3.5" aria-hidden="true" />
+                {{ task.comments }}
+                <span class="sr-only">comments</span>
+            </span>
 
             <!--
-                Revealed rather than always drawn. The whole row already opens the task; this is
-                the affordance that says so, and one of them per line, permanently, is noise in a
-                list somebody is scanning.
+                At the far end of the cell, revealed rather than always drawn. The cell around it
+                already opens the task; this is the affordance that says so, and one of them per
+                line, permanently, is noise in a list somebody is scanning.
             -->
             <button
                 type="button"
-                class="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6 md:opacity-0 md:group-focus-within/row:opacity-100 md:group-hover/row:opacity-100"
+                class="ml-auto inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6 md:opacity-0 md:group-focus-within/row:opacity-100 md:group-hover/row:opacity-100"
                 :aria-label="`Open ${task.title}`"
                 @click="emit('open', task.id)"
             >
@@ -189,38 +215,20 @@ defineExpose({ focus: () => row.value?.focus() });
             </button>
         </div>
 
-        <!-- Beside the name, because a tag says what the task is about. -->
-        <div v-if="task.tags.length" class="flex shrink-0 flex-wrap gap-1 pl-7 md:pl-0">
-            <span
-                v-for="tag in task.tags"
-                :key="tag.id"
-                class="rounded px-1.5 py-0.5 text-[11px] font-medium"
-                :class="accentChipClass(tag.color)"
-            >
-                {{ tag.name }}
-            </span>
-        </div>
-
-        <!-- Below md this is the second line, indented past the checkbox so the name leads. From
-             `md` the cells are fixed columns, so the header above the list lines up with them. -->
-        <div class="flex items-center gap-3 pl-7 md:ml-auto md:pl-0">
-            <span v-if="task.comments > 0" class="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <MessageSquare class="size-3.5" aria-hidden="true" />
-                {{ task.comments }}
-                <span class="sr-only">comments</span>
-            </span>
-
+        <!-- Below `md` this is the second line, indented past the checkbox so the name leads. From
+             `md` the wrapper disappears (`contents`) and its children are cells of the row itself. -->
+        <div class="flex items-center gap-3 pl-7 md:contents">
             <span
                 v-for="field in fields"
                 :key="field.id"
-                class="hidden text-xs text-muted-foreground md:inline"
-                :class="listColumns.field"
+                class="hidden items-center text-xs text-muted-foreground md:flex"
+                :class="[listColumns.field, listColumns.cell, listColumns.hover]"
                 :title="field.name"
             >
                 {{ answerOf(field.id, field.type) }}
             </span>
 
-            <div :class="listColumns.assignee">
+            <div class="flex items-center" :class="[listColumns.assignee, listColumns.cell, listColumns.hover]">
                 <AssigneePicker
                     :task-id="task.id"
                     :assignee="task.assignee"
@@ -229,11 +237,11 @@ defineExpose({ focus: () => row.value?.focus() });
                 />
             </div>
 
-            <div :class="listColumns.due">
+            <div class="flex items-center" :class="[listColumns.due, listColumns.cell, listColumns.hover]">
                 <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
             </div>
 
-            <div :class="listColumns.priority">
+            <div class="flex items-center" :class="[listColumns.priority, listColumns.cell, listColumns.hover]">
                 <PriorityControl
                     :task-id="task.id"
                     :priority="task.priority"
@@ -241,6 +249,8 @@ defineExpose({ focus: () => row.value?.focus() });
                     :editable="editable"
                 />
             </div>
+
+            <span :class="listColumns.filler" />
         </div>
     </div>
 </template>
