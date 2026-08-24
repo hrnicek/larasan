@@ -2,7 +2,7 @@
 import { Link } from '@inertiajs/vue3';
 import type { Component } from 'vue';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useShell } from '@/composables/useShell';
+import { useCollapsed } from '@/composables/useShell';
 
 defineProps<{
     href: string;
@@ -12,7 +12,7 @@ defineProps<{
     badge?: number;
 }>();
 
-const { collapsed } = useShell();
+const collapsed = useCollapsed();
 </script>
 
 <template>

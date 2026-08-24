@@ -43,3 +43,25 @@ const accentDotClasses = {
 export function accentDotClass(color: string | null): string {
     return accentDotClasses[color as AccentColor] ?? accentDotClasses.slate;
 }
+
+/**
+ * The palette as a tile: a tinted square carrying the first letter of a name.
+ *
+ * What the icon rail needs. A 10px dot identifies nothing when the sidebar is collapsed and the
+ * label is gone — several projects share a colour, and most keep the default. A letter on a
+ * tinted tile is legible at 24px and is the same affordance the workspace switcher already uses.
+ */
+const accentTileClasses = {
+    slate: 'bg-slate-500/20 text-slate-200',
+    red: 'bg-red-500/20 text-red-200',
+    amber: 'bg-amber-500/20 text-amber-200',
+    emerald: 'bg-emerald-500/20 text-emerald-200',
+    teal: 'bg-teal-500/20 text-teal-200',
+    sky: 'bg-sky-500/20 text-sky-200',
+    violet: 'bg-violet-500/20 text-violet-200',
+    rose: 'bg-rose-500/20 text-rose-200',
+} as const;
+
+export function accentTileClass(color: string | null): string {
+    return accentTileClasses[color as AccentColor] ?? accentTileClasses.slate;
+}

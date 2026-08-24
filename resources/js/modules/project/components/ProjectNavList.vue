@@ -4,14 +4,14 @@ import { Plus } from '@lucide/vue';
 import { computed } from 'vue';
 import ChromeNavItem from '@/components/ChromeNavItem.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
-import { useShell } from '@/composables/useShell';
-import { accentDotClass } from '@/lib/accentColor';
+import { useCollapsed } from '@/composables/useShell';
+import { accentDotClass, accentTileClass } from '@/lib/accentColor';
 import type { ProjectSummary } from '@/modules/project/types';
 import { create, index, show } from '@/routes/projects';
 
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
-const { collapsed } = useShell();
+const collapsed = useCollapsed();
 
 const projects = computed<ProjectSummary[]>(() => page.props.projects);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
@@ -45,7 +45,20 @@ const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes(
                 :active="isCurrentUrl(show(project.id).url)"
             >
                 <template #icon>
-                    <span class="flex size-4 shrink-0 items-center justify-center">
+                    <!--
+                        Expanded, the dot is decoration beside a name. Collapsed, there is no name,
+                        so the tile carries the project's first letter — several projects share a
+                        colour and most keep the default, which makes a dot alone identify nothing.
+                    -->
+                    <span
+                        v-if="collapsed"
+                        class="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
+                        :class="accentTileClass(project.color)"
+                        aria-hidden="true"
+                    >
+                        {{ project.name.charAt(0).toUpperCase() }}
+                    </span>
+                    <span v-else class="flex size-4 shrink-0 items-center justify-center">
                         <span class="size-2.5 rounded-[3px]" :class="accentDotClass(project.color)" />
                     </span>
                 </template>

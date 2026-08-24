@@ -8,14 +8,25 @@ import ChromeNavItem from '@/components/ChromeNavItem.vue';
 import RealtimeStatus from '@/components/RealtimeStatus.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInboxRealtime } from '@/composables/useRealtime';
-import { useShell } from '@/composables/useShell';
+import { provideCollapsed, useCollapsed } from '@/composables/useShell';
 import ProjectNavList from '@/modules/project/components/ProjectNavList.vue';
 import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
 import { dashboard } from '@/routes';
 
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
-const { collapsed } = useShell();
+const { variant = 'rail' } = defineProps<{ variant?: 'rail' | 'drawer' }>();
+
+/*
+ * The drawer is 288px wide and has no toggle, so it is never a rail. The fact is overridden for
+ * this subtree rather than threaded as a prop through five components, so every row's own logic
+ * is unchanged — and it is computed here rather than injected back, because a component does not
+ * read its own `provide`.
+ */
+const inherited = useCollapsed();
+const collapsed = computed<boolean>(() => variant !== 'drawer' && inherited.value);
+
+provideCollapsed(collapsed);
 
 /** The badge is the server's count, shared with every screen (TASK-130-009). */
 const unread = computed<number>(() => page.props.unreadNotifications);

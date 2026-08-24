@@ -10,13 +10,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useShell } from '@/composables/useShell';
+import { useCollapsed } from '@/composables/useShell';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 // Wayfinder exports `switchMethod`: `switch` is a reserved word in JavaScript.
 import { create, switchMethod } from '@/routes/workspaces';
 
 const page = usePage();
-const { collapsed } = useShell();
+const collapsed = useCollapsed();
 
 const current = computed<WorkspaceSummary | null>(() => page.props.workspace);
 const workspaces = computed<WorkspaceSummary[]>(() => page.props.workspaces);

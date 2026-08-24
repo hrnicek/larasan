@@ -3,9 +3,9 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import AppTopbar from '@/components/AppTopbar.vue';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { useShell } from '@/composables/useShell';
+import { provideShell } from '@/composables/useShell';
 
-const { mobileOpen } = useShell();
+const { mobileOpen } = provideShell();
 </script>
 
 <!--
@@ -26,7 +26,7 @@ const { mobileOpen } = useShell();
                 <Sheet v-model:open="mobileOpen">
                     <SheetContent side="left" class="w-72 border-chrome-border bg-chrome p-0 text-chrome-foreground">
                         <SheetTitle class="sr-only">Navigation</SheetTitle>
-                        <AppSidebar />
+                        <AppSidebar variant="drawer" />
                     </SheetContent>
                 </Sheet>
 
