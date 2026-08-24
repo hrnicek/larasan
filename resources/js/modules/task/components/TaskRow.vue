@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, router } from '@inertiajs/vue3';
+import { ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { accentTextClass } from '@/lib/accentColor';
@@ -70,7 +71,7 @@ defineExpose({ focus: () => row.value?.focus() });
         tabindex="0"
         data-task-row
         :data-task-id="task.id"
-        class="flex flex-col gap-1 px-4 py-2 text-sm outline-none focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
+        class="group/row flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
         :class="completed() ? 'text-muted-foreground' : ''"
         @keydown.space.prevent="toggleCompletion"
         @keydown.enter="emit('open', task.id)"
@@ -104,6 +105,20 @@ defineExpose({ focus: () => row.value?.focus() });
                 @click="emit('open', task.id)"
             >
                 {{ task.title }}
+            </button>
+
+            <!--
+                Revealed rather than always drawn. The whole row already opens the task; this is
+                the affordance that says so, and one of them per line, permanently, is noise in a
+                list somebody is scanning.
+            -->
+            <button
+                type="button"
+                class="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:inline-flex"
+                :aria-label="`Open ${task.title}`"
+                @click="emit('open', task.id)"
+            >
+                <ChevronRight class="size-4" />
             </button>
         </div>
 
