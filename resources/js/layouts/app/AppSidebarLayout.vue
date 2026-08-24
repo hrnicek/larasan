@@ -2,21 +2,18 @@
 import { router } from '@inertiajs/vue3';
 import { onMounted, onUnmounted } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
-import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
-import AppSidebar from '@/components/AppSidebar.vue';
-import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import Breadcrumbs from '@/components/Breadcrumbs.vue';
 import ConnectionBanner from '@/components/ConnectionBanner.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
-type Props = {
-    breadcrumbs?: BreadcrumbItem[];
-};
-
-withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+withDefaults(
+    defineProps<{
+        breadcrumbs?: BreadcrumbItem[];
+    }>(),
+    { breadcrumbs: () => [] },
+);
 
 /**
  * `⌘/Ctrl+K` opens search from any screen.
@@ -39,13 +36,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
-    <AppShell variant="sidebar">
-        <AppSidebar />
-        <AppContent variant="sidebar" class="overflow-x-hidden">
-            <AppSidebarHeader :breadcrumbs="breadcrumbs" />
-            <ConnectionBanner />
-            <slot />
-        </AppContent>
+    <AppShell>
+        <ConnectionBanner />
+
+        <Breadcrumbs v-if="breadcrumbs.length > 0" :breadcrumbs="breadcrumbs" class="px-4 pt-4 md:px-6" />
+
+        <slot />
+
         <Toaster />
     </AppShell>
 </template>

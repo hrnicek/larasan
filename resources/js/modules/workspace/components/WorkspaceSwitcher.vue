@@ -10,16 +10,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from '@/components/ui/sidebar';
+import { useShell } from '@/composables/useShell';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 // Wayfinder exports `switchMethod`: `switch` is a reserved word in JavaScript.
 import { create, switchMethod } from '@/routes/workspaces';
 
 const page = usePage();
+const { collapsed } = useShell();
 
 const current = computed<WorkspaceSummary | null>(() => page.props.workspace);
 const workspaces = computed<WorkspaceSummary[]>(() => page.props.workspaces);
@@ -34,56 +31,57 @@ function switchTo(workspace: WorkspaceSummary): void {
 </script>
 
 <template>
-    <SidebarMenu>
-        <SidebarMenuItem>
-            <DropdownMenu v-if="current">
-                <DropdownMenuTrigger as-child>
-                    <SidebarMenuButton
-                        size="lg"
-                        class="data-[state=open]:bg-sidebar-accent"
-                        :aria-label="`Current workspace: ${current.name}. Switch workspace`"
-                    >
-                        <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-sm font-semibold">
-                            {{ current.name.charAt(0).toUpperCase() }}
-                        </div>
-                        <div class="grid flex-1 text-left text-sm leading-tight">
-                            <span class="truncate font-medium">{{ current.name }}</span>
-                            <span class="text-muted-foreground truncate text-xs">{{ current.slug }}</span>
-                        </div>
-                        <ChevronsUpDown class="ml-auto size-4" />
-                    </SidebarMenuButton>
-                </DropdownMenuTrigger>
+    <DropdownMenu v-if="current">
+        <DropdownMenuTrigger
+            class="flex h-11 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-chrome-accent focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none data-[state=open]:bg-chrome-accent"
+            :class="collapsed && 'justify-center px-0'"
+            :aria-label="`Current workspace: ${current.name}. Switch workspace`"
+        >
+            <span
+                class="flex size-7 shrink-0 items-center justify-center rounded-md bg-chrome-primary text-[13px] font-bold text-chrome-primary-foreground"
+            >
+                {{ current.name.charAt(0).toUpperCase() }}
+            </span>
 
-                <DropdownMenuContent class="w-(--reka-dropdown-menu-trigger-width) min-w-56" align="start" side="bottom">
-                    <DropdownMenuLabel class="text-muted-foreground text-xs">Workspaces</DropdownMenuLabel>
+            <span v-if="!collapsed" class="grid flex-1 leading-tight">
+                <span class="truncate text-[13px] font-semibold text-chrome-foreground">{{ current.name }}</span>
+                <span class="truncate text-[11px] text-chrome-muted-foreground">{{ current.slug }}</span>
+            </span>
 
-                    <DropdownMenuItem
-                        v-for="workspace in workspaces"
-                        :key="workspace.id"
-                        class="gap-2"
-                        @select="switchTo(workspace)"
-                    >
-                        <span class="flex-1 truncate">{{ workspace.name }}</span>
-                        <Check v-if="workspace.id === current.id" class="size-4" />
-                    </DropdownMenuItem>
+            <ChevronsUpDown v-if="!collapsed" class="size-3.5 shrink-0 text-chrome-muted-foreground" />
+        </DropdownMenuTrigger>
 
-                    <DropdownMenuSeparator />
+        <DropdownMenuContent class="min-w-60" align="start" side="bottom">
+            <DropdownMenuLabel class="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
 
-                    <DropdownMenuItem as-child class="gap-2">
-                        <Link :href="create()">
-                            <Plus class="size-4" />
-                            <span>New workspace</span>
-                        </Link>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <DropdownMenuItem
+                v-for="workspace in workspaces"
+                :key="workspace.id"
+                class="gap-2"
+                @select="switchTo(workspace)"
+            >
+                <span class="flex-1 truncate">{{ workspace.name }}</span>
+                <Check v-if="workspace.id === current.id" class="size-4" />
+            </DropdownMenuItem>
 
-            <SidebarMenuButton v-else size="lg" as-child>
-                <Link :href="create()" class="gap-2">
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem as-child class="gap-2">
+                <Link :href="create()">
                     <Plus class="size-4" />
-                    <span class="truncate font-medium">Create a workspace</span>
+                    <span>New workspace</span>
                 </Link>
-            </SidebarMenuButton>
-        </SidebarMenuItem>
-    </SidebarMenu>
+            </DropdownMenuItem>
+        </DropdownMenuContent>
+    </DropdownMenu>
+
+    <Link
+        v-else
+        :href="create()"
+        class="flex h-11 items-center gap-2 rounded-md px-2 text-[13px] font-medium text-chrome-foreground transition-colors hover:bg-chrome-accent focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none"
+        :class="collapsed && 'justify-center px-0'"
+    >
+        <Plus class="size-4 shrink-0" />
+        <span v-if="!collapsed" class="truncate">Create a workspace</span>
+    </Link>
 </template>

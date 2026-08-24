@@ -20,3 +20,26 @@ export type AccentColor = keyof typeof accentTextClasses;
 export function accentTextClass(color: string | null): string {
     return accentTextClasses[color as AccentColor] ?? accentTextClasses.slate;
 }
+
+/**
+ * The same palette as a background, for the dot beside a project or a tag. A separate record for
+ * the same reason the first one exists: the scanner has to see every class written out.
+ *
+ * One step for both themes here, unlike the text classes — a filled 10px square is a shape rather
+ * than something to read, so it is judged on being visible rather than on contrast with a
+ * character's strokes.
+ */
+const accentDotClasses = {
+    slate: 'bg-slate-400',
+    red: 'bg-red-500',
+    amber: 'bg-amber-500',
+    emerald: 'bg-emerald-500',
+    teal: 'bg-teal-500',
+    sky: 'bg-sky-500',
+    violet: 'bg-violet-500',
+    rose: 'bg-rose-500',
+} as const;
+
+export function accentDotClass(color: string | null): string {
+    return accentDotClasses[color as AccentColor] ?? accentDotClasses.slate;
+}
