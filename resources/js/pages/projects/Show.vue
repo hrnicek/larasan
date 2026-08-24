@@ -260,6 +260,11 @@ onUnmounted(() => {
                 :project-id="project.id"
                 :editable="editable()"
                 :creatable="creatable()"
+                :can-section="board ? {
+                    create: board.can.createSection,
+                    update: board.can.updateSection,
+                    delete: board.can.deleteSection,
+                } : undefined"
                 :loading="reloading"
                 :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
                 :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
@@ -300,6 +305,11 @@ onUnmounted(() => {
                     :creatable="creatable()"
                     :project-id="project.id"
                     :fields="list?.fields"
+                :can-section="list ? {
+                    create: list.can.createSection,
+                    update: list.can.updateSection,
+                    delete: list.can.deleteSection,
+                } : undefined"
                 :dragging-id="listDrag.draggingId.value"
                 :drop-target="listDrag.dropTarget.value"
                 :collapsed="isCollapsed(section.id)"

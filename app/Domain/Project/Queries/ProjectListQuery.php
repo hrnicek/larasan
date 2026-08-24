@@ -109,6 +109,15 @@ final class ProjectListQuery
                 'createTask' => $actor->can('createTask', $project),
                 'updateTask' => $project->allowsChangesBy($actor, Capability::TaskUpdate),
                 'deleteTask' => $project->allowsChangesBy($actor, Capability::TaskDelete),
+                /*
+                 * The list's own columns are editable from the list now, not only from the
+                 * settings screen, so the screen has to be told which of those it may offer.
+                 * Asked the same way every other capability is (ADR-0010): the client renders
+                 * the answer and never works it out.
+                 */
+                'createSection' => $project->allowsChangesBy($actor, Capability::SectionCreate),
+                'updateSection' => $project->allowsChangesBy($actor, Capability::SectionUpdate),
+                'deleteSection' => $project->allowsChangesBy($actor, Capability::SectionDelete),
             ],
         ];
     }

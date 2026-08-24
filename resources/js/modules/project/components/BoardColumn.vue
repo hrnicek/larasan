@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
+import { nextTick, ref } from 'vue';
+import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
+import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
@@ -18,6 +22,8 @@ const props = defineProps<{
     over: boolean;
     /** Where a drop would land right now, drawn as a line in the gap the card would take. */
     dropTarget?: { key: string; before: string | null } | null;
+    /** What may be done to the column itself, decided by the server (ADR-0010). */
+    canSection?: { create: boolean; update: boolean; delete: boolean };
     columns: BoardColumnData[];
 }>();
 
@@ -30,6 +36,33 @@ const isDropSlot = (placementId: string | null): boolean =>
     && props.dropTarget.key === (props.column.id ?? 'ungrouped')
     && props.dropTarget.before === placementId;
 
+const renaming = ref(false);
+const draft = ref('');
+const renameInput = ref<HTMLInputElement | null>(null);
+
+async function startRename(): Promise<void> {
+    draft.value = props.column.name ?? '';
+    renaming.value = true;
+    await nextTick();
+    renameInput.value?.select();
+}
+
+function saveRename(): void {
+    const next = draft.value.trim();
+
+    if (props.column.id === null || next === '' || next === props.column.name) {
+        renaming.value = false;
+
+        return;
+    }
+
+    router.put(
+        SectionController.update.url(props.column.id),
+        { name: next },
+        { preserveScroll: true, onFinish: () => (renaming.value = false) },
+    );
+}
+
 const emit = defineEmits<{
     expand: [columnId: string | null];
     pickup: [event: PointerEvent, card: BoardCardData];
@@ -40,9 +73,32 @@ const emit = defineEmits<{
 
 <template>
     <section class="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-muted/30" data-task-section>
-        <header class="flex items-center justify-between px-3 py-2.5 text-[13px] font-semibold">
-            <span>{{ column.name ?? 'No section' }}</span>
-            <span class="rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground">{{ column.count }}</span>
+        <header class="group/section flex items-center gap-1 px-3 py-2.5 text-[13px] font-semibold">
+            <input
+                v-if="renaming"
+                ref="renameInput"
+                v-model="draft"
+                type="text"
+                class="min-w-0 flex-1 rounded-md border border-input bg-transparent px-1.5 py-0.5 text-[13px] font-semibold focus:outline-none"
+                :aria-label="`Rename ${column.name ?? 'this column'}`"
+                @blur="saveRename"
+                @keydown.enter.prevent="saveRename"
+                @keydown.esc.prevent="renaming = false"
+            />
+            <span v-else class="flex-1 truncate">{{ column.name ?? 'No section' }}</span>
+
+            <span class="shrink-0 rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground">
+                {{ column.count }}
+            </span>
+
+            <SectionMenu
+                v-if="canSection"
+                :project-id="projectId"
+                :section-id="column.id"
+                :name="column.name"
+                :can="canSection"
+                @rename="startRename"
+            />
         </header>
 
         <!-- The drop target. `data-column-key` is what the drag reads back from the pointer. -->

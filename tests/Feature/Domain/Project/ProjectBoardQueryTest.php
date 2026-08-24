@@ -208,8 +208,14 @@ it('tells a viewer what they may not do, and still draws the board', function ()
 
     $board = boardOf($project, $viewer);
 
-    expect($board['can'])->toBe(['createTask' => false, 'updateTask' => false, 'deleteTask' => false])
-        ->and($board['columns'][0]['tasks'])->toHaveCount(2);
+    expect($board['can'])->toBe([
+        'createTask' => false,
+        'updateTask' => false,
+        'deleteTask' => false,
+        'createSection' => false,
+        'updateSection' => false,
+        'deleteSection' => false,
+    ])->and($board['columns'][0]['tasks'])->toHaveCount(2);
 });
 
 it('shows nothing from another project', function (): void {

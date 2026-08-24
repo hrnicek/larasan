@@ -167,7 +167,14 @@ it('never asks the placement policy per card', function (): void {
     // same for every card, so it is answered once for the project.
     [$list] = listOf($project, $actor);
 
-    expect($list['can'])->toBe(['createTask' => true, 'updateTask' => true, 'deleteTask' => true]);
+    expect($list['can'])->toBe([
+        'createTask' => true,
+        'updateTask' => true,
+        'deleteTask' => true,
+        'createSection' => true,
+        'updateSection' => true,
+        'deleteSection' => true,
+    ]);
 });
 
 it('tells a viewer what they may not do', function (): void {
@@ -176,8 +183,14 @@ it('tells a viewer what they may not do', function (): void {
 
     [$list] = listOf($project, $viewer);
 
-    expect($list['can'])->toBe(['createTask' => false, 'updateTask' => false, 'deleteTask' => false])
-        ->and($list['sections'][0]['tasks'])->toHaveCount(1);
+    expect($list['can'])->toBe([
+        'createTask' => false,
+        'updateTask' => false,
+        'deleteTask' => false,
+        'createSection' => false,
+        'updateSection' => false,
+        'deleteSection' => false,
+    ])->and($list['sections'][0]['tasks'])->toHaveCount(1);
 });
 
 it('closes an archived project to changes while still showing it', function (): void {
@@ -188,8 +201,14 @@ it('closes an archived project to changes while still showing it', function (): 
     [$list] = listOf($project->refresh(), $actor);
 
     // Read-only, not hidden: an archived board still shows what it held (TASK-050-013).
-    expect($list['can'])->toBe(['createTask' => false, 'updateTask' => false, 'deleteTask' => false])
-        ->and($list['sections'][0]['tasks'])->toHaveCount(1);
+    expect($list['can'])->toBe([
+        'createTask' => false,
+        'updateTask' => false,
+        'deleteTask' => false,
+        'createSection' => false,
+        'updateSection' => false,
+        'deleteSection' => false,
+    ])->and($list['sections'][0]['tasks'])->toHaveCount(1);
 });
 
 it('shows nothing from another project', function (): void {

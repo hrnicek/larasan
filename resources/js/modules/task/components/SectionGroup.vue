@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Link, router } from '@inertiajs/vue3';
+import { ChevronDown, Plus } from '@lucide/vue';
+import { nextTick, ref } from 'vue';
+import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
+import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
@@ -19,6 +22,8 @@ const props = defineProps<{
     priorities: string[];
     editable: boolean;
     creatable: boolean;
+    /** What may be done to the column itself, decided by the server (ADR-0010). */
+    canSection?: { create: boolean; update: boolean; delete: boolean };
     collapsed: boolean;
     loading: boolean;
     /** The row being dragged, so it can be drawn as picked up. */
@@ -41,6 +46,33 @@ const emit = defineEmits<{
 
 const toggle = () => emit('toggle', props.section.id);
 
+const renaming = ref(false);
+const draft = ref('');
+const renameInput = ref<HTMLInputElement | null>(null);
+
+async function startRename(): Promise<void> {
+    draft.value = props.section.name ?? '';
+    renaming.value = true;
+    await nextTick();
+    renameInput.value?.select();
+}
+
+function saveRename(): void {
+    const next = draft.value.trim();
+
+    if (props.section.id === null || next === '' || next === props.section.name) {
+        renaming.value = false;
+
+        return;
+    }
+
+    router.put(
+        SectionController.update.url(props.section.id),
+        { name: next },
+        { preserveScroll: true, onFinish: () => (renaming.value = false) },
+    );
+}
+
 /**
  * Whether the line belongs in this gap: the pointer is over this section, and the row after the
  * gap is the one the dragged card would sit above. `null` is the gap at the end.
@@ -54,16 +86,49 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
 
 <template>
     <section class="rounded-lg border" data-task-section>
-        <div class="flex items-center gap-1 pr-2">
+        <div class="group/section flex items-center gap-1 pr-2">
             <button
                 type="button"
-                class="flex flex-1 items-center justify-between px-4 py-2 text-sm font-medium"
+                class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 :aria-expanded="!collapsed"
+                :aria-label="collapsed ? `Expand ${section.name ?? 'No section'}` : `Collapse ${section.name ?? 'No section'}`"
                 @click="toggle"
             >
-                <span>{{ section.name ?? 'No section' }}</span>
-                <span class="text-xs text-muted-foreground">{{ section.count }}</span>
+                <ChevronDown class="size-4 transition-transform" :class="collapsed ? '-rotate-90' : ''" />
             </button>
+
+            <!-- Renamed where it is read, not on a settings screen two navigations away. -->
+            <input
+                v-if="renaming"
+                ref="renameInput"
+                v-model="draft"
+                type="text"
+                class="min-w-0 flex-1 rounded-md border border-input bg-transparent px-1.5 py-1 text-sm font-medium focus:outline-none"
+                :aria-label="`Rename ${section.name ?? 'this section'}`"
+                @blur="saveRename"
+                @keydown.enter.prevent="saveRename"
+                @keydown.esc.prevent="renaming = false"
+            />
+
+            <button
+                v-else
+                type="button"
+                class="flex-1 truncate py-2 text-left text-sm font-medium"
+                @click="toggle"
+            >
+                {{ section.name ?? 'No section' }}
+            </button>
+
+            <span class="shrink-0 text-xs text-muted-foreground">{{ section.count }}</span>
+
+            <SectionMenu
+                v-if="canSection"
+                :project-id="projectId"
+                :section-id="section.id"
+                :name="section.name"
+                :can="canSection"
+                @rename="startRename"
+            />
 
             <!--
                 The third way in. It knows both the project and the column, so the form opens with

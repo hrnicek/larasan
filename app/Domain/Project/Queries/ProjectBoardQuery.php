@@ -87,6 +87,11 @@ final readonly class ProjectBoardQuery
                 'createTask' => $actor->can('createTask', $project),
                 'updateTask' => $project->allowsChangesBy($actor, Capability::TaskUpdate),
                 'deleteTask' => $project->allowsChangesBy($actor, Capability::TaskDelete),
+                // The board's columns are the list's sections, so the two views answer the same
+                // question the same way — which `BoardMatrixTest` asserts row by row.
+                'createSection' => $project->allowsChangesBy($actor, Capability::SectionCreate),
+                'updateSection' => $project->allowsChangesBy($actor, Capability::SectionUpdate),
+                'deleteSection' => $project->allowsChangesBy($actor, Capability::SectionDelete),
             ],
         ];
     }

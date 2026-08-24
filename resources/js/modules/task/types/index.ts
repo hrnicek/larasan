@@ -58,11 +58,18 @@ export type TaskAbilities = {
     deleteTask: boolean;
 };
 
+/** What may be done to a project's columns, decided by the server (ADR-0010). */
+export type SectionAbilities = {
+    createSection: boolean;
+    updateSection: boolean;
+    deleteSection: boolean;
+};
+
 export type ProjectList = {
     sections: TaskSectionGroup[];
     /** The project's fields, once — each row answers them by id. */
     fields: ListFieldColumn[];
-    can: TaskAbilities;
+    can: TaskAbilities & SectionAbilities;
 };
 
 export type BoardCardData = TaskRowData & {
@@ -94,7 +101,7 @@ export type BoardColumnData = {
 export type ProjectBoard = {
     columns: BoardColumnData[];
     perColumn: number;
-    can: TaskAbilities;
+    can: TaskAbilities & SectionAbilities;
 };
 
 export type TaskDetailPlacement = {
