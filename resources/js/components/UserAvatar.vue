@@ -2,9 +2,12 @@
 import { computed } from 'vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/composables/useInitials';
-import type { User } from '@/types';
 
-const props = withDefaults(defineProps<{ user: User; size?: 'sm' | 'md' }>(), {
+/**
+ * Only what an avatar needs. Typed narrowly on purpose: a `User`, a workspace member and a task's
+ * assignee are three different shapes in this application, and all three have a name and a face.
+ */
+const props = withDefaults(defineProps<{ user: { name: string; avatar?: string | null }; size?: 'sm' | 'md' }>(), {
     size: 'md',
 });
 

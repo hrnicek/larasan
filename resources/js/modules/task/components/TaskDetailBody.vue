@@ -93,6 +93,7 @@ function toggleCompletion(): void {
                         :assignee="detail.task.assignee"
                         :members="members"
                         :editable="detail.can.update"
+                        variant="field"
                     />
                 </dd>
             </div>
