@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Plus } from '@lucide/vue';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
@@ -23,6 +24,7 @@ import type {
     TaskTag,
     TaskDetail,
 } from '@/modules/task/types';
+import { create as createTask } from '@/routes/tasks';
 
 /**
  * The project's own screen. The board arrives in Phase 090; until then the switcher is
@@ -170,33 +172,43 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="flex flex-col space-y-6">
+    <div class="flex flex-col">
         <Head :title="project.name" />
 
         <ProjectHeader :project="project" :view="view" :views="views" />
 
-        <FieldSortControl
-            v-if="list?.fields.length"
-            :project-id="project.id"
-            :view="view"
-            :fields="list.fields"
-            :sort="sort"
-        />
+        <!--
+            The toolbar: what this view is showing and how to change it, on one line above the
+            content. Adding comes first because it is the thing done most.
+        -->
+        <div class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+            <Link
+                v-if="creatable()"
+                :href="createTask({ query: { project: project.id } })"
+                class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+                <Plus class="size-4" />
+                Add task
+            </Link>
 
-        <TagFilter
-            :project-id="project.id"
-            :view="view"
-            :active="tags.active"
-            :available="tags.available"
-        />
+            <TagFilter
+                :project-id="project.id"
+                :view="view"
+                :active="tags.active"
+                :available="tags.available"
+            />
 
-        <div class="flex flex-col gap-6 md:flex-row md:items-start">
-            <!--
-                Below `md` the detail takes the screen: a panel next to a board on a phone is
-                two things that both need the width. From `md` up it sits beside the content,
-                which stays visible because that is the whole point of a panel.
-            -->
-            <div class="flex flex-1 flex-col space-y-6" :class="taskDetail ? 'hidden md:flex' : ''">
+            <FieldSortControl
+                v-if="list?.fields.length"
+                :project-id="project.id"
+                :view="view"
+                :fields="list.fields"
+                :sort="sort"
+            />
+        </div>
+
+        <div class="flex flex-col gap-6 px-4 pb-6 md:px-6">
+            <div class="flex flex-1 flex-col space-y-6">
         <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 

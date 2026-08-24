@@ -1,29 +1,68 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { CalendarDays, GanttChart, LayoutDashboard, LayoutGrid, List, Paperclip } from '@lucide/vue';
+import type { Component } from 'vue';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { show } from '@/routes/projects';
 
 /**
- * The view lives in the URL rather than in local state, so a reload and a shared link both
- * show what the sender saw. Each option is a real link for the same reason.
+ * The views a project has, and the ones it does not have yet.
+ *
+ * The view lives in the URL rather than in local state, so a reload and a shared link both show
+ * what the sender saw, and each option is a real link for the same reason.
+ *
+ * The four that are not built are **shown disabled with a reason** rather than hidden or, worse,
+ * linked to an empty screen. A tab that is absent reads as "this product does not do that"; a tab
+ * that is disabled and says why reads as "not yet", which is the truth.
  */
-defineProps<{
+const props = defineProps<{
     projectId: string;
     current: string;
     views: string[];
 }>();
+
+const icons: Record<string, Component> = {
+    list: List,
+    board: LayoutGrid,
+};
+
+const planned: { label: string; icon: Component }[] = [
+    { label: 'Timeline', icon: GanttChart },
+    { label: 'Calendar', icon: CalendarDays },
+    { label: 'Dashboard', icon: LayoutDashboard },
+    { label: 'Files', icon: Paperclip },
+];
+
+const isCurrent = (view: string): boolean => view === props.current;
 </script>
 
 <template>
-    <nav class="inline-flex rounded-md border p-0.5" aria-label="View">
+    <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="View">
         <Link
             v-for="view in views"
             :key="view"
             :href="show(projectId, { query: { view } }).url"
-            :aria-current="view === current ? 'page' : undefined"
-            class="rounded px-3 py-1 text-sm capitalize"
-            :class="view === current ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
+            :aria-current="isCurrent(view) ? 'page' : undefined"
+            class="inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 pt-1 pb-2.5 text-sm font-medium capitalize transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+            :class="
+                isCurrent(view)
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+            "
         >
+            <component :is="icons[view]" v-if="icons[view]" class="size-4" />
             {{ view }}
         </Link>
+
+        <Tooltip v-for="option in planned" :key="option.label">
+            <TooltipTrigger
+                disabled
+                class="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 border-b-2 border-transparent px-3 pt-1 pb-2.5 text-sm font-medium text-muted-foreground/50"
+            >
+                <component :is="option.icon" class="size-4" />
+                {{ option.label }}
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Not built yet</TooltipContent>
+        </Tooltip>
     </nav>
 </template>

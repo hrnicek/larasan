@@ -217,8 +217,12 @@ function onKeydown(event: KeyboardEvent): void {
             </PopoverContent>
         </Popover>
 
+        <!--
+            Only in the panel. In a list row the same control would repeat once per line, and a
+            column of little crosses reads as a column of dangers rather than as one affordance.
+        -->
         <button
-            v-if="assignee"
+            v-if="assignee && variant === 'field'"
             type="button"
             class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             :disabled="saving"
