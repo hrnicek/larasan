@@ -15,7 +15,6 @@ import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
-import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
     BoardColumnData,
@@ -264,6 +263,7 @@ onUnmounted(() => {
                 :loading="reloading"
                 :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
                 :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
+                :drop-target="drag.dropTarget.value"
                 :columns="columns"
                 class="w-full md:w-72"
                 :class="columnVisibility(index)"
@@ -284,8 +284,6 @@ onUnmounted(() => {
                 <button type="button" class="underline" @click="retry">Try again</button>
             </div>
 
-            <TaskListHeader v-if="list.sections.length" :fields="list.fields" />
-
             <div
                 v-if="list.sections.length"
                 ref="listElement"
@@ -303,6 +301,7 @@ onUnmounted(() => {
                     :project-id="project.id"
                     :fields="list?.fields"
                 :dragging-id="listDrag.draggingId.value"
+                :drop-target="listDrag.dropTarget.value"
                 :collapsed="isCollapsed(section.id)"
                     :loading="reloading"
                     @toggle="toggle"

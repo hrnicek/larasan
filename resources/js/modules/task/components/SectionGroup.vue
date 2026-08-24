@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import EmptyState from '@/components/EmptyState.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
+import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import type { TaskAssignee, TaskRowData, TaskSectionGroup } from '@/modules/task/types';
@@ -22,6 +23,11 @@ const props = defineProps<{
     loading: boolean;
     /** The row being dragged, so it can be drawn as picked up. */
     draggingId?: string | null;
+    /**
+     * Where a drop would land right now. Drawn as a line in the gap the row would take, because
+     * a list of rows the same height is exactly where "somewhere in here" is hardest to read.
+     */
+    dropTarget?: { key: string; before: string | null } | null;
     projectId: string;
     /** The project's field columns, passed through to each row (TASK-150-008). */
     fields?: { id: string; name: string; type: string }[];
@@ -34,6 +40,16 @@ const emit = defineEmits<{
 }>();
 
 const toggle = () => emit('toggle', props.section.id);
+
+/**
+ * Whether the line belongs in this gap: the pointer is over this section, and the row after the
+ * gap is the one the dragged card would sit above. `null` is the gap at the end.
+ */
+const isDropSlot = (placementId: string | null | undefined): boolean =>
+    props.dropTarget !== null
+    && props.dropTarget !== undefined
+    && props.dropTarget.key === (props.section.id ?? 'ungrouped')
+    && props.dropTarget.before === (placementId ?? null);
 </script>
 
 <template>
@@ -68,24 +84,33 @@ const toggle = () => emit('toggle', props.section.id);
 
         <!-- `data-column-key` is what the drag reads back from the pointer, exactly as a board
              column does: one implementation of what a move means, two views using it. -->
-        <div
-            v-else-if="!collapsed"
-            class="divide-y border-t"
-            :data-column-key="section.id ?? 'ungrouped'"
-        >
-            <TaskRow
-                v-for="(task, position) in section.tasks"
-                :key="task.placementId"
-                :task="task"
-                :index="position + 1"
-                :dragging="draggingId !== null && draggingId === task.placementId"
-                :members="members"
-                :priorities="priorities"
-                :editable="editable"
-                :fields="fields"
-                @open="(taskId) => emit('open', taskId)"
-                @pickup="(event, dragged) => emit('pickup', event, dragged)"
-            />
+        <div v-else-if="!collapsed" class="border-t">
+            <TaskListHeader v-if="section.tasks.length" :fields="fields" />
+
+            <div class="divide-y" :data-column-key="section.id ?? 'ungrouped'">
+            <template v-for="(task, position) in section.tasks" :key="task.placementId ?? task.id">
+                <div v-if="isDropSlot(task.placementId)" class="relative h-0">
+                    <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                </div>
+
+                <TaskRow
+                    :task="task"
+                    :index="position + 1"
+                    :dragging="draggingId !== null && draggingId === task.placementId"
+                    :members="members"
+                    :priorities="priorities"
+                    :editable="editable"
+                    :fields="fields"
+                    @open="(taskId) => emit('open', taskId)"
+                    @pickup="(event, dragged) => emit('pickup', event, dragged)"
+                />
+            </template>
+
+                <!-- The end of the section is a slot too, and the only one with no row after it. -->
+                <div v-if="isDropSlot(null)" class="relative h-0">
+                    <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                </div>
+            </div>
             <EmptyState
                 v-if="section.tasks.length === 0"
                 compact

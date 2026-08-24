@@ -27,6 +27,15 @@ const BOARD: DragSurface = { cardSelector: '[data-task-card]', reloadKey: 'board
 export type BoardDrag = {
     draggingId: Ref<string | null>;
     overColumn: Ref<string | null>;
+    /**
+     * Where the card would land if it were dropped now: the group under the pointer, and the
+     * placement it would sit **above** — `null` meaning the end of that group.
+     *
+     * Exposed so a view can draw the slot rather than only tint the column. "Somewhere in this
+     * column" is not an answer to "where am I putting this", and a list where every row is the
+     * same height is exactly where that question is hardest to answer by eye.
+     */
+    dropTarget: Ref<{ key: string; before: string | null } | null>;
     pickUp: (event: PointerEvent, card: BoardCardData) => void;
     /**
      * The request a drop makes, shared with the keyboard path so the two cannot disagree
@@ -82,6 +91,7 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 ) {
     const draggingId = ref<string | null>(null);
     const overColumn = ref<string | null>(null);
+    const dropTarget = ref<{ key: string; before: string | null } | null>(null);
 
     const find = (placementId: string): { column: C; index: number } | null => {
         for (const column of columns.value) {
@@ -181,6 +191,7 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
     return {
         draggingId,
         overColumn,
+        dropTarget,
         snapshot,
         moveTo: (placementId: string, columnKey: string): void => move(placementId, columnKey, null),
 
@@ -210,7 +221,11 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 
                 dragging = true;
                 draggingId.value = card.placementId ?? null;
-                overColumn.value = targetUnder(moved.clientX, moved.clientY)?.key ?? null;
+
+                const under = targetUnder(moved.clientX, moved.clientY);
+
+                overColumn.value = under?.key ?? null;
+                dropTarget.value = under;
             };
 
             const onUp = (up: PointerEvent): void => {
@@ -222,6 +237,7 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
                 dragging = false;
                 draggingId.value = null;
                 overColumn.value = null;
+                dropTarget.value = null;
 
                 if (!wasDragging) {
                     return;

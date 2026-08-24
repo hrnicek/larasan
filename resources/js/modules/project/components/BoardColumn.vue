@@ -8,7 +8,7 @@ import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
  * One column. It scrolls on its own, so a long column does not push the board's other columns
  * off the screen, and it says what it is not showing rather than pretending to be complete.
  */
-defineProps<{
+const props = defineProps<{
     column: BoardColumnData;
     projectId: string;
     editable: boolean;
@@ -16,8 +16,19 @@ defineProps<{
     loading: boolean;
     draggingId: string | null;
     over: boolean;
+    /** Where a drop would land right now, drawn as a line in the gap the card would take. */
+    dropTarget?: { key: string; before: string | null } | null;
     columns: BoardColumnData[];
 }>();
+
+/**
+ * Whether the line belongs in this gap: the pointer is over this column, and the card after the
+ * gap is the one the dragged card would sit above. `null` is the gap at the end.
+ */
+const isDropSlot = (placementId: string | null): boolean =>
+    props.dropTarget != null
+    && props.dropTarget.key === (props.column.id ?? 'ungrouped')
+    && props.dropTarget.before === placementId;
 
 const emit = defineEmits<{
     expand: [columnId: string | null];
@@ -47,17 +58,26 @@ const emit = defineEmits<{
                 :description="creatable ? 'Drop a card here, or add one below.' : undefined"
             />
 
-            <TaskCard
-                v-for="card in column.tasks"
-                :key="card.placementId"
-                :card="card"
-                :editable="editable"
-                :dragging="draggingId === card.placementId"
-                :columns="columns"
-                @pickup="(event, picked) => emit('pickup', event, picked)"
-                @moveto="(placementId, columnKey) => emit('moveto', placementId, columnKey)"
-                @open="(taskId) => emit('open', taskId)"
-            />
+            <template v-for="card in column.tasks" :key="card.placementId">
+                <div v-if="isDropSlot(card.placementId)" class="relative h-0">
+                    <span class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                </div>
+
+                <TaskCard
+                    :card="card"
+                    :editable="editable"
+                    :dragging="draggingId === card.placementId"
+                    :columns="columns"
+                    @pickup="(event, picked) => emit('pickup', event, picked)"
+                    @moveto="(placementId, columnKey) => emit('moveto', placementId, columnKey)"
+                    @open="(taskId) => emit('open', taskId)"
+                />
+            </template>
+
+            <!-- The end of the column is a slot too, and the only one with no card after it. -->
+            <div v-if="isDropSlot(null)" class="relative h-0">
+                <span class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary" aria-hidden="true" />
+            </div>
 
             <button
                 v-if="column.hasMore"
