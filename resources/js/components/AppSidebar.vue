@@ -1,24 +1,15 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import { BookOpen, Bell, CheckSquare, FolderGit2, LayoutGrid, Search as SearchIcon } from '@lucide/vue';
 import { computed } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
-import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import RealtimeStatus from '@/components/RealtimeStatus.vue';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-} from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar';
 import { useInboxRealtime } from '@/composables/useRealtime';
 import ProjectNavList from '@/modules/project/components/ProjectNavList.vue';
 import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
@@ -78,16 +69,6 @@ const footerNavItems: NavItem[] = [
     <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
             <WorkspaceSwitcher />
-
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton as-child>
-                        <Link :href="dashboard()">
-                            <AppLogo />
-                        </Link>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
-            </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent>
