@@ -8,6 +8,13 @@ use App\Http\Controllers\Task\TaskFollowerController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): void {
+    /*
+     * Declared before `tasks/{task}`: `create` is not a UUID, so `whereUuid('task')` would
+     * refuse it anyway — but reading the file in the order the router matches it is worth more
+     * than relying on that.
+     */
+    Route::get('tasks/create', [TaskController::class, 'create'])->name('tasks.create');
+
     // A task's own URL. The panel over a list is the list's URL plus `?task=`, because a
     // panel is a context plus a task and a copied link has to carry both (TASK-100-003).
     Route::get('tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');

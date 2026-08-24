@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Task;
 
 use App\Domain\Activity\Queries\TaskFeedQuery;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Section\Models\Section;
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\CompleteTask;
@@ -30,6 +34,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\DeferProp;
 use Inertia\Inertia;
 use Inertia\Response;
+use InertiaUI\Modal\Modal;
 
 /**
  * Tasks are created and edited in place — in a list, on a board, in the detail panel — so
@@ -82,6 +87,60 @@ class TaskController extends Controller
     private function activity(Task $task, User $actor): DeferProp
     {
         return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor));
+    }
+
+    /**
+     * The form behind every way of adding a task that is not a row in a list.
+     *
+     * A project is a required field here rather than an optional one, which is the difference
+     * between this and the inline row: the row already knows where it is, and somebody adding a
+     * task from the topbar has told us nothing yet. `project` and `section` prefill it when the
+     * caller knows them, and stay editable — a prefilled field the person cannot see is a field
+     * they will fight.
+     */
+    public function create(Request $request, VisibleProjectsForUser $visibleProjects): Modal
+    {
+        $workspace = $this->currentWorkspace($request);
+        $actor = $this->actor($request);
+
+        Gate::authorize(Capability::TaskCreate->value, $workspace);
+
+        /*
+         * Only the projects this person may add to. Visibility is not the question — being able
+         * to read a project is not being able to put work in it — so the policy decides each one
+         * after the query has narrowed them to the ones they can see at all.
+         */
+        $projects = $visibleProjects($workspace, $actor)
+            /*
+             * The workspace is handed to each project rather than loaded: the query is already
+             * scoped to this one, so every row belongs to it, and the policy below reads
+             * `$project->workspace` for each. Without this it is a lazy-load violation on the
+             * first row and an N+1 the moment the guard is off.
+             */
+            ->each(fn (Project $project) => $project->setRelation('workspace', $workspace))
+            ->filter(fn (Project $project): bool => $actor->can('createTask', $project))
+            ->values();
+
+        $selected = $projects->firstWhere('id', $request->string('project')->value());
+
+        return Inertia::modal('tasks/Create', [
+            'projects' => $projects
+                ->map(fn (Project $project): array => [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'color' => $project->color?->value,
+                ])
+                ->all(),
+            'project' => $selected?->id,
+            // Only the chosen project's columns, and only when one is chosen. A section list for
+            // a project nobody selected is a list of somewhere else's columns.
+            'sections' => $selected instanceof Project
+                ? $selected->sections()->orderBy('position')->get(['id', 'name'])
+                    ->map(fn (Section $section): array => ['id' => $section->id, 'name' => $section->name])
+                    ->all()
+                : [],
+            'section' => $request->string('section')->value() ?: null,
+        ])->baseRoute('dashboard');
     }
 
     public function store(StoreTaskRequest $request, CreateTask $createTask): RedirectResponse
