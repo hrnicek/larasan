@@ -3,7 +3,7 @@ import { Form, router } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import { accentTextClass } from '@/lib/accentColor';
+import { accentChipClass } from '@/lib/accentColor';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
@@ -138,8 +138,8 @@ defineExpose({ focus: () => row.value?.focus() });
             <span
                 v-for="tag in task.tags"
                 :key="tag.id"
-                class="rounded border border-input px-1 text-[0.65rem]"
-                :class="accentTextClass(tag.color)"
+                class="rounded px-1.5 py-0.5 text-[11px] font-medium"
+                :class="accentChipClass(tag.color)"
             >
                 {{ tag.name }}
             </span>

@@ -65,3 +65,24 @@ const accentTileClasses = {
 export function accentTileClass(color: string | null): string {
     return accentTileClasses[color as AccentColor] ?? accentTileClasses.slate;
 }
+
+/**
+ * The palette as a chip: a tinted pill carrying a word.
+ *
+ * Pastel rather than saturated, with the text a darker step of the same hue — a row of fully
+ * saturated pills competes with the task's own name, which is the thing the card exists to say.
+ */
+const accentChipClasses = {
+    slate: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
+    red: 'bg-red-500/15 text-red-700 dark:text-red-300',
+    amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    teal: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
+    sky: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+    violet: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+    rose: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+} as const;
+
+export function accentChipClass(color: string | null): string {
+    return accentChipClasses[color as AccentColor] ?? accentChipClasses.slate;
+}
