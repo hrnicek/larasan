@@ -6,6 +6,7 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import ConnectionBanner from '@/components/ConnectionBanner.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
 
@@ -42,6 +43,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown));
         <AppSidebar />
         <AppContent variant="sidebar" class="overflow-x-hidden">
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+            <ConnectionBanner />
             <slot />
         </AppContent>
         <Toaster />

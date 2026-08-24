@@ -89,12 +89,64 @@ it('never caches a page, a payload or anything a person is signed in to', functi
         '/icon-192.png',
         // Same shape as an asset, one directory up — the allow-list is anchored for this reason.
         '/uploads/build/assets/app-BpVLLJN2.js',
+        /*
+         * The fallback is precached by name on install and is *not* cacheable by this predicate.
+         * That is deliberate: it means the worker can never acquire it, or anything like it, from
+         * a response — only from the explicit `cache.add` in `install`.
+         */
+        '/offline.html',
     ];
 
     expect(cacheDecisions($forbidden))->each->toBeFalse();
 })->with([
     'a block-list is a list of the responses somebody thought of; this asserts the allow-list
     refuses the ones nobody did',
+]);
+
+it('answers a failed navigation with the shell rather than the browser error page', function (): void {
+    // The only document this worker holds. It is precached because the moment it is needed is the
+    // moment it cannot be fetched.
+    $worker = File::get(public_path('sw.js'));
+
+    expect($worker)->toContain("const OFFLINE = '/offline.html'")
+        ->toContain('cache.add(OFFLINE)')
+        // A navigation goes to the network every time; only its *failure* is answered from the
+        // cache. Storing the response instead is the thing the whole worker exists not to do.
+        ->toContain("request.mode === 'navigate'")
+        ->toContain('caches.match(OFFLINE)');
+
+    expect(File::exists(public_path('offline.html')))->toBeTrue();
+})->with([
+    'a fallback fetched at the moment it is needed is a fallback that never arrives',
+]);
+
+it('holds a fallback with nothing in it that belongs to anybody', function (): void {
+    /*
+     * This is what makes the one cached document defensible. TASK-190-008 wrote the rule as "never
+     * an HTML document"; the reason behind it was never the file type but the data — a cached page
+     * is one account's data served to whoever opens the browser next on a shared device. So the
+     * boundary is the data, and this asserts it: a constant that ships with the repository, with
+     * no request behind it and nothing personal in it.
+     */
+    $fallback = File::get(public_path('offline.html'));
+
+    expect($fallback)
+        // No Blade, so the server never renders anything into it.
+        ->not->toContain('{{')
+        ->not->toContain('@vite')
+        ->not->toContain('csrf')
+        // No Inertia payload, which is where a page's data would be.
+        ->not->toContain('data-page')
+        // Self-contained: a stylesheet or a script it had to fetch could not be fetched.
+        ->not->toContain('<link rel="stylesheet"')
+        ->not->toContain('<script src');
+
+    // It says what happened, and recovers on its own when the network returns.
+    expect($fallback)->toContain('No connection')
+        ->toContain("addEventListener('online'");
+})->with([
+    'the cached document has to be one nobody can be identified from, or the worker is caching a
+    page after all',
 ]);
 
 it('deletes the caches it no longer uses', function (): void {
@@ -104,6 +156,15 @@ it('deletes the caches it no longer uses', function (): void {
 
     expect($worker)->toContain("addEventListener('activate'")
         ->toContain('caches.delete');
+});
+
+it('bumps its cache version when the one unhashed file it holds can change', function (): void {
+    // Every other cached address carries a content hash, so a new build asks for a new address.
+    // `/offline.html` does not, which is the whole reason a version exists here at all.
+    $worker = File::get(public_path('sw.js'));
+
+    expect($worker)->toMatch("/const VERSION = 'v\d+'/")
+        ->toContain('const CACHE = `shell-${VERSION}`');
 });
 
 it('is not registered in development', function (): void {

@@ -1,9 +1,11 @@
 import { createInertiaApp } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
+import { initializeReachability } from '@/composables/useRealtime';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { initializeOfflineNotice } from '@/lib/offlineNotice';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -35,6 +37,10 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// This will watch whether the server can be reached, so the shell can say when it cannot...
+initializeReachability();
+initializeOfflineNotice();
 
 /*
  * The service worker caches the app shell — hashed build assets and fonts, never a page (see

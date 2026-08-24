@@ -108,6 +108,77 @@ export function useRealtimeConnection(): Readonly<Ref<RealtimeConnection>> {
     return readonly(connection);
 }
 
+/** Whether the server can be reached at all — a different question from what the socket is doing. */
+export type Reachability = 'online' | 'offline';
+
+/*
+ * The socket being down and the network being gone are not the same fact and must not be shown as
+ * one: Reverb can be stopped on a machine whose network is perfect, and every screen still works
+ * because every screen works by asking the server. So this is a second *signal* — but it lives
+ * here, beside the socket, because there is only one rule about coming back and it should not be
+ * written twice.
+ */
+const reachability = ref<Reachability>('online');
+
+let watchingNetwork = false;
+
+/**
+ * Whether the network is reachable, for the shell to say so.
+ *
+ * Two signals, because neither alone is the truth. `navigator.onLine` is false only when the
+ * device knows it has no network, which it reports instantly and never wrongly — but it is true on
+ * a wifi that reaches a router and nothing beyond it. Inertia's `networkError` is the opposite: it
+ * fires only after a request has actually failed, which is late but certain.
+ */
+export function useReachability(): Readonly<Ref<Reachability>> {
+    return readonly(reachability);
+}
+
+/**
+ * Bound once for the application, from `app.ts`.
+ *
+ * Recovery is a full reload rather than the partial reloads a socket reconnect performs. A socket
+ * reconnect knows it missed events on channels a region subscribed to; a network return knows
+ * nothing at all about how long it was away or what changed, and the honest answer to that is to
+ * ask for the page again.
+ */
+export function initializeReachability(): void {
+    if (watchingNetwork || typeof window === 'undefined') {
+        return;
+    }
+
+    watchingNetwork = true;
+    reachability.value = navigator.onLine ? 'online' : 'offline';
+
+    window.addEventListener('offline', () => {
+        reachability.value = 'offline';
+    });
+
+    window.addEventListener('online', () => {
+        if (reachability.value === 'online') {
+            return;
+        }
+
+        reachability.value = 'online';
+        router.reload();
+    });
+
+    /*
+     * A request that failed is better evidence than `navigator.onLine`, which cannot see a
+     * server that is simply unreachable. The event is not cancelled: Inertia also fires it for
+     * errors thrown while resolving a page component, and swallowing those would hide a bug
+     * behind a message about the network.
+     */
+    router.on('networkError', () => {
+        reachability.value = 'offline';
+    });
+
+    // Anything that arrives proves the way back is open, whatever `navigator.onLine` believes.
+    router.on('success', () => {
+        reachability.value = 'online';
+    });
+}
+
 /**
  * Realtime is collaboration transport, never the source of truth (ADR-0008). An event says
  * that something changed, so the client refetches the affected region and lets the server
