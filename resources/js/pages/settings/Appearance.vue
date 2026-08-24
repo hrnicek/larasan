@@ -2,30 +2,19 @@
 import { Head } from '@inertiajs/vue3';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
 import Heading from '@/components/Heading.vue';
-import { edit } from '@/routes/appearance';
 
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Appearance settings',
-                href: edit(),
-            },
-        ],
-    },
-});
 </script>
 
 <template>
-    <Head title="Appearance settings" />
+    <Head title="Appearance" />
 
-    <h1 class="sr-only">Appearance settings</h1>
+    <h1 class="sr-only">Appearance</h1>
 
     <div class="space-y-6">
         <Heading
             variant="small"
-            title="Appearance settings"
-            description="Update the appearance settings for your account"
+            title="Appearance"
+            description="Light, dark, or whatever this device prefers"
         />
         <AppearanceTabs />
     </div>

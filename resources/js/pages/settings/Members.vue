@@ -16,14 +16,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import type { WorkspaceMember } from '@/modules/workspace/types';
-// Aliased: the page's own `members` prop would otherwise shadow the route helper.
-import { members as membersRoute } from '@/routes/workspaces';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [{ title: 'Members', href: membersRoute() }],
-    },
-});
 
 const props = defineProps<{
     members: WorkspaceMember[];

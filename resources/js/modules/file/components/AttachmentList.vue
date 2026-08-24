@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
+import { Paperclip, Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -76,23 +77,34 @@ const remove = (): void => {
     <section class="flex flex-col gap-2">
         <h3 class="text-xs text-muted-foreground">Attachments</h3>
 
-        <ul v-if="attachments.length" class="flex flex-col gap-1 text-sm">
-            <li v-for="attachment in attachments" :key="attachment.id" class="flex items-baseline gap-2">
-                <a :href="AttachmentController.download.url(attachment.id)" class="truncate underline">
+        <ul v-if="attachments.length" class="flex flex-col gap-0.5 text-sm">
+            <li
+                v-for="attachment in attachments"
+                :key="attachment.id"
+                class="group/file flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/40"
+            >
+                <Paperclip class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+
+                <a
+                    :href="AttachmentController.download.url(attachment.id)"
+                    class="truncate hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                >
                     {{ attachment.name }}
                 </a>
-                <span class="text-xs text-muted-foreground">{{ sizeOf(attachment.size) }}</span>
-                <span v-if="attachment.uploader" class="text-xs text-muted-foreground">
+
+                <span class="shrink-0 text-xs text-muted-foreground">{{ sizeOf(attachment.size) }}</span>
+                <span v-if="attachment.uploader" class="truncate text-xs text-muted-foreground">
                     {{ attachment.uploader.name }}
                 </span>
 
                 <button
                     v-if="attachment.canDelete"
                     type="button"
-                    class="ml-auto text-xs text-muted-foreground underline"
+                    class="ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:opacity-0 md:group-hover/file:opacity-100"
+                    :aria-label="`Remove ${attachment.name}`"
                     @click="removing = attachment"
                 >
-                    Remove
+                    <X class="size-4" />
                 </button>
             </li>
         </ul>
@@ -100,15 +112,29 @@ const remove = (): void => {
         <p v-else class="text-sm text-muted-foreground">No attachments.</p>
 
         <!-- Hidden rather than disabled where somebody may not upload: an affordance that leads
-             nowhere is worse than none, and the server refuses either way. -->
+             nowhere is worse than none, and the server refuses either way.
+
+             The input itself is the hidden half of the control. A bare file input draws the
+             browser's own text — in the reader's locale, not the application's — beside a button
+             nobody styled; the label is the button, and it says what it does. -->
         <template v-if="canAttach">
-            <input
-                ref="input"
-                type="file"
-                :disabled="form.processing"
-                class="text-xs text-muted-foreground file:mr-2 file:rounded file:border file:border-input file:bg-transparent file:px-2 file:py-1 file:text-xs"
-                @change="upload"
-            />
+            <div class="flex items-center gap-2">
+                <label
+                    class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] font-medium transition-colors hover:bg-accent focus-within:ring-2 focus-within:ring-primary-ring"
+                    :class="form.processing ? 'pointer-events-none opacity-60' : ''"
+                >
+                    <Plus class="size-4" aria-hidden="true" />
+                    {{ form.processing ? 'Uploading…' : 'Add file' }}
+
+                    <input
+                        ref="input"
+                        type="file"
+                        :disabled="form.processing"
+                        class="sr-only"
+                        @change="upload"
+                    />
+                </label>
+            </div>
 
             <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
         </template>

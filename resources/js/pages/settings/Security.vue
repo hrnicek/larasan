@@ -10,7 +10,6 @@ import ManageTwoFactor from '@/components/ManageTwoFactor.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/security';
 
 type Props = {
     passwordRules: string;
@@ -18,17 +17,6 @@ type Props = {
     ManageTwoFactorProps;
 
 const props = defineProps<Props>();
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Security settings',
-                href: edit(),
-            },
-        ],
-    },
-});
 </script>
 
 <template>

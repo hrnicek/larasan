@@ -7,18 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { WorkspaceAbilities, WorkspaceSettings } from '@/modules/workspace/types';
-import { edit } from '@/routes/workspaces';
-
-defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Workspace settings',
-                href: edit(),
-            },
-        ],
-    },
-});
 
 defineProps<{
     workspace: WorkspaceSettings;

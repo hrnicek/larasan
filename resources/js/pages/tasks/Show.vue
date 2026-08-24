@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { useRealtime } from '@/composables/useRealtime';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+import { index as myTasks } from '@/routes/my-tasks';
+import { show as showProject } from '@/routes/projects';
 
 /**
  * A task's own page: the same component the panel renders, with nothing to close to.
@@ -30,6 +33,19 @@ useRealtime({
     },
 });
 
+/**
+ * Where this page leads back to. A task opened from a link has no screen behind it, and the
+ * project it lives in is the one place that lists it; a task in none of them is only ever
+ * reachable from My Tasks, so that is where it points instead.
+ */
+const back = (): { url: string; label: string } => {
+    const placement = props.placements[0];
+
+    return placement === undefined
+        ? { url: myTasks().url, label: 'My Tasks' }
+        : { url: showProject(placement.project.id).url, label: placement.project.name };
+};
+
 const detail = (): TaskDetail => ({
     task: props.task,
     placements: props.placements,
@@ -52,6 +68,14 @@ const detail = (): TaskDetail => ({
         <!-- The task is what this page is. The panel renders the title as a field, which is
              a control rather than a heading. -->
         <h1 class="sr-only">{{ task.title }}</h1>
+
+        <Link
+            :href="back().url"
+            class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+        >
+            <ArrowLeft class="size-4" aria-hidden="true" />
+            {{ back().label }}
+        </Link>
 
         <TaskDetailBody
             :detail="detail()"

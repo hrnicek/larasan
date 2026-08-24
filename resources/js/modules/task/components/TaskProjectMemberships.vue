@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { X } from '@lucide/vue';
 import { ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
-import ProjectPlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     DropdownMenu,
@@ -32,7 +32,7 @@ const attach = (projectId: string): void => {
     working.value = true;
 
     router.post(
-        ProjectPlacementController.store.url(projectId),
+        PlacementController.store.url(projectId),
         { task: props.taskId },
         { preserveScroll: true, preserveState: true, onFinish: () => {
  working.value = false; 
@@ -69,21 +69,25 @@ const detach = (): void => {
     <section>
         <h3 class="mb-1 text-xs text-muted-foreground">Projects</h3>
 
-        <ul v-if="placements.length" class="flex flex-col gap-1 text-sm">
-            <li v-for="placement in placements" :key="placement.placementId" class="flex items-center gap-2">
-                <span>{{ placement.project.name }}</span>
-                <span class="text-muted-foreground">· {{ placement.section?.name ?? 'No section' }}</span>
+        <ul v-if="placements.length" class="flex flex-col gap-0.5 text-sm">
+            <li
+                v-for="placement in placements"
+                :key="placement.placementId"
+                class="group/placement flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/40"
+            >
+                <span class="truncate">{{ placement.project.name }}</span>
+                <span class="truncate text-muted-foreground">· {{ placement.section?.name ?? 'No section' }}</span>
 
                 <button
                     v-if="editable && placement.canDetach"
                     type="button"
-                    class="ml-auto inline-flex min-h-11 items-center md:min-h-6 rounded px-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    class="ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:opacity-0 md:group-hover/placement:opacity-100"
                     :disabled="working"
                     :aria-label="`Remove from ${placement.project.name}`"
                     :title="placements.length === 1 ? 'This is the last project — the task will only be reachable from My Tasks and search.' : undefined"
                     @click="detaching = { placementId: placement.placementId, name: placement.project.name }"
                 >
-                    Remove
+                    <X class="size-4" />
                 </button>
             </li>
         </ul>
