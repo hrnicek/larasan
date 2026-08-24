@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
 import { useRealtime } from '@/composables/useRealtime';
-import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
@@ -46,16 +46,15 @@ const detail = (): TaskDetail => ({
 </script>
 
 <template>
-    <div class="mx-auto flex w-full max-w-3xl flex-col gap-4">
+    <div class="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-8 md:px-6">
         <Head :title="task.title" />
 
         <!-- The task is what this page is. The panel renders the title as a field, which is
              a control rather than a heading. -->
         <h1 class="sr-only">{{ task.title }}</h1>
 
-        <TaskDetailPanel
+        <TaskDetailBody
             :detail="detail()"
-            :dismissible="false"
             :members="members"
             :priorities="priorities"
             :activity="activity"

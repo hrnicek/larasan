@@ -1,29 +1,23 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { Maximize2, PanelRightClose } from '@lucide/vue';
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
-import CustomFieldList from '@/modules/custom-field/components/CustomFieldList.vue';
-import AttachmentList from '@/modules/file/components/AttachmentList.vue';
-import TaskTags from '@/modules/tag/components/TaskTags.vue';
-import ActivityFeed from '@/modules/task/components/ActivityFeed.vue';
-import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
-import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
-import FollowerList from '@/modules/task/components/FollowerList.vue';
-import PriorityControl from '@/modules/task/components/PriorityControl.vue';
-import SubtaskList from '@/modules/task/components/SubtaskList.vue';
-import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
-import TaskTextField from '@/modules/task/components/TaskTextField.vue';
+import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+import { show } from '@/routes/tasks';
 
 /**
- * One task, rendered the same way whether it is a panel over a list or a page of its own.
- * Two components would drift, and the second would be the one nobody tests.
+ * The task detail as an overlay panel: over the content, under the topbar, with the rest of the
+ * application dimmed behind it.
+ *
+ * The task itself is `TaskDetailBody`, which the task's own page renders too — one component in
+ * both places, so neither can drift. What lives here is only what an overlay owes: a way out, a
+ * way to make it a page, a focus trap and the place you came from.
  */
-const props = defineProps<{
+defineProps<{
     detail: TaskDetail;
     /** Deferred: absent until the follow-up request lands (TASK-100-011). */
     activity?: TaskFeed;
-    /** A panel can be closed; a page has nowhere to close to. */
-    dismissible: boolean;
     members: TaskAssignee[];
     priorities: string[];
 }>();
@@ -39,20 +33,14 @@ const panel = ref<HTMLElement | null>(null);
  */
 let restoreFocusToTask: string | null = null;
 
-const close = (): void => {
-    if (props.dismissible) {
-        emit('close');
-    }
-};
-
 /**
- * `Tab` cycles inside the panel while it is open, and `Esc` closes it. A panel you can tab
- * out of is a panel that loses your place in the list behind it.
+ * `Tab` cycles inside the panel while it is open, and `Esc` closes it. A panel you can tab out
+ * of is a panel that loses your place in the list behind it.
  */
 const onKeydown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
         event.preventDefault();
-        close();
+        emit('close');
 
         return;
     }
@@ -89,17 +77,20 @@ const onKeydown = (event: KeyboardEvent): void => {
 };
 
 onMounted(() => {
-    if (!props.dismissible) {
-        return;
-    }
-
-    const origin = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-task-id]');
+    const origin = (
+        document.activeElement as HTMLElement | null
+    )?.closest<HTMLElement>('[data-task-id]');
 
     restoreFocusToTask = origin?.dataset.taskId ?? null;
     panel.value?.focus();
+
+    // The page behind the panel must not scroll under it; the panel scrolls on its own.
+    document.body.style.overflow = 'hidden';
 });
 
 onUnmounted(() => {
+    document.body.style.overflow = '';
+
     if (restoreFocusToTask === null) {
         return;
     }
@@ -107,142 +98,66 @@ onUnmounted(() => {
     // Back to the row or card the panel was opened from: the keyboard equivalent of not
     // losing your place.
     void nextTick(() => {
-        document.querySelector<HTMLElement>(`[data-task-id="${restoreFocusToTask}"]`)?.focus();
+        document
+            .querySelector<HTMLElement>(
+                `[data-task-id="${restoreFocusToTask}"]`,
+            )
+            ?.focus();
     });
 });
-
-defineExpose({ close });
 </script>
 
 <template>
-    <section
-        ref="panel"
-        tabindex="-1"
-        class="flex flex-col gap-4 rounded-lg border bg-card p-4 outline-none"
-        :role="dismissible ? 'dialog' : undefined"
-        :aria-modal="dismissible ? 'true' : undefined"
-        :aria-label="detail.task.title"
-        @keydown="onKeydown"
-    >
-        <header class="flex items-start justify-between gap-3">
-            <div class="flex flex-col gap-1">
-                <Link
-                    v-if="detail.task.parent"
-                    :href="`/tasks/${detail.task.parent.id}`"
-                    class="text-xs text-muted-foreground hover:text-foreground"
-                >
-                    ↑ {{ detail.task.parent.title }}
-                </Link>
-                <TaskTextField
-                    :task-id="detail.task.id"
-                    field="title"
-                    :value="detail.task.title"
-                    :editable="detail.can.update"
-                    placeholder="Task name"
-                />
-            </div>
-
-            <button
-                v-if="dismissible"
-                type="button"
-                class="rounded px-2 text-sm text-muted-foreground hover:text-foreground"
-                aria-label="Close"
-                @click="close"
-            >
-                ✕
-            </button>
-        </header>
-
-        <dl class="grid grid-cols-2 gap-2 text-sm">
-            <div>
-                <dt class="text-xs text-muted-foreground">Assignee</dt>
-                <dd>
-                    <!-- The same components the list row uses, not second copies of them. -->
-                    <AssigneePicker
-                        :task-id="detail.task.id"
-                        :assignee="detail.task.assignee"
-                        :members="members"
-                        :editable="detail.can.update"
-                    />
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Due</dt>
-                <dd>
-                    <DueDatePicker
-                        :task-id="detail.task.id"
-                        :due-at="detail.task.dueAt"
-                        :editable="detail.can.update"
-                    />
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Priority</dt>
-                <dd>
-                    <PriorityControl
-                        :task-id="detail.task.id"
-                        :priority="detail.task.priority"
-                        :priorities="priorities"
-                        :editable="detail.can.update"
-                    />
-                </dd>
-            </div>
-            <div>
-                <dt class="text-xs text-muted-foreground">Created by</dt>
-                <dd>{{ detail.task.creator?.name ?? '—' }}</dd>
-            </div>
-        </dl>
-
-        <section>
-            <h3 class="mb-1 text-xs text-muted-foreground">Description</h3>
-            <TaskTextField
-                :task-id="detail.task.id"
-                field="description"
-                :value="detail.task.description"
-                :editable="detail.can.update"
-                :multiline="true"
-                placeholder="No description yet."
+    <Teleport to="body">
+        <!--
+            Anchored below the topbar rather than over it: the topbar is where you get out of the
+            task and into anything else, and a panel that covers it is a panel with one exit.
+        -->
+        <div class="fixed inset-x-0 top-13 bottom-0 z-40">
+            <div
+                class="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+                @click="emit('close')"
             />
-        </section>
 
-        <TaskProjectMemberships
-            :task-id="detail.task.id"
-            :placements="detail.placements"
-            :available-projects="detail.availableProjects"
-            :editable="detail.can.update"
-        />
+            <section
+                ref="panel"
+                tabindex="-1"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="detail.task.title"
+                class="absolute inset-x-0 bottom-0 flex h-[88%] flex-col overflow-hidden rounded-t-xl border border-border bg-background shadow-2xl outline-none md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-[86%] md:rounded-t-none md:rounded-l-xl lg:w-[64%] xl:w-[55%]"
+                @keydown="onKeydown"
+            >
+                <header
+                    class="flex h-12 shrink-0 items-center justify-end gap-1 border-b border-border px-2"
+                >
+                    <Link
+                        :href="show(detail.task.id)"
+                        class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                        aria-label="Open as a full page"
+                    >
+                        <Maximize2 class="size-4" />
+                    </Link>
 
-        <FollowerList
-            :task-id="detail.task.id"
-            :followers="detail.followers"
-            :following="detail.following"
-        />
+                    <button
+                        type="button"
+                        class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                        aria-label="Close"
+                        @click="emit('close')"
+                    >
+                        <PanelRightClose class="size-4" />
+                    </button>
+                </header>
 
-        <SubtaskList
-            :parent-id="detail.task.id"
-            :subtasks="detail.subtasks"
-            :editable="detail.can.update"
-        />
-
-        <CustomFieldList
-            :task-id="detail.task.id"
-            :fields="detail.customFields"
-            :editable="detail.can.update"
-        />
-
-        <TaskTags
-            :task-id="detail.task.id"
-            :tags="detail.tags"
-            :available="detail.availableTags"
-            :editable="detail.can.update"
-        />
-
-        <AttachmentList
-            :task-id="detail.task.id"
-            :attachments="detail.attachments"
-            :can-attach="detail.can.attach"
-        />
-
-        <ActivityFeed :task-id="detail.task.id" :feed="activity" :can-comment="detail.can.comment" />
-    </section>
+                <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                    <TaskDetailBody
+                        :detail="detail"
+                        :activity="activity"
+                        :members="members"
+                        :priorities="priorities"
+                    />
+                </div>
+            </section>
+        </div>
+    </Teleport>
 </template>
