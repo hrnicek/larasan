@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Project;
 
+use App\Concerns\OpensTaskPanel;
 use App\Domain\Project\Actions\ArchiveProject;
 use App\Domain\Project\Actions\CreateProject;
 use App\Domain\Project\Actions\UpdateProject;
@@ -18,9 +19,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectVisibility;
-use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Tag\Models\Tag;
-use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
@@ -28,7 +27,6 @@ use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Project\ShowProjectRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -38,6 +36,8 @@ use InertiaUI\Modal\Modal;
 
 class ProjectController extends Controller
 {
+    use OpensTaskPanel;
+
     public function index(Request $request, VisibleProjectsForUser $visibleProjects): Response
     {
         $workspace = $this->currentWorkspace($request);
@@ -106,7 +106,7 @@ class ProjectController extends Controller
 
         $view = $request->view($project);
         $actor = $this->actor($request);
-        $open = $this->openTask($request, $project, $actor, $detail);
+        $open = $this->openTaskPanel($request, $project->workspace, $actor, $detail);
 
         return Inertia::render('projects/Show', [
             'project' => [
@@ -158,61 +158,13 @@ class ProjectController extends Controller
                     ->all(),
             ],
             'views' => array_column(ProjectDefaultView::cases(), 'value'),
-            // The enum's own cases, so a priority added later appears in the row's control
-            // without a second list to remember.
-            'priorities' => array_column(TaskPriority::cases(), 'value'),
             /*
-             * Who a card can be handed to. Active members only — an invitation that has not
-             * been accepted is not somebody who can be given work (TASK-060-012) — and the
-             * server sends the list rather than the client filtering one it fetched.
+             * The panel, the priorities its control offers and who a card can be handed to.
+             * Four props, sent identically by every screen that can open a panel, from the one
+             * place that knows what they are.
              */
-            /*
-             * The panel, when the URL says one is open. `null` rather than absent, so the
-             * client can tell "no panel" from "not sent this time" on a partial reload.
-             */
-            'taskDetail' => $open,
-            /*
-             * Deferred with the panel, and only when there is one. The same region the task's
-             * own page defers (TASK-100-011): secondary, possibly slow, and never worth
-             * holding the board back for.
-             */
-            'activity' => $open === null ? null : Inertia::defer(fn (): array => []),
-            'members' => $project->workspace->members()->orderBy('name')->get()
-                ->map(fn (User $member): array => [
-                    'id' => $member->id,
-                    'name' => $member->name,
-                    'email' => $member->email,
-                    'avatar' => null,
-                ])
-                ->values()
-                ->all(),
+            ...$this->taskPanelProps($project->workspace, $open),
         ]);
-    }
-
-    /**
-     * The task whose panel is open, if the URL names one the actor may read.
-     *
-     * Resolved inside the workspace and then through the policy, exactly as `tasks.show`
-     * does: a panel is not a way around the rule that a task in a project somebody was never
-     * given is not theirs to read (TASK-070-017).
-     *
-     * @return array<string, mixed>|null
-     */
-    private function openTask(ShowProjectRequest $request, Project $project, User $actor, TaskDetailQuery $detail): ?array
-    {
-        $id = $request->openTask();
-
-        if ($id === null) {
-            return null;
-        }
-
-        $task = $project->workspace->tasks()->whereKey($id)->first();
-
-        if (! $task instanceof Task || $actor->cannot('view', $task)) {
-            abort(404);
-        }
-
-        return $detail($task, $actor);
     }
 
     public function edit(Request $request, Project $project): Response

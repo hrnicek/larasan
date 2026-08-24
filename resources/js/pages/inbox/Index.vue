@@ -3,6 +3,9 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import type { InboxNotification } from '@/modules/notification/types';
+import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
+import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
  * What is waiting for this person, here.
@@ -13,6 +16,12 @@ import type { InboxNotification } from '@/modules/notification/types';
 const props = defineProps<{
     notifications: InboxNotification[];
     meta: { page: number; perPage: number; total: number; hasMore: boolean; unread: number };
+    /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
+    taskDetail?: TaskDetail | null;
+    /** Deferred with the panel: absent until the follow-up request lands. */
+    activity?: TaskFeed;
+    members: TaskAssignee[];
+    priorities: string[];
 }>();
 
 defineOptions({
@@ -43,30 +52,41 @@ const sentence = (notification: InboxNotification): string => {
     }
 };
 
+const { open: openTask, close: closeTask } = useTaskPanel();
+
 /**
- * Clicking a line marks it read and goes to it. Read state is the server's answer, so the row
- * is not ticked off locally — the visit that follows re-renders it from what came back.
+ * Clicking a line marks it read and opens what it is about. Read state is the server's answer,
+ * so the row is not ticked off locally — the visit that follows re-renders it from what came
+ * back.
+ *
+ * The subject opens as a panel over the Inbox rather than as its own page: somebody working
+ * through a list of notifications is working through a list, and reading one should not cost
+ * them their place in it. Reachability is still the server's `url` — null where this reader can
+ * no longer follow it — and the client never decides that for itself.
  */
 const openNotification = (notification: InboxNotification): void => {
-    const destination = notification.subject?.url ?? null;
+    const subject = notification.subject;
+    const reachable = subject !== null && subject.url !== null;
+
+    const show = (): void => {
+        if (!reachable) {
+            return;
+        }
+
+        openTask(subject.id);
+    };
 
     if (!notification.read) {
         router.put(InboxController.read.url(notification.id), {}, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => {
-                if (destination !== null) {
-                    router.get(destination);
-                }
-            },
+            onSuccess: show,
         });
 
         return;
     }
 
-    if (destination !== null) {
-        router.get(destination);
-    }
+    show();
 };
 
 const markAllRead = (): void => {
@@ -151,5 +171,15 @@ const loadMore = (): void => {
         >
             {{ loading ? 'Loading…' : 'Load more' }}
         </button>
+
+        <TaskDetailPanel
+            v-if="taskDetail"
+            :key="taskDetail.task.id"
+            :detail="taskDetail"
+            :members="members"
+            :priorities="priorities"
+            :activity="activity"
+            @close="closeTask"
+        />
     </div>
 </template>

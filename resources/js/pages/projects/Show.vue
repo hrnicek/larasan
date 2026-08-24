@@ -13,6 +13,7 @@ import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
     BoardColumnData,
     ProjectBoard,
@@ -81,40 +82,7 @@ const creatable = () => (props.board ?? props.list)?.can.createTask === true;
  * copied link reopens the same board with the same task; back closes it; forward reopens it.
  * The visit is partial — only `taskDetail` — so the list or board behind it is not re-read.
  */
-/*
- * Whether the panel was opened from this screen or entered by its address. Closing has to answer
- * two different questions: "go back to where I was" and "there is no back — take the panel off
- * this page". `history.back()` for the second walks out of the application entirely.
- */
-const openedFromHere = ref(false);
-
-const urlWithoutTask = (): string => {
-    const url = new URL(window.location.href);
-
-    url.searchParams.delete('task');
-
-    return `${url.pathname}${url.search}`;
-};
-
-const openTask = (taskId: string): void => {
-    openedFromHere.value = true;
-
-    router.get(
-        `${window.location.pathname}${window.location.search.replace(/([?&])task=[^&]*/, '$1').replace(/[?&]$/, '')}`,
-        { ...Object.fromEntries(new URLSearchParams(window.location.search)), task: taskId },
-        { only: ['taskDetail'], preserveState: true, preserveScroll: true },
-    );
-};
-
-const closeTask = (): void => {
-    if (openedFromHere.value) {
-        window.history.back();
-
-        return;
-    }
-
-    router.get(urlWithoutTask(), {}, { only: ['taskDetail'], preserveState: true, preserveScroll: true, replace: true });
-};
+const { open: openTask, close: closeTask } = useTaskPanel();
 
 const drag = useBoardDragAndDrop(columns, () => editable());
 

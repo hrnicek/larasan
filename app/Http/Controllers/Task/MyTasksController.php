@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Task;
 
+use App\Concerns\OpensTaskPanel;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\MyTasksTab;
 use App\Domain\Task\Queries\MyTasksQuery;
+use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -22,7 +24,9 @@ use Inertia\Response;
  */
 class MyTasksController extends Controller
 {
-    public function index(Request $request, MyTasksQuery $myTasks): Response
+    use OpensTaskPanel;
+
+    public function index(Request $request, MyTasksQuery $myTasks, TaskDetailQuery $detail): Response
     {
         $workspace = ResolveCurrentWorkspace::from($request);
         $actor = $this->actor($request);
@@ -42,6 +46,13 @@ class MyTasksController extends Controller
                 // it is one this person was given.
                 'updateTask' => $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true,
             ],
+            /*
+             * A row here opens the same panel the project screen opens, at this screen's own
+             * address. Reach is still asked for: being assigned a task is not the same as being
+             * able to read it, and a task can be unassigned or moved out of somebody's projects
+             * while their tab is still open.
+             */
+            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
         ]);
     }
 }

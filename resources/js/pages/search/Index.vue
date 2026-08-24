@@ -2,8 +2,9 @@
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
-import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import type { MyTaskRow, TaskAssignee } from '@/modules/task/types';
+import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
+import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
  * Finding work.
@@ -18,6 +19,11 @@ const props = defineProps<{
     filters: { project?: string; assignee?: number; completed?: boolean };
     projects: { id: string; name: string }[];
     members: TaskAssignee[];
+    /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
+    taskDetail?: TaskDetail | null;
+    /** Deferred with the panel: absent until the follow-up request lands. */
+    activity?: TaskFeed;
+    priorities: string[];
 }>();
 
 defineOptions({
@@ -94,9 +100,12 @@ const filterBy = (key: 'project' | 'assignee' | 'completed', value: string): voi
     router.get(SearchController.index.url({ query: params }));
 };
 
-const open = (taskId: string): void => {
-    router.get(TaskController.show.url(taskId));
-};
+/*
+ * A result opens the panel at this screen's address, so the term, the filters and the page are
+ * still there behind it — and still there when it closes. A search somebody has to retype after
+ * reading one result is a search they run once.
+ */
+const { open, close: closeTask } = useTaskPanel();
 </script>
 
 <template>
@@ -181,5 +190,15 @@ const open = (taskId: string): void => {
         >
             Load more
         </button>
+
+        <TaskDetailPanel
+            v-if="taskDetail"
+            :key="taskDetail.task.id"
+            :detail="taskDetail"
+            :members="members"
+            :priorities="priorities"
+            :activity="activity"
+            @close="closeTask"
+        />
     </div>
 </template>

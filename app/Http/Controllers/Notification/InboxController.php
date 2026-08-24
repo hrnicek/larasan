@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Notification;
 
+use App\Concerns\OpensTaskPanel;
 use App\Domain\Notification\Actions\MarkInboxRead;
 use App\Domain\Notification\Actions\MarkNotificationRead;
 use App\Domain\Notification\Queries\InboxQuery;
+use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -24,7 +26,9 @@ use Inertia\Response;
  */
 class InboxController extends Controller
 {
-    public function index(Request $request, InboxQuery $inbox): Response
+    use OpensTaskPanel;
+
+    public function index(Request $request, InboxQuery $inbox, TaskDetailQuery $detail): Response
     {
         $workspace = ResolveCurrentWorkspace::from($request);
 
@@ -33,8 +37,17 @@ class InboxController extends Controller
         }
 
         $page = max(1, (int) $request->query('page', '1'));
+        $actor = $this->actor($request);
 
-        return Inertia::render('inbox/Index', $inbox($workspace, $this->actor($request), $page));
+        return Inertia::render('inbox/Index', [
+            ...$inbox($workspace, $actor, $page),
+            /*
+             * A line that leads to a task opens it here rather than sending somebody away from
+             * the list they are working through — which is the whole reason the panel has an
+             * address of its own.
+             */
+            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
+        ]);
     }
 
     /**

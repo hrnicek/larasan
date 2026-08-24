@@ -2,9 +2,10 @@
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
-import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
+import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
-import type { MyTaskRow } from '@/modules/task/types';
+import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
+import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
  * What this person is responsible for, in the workspace they are standing in.
@@ -19,6 +20,12 @@ const props = defineProps<{
     tabs: string[];
     meta: { tab: string; page: number; perPage: number; total: number; hasMore: boolean };
     can: { updateTask: boolean };
+    /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
+    taskDetail?: TaskDetail | null;
+    /** Deferred with the panel: absent until the follow-up request lands. */
+    activity?: TaskFeed;
+    members: TaskAssignee[];
+    priorities: string[];
 }>();
 
 defineOptions({
@@ -90,9 +97,12 @@ const loadMore = (): void => {
     reloadList(props.meta.tab, props.meta.page + 1);
 };
 
-const open = (taskId: string): void => {
-    router.get(TaskController.show.url(taskId));
-};
+/*
+ * A row opens the panel here rather than navigating to the task's own page: the tab, the page and
+ * the rows appended to it are the reader's place in a list, and leaving the screen to read one
+ * task throws all three away.
+ */
+const { open, close: closeTask } = useTaskPanel();
 </script>
 
 <template>
@@ -121,8 +131,8 @@ const open = (taskId: string): void => {
             <li v-for="task in rows" :key="task.id" class="flex flex-col">
                 <TaskRow
                     :task="task"
-                    :members="[]"
-                    :priorities="[]"
+                    :members="members"
+                    :priorities="priorities"
                     :editable="can.updateTask"
                     @open="open"
                 />
@@ -146,5 +156,15 @@ const open = (taskId: string): void => {
         >
             {{ loading ? 'Loading…' : 'Load more' }}
         </button>
+
+        <TaskDetailPanel
+            v-if="taskDetail"
+            :key="taskDetail.task.id"
+            :detail="taskDetail"
+            :members="members"
+            :priorities="priorities"
+            :activity="activity"
+            @close="closeTask"
+        />
     </div>
 </template>

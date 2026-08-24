@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Search;
 
+use App\Concerns\OpensTaskPanel;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Search\Queries\SearchTasksQuery;
+use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Search\SearchRequest;
-use App\Models\User;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,7 +22,9 @@ use Inertia\Response;
  */
 class SearchController extends Controller
 {
-    public function index(SearchRequest $request, SearchTasksQuery $search, VisibleProjectsForUser $projects): Response
+    use OpensTaskPanel;
+
+    public function index(SearchRequest $request, SearchTasksQuery $search, VisibleProjectsForUser $projects, TaskDetailQuery $detail): Response
     {
         $workspace = ResolveCurrentWorkspace::from($request);
 
@@ -45,15 +48,13 @@ class SearchController extends Controller
                 ])
                 ->values()
                 ->all(),
-            'members' => $workspace->members()->orderBy('name')->get()
-                ->map(fn (User $member): array => [
-                    'id' => $member->id,
-                    'name' => $member->name,
-                    'email' => $member->email,
-                    'avatar' => null,
-                ])
-                ->values()
-                ->all(),
+            /*
+             * A result opens the panel at this screen's own address, so the search — the term,
+             * the filters, the page — is still there behind it and still there when it closes.
+             * `members` comes from here too, which is why the list this screen used to build
+             * itself is gone: one place, four screens.
+             */
+            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
         ]);
     }
 }
