@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckSquare, MessageSquare, MoveRight, TriangleAlert } from '@lucide/vue';
+import { CheckSquare, MessageSquare, MoveRight, TriangleAlert, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
 import {
     DropdownMenu,
@@ -92,11 +92,16 @@ const dueLabel = computed<string>(() =>
 
         <div class="mt-2.5 flex items-center gap-2.5 text-xs text-muted-foreground">
             <UserAvatar v-if="card.assignee" :user="card.assignee" size="sm" />
+            <!-- Unassigned says so with the same silhouette the list uses. An empty dashed box
+                 reads as something that failed to load. -->
             <span
                 v-else
-                class="size-6 shrink-0 rounded-md border border-dashed border-muted-foreground/40"
-                aria-hidden="true"
-            />
+                class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/40"
+                title="Unassigned"
+            >
+                <UserRound class="size-3.5 text-muted-foreground/60" aria-hidden="true" />
+                <span class="sr-only">Unassigned</span>
+            </span>
 
             <span
                 v-if="dueLabel"

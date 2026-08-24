@@ -18,9 +18,11 @@ export const listColumns = {
     index: 'md:w-10 md:shrink-0 md:justify-end md:pr-2',
     /**
      * The name takes what is left, but never less than this: a name cell squeezed to a few
-     * characters by a project with several field columns is a list nobody can read.
+     * characters by a project with several field columns is a list nobody can read. The floor is
+     * lower between `md` and `lg`, where the canvas itself is narrow enough that holding 20rem
+     * would push the last column off the screen instead.
      */
-    name: 'min-w-0 flex-1 md:min-w-80',
+    name: 'min-w-0 flex-1 md:min-w-64 lg:min-w-80',
     assignee: 'md:w-44 md:shrink-0',
     due: 'md:w-28 md:shrink-0',
     priority: 'md:w-28 md:shrink-0',
