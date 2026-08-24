@@ -28,15 +28,15 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <section class="flex shrink-0 flex-col rounded-lg border" data-task-section>
-        <header class="flex items-center justify-between px-3 py-2 text-sm font-medium">
+    <section class="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-muted/30" data-task-section>
+        <header class="flex items-center justify-between px-3 py-2.5 text-[13px] font-semibold">
             <span>{{ column.name ?? 'No section' }}</span>
-            <span class="text-xs text-muted-foreground">{{ column.count }}</span>
+            <span class="rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground">{{ column.count }}</span>
         </header>
 
         <!-- The drop target. `data-column-key` is what the drag reads back from the pointer. -->
         <div
-            class="flex max-h-[60vh] min-h-24 flex-col gap-2 overflow-y-auto border-t p-2"
+            class="flex max-h-[60vh] min-h-24 flex-col gap-2 overflow-y-auto border-t border-border p-2 [scrollbar-width:thin]"
             :class="over ? 'bg-accent/40' : ''"
             :data-column-key="column.id ?? 'ungrouped'"
         >

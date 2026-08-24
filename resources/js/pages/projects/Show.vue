@@ -15,6 +15,7 @@ import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
+import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
     BoardColumnData,
@@ -227,7 +228,15 @@ onUnmounted(() => {
             </button>
         </nav>
 
-        <div v-if="board" class="flex gap-4 overflow-x-auto pb-2" @keydown="keyboard.onKeydown">
+        <!--
+            The board scrolls sideways and nothing else does, so the scrollbar is thin and tinted
+            rather than the platform's default bar drawn across the whole width of the canvas.
+        -->
+        <div
+            v-if="board"
+            class="flex gap-4 overflow-x-auto pb-3 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+            @keydown="keyboard.onKeydown"
+        >
             <BoardColumn
                 v-for="(column, index) in columns"
                 :key="column.id ?? 'ungrouped'"
@@ -257,6 +266,8 @@ onUnmounted(() => {
                 <span>Something went wrong loading this project.</span>
                 <button type="button" class="underline" @click="retry">Try again</button>
             </div>
+
+            <TaskListHeader v-if="list.sections.length" :fields="list.fields" />
 
             <div
                 v-if="list.sections.length"

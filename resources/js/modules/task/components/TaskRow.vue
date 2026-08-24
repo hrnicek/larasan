@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Form, router } from '@inertiajs/vue3';
-import { ChevronRight } from '@lucide/vue';
+import { ChevronRight, MessageSquare } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { accentChipClass } from '@/lib/accentColor';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
+import { listColumns } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
@@ -122,19 +123,8 @@ defineExpose({ focus: () => row.value?.focus() });
             </button>
         </div>
 
-        <!-- Below md this is the second line, indented past the checkbox so the name leads. -->
-        <div class="flex items-center gap-3 pl-7 md:ml-auto md:pl-0">
-            <span
-                v-for="field in fields"
-                :key="field.id"
-                class="hidden text-xs text-muted-foreground md:inline"
-                :title="field.name"
-            >
-                {{ answerOf(field.id, field.type) }}
-            </span>
-
-            <span v-if="task.comments > 0" class="text-xs text-muted-foreground">{{ task.comments }} comments</span>
-
+        <!-- Beside the name, because a tag says what the task is about. -->
+        <div v-if="task.tags.length" class="flex shrink-0 flex-wrap gap-1 pl-7 md:pl-0">
             <span
                 v-for="tag in task.tags"
                 :key="tag.id"
@@ -143,21 +133,48 @@ defineExpose({ focus: () => row.value?.focus() });
             >
                 {{ tag.name }}
             </span>
+        </div>
 
-            <AssigneePicker
-                :task-id="task.id"
-                :assignee="task.assignee"
-                :members="members"
-                :editable="editable"
-            />
-            <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
+        <!-- Below md this is the second line, indented past the checkbox so the name leads. From
+             `md` the cells are fixed columns, so the header above the list lines up with them. -->
+        <div class="flex items-center gap-3 pl-7 md:ml-auto md:pl-0">
+            <span v-if="task.comments > 0" class="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <MessageSquare class="size-3.5" aria-hidden="true" />
+                {{ task.comments }}
+                <span class="sr-only">comments</span>
+            </span>
 
-            <PriorityControl
-                :task-id="task.id"
-                :priority="task.priority"
-                :priorities="priorities"
-                :editable="editable"
-            />
+            <span
+                v-for="field in fields"
+                :key="field.id"
+                class="hidden text-xs text-muted-foreground md:inline"
+                :class="listColumns.field"
+                :title="field.name"
+            >
+                {{ answerOf(field.id, field.type) }}
+            </span>
+
+            <div :class="listColumns.assignee">
+                <AssigneePicker
+                    :task-id="task.id"
+                    :assignee="task.assignee"
+                    :members="members"
+                    :editable="editable"
+                />
+            </div>
+
+            <div :class="listColumns.due">
+                <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
+            </div>
+
+            <div :class="listColumns.priority">
+                <PriorityControl
+                    :task-id="task.id"
+                    :priority="task.priority"
+                    :priorities="priorities"
+                    :editable="editable"
+                />
+            </div>
         </div>
     </div>
 </template>
