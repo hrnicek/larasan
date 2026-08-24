@@ -1,8 +1,15 @@
 <?php
 
+use App\Http\Controllers\Pwa\ManifestController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+
+/*
+ * Public on purpose: the browser fetches the manifest before anybody has signed in, and an
+ * install prompt that depends on a session never appears.
+ */
+Route::get('manifest.webmanifest', ManifestController::class)->name('manifest');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
