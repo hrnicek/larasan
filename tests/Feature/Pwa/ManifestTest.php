@@ -108,14 +108,22 @@ it('ships one icon family rather than two', function (): void {
 
     $shape = pngShape($apple);
 
+    /*
+     * The tile is asserted against the manifest's own `theme_color` rather than against a hex
+     * written here. Those two are the same colour by design — the application's chrome (ADR-0014)
+     * — and a third copy in a test is the copy that drifts.
+     */
+    $themeColor = $this->get(route('manifest'))->json('theme_color');
+
     expect($shape['width'])->toBe(180)
         ->and($shape['height'])->toBe(180)
         ->and($shape['corner']['alpha'])->toBe(0, 'iOS composites a transparent icon onto a colour nobody chose')
         ->and(sprintf('#%02x%02x%02x', $shape['corner']['red'], $shape['corner']['green'], $shape['corner']['blue']))
-        ->toBe('#1a1a1a');
+        ->toBe($themeColor);
 })->with([
     'the icon that predates the manifest was the red mark on transparency at 166px — a second,
-    older answer to the same question, which is what this asserts is gone',
+    older answer to the same question, which is what this asserts is gone; the tile and the
+    browser chrome are now asserted to be one colour rather than two that happen to match',
 ]);
 
 it('keeps the icons a browser tab asks for', function (): void {

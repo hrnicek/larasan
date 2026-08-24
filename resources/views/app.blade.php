@@ -26,7 +26,7 @@
             }
 
             html.dark {
-                background-color: oklch(0.145 0 0);
+                background-color: oklch(0.205 0 0);
             }
         </style>
 
@@ -34,11 +34,12 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-        {{-- Two colours rather than one: the manifest may only carry the light surface, and a
-             browser chrome painted white around a dark application is the seam people notice. --}}
+        {{-- The browser's chrome is painted this application's chrome, which is dark in both
+             themes but not the same dark in each (ADR-0014) — the seam people notice is a browser
+             bar that does not match the topbar under it. --}}
         <link rel="manifest" href="{{ route('manifest') }}">
-        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+        <meta name="theme-color" content="#16161d" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#09090c" media="(prefers-color-scheme: dark)">
 
         @fonts
 

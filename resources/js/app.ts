@@ -8,12 +8,15 @@ import { initializeFlashToast } from '@/lib/flashToast';
 import { applyModalLayer, configureModalLayer } from '@/lib/modalLayer';
 import { initializeOfflineNotice } from '@/lib/offlineNotice';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
-
 configureModalLayer();
 
 createInertiaApp({
-    title: (title) => (title ? `${title} - ${appName}` : appName),
+    /*
+     * The name comes from the page rather than from a build-time environment variable, so
+     * `APP_NAME` is the only place it is written and renaming the product does not need a
+     * rebuild to reach the browser tab.
+     */
+    title: (title, page) => (title ? `${title} — ${page.props.name}` : String(page.props.name)),
     withApp: applyModalLayer,
     layout: (name) => {
         switch (true) {

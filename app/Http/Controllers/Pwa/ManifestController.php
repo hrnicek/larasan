@@ -30,12 +30,13 @@ class ManifestController extends Controller
                 'scope' => '/',
                 'display' => 'standalone',
                 /*
-                 * The light surface, `--background` in `resources/css/app.css`. A manifest carries
-                 * one colour; the pair that follows the reader's theme is in the root template,
-                 * where `prefers-color-scheme` can express it.
+                 * The splash screen is the canvas, and the browser's own chrome is painted the
+                 * application's chrome — which ADR-0014 keeps dark in both themes, so one value
+                 * is the honest answer here. The pair that follows the reader's theme is in the
+                 * root template, where `prefers-color-scheme` can express it.
                  */
                 'background_color' => '#ffffff',
-                'theme_color' => '#ffffff',
+                'theme_color' => '#16161d',
                 'icons' => [
                     ['src' => '/icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
                     ['src' => '/icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
