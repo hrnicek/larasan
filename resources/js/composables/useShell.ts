@@ -43,11 +43,11 @@ export function useCollapsed(): ComputedRef<boolean> {
  * drawer is open.
  *
  * Provided once by `AppShell` and injected by everything under it, **not** held at module scope.
- * This application is server-side rendered, and a module-scope `ref` in an SSR bundle belongs to
- * the Node process rather than to the request: the first render would decide the collapsed state
- * for every visitor afterwards, and the browser would then correct it into a hydration mismatch.
- * That is not a theoretical risk — it is what the first version of this file did, and the
- * mismatch warning named the exact class it disagreed about.
+ * The state is seeded from a request-scoped prop, and module scope outlives the request: under
+ * the server-side rendering this application used to run, the first render decided the collapsed
+ * state for every visitor afterwards and the browser corrected it into a hydration mismatch. That
+ * is not a theoretical risk — it is what the first version of this file did. Server rendering is
+ * off now, but request-seeded state still does not belong to the module.
  *
  * The collapsed state is a cookie rather than local storage, so the server can read it and ship
  * `sidebarOpen`, and the sidebar renders in the right shape before any JavaScript runs.

@@ -17,7 +17,9 @@ export default defineConfig({
                 }),
             ],
         }),
-        inertia(),
+        // Server-side rendering is off: this application is behind authentication, so there is
+        // no crawler or first-paint case to pay a Node render for.
+        inertia({ ssr: false }),
         tailwindcss(),
         vue({
             template: {
