@@ -7,6 +7,7 @@ import { accentChipClass } from '@/lib/accentColor';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
+import TaskTextField from '@/modules/task/components/TaskTextField.vue';
 import { listColumns } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
@@ -80,7 +81,7 @@ defineExpose({ focus: () => row.value?.focus() });
         class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-accent/40 focus-visible:bg-accent md:flex-row md:items-center md:gap-3"
         :class="[completed() ? 'text-muted-foreground' : '', dragging ? 'opacity-50' : '']"
         @keydown.space.prevent="toggleCompletion"
-        @keydown.enter="emit('open', task.id)"
+        @keydown.enter.self="emit('open', task.id)"
     >
         <!--
             The grip, revealed on hover. Reordering is a pointer gesture with a keyboard
@@ -155,14 +156,23 @@ defineExpose({ focus: () => row.value?.focus() });
                 <Check v-if="completed()" class="size-3" />
             </span>
 
-            <button
-                type="button"
-                class="flex min-h-11 flex-1 items-center truncate text-left md:min-h-6"
-                :class="completed() ? 'line-through' : ''"
-                @click="emit('open', task.id)"
-            >
-                {{ task.title }}
-            </button>
+            <!--
+                The name is the field, not a link. Renaming is the thing done most often to a row
+                and it used to need the panel; opening the task is the `›` beside it and `Enter`
+                on the row, which is what the reference does too.
+            -->
+            <TaskTextField
+                v-if="editable"
+                class="flex-1"
+                :task-id="task.id"
+                field="title"
+                :value="task.title"
+                :editable="editable"
+                size="row"
+                @click.stop
+            />
+
+            <span v-else class="flex min-h-11 flex-1 items-center truncate md:min-h-6">{{ task.title }}</span>
 
             <!--
                 Revealed rather than always drawn. The whole row already opens the task; this is
@@ -171,7 +181,7 @@ defineExpose({ focus: () => row.value?.focus() });
             -->
             <button
                 type="button"
-                class="hidden size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:inline-flex"
+                class="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6 md:opacity-0 md:group-focus-within/row:opacity-100 md:group-hover/row:opacity-100"
                 :aria-label="`Open ${task.title}`"
                 @click="emit('open', task.id)"
             >

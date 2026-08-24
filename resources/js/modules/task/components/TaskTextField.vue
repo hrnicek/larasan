@@ -20,6 +20,11 @@ const props = defineProps<{
     editable: boolean;
     multiline?: boolean;
     placeholder?: string;
+    /**
+     * `title` is the task's own heading in the panel and on its page; `row` is the same field
+     * inside a list line, where it has to sit at the row's weight and not look like a form.
+     */
+    size?: 'title' | 'row';
 }>();
 
 const draft = ref(props.value ?? '');
@@ -64,7 +69,7 @@ const save = (): void => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-1">
+    <div class="flex min-w-0 flex-col gap-1">
         <textarea
             v-if="multiline"
             v-model="draft"
@@ -83,7 +88,8 @@ const save = (): void => {
             type="text"
             :disabled="!editable || saving"
             :placeholder="placeholder"
-            class="w-full rounded border border-transparent bg-transparent px-1 text-lg font-semibold hover:border-input disabled:opacity-70"
+            class="w-full rounded-md border border-transparent bg-transparent hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
+            :class="size === 'row' ? 'min-h-11 px-1 text-sm md:min-h-6' : 'px-1 text-lg font-semibold'"
             @blur="save"
             @keydown.enter.prevent="save"
         />
