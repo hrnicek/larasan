@@ -46,7 +46,7 @@ class InboxController extends Controller
              * the list they are working through — which is the whole reason the panel has an
              * address of its own.
              */
-            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
+            ...$this->taskPanelProps($request, $workspace, $actor, $detail),
         ]);
     }
 

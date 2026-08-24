@@ -106,7 +106,6 @@ class ProjectController extends Controller
 
         $view = $request->view($project);
         $actor = $this->actor($request);
-        $open = $this->openTaskPanel($request, $project->workspace, $actor, $detail);
 
         return Inertia::render('projects/Show', [
             'project' => [
@@ -163,7 +162,7 @@ class ProjectController extends Controller
              * Four props, sent identically by every screen that can open a panel, from the one
              * place that knows what they are.
              */
-            ...$this->taskPanelProps($project->workspace, $open),
+            ...$this->taskPanelProps($request, $project->workspace, $actor, $detail),
         ]);
     }
 

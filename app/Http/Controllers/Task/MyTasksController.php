@@ -52,7 +52,7 @@ class MyTasksController extends Controller
              * able to read it, and a task can be unassigned or moved out of somebody's projects
              * while their tab is still open.
              */
-            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
+            ...$this->taskPanelProps($request, $workspace, $actor, $detail),
         ]);
     }
 }

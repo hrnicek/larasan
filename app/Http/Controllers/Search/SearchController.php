@@ -54,7 +54,7 @@ class SearchController extends Controller
              * `members` comes from here too, which is why the list this screen used to build
              * itself is gone: one place, four screens.
              */
-            ...$this->taskPanelProps($workspace, $this->openTaskPanel($request, $workspace, $actor, $detail)),
+            ...$this->taskPanelProps($request, $workspace, $actor, $detail),
         ]);
     }
 }

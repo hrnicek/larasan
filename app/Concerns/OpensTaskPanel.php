@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Concerns;
 
+use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
@@ -30,10 +31,8 @@ trait OpensTaskPanel
      * A 404 rather than a redirect or an empty panel: an id that names a task out of reach must
      * be answered the same way as an id that names nothing, or the difference between the two
      * answers is itself the leak.
-     *
-     * @return array<string, mixed>|null
      */
-    protected function openTaskPanel(Request $request, Workspace $workspace, User $actor, TaskDetailQuery $detail): ?array
+    protected function openTaskPanel(Request $request, Workspace $workspace, User $actor): ?Task
     {
         $id = $request->string('task')->value() ?: null;
 
@@ -47,7 +46,7 @@ trait OpensTaskPanel
             abort(404);
         }
 
-        return $detail($task, $actor);
+        return $task;
     }
 
     /**
@@ -57,14 +56,26 @@ trait OpensTaskPanel
      * "not sent this time". `activity` is deferred and only when there is a panel — the same
      * region the task's own page defers (TASK-100-011).
      *
-     * @param  array<string, mixed>|null  $open
      * @return array<string, mixed>
      */
-    protected function taskPanelProps(Workspace $workspace, ?array $open): array
-    {
+    protected function taskPanelProps(
+        Request $request,
+        Workspace $workspace,
+        User $actor,
+        TaskDetailQuery $detail,
+    ): array {
+        $task = $this->openTaskPanel($request, $workspace, $actor);
+
         return [
-            'taskDetail' => $open,
-            'activity' => $open === null ? null : Inertia::defer(fn (): array => []),
+            'taskDetail' => $task === null ? null : $detail($task, $actor),
+            /*
+             * The task's history and its conversation, deferred — the same region the task's own
+             * page defers, answered by the same query. It was a stub returning `[]`, so a panel
+             * opened from a list showed an empty thread however much had been said on the task.
+             */
+            'activity' => $task === null
+                ? null
+                : Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor)),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
             'members' => $workspace->members()->orderBy('name')->get()
                 ->map(fn (User $member): array => [

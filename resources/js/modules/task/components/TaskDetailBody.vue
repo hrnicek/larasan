@@ -37,12 +37,18 @@ function toggleCompletion(): void {
         return;
     }
 
-    const url = completed()
-        ? TaskController.reopen.url(props.detail.task.id)
-        : TaskController.complete.url(props.detail.task.id);
-    const method = completed() ? router.delete : router.put;
+    /*
+     * Called on the router rather than pulled off it. `router.put` extracted into a variable
+     * loses its receiver, and Inertia's methods reach for `this` — which is a `Cannot read
+     * properties of undefined (reading 'visit')` the moment somebody clicks, not at build time.
+     */
+    if (completed()) {
+        router.delete(TaskController.reopen.url(props.detail.task.id), { preserveScroll: true });
 
-    method(url, {}, { preserveScroll: true });
+        return;
+    }
+
+    router.put(TaskController.complete.url(props.detail.task.id), {}, { preserveScroll: true });
 }
 </script>
 
