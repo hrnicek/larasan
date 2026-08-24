@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CheckCheck, Plus } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import EmptyState from '@/components/EmptyState.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -31,10 +32,6 @@ const props = defineProps<{
     priorities: string[];
 }>();
 
-defineOptions({
-    layout: { breadcrumbs: [{ title: 'My Tasks', href: MyTasksController.index.url() }] },
-});
-
 const labels: Record<string, string> = {
     today: 'Today',
     upcoming: 'Upcoming',
@@ -51,6 +48,9 @@ const labels: Record<string, string> = {
  * being on top of their work; an empty Today is a day with nothing scheduled — and those two
  * want different sentences under them, not the same shrug.
  */
+/** Which workspace this is answering for: My Tasks means something different in each. */
+const workspaceName = computed<string | undefined>(() => usePage().props.workspace?.name);
+
 const emptyDescriptions: Record<string, string> = {
     today: 'Nothing is scheduled for today in this workspace.',
     upcoming: 'Nothing with a date on it is waiting for you.',
@@ -121,26 +121,32 @@ const { open, close: closeTask } = useTaskPanel();
 </script>
 
 <template>
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
+    <div class="flex h-full flex-1 flex-col">
         <Head title="My Tasks" />
 
-        <!-- The screen's name in the outline. The design carries it in the tab title
-            and the sidebar rather than on the page, so it is announced rather than drawn. -->
-        <h1 class="sr-only">My Tasks</h1>
+        <PageHeader title="My Tasks" :description="workspaceName">
+            <template #tabs>
+                <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="My Tasks views">
+                    <button
+                        v-for="tab in tabs"
+                        :key="tab"
+                        type="button"
+                        class="shrink-0 border-b-2 px-3 pt-1 pb-2.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                        :class="
+                            tab === meta.tab
+                                ? 'border-primary text-foreground'
+                                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                        "
+                        :aria-current="tab === meta.tab ? 'page' : undefined"
+                        @click="show(tab)"
+                    >
+                        {{ labels[tab] ?? tab }}
+                    </button>
+                </nav>
+            </template>
+        </PageHeader>
 
-        <nav class="flex gap-1 overflow-x-auto" aria-label="My Tasks views">
-            <button
-                v-for="tab in tabs"
-                :key="tab"
-                type="button"
-                class="rounded px-2 py-1 text-sm whitespace-nowrap"
-                :class="tab === meta.tab ? 'bg-muted font-medium' : 'text-muted-foreground'"
-                :aria-current="tab === meta.tab ? 'page' : undefined"
-                @click="show(tab)"
-            >
-                {{ labels[tab] ?? tab }}
-            </button>
-        </nav>
+        <div class="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
 
         <ul v-if="rows.length" class="flex flex-col gap-1">
             <li v-for="task in rows" :key="task.id" class="flex flex-col">
@@ -194,5 +200,6 @@ const { open, close: closeTask } = useTaskPanel();
             :activity="activity"
             @close="closeTask"
         />
+        </div>
     </div>
 </template>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { BellOff } from '@lucide/vue';
+import { BellOff, CheckCheck } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import EmptyState from '@/components/EmptyState.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import type { InboxNotification } from '@/modules/notification/types';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -25,10 +26,6 @@ const props = defineProps<{
     members: TaskAssignee[];
     priorities: string[];
 }>();
-
-defineOptions({
-    layout: { breadcrumbs: [{ title: 'Inbox', href: InboxController.index.url() }] },
-});
 
 const rows = ref<InboxNotification[]>([...props.notifications]);
 const loading = ref(false);
@@ -118,23 +115,26 @@ const loadMore = (): void => {
 </script>
 
 <template>
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
+    <div class="flex h-full flex-1 flex-col">
         <Head title="Inbox" />
 
-        <div class="flex items-baseline gap-3">
-            <h1 class="text-sm text-muted-foreground">
-                Inbox<span v-if="unread > 0"> — {{ unread }} unread</span>
-            </h1>
+        <PageHeader
+            title="Inbox"
+            :description="unread > 0 ? `${unread} unread` : 'Everything here has been seen'"
+        >
+            <template v-if="unread > 0" #actions>
+                <button
+                    type="button"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @click="markAllRead"
+                >
+                    <CheckCheck class="size-4" />
+                    Mark all read
+                </button>
+            </template>
+        </PageHeader>
 
-            <button
-                v-if="unread > 0"
-                type="button"
-                class="text-xs text-muted-foreground underline"
-                @click="markAllRead"
-            >
-                Mark all read
-            </button>
-        </div>
+        <div class="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
 
         <ul v-if="rows.length" class="flex flex-col gap-2">
             <li v-for="notification in rows" :key="notification.id" class="flex items-baseline gap-2 text-sm">
@@ -188,5 +188,6 @@ const loadMore = (): void => {
             :activity="activity"
             @close="closeTask"
         />
+        </div>
     </div>
 </template>

@@ -4,6 +4,7 @@ import { Search as SearchIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import EmptyState from '@/components/EmptyState.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -27,10 +28,6 @@ const props = defineProps<{
     activity?: TaskFeed;
     priorities: string[];
 }>();
-
-defineOptions({
-    layout: { breadcrumbs: [{ title: 'Search', href: SearchController.index.url() }] },
-});
 
 const term = ref(props.meta.term);
 const rows = ref<MyTaskRow[]>([...props.tasks]);
@@ -111,23 +108,22 @@ const { open, close: closeTask } = useTaskPanel();
 </script>
 
 <template>
-    <div class="flex h-full flex-1 flex-col gap-4 p-4">
+    <div class="flex h-full flex-1 flex-col">
         <Head title="Search" />
 
-        <!-- The screen's name in the outline. The design carries it in the tab title
-            and the sidebar rather than on the page, so it is announced rather than drawn. -->
-        <h1 class="sr-only">Search</h1>
+        <PageHeader title="Search" description="Task names and descriptions, across every project you can reach" />
 
-        <input
-            v-model="term"
-            type="search"
-            autofocus
-            placeholder="Search tasks…"
-            aria-label="Search tasks"
-            class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm"
-            @input="onTyping"
-            @keydown.enter.prevent="run()"
-        />
+        <div class="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
+            <input
+                v-model="term"
+                type="search"
+                autofocus
+                placeholder="Search tasks…"
+                aria-label="Search tasks"
+                class="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                @input="onTyping"
+                @keydown.enter.prevent="run()"
+            />
 
         <div class="flex flex-wrap gap-2 text-xs">
             <select
@@ -209,5 +205,6 @@ const { open, close: closeTask } = useTaskPanel();
             :activity="activity"
             @close="closeTask"
         />
+        </div>
     </div>
 </template>
