@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { PanelLeft, Search as SearchIcon } from '@lucide/vue';
-import { computed } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import CreateMenu from '@/components/CreateMenu.vue';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import UserAvatar from '@/components/UserAvatar.vue';
-import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useShell } from '@/composables/useShell';
 
-const page = usePage();
 const { toggle, openMobile } = useShell();
-
-const user = computed(() => page.props.auth.user);
 
 /*
  * The field is a button rather than an input. Search is a screen with its own address and its own
@@ -55,17 +48,5 @@ function openSearch(): void {
             <span class="truncate">Search</span>
             <kbd class="ml-auto hidden shrink-0 rounded border border-chrome-border px-1.5 py-0.5 font-sans text-[10px] tracking-wide sm:inline">⌘K</kbd>
         </button>
-
-        <DropdownMenu v-if="user">
-            <DropdownMenuTrigger
-                class="shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:ring-offset-2 focus-visible:ring-offset-chrome focus-visible:outline-none"
-                :aria-label="`Account menu for ${user.name}`"
-            >
-                <UserAvatar :user="user" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" class="min-w-56">
-                <UserMenuContent :user="user" />
-            </DropdownMenuContent>
-        </DropdownMenu>
     </header>
 </template>

@@ -6,6 +6,7 @@ import InboxController from '@/actions/App/Http/Controllers/Notification/InboxCo
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import ChromeNavItem from '@/components/ChromeNavItem.vue';
 import RealtimeStatus from '@/components/RealtimeStatus.vue';
+import SidebarUserMenu from '@/components/SidebarUserMenu.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInboxRealtime } from '@/composables/useRealtime';
 import { provideCollapsed, useCollapsed } from '@/composables/useShell';
@@ -70,8 +71,12 @@ const primary = computed(() => [
 
         <ProjectNavList />
 
-        <div class="mt-auto pt-2">
+        <div class="mt-auto space-y-1 pt-2">
             <RealtimeStatus />
+
+            <hr class="border-chrome-border" />
+
+            <SidebarUserMenu />
         </div>
     </nav>
 </template>
