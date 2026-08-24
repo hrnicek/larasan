@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { ListTodo, Plus } from '@lucide/vue';
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { useBoardDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
@@ -280,10 +281,20 @@ onUnmounted(() => {
                 />
             </div>
 
-            <div v-else class="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
-                <p class="text-sm text-muted-foreground">This project has no tasks and no columns yet.</p>
-                <InlineTaskCreate v-if="creatable()" :project-id="project.id" :section-id="null" />
-            </div>
+            <EmptyState
+                v-else
+                :icon="ListTodo"
+                title="This project is empty"
+                :description="
+                    creatable()
+                        ? 'Add the first task, or give it columns in the project settings.'
+                        : 'Nothing has been put in it yet.'
+                "
+            >
+                <template v-if="creatable()" #action>
+                    <InlineTaskCreate :project-id="project.id" :section-id="null" />
+                </template>
+            </EmptyState>
             </template>
             </div>
 

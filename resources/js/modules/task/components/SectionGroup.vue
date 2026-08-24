@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
+import EmptyState from '@/components/EmptyState.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
@@ -73,9 +74,12 @@ const toggle = () => emit('toggle', props.section.id);
                 :fields="fields"
                 @open="(taskId) => emit('open', taskId)"
             />
-            <p v-if="section.tasks.length === 0" class="px-4 py-3 text-sm text-muted-foreground">
-                No tasks
-            </p>
+            <EmptyState
+                v-if="section.tasks.length === 0"
+                compact
+                :title="`Nothing in ${section.name ?? 'this list'} yet`"
+                :description="creatable ? 'Add the first one below.' : undefined"
+            />
 
             <InlineTaskCreate
                 v-if="creatable"

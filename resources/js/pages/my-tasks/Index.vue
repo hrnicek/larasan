@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { CheckCheck, Plus } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
+import EmptyState from '@/components/EmptyState.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+import { create as createTask } from '@/routes/tasks';
 
 /**
  * What this person is responsible for, in the workspace they are standing in.
@@ -43,6 +46,18 @@ const labels: Record<string, string> = {
  * Per tab, because "nothing here" means something different in each. An empty Overdue is a good
  * outcome and reads like one.
  */
+/**
+ * The second line: what the first one implies but does not say. An empty Overdue is somebody
+ * being on top of their work; an empty Today is a day with nothing scheduled — and those two
+ * want different sentences under them, not the same shrug.
+ */
+const emptyDescriptions: Record<string, string> = {
+    today: 'Nothing is scheduled for today in this workspace.',
+    upcoming: 'Nothing with a date on it is waiting for you.',
+    overdue: 'Nothing has slipped past its date.',
+    completed: 'Tasks you finish appear here.',
+};
+
 const emptyMessages: Record<string, string> = {
     today: 'Nothing due today.',
     upcoming: 'Nothing coming up.',
@@ -143,9 +158,22 @@ const { open, close: closeTask } = useTaskPanel();
             </li>
         </ul>
 
-        <p v-else-if="!loading" class="text-sm text-muted-foreground">
-            {{ emptyMessages[meta.tab] ?? 'Nothing here.' }}
-        </p>
+        <EmptyState
+            v-else-if="!loading"
+            :title="emptyMessages[meta.tab] ?? 'Nothing here.'"
+            :description="emptyDescriptions[meta.tab]"
+            :icon="CheckCheck"
+        >
+            <template v-if="meta.tab !== 'completed'" #action>
+                <Link
+                    :href="createTask()"
+                    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                    <Plus class="size-4" />
+                    Add a task
+                </Link>
+            </template>
+        </EmptyState>
 
         <button
             v-if="meta.hasMore"

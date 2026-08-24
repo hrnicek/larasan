@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { Search as SearchIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
+import EmptyState from '@/components/EmptyState.vue';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -178,9 +180,16 @@ const { open, close: closeTask } = useTaskPanel();
 
         <!-- Two different nothings: nothing typed yet, and nothing found. A search box that says
              "no results" before anybody has typed looks broken. -->
-        <p v-else class="text-sm text-muted-foreground">
-            {{ meta.term === '' ? 'Type to search this workspace.' : 'Nothing matched that.' }}
-        </p>
+        <EmptyState
+            v-else
+            :icon="SearchIcon"
+            :title="meta.term === '' ? 'Search this workspace' : `Nothing matched “${meta.term}”`"
+            :description="
+                meta.term === ''
+                    ? 'Task names and descriptions, across every project you can reach.'
+                    : 'Try fewer words, or part of one — a search matches the beginning of the last word you typed.'
+            "
+        />
 
         <button
             v-if="meta.hasMore"

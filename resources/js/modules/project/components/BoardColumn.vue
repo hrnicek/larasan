@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmptyState from '@/components/EmptyState.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
@@ -39,9 +40,12 @@ const emit = defineEmits<{
             :class="over ? 'bg-accent/40' : ''"
             :data-column-key="column.id ?? 'ungrouped'"
         >
-            <p v-if="column.tasks.length === 0" class="rounded border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
-                No tasks
-            </p>
+            <EmptyState
+                v-if="column.tasks.length === 0"
+                compact
+                :title="creatable ? 'Nothing in this column' : 'Nothing here'"
+                :description="creatable ? 'Drop a card here, or add one below.' : undefined"
+            />
 
             <TaskCard
                 v-for="card in column.tasks"

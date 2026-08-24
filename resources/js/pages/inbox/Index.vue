@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { BellOff } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
+import EmptyState from '@/components/EmptyState.vue';
 import type { InboxNotification } from '@/modules/notification/types';
 import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -160,7 +162,12 @@ const loadMore = (): void => {
             </li>
         </ul>
 
-        <p v-else-if="!loading" class="text-sm text-muted-foreground">You're all caught up.</p>
+        <EmptyState
+            v-else-if="!loading"
+            :icon="BellOff"
+            title="You're all caught up"
+            description="Comments, assignments and mentions land here. Nothing is waiting."
+        />
 
         <button
             v-if="meta.hasMore"
