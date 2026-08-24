@@ -84,7 +84,7 @@ it('offers only the projects this actor can open as filters', function (): void 
     $this->actingAs($actor)
         ->get(route('search.index', ['q' => 'anything']))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->has('projects', 1)
+            ->has('filterProjects', 1)
             ->where('projects.0.name', 'Open'));
 });
 

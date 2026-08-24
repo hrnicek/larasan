@@ -44,7 +44,9 @@ class ProjectController extends Controller
         $user = $this->actor($request);
 
         return Inertia::render('projects/Index', [
-            'projects' => $visibleProjects($workspace, $user)
+            // Named apart from the shared `projects` prop the sidebar reads: a page prop of the
+            // same name replaces it, and this list is unbounded where the sidebar's is capped.
+            'allProjects' => $visibleProjects($workspace, $user)
                 ->map(fn (Project $project): array => [
                     'id' => $project->id,
                     'name' => $project->name,

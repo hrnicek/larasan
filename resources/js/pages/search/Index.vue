@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Search as SearchIcon } from '@lucide/vue';
+import { Check, ChevronRight, Search as SearchIcon } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import EmptyState from '@/components/EmptyState.vue';
@@ -20,7 +20,8 @@ const props = defineProps<{
     tasks: MyTaskRow[];
     meta: { term: string; page: number; perPage: number; total: number; hasMore: boolean };
     filters: { project?: string; assignee?: number; completed?: boolean };
-    projects: { id: string; name: string }[];
+    /** The projects the filter offers. Not the sidebar's `projects` — see the controller. */
+    filterProjects: { id: string; name: string }[];
     members: TaskAssignee[];
     /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
     taskDetail?: TaskDetail | null;
@@ -125,76 +126,101 @@ const { open, close: closeTask } = useTaskPanel();
                 @keydown.enter.prevent="run()"
             />
 
-        <div class="flex flex-wrap gap-2 text-xs">
-            <select
-                :value="filters.project ?? ''"
-                aria-label="Project"
-                class="rounded border border-input bg-transparent px-1 py-0.5"
-                @change="filterBy('project', ($event.target as HTMLSelectElement).value)"
-            >
-                <option value="">Any project</option>
-                <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-            </select>
-
-            <select
-                :value="filters.assignee ?? ''"
-                aria-label="Assignee"
-                class="rounded border border-input bg-transparent px-1 py-0.5"
-                @change="filterBy('assignee', ($event.target as HTMLSelectElement).value)"
-            >
-                <option value="">Anybody</option>
-                <option v-for="member in members" :key="member.id" :value="member.id">{{ member.name }}</option>
-            </select>
-
-            <select
-                :value="filters.completed === undefined ? '' : String(filters.completed)"
-                aria-label="Completion"
-                class="rounded border border-input bg-transparent px-1 py-0.5"
-                @change="filterBy('completed', ($event.target as HTMLSelectElement).value)"
-            >
-                <option value="">Finished or not</option>
-                <option value="0">Still open</option>
-                <option value="1">Finished</option>
-            </select>
-        </div>
-
-        <ul v-if="rows.length" class="flex flex-col gap-1">
-            <li v-for="task in rows" :key="task.id">
-                <button
-                    type="button"
-                    class="w-full rounded px-2 py-1 text-left text-sm hover:bg-muted"
-                    @click="open(task.id)"
+            <!-- The filters read as one row of controls at the same height as the box above
+                 them, because narrowing a search is part of running it. -->
+            <div class="flex flex-wrap gap-2">
+                <select
+                    :value="filters.project ?? ''"
+                    aria-label="Project"
+                    class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @change="filterBy('project', ($event.target as HTMLSelectElement).value)"
                 >
-                    <span :class="task.completedAt ? 'line-through' : ''">{{ task.title }}</span>
+                    <option value="">Any project</option>
+                    <option v-for="project in filterProjects" :key="project.id" :value="project.id">{{ project.name }}</option>
+                </select>
 
-                    <span v-for="project in task.projects" :key="project.id" class="ml-2 text-xs text-muted-foreground">
-                        {{ project.name }}
-                    </span>
-                </button>
-            </li>
-        </ul>
+                <select
+                    :value="filters.assignee ?? ''"
+                    aria-label="Assignee"
+                    class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @change="filterBy('assignee', ($event.target as HTMLSelectElement).value)"
+                >
+                    <option value="">Anybody</option>
+                    <option v-for="member in members" :key="member.id" :value="member.id">{{ member.name }}</option>
+                </select>
 
-        <!-- Two different nothings: nothing typed yet, and nothing found. A search box that says
-             "no results" before anybody has typed looks broken. -->
-        <EmptyState
-            v-else
-            :icon="SearchIcon"
-            :title="meta.term === '' ? 'Search this workspace' : `Nothing matched “${meta.term}”`"
-            :description="
-                meta.term === ''
-                    ? 'Task names and descriptions, across every project you can reach.'
-                    : 'Try fewer words, or part of one — a search matches the beginning of the last word you typed.'
-            "
-        />
+                <select
+                    :value="filters.completed === undefined ? '' : String(filters.completed)"
+                    aria-label="Completion"
+                    class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @change="filterBy('completed', ($event.target as HTMLSelectElement).value)"
+                >
+                    <option value="">Finished or not</option>
+                    <option value="0">Still open</option>
+                    <option value="1">Finished</option>
+                </select>
 
-        <button
-            v-if="meta.hasMore"
-            type="button"
-            class="self-start rounded border border-input px-2 py-1 text-xs"
-            @click="run(meta.page + 1)"
-        >
-            Load more
-        </button>
+                <p v-if="meta.term !== ''" class="ml-auto self-center text-xs text-muted-foreground">
+                    {{ meta.total }} {{ meta.total === 1 ? 'result' : 'results' }}
+                </p>
+            </div>
+
+            <!-- A result is a row, not a sentence: the name leads, where it lives follows it, and
+                 the whole line is the target. -->
+            <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-y border-border">
+                <li v-for="task in rows" :key="task.id">
+                    <button
+                        type="button"
+                        class="group/row flex min-h-11 w-full items-center gap-3 px-2 py-2 text-left text-sm transition-colors hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                        @click="open(task.id)"
+                    >
+                        <Check
+                            v-if="task.completedAt"
+                            class="size-4 shrink-0 text-emerald-600 dark:text-emerald-500"
+                            aria-hidden="true"
+                        />
+
+                        <span class="min-w-0 flex-1 truncate" :class="task.completedAt ? 'text-muted-foreground line-through' : ''">
+                            {{ task.title }}
+                        </span>
+
+                        <span
+                            v-for="project in task.projects"
+                            :key="project.id"
+                            class="hidden shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline"
+                        >
+                            {{ project.name }}
+                        </span>
+
+                        <ChevronRight
+                            class="size-4 shrink-0 text-muted-foreground transition-opacity md:opacity-0 md:group-hover/row:opacity-100"
+                            aria-hidden="true"
+                        />
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Two different nothings: nothing typed yet, and nothing found. A search box that
+                 says "no results" before anybody has typed looks broken. -->
+            <EmptyState
+                v-else
+                :icon="SearchIcon"
+                :title="meta.term === '' ? 'Search this workspace' : `Nothing matched “${meta.term}”`"
+                :description="
+                    meta.term === ''
+                        ? 'Task names and descriptions, across every project you can reach.'
+                        : 'Try fewer words, or part of one — a search matches the beginning of the last word you typed.'
+                "
+            />
+
+            <button
+                v-if="meta.hasMore"
+                type="button"
+                class="self-start rounded-md border border-input px-2.5 py-1.5 text-xs transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                @click="run(meta.page + 1)"
+            >
+                Load more
+            </button>
 
         <TaskDetailPanel
             v-if="taskDetail"

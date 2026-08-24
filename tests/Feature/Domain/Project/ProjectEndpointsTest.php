@@ -27,8 +27,8 @@ it('lists the projects the actor may see in the current workspace', function ():
         ->get(route('projects.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('projects/Index')
-            ->has('projects', 1)
-            ->where('projects.0.id', $project->id)
+            ->has('allProjects', 1)
+            ->where('allProjects.0.id', $project->id)
             ->where('can.create', true));
 });
 
@@ -38,7 +38,7 @@ it('excludes archived projects from the listing', function (): void {
 
     $this->actingAs($actor)
         ->get(route('projects.index'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('projects', 0));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('allProjects', 0));
 });
 
 it('refuses the creation screen to an actor without the capability', function (): void {

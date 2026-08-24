@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, Link } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import PageHeader from '@/components/PageHeader.vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -26,6 +28,7 @@ import {
 import { accentTextClass } from '@/lib/accentColor';
 import SectionManager from '@/modules/project/components/SectionManager.vue';
 import type { ProjectAbilities, ProjectOptions, ProjectSection, ProjectSettings } from '@/modules/project/types';
+import { show } from '@/routes/projects';
 const props = defineProps<{
     project: ProjectSettings;
     options: ProjectOptions;
@@ -56,202 +59,213 @@ const viewLabels: Record<string, string> = {
 </script>
 
 <template>
-    <div class="flex flex-col space-y-8">
+    <div class="flex flex-col">
         <Head :title="`${props.project.name} settings`" />
 
-        <!-- The page's own name, set small by the design and still the top of its outline. -->
-        <Heading
-            variant="small"
-            level="h1"
-            :title="props.project.name"
+        <PageHeader
+            :title="`${props.project.name} settings`"
             description="Details, visibility and the view this project opens in"
-        />
-
-        <p v-if="!props.can.update" class="text-muted-foreground text-sm">
-            You can open this project but not change its settings.
-        </p>
-
-        <Form
-            v-else
-            v-bind="ProjectController.update.form(props.project.id)"
-            class="max-w-lg space-y-6"
-            v-slot="{ errors, processing }"
         >
-            <input type="hidden" name="id" :value="props.project.id" />
-            <input type="hidden" name="color" :value="color" />
-            <input type="hidden" name="default_view" :value="defaultView" />
-            <input type="hidden" name="visibility" :value="visibility" />
+            <!-- The way back is part of the header: settings are a detour from the project, and a
+                 detour needs a door at both ends. -->
+            <template #actions>
+                <Link
+                    :href="show(props.project.id).url"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] font-medium transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                >
+                    <ArrowLeft class="size-4" />
+                    Back to project
+                </Link>
+            </template>
+        </PageHeader>
 
-            <div class="grid gap-2">
-                <Label for="name">Name</Label>
-                <Input id="name" name="name" required :default-value="props.project.name" />
-                <InputError :message="errors.name" />
-                <InputError :message="errors.id" />
-            </div>
+        <div class="flex flex-col gap-8 px-4 py-6 md:px-6">
+            <p v-if="!props.can.update" class="text-sm text-muted-foreground">
+                You can open this project but not change its settings.
+            </p>
 
-            <div class="grid gap-2">
-                <Label for="slug">Address</Label>
-                <Input id="slug" name="slug" :default-value="props.project.slug" />
-                <InputError :message="errors.slug" />
-            </div>
+            <Form
+                v-else
+                v-bind="ProjectController.update.form(props.project.id)"
+                class="max-w-lg space-y-6"
+                v-slot="{ errors, processing }"
+            >
+                <input type="hidden" name="id" :value="props.project.id" />
+                <input type="hidden" name="color" :value="color" />
+                <input type="hidden" name="default_view" :value="defaultView" />
+                <input type="hidden" name="visibility" :value="visibility" />
 
-            <div class="grid gap-2">
-                <Label for="description">Description</Label>
-                <textarea
-                    id="description"
-                    name="description"
-                    rows="3"
-                    class="border-input bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-none"
-                    :value="props.project.description ?? ''"
-                />
-                <InputError :message="errors.description" />
-            </div>
+                <div class="grid gap-2">
+                    <Label for="name">Name</Label>
+                    <Input id="name" name="name" required :default-value="props.project.name" />
+                    <InputError :message="errors.name" />
+                    <InputError :message="errors.id" />
+                </div>
 
-            <div class="grid gap-2">
-                <Label for="color-trigger">Colour</Label>
-                <div class="flex items-center gap-2">
-                    <Select v-model="color">
-                        <SelectTrigger id="color-trigger" class="w-56">
-                            <SelectValue placeholder="No colour" />
+                <div class="grid gap-2">
+                    <Label for="slug">Address</Label>
+                    <Input id="slug" name="slug" :default-value="props.project.slug" />
+                    <InputError :message="errors.slug" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="description">Description</Label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="3"
+                        class="border-input bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-1 focus-visible:outline-none"
+                        :value="props.project.description ?? ''"
+                    />
+                    <InputError :message="errors.description" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="color-trigger">Colour</Label>
+                    <div class="flex items-center gap-2">
+                        <Select v-model="color">
+                            <SelectTrigger id="color-trigger" class="w-56">
+                                <SelectValue placeholder="No colour" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="option in props.options.colors" :key="option" :value="option">
+                                    <span :class="accentTextClass(option)">●</span>
+                                    {{ option }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <!-- A select cannot offer an empty option, so clearing gets its own control. -->
+                        <Button v-if="color" type="button" variant="ghost" @click="color = ''">Clear</Button>
+                    </div>
+                    <InputError :message="errors.color" />
+                </div>
+
+                <div class="grid gap-2">
+                    <Label for="visibility-trigger">Visibility</Label>
+                    <Select v-model="visibility">
+                        <SelectTrigger id="visibility-trigger" class="w-56">
+                            <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-for="option in props.options.colors" :key="option" :value="option">
-                                <span :class="accentTextClass(option)">●</span>
-                                {{ option }}
+                            <SelectItem
+                                v-for="option in props.options.visibilities"
+                                :key="option"
+                                :value="option"
+                            >
+                                {{ visibilityLabels[option] ?? option }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
-
-                    <!-- A select cannot offer an empty option, so clearing gets its own control. -->
-                    <Button v-if="color" type="button" variant="ghost" @click="color = ''">Clear</Button>
-                </div>
-                <InputError :message="errors.color" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="visibility-trigger">Visibility</Label>
-                <Select v-model="visibility">
-                    <SelectTrigger id="visibility-trigger" class="w-56">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem
-                            v-for="option in props.options.visibilities"
-                            :key="option"
-                            :value="option"
-                        >
-                            {{ visibilityLabels[option] ?? option }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="errors.visibility" />
-            </div>
-
-            <div class="grid gap-2">
-                <Label for="view-trigger">Opens in</Label>
-                <Select v-model="defaultView">
-                    <SelectTrigger id="view-trigger" class="w-56">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="option in props.options.views" :key="option" :value="option">
-                            {{ viewLabels[option] ?? option }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <InputError :message="errors.default_view" />
-            </div>
-
-            <div class="grid gap-4 sm:grid-cols-2">
-                <div class="grid gap-2">
-                    <Label for="start_date">Starts</Label>
-                    <Input
-                        id="start_date"
-                        name="start_date"
-                        type="date"
-                        :default-value="props.project.start_date ?? ''"
-                    />
-                    <InputError :message="errors.start_date" />
+                    <InputError :message="errors.visibility" />
                 </div>
 
                 <div class="grid gap-2">
-                    <Label for="due_date">Due</Label>
-                    <Input
-                        id="due_date"
-                        name="due_date"
-                        type="date"
-                        :default-value="props.project.due_date ?? ''"
-                    />
-                    <InputError :message="errors.due_date" />
+                    <Label for="view-trigger">Opens in</Label>
+                    <Select v-model="defaultView">
+                        <SelectTrigger id="view-trigger" class="w-56">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem v-for="option in props.options.views" :key="option" :value="option">
+                                {{ viewLabels[option] ?? option }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="errors.default_view" />
                 </div>
-            </div>
 
-            <Button type="submit" :disabled="processing">Save changes</Button>
-        </Form>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="grid gap-2">
+                        <Label for="start_date">Starts</Label>
+                        <Input
+                            id="start_date"
+                            name="start_date"
+                            type="date"
+                            :default-value="props.project.start_date ?? ''"
+                        />
+                        <InputError :message="errors.start_date" />
+                    </div>
 
-        <SectionManager
-            :project-id="props.project.id"
-            :sections="props.sections"
-            :can="{ update: props.can.update, createSection: props.can.createSection }"
-        />
+                    <div class="grid gap-2">
+                        <Label for="due_date">Due</Label>
+                        <Input
+                            id="due_date"
+                            name="due_date"
+                            type="date"
+                            :default-value="props.project.due_date ?? ''"
+                        />
+                        <InputError :message="errors.due_date" />
+                    </div>
+                </div>
 
-        <section v-if="props.can.archive" class="space-y-4">
-            <Heading
-                variant="small"
-                :title="props.project.archived ? 'Restore project' : 'Archive project'"
-                :description="
-                    props.project.archived
-                        ? 'Put this project back in the sidebar for everyone who can see it'
-                        : 'Hide this project from the sidebar and lists. Nothing is deleted.'
-                "
+                <Button type="submit" :disabled="processing">Save changes</Button>
+            </Form>
+
+            <SectionManager
+                :project-id="props.project.id"
+                :sections="props.sections"
+                :can="{ update: props.can.update, createSection: props.can.createSection }"
             />
 
-            <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <Form
-                    v-if="props.project.archived"
-                    v-bind="ProjectController.restore.form(props.project.id)"
-                    v-slot="{ processing }"
-                >
-                    <Button type="submit" variant="outline" :disabled="processing">Restore project</Button>
-                </Form>
+            <section v-if="props.can.archive" class="space-y-4">
+                <Heading
+                    variant="small"
+                    :title="props.project.archived ? 'Restore project' : 'Archive project'"
+                    :description="
+                        props.project.archived
+                            ? 'Put this project back in the sidebar for everyone who can see it'
+                            : 'Hide this project from the sidebar and lists. Nothing is deleted.'
+                    "
+                />
 
-                <Dialog v-else>
-                    <DialogTrigger as-child>
-                        <Button variant="destructive">Archive project</Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <Form
-                            v-bind="ProjectController.archive.form(props.project.id)"
-                            class="space-y-6"
-                            v-slot="{ processing }"
-                        >
-                            <DialogHeader class="space-y-3">
-                                <DialogTitle>Archive {{ props.project.name }}?</DialogTitle>
-                                <DialogDescription>
-                                    Its tasks and members stay exactly as they are, and you can restore
-                                    it here. Type the project name to confirm.
-                                </DialogDescription>
-                            </DialogHeader>
+                <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
+                    <Form
+                        v-if="props.project.archived"
+                        v-bind="ProjectController.restore.form(props.project.id)"
+                        v-slot="{ processing }"
+                    >
+                        <Button type="submit" variant="outline" :disabled="processing">Restore project</Button>
+                    </Form>
 
-                            <div class="grid gap-2">
-                                <Label for="confirmation">Project name</Label>
-                                <Input
-                                    id="confirmation"
-                                    v-model="confirmation"
-                                    autocomplete="off"
-                                    :placeholder="props.project.name"
-                                />
-                            </div>
+                    <Dialog v-else>
+                        <DialogTrigger as-child>
+                            <Button variant="destructive">Archive project</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <Form
+                                v-bind="ProjectController.archive.form(props.project.id)"
+                                class="space-y-6"
+                                v-slot="{ processing }"
+                            >
+                                <DialogHeader class="space-y-3">
+                                    <DialogTitle>Archive {{ props.project.name }}?</DialogTitle>
+                                    <DialogDescription>
+                                        Its tasks and members stay exactly as they are, and you can restore
+                                        it here. Type the project name to confirm.
+                                    </DialogDescription>
+                                </DialogHeader>
 
-                            <DialogFooter>
-                                <Button type="submit" variant="destructive" :disabled="!confirmed || processing">
-                                    Archive project
-                                </Button>
-                            </DialogFooter>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        </section>
+                                <div class="grid gap-2">
+                                    <Label for="confirmation">Project name</Label>
+                                    <Input
+                                        id="confirmation"
+                                        v-model="confirmation"
+                                        autocomplete="off"
+                                        :placeholder="props.project.name"
+                                    />
+                                </div>
+
+                                <DialogFooter>
+                                    <Button type="submit" variant="destructive" :disabled="!confirmed || processing">
+                                        Archive project
+                                    </Button>
+                                </DialogFooter>
+                            </Form>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </section>
+        </div>
     </div>
 </template>

@@ -19,7 +19,8 @@ import { accentDotClass } from '@/lib/accentColor';
  * out to be wrong.
  */
 const props = defineProps<{
-    projects: { id: string; name: string; color: string | null }[];
+    /** The projects this person may add work to. Not the sidebar's `projects` — see the controller. */
+    targetProjects: { id: string; name: string; color: string | null }[];
     project: string | null;
     sections: { id: string; name: string }[];
     section: string | null;
@@ -33,7 +34,7 @@ const form = useForm<{ title: string; section: string | null }>({
     section: props.section,
 });
 
-const selected = computed(() => props.projects.find((project) => project.id === chosenProject.value) ?? null);
+const selected = computed(() => props.targetProjects.find((project) => project.id === chosenProject.value) ?? null);
 
 /*
  * The sections belong to the chosen project, so choosing a different one asks the server again
@@ -78,7 +79,7 @@ function submit(): void {
                         <SelectValue placeholder="Choose a project" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="option in projects" :key="option.id" :value="option.id">
+                        <SelectItem v-for="option in targetProjects" :key="option.id" :value="option.id">
                             <span class="flex items-center gap-2">
                                 <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(option.color)" />
                                 {{ option.name }}
@@ -90,7 +91,7 @@ function submit(): void {
                 <!-- Required, and said so before the form is submitted rather than after. A task
                      with no project is reachable only from My Tasks and from search, which is a
                      thing this application allows but not a thing to do by accident. -->
-                <p v-if="projects.length === 0" class="text-sm text-muted-foreground">
+                <p v-if="targetProjects.length === 0" class="text-sm text-muted-foreground">
                     There is no project here you can add to yet.
                 </p>
             </div>

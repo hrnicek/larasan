@@ -39,9 +39,11 @@ class SearchController extends Controller
             'filters' => (object) $request->filters(),
             /*
              * The projects to narrow by: the ones this actor can open, so the filter cannot name
-             * a project search would never return anything from.
+             * a project search would never return anything from. Named apart from the shared
+             * `projects` prop the sidebar reads — a page prop of the same name replaces it, and
+             * the sidebar would quietly render this shorter, colourless list instead.
              */
-            'projects' => $projects($workspace, $actor)
+            'filterProjects' => $projects($workspace, $actor)
                 ->map(fn (Project $project): array => [
                     'id' => $project->id,
                     'name' => $project->name,

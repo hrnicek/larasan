@@ -32,7 +32,7 @@ it('offers only the projects the actor may add to', function (): void {
         ->get(route('tasks.create'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('tasks/Create')
-            ->has('projects', 1)
+            ->has('targetProjects', 1)
             ->where('projects.0.id', $project->id));
 });
 

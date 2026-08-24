@@ -124,7 +124,10 @@ class TaskController extends Controller
         $selected = $projects->firstWhere('id', $request->string('project')->value());
 
         return Inertia::modal('tasks/Create', [
-            'projects' => $projects
+            // Named apart from the shared `projects` prop: a page prop of the same name replaces
+            // it, and the sidebar would render this narrower list — only what you may add to —
+            // for as long as the dialog is open.
+            'targetProjects' => $projects
                 ->map(fn (Project $project): array => [
                     'id' => $project->id,
                     'name' => $project->name,
