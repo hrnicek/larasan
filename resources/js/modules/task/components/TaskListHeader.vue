@@ -22,6 +22,7 @@ defineProps<{
         class="hidden items-center gap-3 border border-transparent border-b-border px-4 pb-2 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase md:flex"
         aria-hidden="true"
     >
+        <span class="w-5 shrink-0 text-right">#</span>
         <span class="flex-1">Task name</span>
 
         <span v-for="field in fields" :key="field.id" :class="listColumns.field" :title="field.name">

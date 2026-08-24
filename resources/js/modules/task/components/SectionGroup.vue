@@ -65,9 +65,10 @@ const toggle = () => emit('toggle', props.section.id);
 
         <div v-else-if="!collapsed" class="divide-y border-t">
             <TaskRow
-                v-for="task in section.tasks"
+                v-for="(task, position) in section.tasks"
                 :key="task.placementId"
                 :task="task"
+                :index="position + 1"
                 :members="members"
                 :priorities="priorities"
                 :editable="editable"

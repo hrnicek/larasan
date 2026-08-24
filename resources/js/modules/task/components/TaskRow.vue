@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Form, router } from '@inertiajs/vue3';
-import { ChevronRight, MessageSquare } from '@lucide/vue';
+import { Check, ChevronRight, MessageSquare } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { accentChipClass } from '@/lib/accentColor';
@@ -24,6 +24,8 @@ const props = defineProps<{
     members: TaskAssignee[];
     priorities: string[];
     editable: boolean;
+    /** Its place in the section, drawn as a number so a row can be referred to out loud. */
+    index?: number;
     /** The project's field columns, when this row is drawn inside one (TASK-150-008). */
     fields?: { id: string; name: string; type: string }[];
 }>();
@@ -78,36 +80,61 @@ defineExpose({ focus: () => row.value?.focus() });
         @keydown.enter="emit('open', task.id)"
     >
         <div class="flex items-center gap-3">
+            <!-- A row you can name out loud. Hidden below `md`, where the row is two lines and a
+                 column of numbers is width spent on something nobody is counting on a phone. -->
+            <span
+                v-if="index !== undefined"
+                class="hidden w-5 shrink-0 text-right text-xs tabular-nums text-muted-foreground/70 md:inline"
+                aria-hidden="true"
+            >
+                {{ index }}
+            </span>
+
             <Form
                 v-if="editable"
                 v-bind="completed() ? TaskController.reopen.form(task.id) : TaskController.complete.form(task.id)"
                 #default="{ processing }"
             >
                 <!--
-                    The hit area is 44px on a touch width and the drawn box stays 16px inside it.
-                    A 16px checkbox is a 16px checkbox whatever the pointer is; what changes with
-                    the pointer is how much room it needs around it.
+                    The hit area is 44px on a touch width and the drawn circle stays 18px inside
+                    it. A control is drawn at the size it should be read at; what changes with the
+                    pointer is how much room it needs around it.
+
+                    The check is present before it is true, at zero opacity, and appears under the
+                    pointer. That is the affordance: a bare circle says "status", a circle with a
+                    tick waiting inside it says "you can finish this".
                 -->
                 <button
                     type="submit"
                     :disabled="processing"
                     :aria-label="completed() ? 'Reopen task' : 'Complete task'"
                     :aria-pressed="completed()"
-                    class="-m-2 flex size-11 items-center justify-center disabled:opacity-50 md:-m-0.5 md:size-5"
+                    class="-m-2 flex size-11 items-center justify-center disabled:opacity-50 md:-m-0.5 md:size-6"
                 >
                     <span
-                        class="size-4 rounded border border-input"
-                        :class="completed() ? 'bg-primary' : ''"
+                        class="flex size-[18px] items-center justify-center rounded-full border transition-colors"
+                        :class="
+                            completed()
+                                ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+                                : 'border-input text-muted-foreground'
+                        "
                         aria-hidden="true"
-                    />
+                    >
+                        <Check
+                            class="size-3 transition-opacity"
+                            :class="completed() ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'"
+                        />
+                    </span>
                 </button>
             </Form>
             <span
                 v-else
-                class="size-4 rounded border border-input"
-                :class="completed() ? 'bg-muted' : ''"
+                class="flex size-[18px] items-center justify-center rounded-full border border-input"
+                :class="completed() ? 'border-emerald-600 bg-emerald-600 text-white' : ''"
                 aria-hidden="true"
-            />
+            >
+                <Check v-if="completed()" class="size-3" />
+            </span>
 
             <button
                 type="button"

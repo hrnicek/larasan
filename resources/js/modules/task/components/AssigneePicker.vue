@@ -136,6 +136,7 @@ function onKeydown(event: KeyboardEvent): void {
             <PopoverTrigger
                 :disabled="saving"
                 :aria-label="assignee ? `Assigned to ${assignee.name}. Change assignee` : 'Unassigned. Assign someone'"
+                :title="variant === 'field' ? undefined : (assignee?.name ?? 'Unassigned')"
                 class="flex min-h-11 items-center gap-1.5 rounded-md text-left transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
                 :class="
                     variant === 'field'
@@ -143,9 +144,14 @@ function onKeydown(event: KeyboardEvent): void {
                         : 'px-1 text-xs text-muted-foreground hover:text-foreground'
                 "
             >
+                <!--
+                    A row shows the face and a field shows the name. Down a column, a name is a
+                    ragged block of text of the wrong width; a face is recognised before it is
+                    read. The name is still the control's accessible name and its tooltip.
+                -->
                 <template v-if="assignee">
-                    <UserAvatar v-if="variant === 'field'" :user="{ ...assignee, avatar: assignee.avatar }" size="sm" />
-                    <span class="truncate">{{ assignee.name }}</span>
+                    <UserAvatar :user="{ ...assignee, avatar: assignee.avatar }" size="sm" />
+                    <span v-if="variant === 'field'" class="truncate">{{ assignee.name }}</span>
                 </template>
 
                 <!--
@@ -154,12 +160,11 @@ function onKeydown(event: KeyboardEvent): void {
                 -->
                 <template v-else>
                     <span
-                        v-if="variant === 'field'"
-                        class="flex size-6 items-center justify-center rounded-md border border-dashed border-muted-foreground/50 text-muted-foreground"
+                        class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/50 text-muted-foreground"
                     >
                         <UserPlus class="size-3.5" />
                     </span>
-                    <span :class="variant === 'field' ? 'text-muted-foreground' : ''">Unassigned</span>
+                    <span v-if="variant === 'field'" class="text-muted-foreground">Unassigned</span>
                 </template>
             </PopoverTrigger>
 
