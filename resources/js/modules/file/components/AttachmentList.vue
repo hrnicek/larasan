@@ -2,6 +2,7 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import type { TaskAttachment } from '@/modules/task/types';
 
 /**
@@ -52,8 +53,22 @@ const upload = (event: Event): void => {
     });
 };
 
-const remove = (attachment: TaskAttachment): void => {
-    router.delete(AttachmentController.destroy.url(attachment.id), { preserveScroll: true });
+/*
+ * Removing a file is asked about first (ADR-0013). The bytes survive the request — `files:sweep`
+ * is the only place they are destroyed — but the person clicking cannot know that, and a file
+ * that disappears without a question is a file they will assume is gone.
+ */
+const removing = ref<TaskAttachment | null>(null);
+
+const remove = (): void => {
+    if (removing.value === null) {
+        return;
+    }
+
+    router.delete(AttachmentController.destroy.url(removing.value.id), {
+        preserveScroll: true,
+        onFinish: () => (removing.value = null),
+    });
 };
 </script>
 
@@ -75,7 +90,7 @@ const remove = (attachment: TaskAttachment): void => {
                     v-if="attachment.canDelete"
                     type="button"
                     class="ml-auto text-xs text-muted-foreground underline"
-                    @click="remove(attachment)"
+                    @click="removing = attachment"
                 >
                     Remove
                 </button>
@@ -97,5 +112,14 @@ const remove = (attachment: TaskAttachment): void => {
 
             <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
         </template>
+        <ConfirmDialog
+            :open="removing !== null"
+            :title="`Remove ${removing?.name}?`"
+            description="It comes off this task for everybody. Nothing else on the task changes."
+            confirm-label="Remove"
+            cancel-label="Keep it"
+            @update:open="(next) => !next && (removing = null)"
+            @confirm="remove"
+        />
     </section>
 </template>

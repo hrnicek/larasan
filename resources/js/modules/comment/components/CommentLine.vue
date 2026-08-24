@@ -2,6 +2,7 @@
 import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import CommentController from '@/actions/App/Http/Controllers/Comment/CommentController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import type { TaskFeedEntry } from '@/modules/task/types';
 
 /**
@@ -34,8 +35,13 @@ const save = (): void => {
     });
 };
 
+const removing = ref(false);
+
 const remove = (): void => {
-    router.delete(CommentController.destroy.url(props.entry.id), { preserveScroll: true });
+    router.delete(CommentController.destroy.url(props.entry.id), {
+        preserveScroll: true,
+        onFinish: () => (removing.value = false),
+    });
 };
 </script>
 
@@ -71,8 +77,17 @@ const remove = (): void => {
 
             <div v-if="entry.canEdit || entry.canDelete" class="flex gap-2 text-xs text-muted-foreground">
                 <button v-if="entry.canEdit" type="button" class="underline" @click="startEditing">Edit</button>
-                <button v-if="entry.canDelete" type="button" class="underline" @click="remove">Delete</button>
+                <button v-if="entry.canDelete" type="button" class="underline" @click="removing = true">Delete</button>
             </div>
         </template>
+        <ConfirmDialog
+            :open="removing"
+            title="Delete this comment?"
+            description="Its words go; its place in the thread stays, marked as removed, so the conversation still reads in order."
+            confirm-label="Delete"
+            cancel-label="Keep it"
+            @update:open="(next) => (removing = next)"
+            @confirm="remove"
+        />
     </li>
 </template>

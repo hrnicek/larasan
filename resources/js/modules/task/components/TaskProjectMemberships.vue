@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
 import ProjectPlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,15 +40,27 @@ const attach = (projectId: string): void => {
     );
 };
 
-const detach = (placementId: string): void => {
+/*
+ * Taking a task out of its last project does not delete it — it stays reachable from My Tasks and
+ * from search — but from this screen it looks like disappearance, which is exactly the case worth
+ * asking about (ADR-0013).
+ */
+const detaching = ref<{ placementId: string; name: string } | null>(null);
+
+const detach = (): void => {
+    if (detaching.value === null) {
+        return;
+    }
+
     working.value = true;
 
-    router.delete(PlacementController.destroy.url(placementId), {
+    router.delete(PlacementController.destroy.url(detaching.value.placementId), {
         preserveScroll: true,
         preserveState: true,
         onFinish: () => {
- working.value = false; 
-},
+            working.value = false;
+            detaching.value = null;
+        },
     });
 };
 </script>
@@ -68,7 +81,7 @@ const detach = (placementId: string): void => {
                     :disabled="working"
                     :aria-label="`Remove from ${placement.project.name}`"
                     :title="placements.length === 1 ? 'This is the last project — the task will only be reachable from My Tasks and search.' : undefined"
-                    @click="detach(placement.placementId)"
+                    @click="detaching = { placementId: placement.placementId, name: placement.project.name }"
                 >
                     Remove
                 </button>
@@ -96,5 +109,15 @@ const detach = (placementId: string): void => {
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+        <ConfirmDialog
+            :open="detaching !== null"
+            :title="`Remove from ${detaching?.name}?`"
+            description="The task itself is not deleted. If this was its last project it stays reachable from My Tasks and from search."
+            confirm-label="Remove"
+            cancel-label="Keep it"
+            :pending="working"
+            @update:open="(next) => !next && (detaching = null)"
+            @confirm="detach"
+        />
     </section>
 </template>

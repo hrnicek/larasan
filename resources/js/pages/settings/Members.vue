@@ -2,17 +2,10 @@
 import { Form, Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import WorkspaceMemberController from '@/actions/App/Http/Controllers/Workspace/WorkspaceMemberController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -159,20 +152,14 @@ function confirmRemoval(): void {
             </li>
         </ul>
 
-        <Dialog :open="removing !== null" @update:open="(open) => !open && (removing = null)">
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Remove {{ removing?.name }}?</DialogTitle>
-                    <DialogDescription>
-                        They lose access to this workspace immediately. Their comments and
-                        activity stay, and they can be invited again later.
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="ghost" @click="removing = null">Keep them</Button>
-                    <Button variant="destructive" @click="confirmRemoval">Remove</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <ConfirmDialog
+            :open="removing !== null"
+            :title="`Remove ${removing?.name}?`"
+            description="They lose access to this workspace immediately. Their comments and activity stay, and they can be invited again later."
+            confirm-label="Remove"
+            cancel-label="Keep them"
+            @update:open="(next) => !next && (removing = null)"
+            @confirm="confirmRemoval"
+        />
     </div>
 </template>
