@@ -45,7 +45,7 @@ it('pins every persisted enum value', function (string $enum, array $expected): 
     'membership status' => [WorkspaceMembershipStatus::class, ['invited', 'active', 'declined', 'revoked', 'expired']],
     'project access level' => [ProjectAccessLevel::class, ['owner', 'editor', 'commenter', 'viewer']],
     'project visibility' => [ProjectVisibility::class, ['workspace', 'private']],
-    'project default view' => [ProjectDefaultView::class, ['list', 'board']],
+    'project default view' => [ProjectDefaultView::class, ['list', 'board', 'calendar']],
     'project color' => [ProjectColor::class, ['slate', 'red', 'amber', 'emerald', 'teal', 'sky', 'violet', 'rose']],
     'task priority' => [TaskPriority::class, ['low', 'medium', 'high', 'urgent']],
 ]);

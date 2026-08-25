@@ -12,6 +12,7 @@ use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectBoardQuery;
+use App\Domain\Project\Queries\ProjectCalendarQuery;
 use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
@@ -102,6 +103,7 @@ class ProjectController extends Controller
         Project $project,
         ProjectListQuery $list,
         ProjectBoardQuery $board,
+        ProjectCalendarQuery $calendar,
         TaskDetailQuery $detail,
     ): Response {
         Gate::authorize('view', $project);
@@ -120,18 +122,20 @@ class ProjectController extends Controller
             ],
             'view' => $view->value,
             /*
-             * One screen, two views, and only the payload the view asked for. Sending both
-             * would read the same placements twice for a reader who can see one of them.
+             * One screen, three views, and only the payload the view asked for. Sending more
+             * than one would read the same placements twice for a reader who can see one of them.
              */
-            ...$view === ProjectDefaultView::Board
-                ? ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())]
-                : ['list' => $list(
+            ...match ($view) {
+                ProjectDefaultView::Board => ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())],
+                ProjectDefaultView::Calendar => ['calendar' => $calendar($project, $actor, $request->month(), $request->tags())],
+                ProjectDefaultView::List => ['list' => $list(
                     $project,
                     $actor,
                     $request->tags(),
                     $request->sort($project->customFields),
                     $request->fieldFilters(),
                 )],
+            },
             /*
              * The filter, echoed back, and the workspace's vocabulary to pick from. The screen
              * renders what the server understood rather than what the client thinks it asked

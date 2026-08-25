@@ -8,6 +8,7 @@ use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectDefaultView;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -63,6 +64,17 @@ class ShowProjectRequest extends FormRequest
             'sort' => ['sometimes', 'uuid'],
             'direction' => ['sometimes', 'in:asc,desc'],
             'field' => ['sometimes', 'array', 'max:10'],
+
+            /*
+             * Which month the calendar is showing. A month rather than a date: the view draws
+             * whole weeks around one month, so a day would be a more precise way of saying the
+             * same thing and a worse thing to read in a link somebody sent.
+             *
+             * A value that is not a month is a validation error rather than a quiet fallback to
+             * this one, for the reason `view` is: a URL that silently renders something else
+             * looks like the control is broken.
+             */
+            'month' => ['sometimes', 'date_format:Y-m'],
         ];
     }
 
@@ -73,6 +85,20 @@ class ShowProjectRequest extends FormRequest
     public function view(Project $project): ProjectDefaultView
     {
         return $this->enum('view', ProjectDefaultView::class) ?? $project->default_view;
+    }
+
+    /**
+     * The month the calendar is showing: the parameter when it is there, this month when it is
+     * not. Always the first of it, so a caller cannot accidentally carry a day into a value
+     * that means a month.
+     */
+    public function month(): CarbonImmutable
+    {
+        $month = $this->string('month')->value();
+
+        return $month === ''
+            ? CarbonImmutable::now()->startOfMonth()
+            : CarbonImmutable::parse($month.'-01')->startOfMonth();
     }
 
     public function openTask(): ?string

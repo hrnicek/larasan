@@ -14,6 +14,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use Carbon\CarbonImmutable;
 use Inertia\Testing\AssertableInertia;
 
 it('requires authentication', function (): void {
@@ -50,6 +51,49 @@ it('sends the list payload for the list view and nothing of the board', function
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('list.sections.0.tasks.0.title', 'Write it down')
             ->missing('board'));
+});
+
+it('sends the calendar payload for the calendar view and nothing of the other two', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->dueAt(CarbonImmutable::parse('2026-07-07 09:00'))->create(['title' => 'Ship it']);
+    attach($task, $project, $actor);
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', [
+            'project' => $project,
+            'view' => ProjectDefaultView::Calendar->value,
+            'month' => '2026-07',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('calendar.month', '2026-07')
+            // The grid runs Monday to Sunday around the month, so July 2026 opens on 29 June.
+            ->where('calendar.days.0.date', '2026-06-29')
+            ->where('calendar.days.8.tasks.0.title', 'Ship it')
+            ->missing('list')
+            ->missing('board'));
+});
+
+it('opens the calendar on this month when the URL names none', function (): void {
+    [, $project, $actor] = placeableProject();
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', ['project' => $project, 'view' => ProjectDefaultView::Calendar->value]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('calendar.month', CarbonImmutable::now()->format('Y-m')));
+});
+
+it('refuses a month that is not one', function (): void {
+    [, $project, $actor] = placeableProject();
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', [
+            'project' => $project,
+            'view' => ProjectDefaultView::Calendar->value,
+            'month' => 'julyish',
+        ]))
+        ->assertSessionHasErrors('month');
 });
 
 it('expands the column a reader asked for', function (): void {
