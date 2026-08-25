@@ -7,6 +7,7 @@ namespace App\Http\Requests\Project;
 use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Enums\ProjectFileSort;
 use App\Domain\Shared\Enums\ProjectView;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
@@ -67,8 +68,15 @@ class ShowProjectRequest extends FormRequest
             /*
              * Ordering and narrowing by a field's answer, both in the URL for the reason the tag
              * filter is: this is a view somebody sends, not a preference they describe.
+             *
+             * `sort` means two things, one per view, the way `expand` does — a URL names one view,
+             * so the two meanings can never be in the same address. On the files table it is one
+             * of a fixed vocabulary, and a value outside it is a validation error rather than a
+             * quiet fallback: there are no stale ids to be kind about, only URLs built wrong.
              */
-            'sort' => ['sometimes', 'uuid'],
+            'sort' => $this->showsFiles()
+                ? ['sometimes', Rule::enum(ProjectFileSort::class)]
+                : ['sometimes', 'uuid'],
             'direction' => ['sometimes', 'in:asc,desc'],
             'field' => ['sometimes', 'array', 'max:10'],
 
@@ -100,6 +108,35 @@ class ShowProjectRequest extends FormRequest
     public function page(): int
     {
         return max(1, $this->integer('page', 1));
+    }
+
+    /**
+     * How the files table is ordered, and which way round.
+     *
+     * The direction is left null where the URL did not say one, so the enum decides: newest first
+     * for a moment, A to Z for a name. Answering "ascending" for all three would open the table on
+     * the oldest file somebody attached.
+     *
+     * @return array{ProjectFileSort, bool|null}
+     */
+    public function fileSort(): array
+    {
+        $direction = $this->string('direction')->value();
+
+        return [
+            $this->enum('sort', ProjectFileSort::class) ?? ProjectFileSort::Added,
+            $direction === '' ? null : $direction === 'desc',
+        ];
+    }
+
+    /**
+     * Whether this request is asking for the files table, answered from the parameter alone: a
+     * project cannot default to it (`ProjectView` is a superset of `ProjectDefaultView`), so
+     * there is no case where the project would have to be resolved to know.
+     */
+    private function showsFiles(): bool
+    {
+        return $this->query('view') === ProjectView::Files->value;
     }
 
     /**

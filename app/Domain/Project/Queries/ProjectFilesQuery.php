@@ -9,11 +9,12 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\FileKind;
+use App\Domain\Shared\Enums\ProjectFileSort;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -48,12 +49,21 @@ final readonly class ProjectFilesQuery
     /**
      * @return array{
      *     files: list<array<string, mixed>>,
-     *     meta: array{page: int, perPage: int, total: int, hasMore: bool},
+     *     meta: array{page: int, perPage: int, total: int, hasMore: bool, sort: string, direction: string},
      * }
      */
-    public function __invoke(Project $project, User $actor, int $page = 1, int $perPage = self::PER_PAGE): array
-    {
-        $attachments = $this->paginate($project, $page, $perPage);
+    public function __invoke(
+        Project $project,
+        User $actor,
+        int $page = 1,
+        ?ProjectFileSort $sort = null,
+        ?bool $descending = null,
+        int $perPage = self::PER_PAGE,
+    ): array {
+        $sort ??= ProjectFileSort::Added;
+        $descending ??= $sort->defaultsToDescending();
+
+        $attachments = $this->paginate($project, $page, $perPage, $sort, $descending);
 
         /** @var Collection<int, Attachment> $rows */
         $rows = $attachments->getCollection();
@@ -70,6 +80,10 @@ final readonly class ProjectFilesQuery
                 'perPage' => $attachments->perPage(),
                 'total' => $attachments->total(),
                 'hasMore' => $attachments->hasMorePages(),
+                // What the server understood of the ordering, echoed back, so the headers draw
+                // the table that arrived rather than the one the client asked for.
+                'sort' => $sort->value,
+                'direction' => $descending ? 'desc' : 'asc',
             ],
         ];
     }
@@ -77,30 +91,43 @@ final readonly class ProjectFilesQuery
     /**
      * @return LengthAwarePaginator<int, Attachment>
      */
-    private function paginate(Project $project, int $page, int $perPage): LengthAwarePaginator
-    {
+    private function paginate(
+        Project $project,
+        int $page,
+        int $perPage,
+        ProjectFileSort $sort,
+        bool $descending,
+    ): LengthAwarePaginator {
         return Attachment::query()
-            ->where('attachable_type', (string) Relation::getMorphAlias(Task::class))
+            ->select('attachments.*')
+            /*
+             * Joined rather than merely eager-loaded, because two of the three orderings are
+             * columns of `files`. The join carries the scope with it: the workspace is the
+             * indexed column the tenancy rests on, and a removed file is soft-deleted, which the
+             * relation's own scope would apply but a join has to say out loud.
+             */
+            ->join('files', function (JoinClause $file) use ($project): void {
+                $file->on('files.id', '=', 'attachments.file_id')
+                    ->whereNull('files.deleted_at')
+                    ->where('files.workspace_id', '=', $project->workspace_id);
+            })
+            ->where('attachments.attachable_type', (string) Relation::getMorphAlias(Task::class))
             /*
              * The subject has to be a task this project still draws: `visible()` is the scope
              * the board and the list count through, so a soft-deleted task takes its files out
              * of this table exactly as it takes its card off the board.
              */
-            ->whereIn('attachable_id', TaskProjectMembership::query()
+            ->whereIn('attachments.attachable_id', TaskProjectMembership::query()
                 ->visible()
                 ->where('project_id', $project->id)
                 ->select('task_id'))
-            /*
-             * The workspace, asked of the file directly. It is the indexed column the tenancy
-             * rests on, and `whereHas` on a soft-deleting relation also drops the rows whose
-             * file has been removed — which is the other half of what this view must not draw.
-             */
-            ->whereHas('file', fn (Builder $file) => $file->where('workspace_id', $project->workspace_id))
             ->with('file.uploader:id,name,email')
-            // Newest first, with the id breaking the tie: two files attached in the same second
-            // would otherwise page in whichever order PostgreSQL chose that day.
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            // The column comes from the enum, never from the request: a client-supplied string
+            // has no business reaching an `order by`.
+            ->orderBy($sort->column(), $descending ? 'desc' : 'asc')
+            // The id breaks the tie, because two files attached in the same second — or two files
+            // of the same size — would otherwise page in whichever order PostgreSQL chose today.
+            ->orderByDesc('attachments.id')
             ->paginate(perPage: $perPage, page: $page);
     }
 

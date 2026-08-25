@@ -118,3 +118,41 @@ it('still refuses to make files a project default view', function (): void {
         ])
         ->assertJsonValidationErrorFor('default_view');
 });
+
+it('orders the table from the URL, so an ordering is a link somebody can send', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    foreach (['zebra.pdf', 'aardvark.pdf'] as $name) {
+        Attachment::factory()
+            ->attaching(File::factory()->in($workspace)->by($actor)->create(['original_name' => $name]), $task)
+            ->create();
+    }
+
+    $this->actingAs($actor)
+        ->get(filesUrl($project, ['sort' => 'name', 'direction' => 'asc']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('files.files.0.name', 'aardvark.pdf')
+            ->where('files.meta.sort', 'name')
+            ->where('files.meta.direction', 'asc'));
+});
+
+it('refuses an ordering it does not understand', function (): void {
+    [, $project, $actor] = placeableProject();
+
+    // A fixed vocabulary, so an unknown value is a URL built wrong rather than a stale id to be
+    // kind about — the same reasoning `view` and `month` are validated by.
+    $this->actingAs($actor)
+        ->get(filesUrl($project, ['sort' => 'uploader']))
+        ->assertSessionHasErrors('sort');
+});
+
+it('still expects a field id when the list is the view being ordered', function (): void {
+    [, $project, $actor] = placeableProject();
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', ['project' => $project, 'view' => 'list', 'sort' => 'name']))
+        ->assertSessionHasErrors('sort');
+});

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import {
+    ArrowDown,
+    ArrowUp,
     File as FileIcon,
     FileArchive,
     FileImage,
@@ -26,9 +28,9 @@ import type { ProjectFile, ProjectFiles } from '@/modules/project/types';
 /**
  * Everything attached to this project's tasks, in one table.
  *
- * A **table** rather than a grid of rows, because that is what it is: five facts about each file,
- * the same five in the same order, and a screen reader announces which column it is in only if the
- * markup says there are columns.
+ * A **table** rather than a grid of rows, because that is what it is: the same facts about each
+ * file in the same order, and a screen reader announces which column it is in only if the markup
+ * says there are columns.
  *
  * The project has no files of its own — a file hangs from a task — so there is nothing to upload
  * here and no control that pretends there is. This view finds what has already been attached; the
@@ -64,6 +66,76 @@ const kinds: Record<string, { label: string; icon: Component }> = {
 
 const kindOf = (file: ProjectFile) => kinds[file.kind] ?? kinds.other;
 
+/**
+ * The header row, in order, and which of its cells can be ordered by.
+ *
+ * Three can: the name, the size and the moment. Uploader, kind and task cannot — ordering by one
+ * of those sorts the table into groups without labelling them, which is what a grouping control
+ * would be for and this is not.
+ */
+const columns: { key: string | null; label: string; cell: string }[] = [
+    { key: 'name', label: 'File name', cell: 'py-2 pr-3' },
+    { key: 'size', label: 'Size', cell: 'px-3 py-2' },
+    { key: null, label: 'Attached by', cell: 'px-3 py-2' },
+    { key: null, label: 'Type', cell: 'px-3 py-2' },
+    { key: null, label: 'Attached to', cell: 'px-3 py-2' },
+    { key: 'added', label: 'Added', cell: 'px-3 py-2' },
+];
+
+const orderedBy = (key: string | null): boolean =>
+    key !== null && props.files.meta.sort === key;
+
+const descending = computed<boolean>(
+    () => props.files.meta.direction === 'desc',
+);
+
+/** What a screen reader is told about a column, on the header rather than the button inside it. */
+const ariaSort = (
+    key: string | null,
+): 'ascending' | 'descending' | 'none' | undefined => {
+    if (key === null) {
+        return undefined;
+    }
+
+    return orderedBy(key)
+        ? descending.value
+            ? 'descending'
+            : 'ascending'
+        : 'none';
+};
+
+/**
+ * Clicking a column orders by it; clicking the one already in force turns it round. Always back to
+ * the first page — page five of one ordering is not page five of another.
+ *
+ * The address is rebuilt rather than merged into, because a column being ordered by for the first
+ * time has to send **no** direction: which way round each column reads first is the server's
+ * answer (`ProjectFileSort`), and a `direction` left over from the previous column would override
+ * it. Merging can add a parameter and cannot remove one.
+ */
+const orderBy = (key: string | null): void => {
+    if (key === null) {
+        return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    params.set('sort', key);
+    params.delete('page');
+
+    if (orderedBy(key)) {
+        params.set('direction', descending.value ? 'asc' : 'desc');
+    } else {
+        params.delete('direction');
+    }
+
+    router.get(
+        `${window.location.pathname}?${params.toString()}`,
+        {},
+        { only: ['files'], preserveScroll: true, preserveState: true },
+    );
+};
+
 /** Which rows of the whole are on the screen — the sentence a pager exists to be able to say. */
 const range = computed<string>(() => {
     const { page, perPage, total } = props.files.meta;
@@ -96,9 +168,9 @@ const remove = (): void => {
 
 <template>
     <div class="flex flex-col gap-3 px-4 pt-4 md:px-6">
-        <!-- The table scrolls sideways on a narrow screen rather than reflowing: five columns
-             stacked into five lines per file is not a table any more, and the columns are what
-             makes this view worth having over the list. -->
+        <!-- The table scrolls sideways on a narrow screen rather than reflowing: a row stacked
+             into six lines is not a table any more, and the columns are what makes this view
+             worth having over the list. -->
         <div
             v-if="files.files.length"
             class="[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] overflow-x-auto"
@@ -113,35 +185,33 @@ const remove = (): void => {
                         class="border-y border-border text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                     >
                         <th
+                            v-for="column in columns"
+                            :key="column.label"
                             scope="col"
-                            class="py-2 pr-3 text-left font-semibold"
+                            class="text-left font-semibold"
+                            :class="column.cell"
+                            :aria-sort="ariaSort(column.key)"
                         >
-                            File name
+                            <button
+                                v-if="column.key"
+                                type="button"
+                                class="inline-flex items-center gap-1 uppercase transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                                @click="orderBy(column.key)"
+                            >
+                                {{ column.label }}
+                                <!-- The arrow marks the column in force and no other: six arrows
+                                     say nothing about which one the table is ordered by. -->
+                                <component
+                                    :is="descending ? ArrowDown : ArrowUp"
+                                    v-if="orderedBy(column.key)"
+                                    class="size-3"
+                                    aria-hidden="true"
+                                />
+                            </button>
+
+                            <template v-else>{{ column.label }}</template>
                         </th>
-                        <th
-                            scope="col"
-                            class="px-3 py-2 text-left font-semibold"
-                        >
-                            Attached by
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-3 py-2 text-left font-semibold"
-                        >
-                            Type
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-3 py-2 text-left font-semibold"
-                        >
-                            Attached to
-                        </th>
-                        <th
-                            scope="col"
-                            class="px-3 py-2 text-left font-semibold"
-                        >
-                            Added
-                        </th>
+
                         <th scope="col" class="w-10 py-2">
                             <span class="sr-only">Actions</span>
                         </th>
@@ -172,12 +242,14 @@ const remove = (): void => {
                                 <span class="truncate hover:underline">{{
                                     file.name
                                 }}</span>
-                                <span
-                                    class="shrink-0 text-xs text-muted-foreground"
-                                    >{{ formatFileSize(file.size) }}</span
-                                >
                             </a>
                         </th>
+
+                        <td
+                            class="px-3 py-2 whitespace-nowrap text-muted-foreground"
+                        >
+                            {{ formatFileSize(file.size) }}
+                        </td>
 
                         <td class="px-3 py-2">
                             <span

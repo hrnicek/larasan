@@ -134,7 +134,7 @@ class ProjectController extends Controller
                 // The files table is the one view with no tags in it: a tag is a property of a
                 // task, and narrowing a list of documents by one would answer a question about
                 // the tasks rather than about the files.
-                ProjectView::Files => ['files' => $files($project, $actor, $request->page())],
+                ProjectView::Files => ['files' => $files($project, $actor, $request->page(), ...$request->fileSort())],
                 ProjectView::Calendar => ['calendar' => $calendar(
                     $project,
                     $actor,

@@ -9,6 +9,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Project\Queries\ProjectFilesQuery;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectFileSort;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\DeleteTask;
 use App\Domain\Task\Models\Task;
@@ -18,9 +19,15 @@ use App\Models\User;
 /**
  * @return array<string, mixed>
  */
-function filesOf(Project $project, User $actor, int $page = 1, int $perPage = ProjectFilesQuery::PER_PAGE): array
-{
-    return app(ProjectFilesQuery::class)($project, $actor, $page, $perPage);
+function filesOf(
+    Project $project,
+    User $actor,
+    int $page = 1,
+    ?ProjectFileSort $sort = null,
+    ?bool $descending = null,
+    int $perPage = ProjectFilesQuery::PER_PAGE,
+): array {
+    return app(ProjectFilesQuery::class)($project, $actor, $page, $sort, $descending, $perPage);
 }
 
 /**
@@ -191,7 +198,14 @@ it('bounds the page and says how much it did not draw', function (): void {
     $last = filesOf($project, $actor, page: 3, perPage: 2);
 
     expect($first['files'])->toHaveCount(2)
-        ->and($first['meta'])->toBe(['page' => 1, 'perPage' => 2, 'total' => 5, 'hasMore' => true])
+        ->and($first['meta'])->toBe([
+            'page' => 1,
+            'perPage' => 2,
+            'total' => 5,
+            'hasMore' => true,
+            'sort' => 'added',
+            'direction' => 'desc',
+        ])
         ->and($last['files'])->toHaveCount(1)
         ->and($last['meta']['hasMore'])->toBeFalse();
 });
@@ -225,4 +239,61 @@ it('lets a member remove anything, because the workspace moderates its files', f
     $rows = filesOf($project, $actor)['files'];
 
     expect($rows[0]['canDelete'])->toBeTrue();
+});
+
+it('opens on the newest file, because that is the one being looked for', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    $first = hanging($workspace, $task, $actor, ['original_name' => 'older.pdf']);
+    $first->forceFill(['created_at' => now()->subDay()])->save();
+    hanging($workspace, $task, $actor, ['original_name' => 'newer.pdf']);
+
+    expect(drawn(filesOf($project, $actor)))->toBe(['newer.pdf', 'older.pdf'])
+        ->and(filesOf($project, $actor)['meta']['sort'])->toBe('added')
+        ->and(filesOf($project, $actor)['meta']['direction'])->toBe('desc');
+});
+
+it('orders by name from A to Z unless told otherwise', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'zebra.pdf']);
+    hanging($workspace, $task, $actor, ['original_name' => 'aardvark.pdf']);
+
+    expect(drawn(filesOf($project, $actor, sort: ProjectFileSort::Name)))
+        ->toBe(['aardvark.pdf', 'zebra.pdf'])
+        ->and(drawn(filesOf($project, $actor, sort: ProjectFileSort::Name, descending: true)))
+        ->toBe(['zebra.pdf', 'aardvark.pdf']);
+});
+
+it('orders by size from the largest, because that is what the question means', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'small.pdf', 'size' => 1_024]);
+    hanging($workspace, $task, $actor, ['original_name' => 'huge.pdf', 'size' => 90_000_000]);
+
+    expect(drawn(filesOf($project, $actor, sort: ProjectFileSort::Size)))->toBe(['huge.pdf', 'small.pdf'])
+        ->and(drawn(filesOf($project, $actor, sort: ProjectFileSort::Size, descending: false)))
+        ->toBe(['small.pdf', 'huge.pdf']);
+});
+
+it('keeps the ordering across the pages it cuts', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    foreach (['d.pdf', 'b.pdf', 'a.pdf', 'c.pdf'] as $name) {
+        hanging($workspace, $task, $actor, ['original_name' => $name]);
+    }
+
+    $first = filesOf($project, $actor, page: 1, sort: ProjectFileSort::Name, perPage: 2);
+    $second = filesOf($project, $actor, page: 2, sort: ProjectFileSort::Name, perPage: 2);
+
+    expect(drawn($first))->toBe(['a.pdf', 'b.pdf'])
+        ->and(drawn($second))->toBe(['c.pdf', 'd.pdf']);
 });

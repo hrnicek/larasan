@@ -55,5 +55,13 @@ export type ProjectFile = {
 
 export type ProjectFiles = {
     files: ProjectFile[];
-    meta: { page: number; perPage: number; total: number; hasMore: boolean };
+    /** `sort` and `direction` are what the server understood, echoed back for the headers. */
+    meta: {
+        page: number;
+        perPage: number;
+        total: number;
+        hasMore: boolean;
+        sort: string;
+        direction: string;
+    };
 };
