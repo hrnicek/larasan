@@ -1,0 +1,27 @@
+import { defineAsyncComponent } from 'vue';
+
+/**
+ * A project has three views and a visit carries the payload of exactly one of them, so the two it
+ * did not ask for are fetched the same way the payload is: when somebody goes to them.
+ *
+ * The list is not here. It is what a project opens on, and a screen does not lazily load itself.
+ *
+ * `warmView` is what keeps the switch from being a wait: the view switcher calls it when a
+ * pointer reaches a tab, which is a moment before the visit it is about to start.
+ */
+const board = () => import('@/modules/project/components/BoardColumn.vue');
+const grid = () => import('@/modules/project/components/CalendarGrid.vue');
+const toolbar = () => import('@/modules/project/components/CalendarToolbar.vue');
+
+export const BoardColumn = defineAsyncComponent(board);
+export const CalendarGrid = defineAsyncComponent(grid);
+export const CalendarToolbar = defineAsyncComponent(toolbar);
+
+const drawnWith: Record<string, (() => Promise<unknown>)[]> = {
+    board: [board],
+    calendar: [grid, toolbar],
+};
+
+export function warmView(view: string): void {
+    drawnWith[view]?.forEach((load) => void load());
+}

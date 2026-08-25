@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { CalendarDays, LayoutDashboard, LayoutGrid, List, Paperclip } from '@lucide/vue';
 import type { Component } from 'vue';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { warmView } from '@/modules/project/views';
 import { show } from '@/routes/projects';
 
 /**
@@ -51,6 +52,8 @@ const isCurrent = (view: string): boolean => view === props.current;
                     ? 'border-primary text-foreground'
                     : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
             "
+            @pointerenter="warmView(view)"
+            @focus="warmView(view)"
         >
             <component :is="icons[view]" v-if="icons[view]" class="size-4" />
             {{ view }}
