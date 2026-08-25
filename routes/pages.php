@@ -18,6 +18,9 @@ Route::middleware(['auth', 'verified'])->whereUuid(['project', 'page'])->group(f
         ->middleware('throttle:page-creation')
         ->name('projects.pages.store');
 
+    // The page itself, with the project's tree beside it.
+    Route::get('pages/{page}', [PageController::class, 'show'])->name('pages.show');
+
     Route::put('pages/{page}/title', [PageTitleController::class, 'update'])->name('pages.title.update');
 
     /*

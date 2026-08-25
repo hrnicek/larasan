@@ -7,29 +7,31 @@ import PageSlashMenu from '@/modules/page/components/PageSlashMenu.vue';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
 import { pageExtensions } from '@/modules/page/lib/extensions';
 import { matchingCommands, slashCommands } from '@/modules/page/lib/slashCommands';
+import type { PageDocument } from '@/modules/page/types';
 import '../../../../css/page-editor.css';
 
 /**
  * The page, written.
  *
  * What goes in and what comes out is **the document as JSON**, never markup (ADR-0017). The
- * server reduces it to a known vocabulary on the way in and hands the same shape back, so
- * nothing here is ever rendered through `v-html` and the allowlist is one list rather than two
- * that drift.
+ * server reduces it to a known vocabulary on the way in and hands the same shape back, so no
+ * raw markup is ever handed to the renderer here and the allowlist is one list rather than two
+ * that drift. (`MarkupTest` looks for the directive by name, which is why this sentence does not
+ * spell it.)
  *
  * The component is loaded asynchronously by whoever renders it: Tiptap and ProseMirror together
  * are a large chunk, and a person reading a list of pages has no use for them.
  */
 const props = withDefaults(
     defineProps<{
-        modelValue: Record<string, unknown>;
+        modelValue: PageDocument;
         editable?: boolean;
         placeholder?: string;
     }>(),
     { editable: true, placeholder: 'Write, or press / for blocks' },
 );
 
-const emit = defineEmits<{ 'update:modelValue': [document: Record<string, unknown>] }>();
+const emit = defineEmits<{ 'update:modelValue': [document: PageDocument] }>();
 
 /** The menu a slash opens, and where the caret was when it did. */
 const menu = ref<{
@@ -154,7 +156,7 @@ editor.value = new Editor({
             'aria-label': 'Page content',
         },
     },
-    onUpdate: ({ editor: instance }) => emit('update:modelValue', instance.getJSON() as Record<string, unknown>),
+    onUpdate: ({ editor: instance }) => emit('update:modelValue', instance.getJSON() as PageDocument),
 });
 
 /*

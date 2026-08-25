@@ -1,4 +1,28 @@
 /**
+ * A document, as ProseMirror's JSON and nothing else. Written recursively rather than as
+ * `Record<string, unknown>` because the editor's value travels through Inertia's form data,
+ * which types what it can serialise — and `unknown` is not that.
+ */
+export type DocumentValue =
+    | string
+    | number
+    | boolean
+    | null
+    | DocumentValue[]
+    | { [key: string]: DocumentValue };
+
+export type PageDocument = { [key: string]: DocumentValue };
+
+/** A page's own screen: the document, and the number a save has to carry. */
+export type PageDetail = {
+    id: string;
+    title: string;
+    content: PageDocument;
+    version: number;
+    updatedAt: string | null;
+};
+
+/**
  * A node in a project's page tree.
  *
  * The document itself is deliberately absent: a tree draws titles and first lines, and `content`
