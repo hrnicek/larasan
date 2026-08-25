@@ -119,7 +119,9 @@ it('answers tasks from PostgreSQL when the engine cannot be reached', function (
         ->json();
 
     expect($answer['results']['tasks'][0]['title'])->toBe('Invoice the client');
-    $log->shouldHaveReceived('warning')->once();
+    // One per kind: the engine is caught per kind so that one index missing — a deployment that
+    // has not imported yet — does not take the other three down with it.
+    $log->shouldHaveReceived('warning')->times(4);
 })->with([
     'search dying entirely because a container restarted is a worse failure than a narrower
     answer',
