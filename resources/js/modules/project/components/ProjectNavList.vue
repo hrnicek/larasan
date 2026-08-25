@@ -7,7 +7,7 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useCollapsed } from '@/composables/useShell';
 import { accentDotClass, accentTileClass } from '@/lib/accentColor';
 import type { ProjectSummary } from '@/modules/project/types';
-import { create, index, show } from '@/routes/projects';
+import { create, show } from '@/routes/projects';
 
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
@@ -63,14 +63,6 @@ const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes(
                     </span>
                 </template>
             </ChromeNavItem>
-
-            <Link
-                v-if="!collapsed"
-                :href="index()"
-                class="flex h-8 items-center rounded-md px-2 text-xs text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none"
-            >
-                All projects
-            </Link>
         </template>
 
         <!--

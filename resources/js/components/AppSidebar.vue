@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { usePage } from '@inertiajs/vue3';
-import { Bell, CheckSquare, Home } from '@lucide/vue';
+import { Bell, CheckSquare, FolderKanban, Home } from '@lucide/vue';
 import { computed } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
@@ -13,6 +13,7 @@ import { provideCollapsed, useCollapsed } from '@/composables/useShell';
 import ProjectNavList from '@/modules/project/components/ProjectNavList.vue';
 import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
 import { dashboard } from '@/routes';
+import { index as projectIndex } from '@/routes/projects';
 
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
@@ -43,6 +44,7 @@ const primary = computed(() => [
     { label: 'Home', href: dashboard().url, icon: Home },
     { label: 'My Tasks', href: MyTasksController.index.url(), icon: CheckSquare },
     { label: 'Inbox', href: InboxController.index.url(), icon: Bell, badge: unread.value },
+    { label: 'Projects', href: projectIndex().url, icon: FolderKanban },
 ]);
 </script>
 
