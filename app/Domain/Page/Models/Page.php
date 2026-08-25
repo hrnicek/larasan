@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Page\Models;
 
+use App\Domain\Page\Content\PageDocument;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Ordering\SparsePosition;
+use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Database\Factories\PageFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
@@ -15,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * A document written inside a project — the brief, the meeting notes, the thing a task links
@@ -25,10 +28,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * be reduced to the vocabulary this application draws before it is written, and drawn back by
  * the same editor that produced it, so nothing is ever handed to `v-html`.
  *
- * There is no `workspace_id` here. A page has one owning aggregate and reaches its tenant
- * through it, the way a section does.
+ * The `workspace_id` is derived from the project and never moves — a project does not change
+ * workspace, so neither does a page. It exists because the search index needs the tenant as an
+ * attribute of the document rather than as a join (ADR-0016), which is the same reason `tasks`
+ * and `comments` carry one.
  *
  * @property string $id
+ * @property string $workspace_id
  * @property string $project_id
  * @property string|null $parent_id
  * @property string $title
@@ -44,7 +50,30 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Page extends Model
 {
     /** @use HasFactory<PageFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    /**
+     * What the search engine is told (ADR-0016).
+     *
+     * The title and the document as words — `PageDocument::toPlainText()` rather than the JSON,
+     * because every node name and attribute in a document is a term to a search engine, and an
+     * unstripped page makes *paragraph* match everything anybody has written.
+     *
+     * The workspace and the project are facts about the row, not permissions: what an actor may
+     * open is decided by `VisibleProjectsForUser` when the rows are read (`PageResults`).
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'workspace_id' => (string) $this->workspace_id,
+            'project_id' => (string) $this->project_id,
+            'title' => (string) $this->title,
+            'text' => PageDocument::toPlainText($this->content),
+        ];
+    }
 
     /** The gap ADR-0009 specifies, defined once in `SparsePosition`. */
     public const POSITION_GAP = SparsePosition::GAP;
@@ -76,6 +105,12 @@ class Page extends Model
      * @var array<string, mixed>
      */
     protected $attributes = ['version' => 1];
+
+    /** @return BelongsTo<Workspace, $this> */
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
 
     /** @return BelongsTo<Project, $this> */
     public function project(): BelongsTo

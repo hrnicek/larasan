@@ -17,4 +17,5 @@ enum SearchKind: string
     case Projects = 'projects';
     case People = 'people';
     case Messages = 'messages';
+    case Pages = 'pages';
 }

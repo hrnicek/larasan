@@ -146,5 +146,5 @@ it('names the kinds one place, and the query answers exactly those', function ()
 
     $answer = app(GlobalSearchQuery::class)($workspace, $actor, 'invoice');
 
-    expect(array_keys($answer['results']))->toBe(['tasks', 'projects', 'people', 'messages']);
+    expect(array_keys($answer['results']))->toBe(['tasks', 'projects', 'people', 'messages', 'pages']);
 });

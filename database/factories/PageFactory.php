@@ -34,8 +34,11 @@ class PageFactory extends Factory
     {
         $sentence = fake()->sentence();
 
+        $project = Project::factory()->create();
+
         return [
-            'project_id' => Project::factory(),
+            'workspace_id' => $project->workspace_id,
+            'project_id' => $project->id,
             'parent_id' => null,
             'title' => Str::headline(fake()->unique()->word()),
             'content' => [
@@ -54,12 +57,16 @@ class PageFactory extends Factory
 
     public function in(Project $project): self
     {
-        return $this->state(fn (): array => ['project_id' => $project->id]);
+        return $this->state(fn (): array => [
+            'workspace_id' => $project->workspace_id,
+            'project_id' => $project->id,
+        ]);
     }
 
     public function under(Page $parent): self
     {
         return $this->state(fn (): array => [
+            'workspace_id' => $parent->workspace_id,
             'project_id' => $parent->project_id,
             'parent_id' => $parent->id,
         ]);

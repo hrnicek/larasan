@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Page\Models\Page;
 use App\Domain\Project\Models\Project;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -149,6 +150,15 @@ return [
             User::class => [
                 'filterableAttributes' => [],
                 'searchableAttributes' => ['name', 'email'],
+            ],
+            /*
+             * The project as well as the workspace: a page is found inside the project it was
+             * written in, and "the pages in this project" must not mean reading every page in
+             * the tenant to find out which.
+             */
+            Page::class => [
+                'filterableAttributes' => ['workspace_id', 'project_id'],
+                'searchableAttributes' => ['title', 'text'],
             ],
             Comment::class => [
                 // The subject's type, so "messages on tasks" does not mean reading every

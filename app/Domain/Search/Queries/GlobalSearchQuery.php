@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * One term, four kinds of answer.
+ * One term, five kinds of answer.
  *
  * Each kind is asked separately and ranked within itself, because a task and a person have
  * nothing to be ranked against each other by: the palette shows the best few of each and lets a
@@ -34,6 +34,7 @@ final readonly class GlobalSearchQuery
         private ProjectResults $projects,
         private PersonResults $people,
         private MessageResults $messages,
+        private PageResults $pages,
         private SearchTasksQuery $tasksInDatabase,
     ) {}
 
@@ -78,6 +79,7 @@ final readonly class GlobalSearchQuery
             SearchKind::Projects->value => $wanted(SearchKind::Projects) ? ($this->projects)($workspace, $actor, $term, $limit) : null,
             SearchKind::People->value => $wanted(SearchKind::People) ? ($this->people)($workspace, $actor, $term, $limit) : null,
             SearchKind::Messages->value => $wanted(SearchKind::Messages) ? ($this->messages)($workspace, $actor, $term, $limit) : null,
+            SearchKind::Pages->value => $wanted(SearchKind::Pages) ? ($this->pages)($workspace, $actor, $term, $limit) : null,
         ], fn (?array $results): bool => $results !== null);
     }
 

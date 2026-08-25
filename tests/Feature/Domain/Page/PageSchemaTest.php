@@ -20,6 +20,7 @@ function insertPage(Project $project, array $overrides = []): string
 
     DB::table('pages')->insert([
         'id' => $id,
+        'workspace_id' => $project->workspace_id,
         'project_id' => $project->id,
         'parent_id' => null,
         'title' => 'Brief',

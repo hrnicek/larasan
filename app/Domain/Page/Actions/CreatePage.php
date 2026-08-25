@@ -81,6 +81,7 @@ final readonly class CreatePage
                 'position' => SparsePosition::append($last === null ? null : (int) $last),
             ]);
 
+            $page->workspace_id = $project->workspace_id;
             $page->project_id = $project->id;
             $page->parent_id = $parent?->id;
             $page->created_by = $actor->id;
