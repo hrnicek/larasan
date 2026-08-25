@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { CalendarDays, LayoutDashboard, LayoutGrid, List, Paperclip } from '@lucide/vue';
+import { CalendarDays, FileText, LayoutDashboard, LayoutGrid, List, Paperclip } from '@lucide/vue';
 import type { Component } from 'vue';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { warmView } from '@/modules/project/views';
@@ -30,6 +30,7 @@ const icons: Record<string, Component> = {
     board: LayoutGrid,
     calendar: CalendarDays,
     files: Paperclip,
+    pages: FileText,
 };
 
 const planned: { label: string; icon: Component }[] = [{ label: 'Dashboard', icon: LayoutDashboard }];

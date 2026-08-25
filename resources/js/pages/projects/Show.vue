@@ -10,9 +10,10 @@ import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
+import type { ProjectPages } from '@/modules/page/types';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import type { ProjectFiles, ProjectHeading } from '@/modules/project/types';
-import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable } from '@/modules/project/views';
+import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable, PagesTree } from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
@@ -40,20 +41,22 @@ import { create as createTask } from '@/routes/tasks';
 const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
- * The project's own screen: its list, its board, its month or its files, whichever the URL asked
- * for. One payload arrives, never two — the server reads what the view needs and nothing else.
+ * The project's own screen: its list, its board, its month, its files or its pages, whichever the
+ * URL asked for. One payload arrives, never two — the server reads what the view needs and
+ * nothing else.
  */
 const props = defineProps<{
     project: ProjectHeading;
     view: string;
     views: string[];
-    // One of the four, decided by `view`: the server sends the payload the view asked for and
-    // not the others, because reading the same placements twice is what "one screen, four
+    // One of the five, decided by `view`: the server sends the payload the view asked for and
+    // not the others, because reading the same placements twice is what "one screen, five
     // views" is supposed to avoid.
     list?: ProjectList;
     board?: ProjectBoard;
     calendar?: ProjectCalendar;
     files?: ProjectFiles;
+    pages?: ProjectPages;
     members: TaskAssignee[];
     priorities: string[];
     /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
@@ -84,7 +87,15 @@ const editable = () => (props.board ?? props.list ?? props.calendar)?.can.update
  * rather than the one a half-landed switch has named.
  */
 const drawing = computed<string>(() =>
-    props.board ? 'board' : props.calendar ? 'calendar' : props.files ? 'files' : 'list',
+    props.board
+        ? 'board'
+        : props.calendar
+          ? 'calendar'
+          : props.files
+            ? 'files'
+            : props.pages
+              ? 'pages'
+              : 'list',
 );
 
 /*
@@ -94,7 +105,7 @@ const drawing = computed<string>(() =>
  */
 useRealtime({
     channels: () => [`project.${props.project.id}`],
-    only: ['board', 'list', 'calendar', 'files'],
+    only: ['board', 'list', 'calendar', 'files', 'pages'],
 });
 const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
@@ -187,7 +198,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 const reloading = ref(false);
 const failed = ref(false);
 const listening = (event: { detail: { visit: { only: string[] } } }) =>
-    ['list', 'board', 'calendar', 'files'].some((key) => event.detail.visit.only.includes(key));
+    ['list', 'board', 'calendar', 'files', 'pages'].some((key) => event.detail.visit.only.includes(key));
 
 const started = (event: { detail: { visit: { only: string[] } } }) => {
     if (listening(event)) {
@@ -246,11 +257,12 @@ onUnmounted(() => {
                 The toolbar: what this view is showing and how to change it, on one line above the
                 content. Adding comes first because it is the thing done most.
 
-                The files table has none of it. Every control here narrows or orders *tasks*, and
+                The files table and the pages tree have none of it. Every control here narrows or
+                orders *tasks*, and
                 a tag filter over a list of documents would answer a question about something the
                 reader is not looking at.
             -->
-            <div v-if="!files" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+            <div v-if="!files && !pages" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
                 <Link
                     v-if="creatable()"
                     :href="createTask({ query: { project: project.id } })"
@@ -422,6 +434,9 @@ onUnmounted(() => {
         <!-- The fourth view: what hangs off this project's tasks. It opens the same panel the
              other three do, because a file is only ever reached through the task it is on. -->
         <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
+
+        <!-- The fifth: what was written beside the work rather than inside a task. -->
+        <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
             </div>
 
             <!-- The panel teleports itself over the page; it is placed here so it is torn down
