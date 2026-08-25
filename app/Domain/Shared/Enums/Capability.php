@@ -25,6 +25,10 @@ enum Capability: string
     case SectionUpdate = 'section.update';
     case SectionDelete = 'section.delete';
 
+    case PageCreate = 'page.create';
+    case PageUpdate = 'page.update';
+    case PageDelete = 'page.delete';
+
     case TaskCreate = 'task.create';
     case TaskUpdate = 'task.update';
     case TaskDelete = 'task.delete';
