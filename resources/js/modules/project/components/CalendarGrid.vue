@@ -9,7 +9,7 @@ import type { CalendarCardData, CalendarDay, ProjectCalendar } from '@/modules/t
 /**
  * The month itself.
  *
- * Two shapes rather than one that stretches. From `md` it is the grid everybody means by
+ * Two shapes rather than one that stretches. From `md` it is the table everybody means by
  * "calendar": seven columns, whole weeks, every day drawn whether or not it holds anything.
  * Below `md` seven columns is seven columns nobody can read, so the same month is drawn as an
  * agenda of the days that hold something — which is what a phone can show and what somebody on
@@ -41,6 +41,23 @@ const weekdays = computed<{ date: string; label: string }[]> (() =>
 
 const withTasks = computed<CalendarDay[]>(() => props.calendar.days.filter((day) => day.tasks.length > 0));
 
+/**
+ * The month in rows of seven.
+ *
+ * A table rather than a grid of boxes: a cell of a calendar means *this weekday, this week*, and
+ * a column header a reader is never told about is a column header only the sighted have. The
+ * server sends whole weeks, so the chunking cannot leave a short row.
+ */
+const weeks = computed<CalendarDay[][]>(() => {
+    const rows: CalendarDay[][] = [];
+
+    for (let start = 0; start < props.calendar.days.length; start += 7) {
+        rows.push(props.calendar.days.slice(start, start + 7));
+    }
+
+    return rows;
+});
+
 const monthLabel = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
 );
@@ -51,32 +68,41 @@ const dayLabel = (date: string): string =>
 
 <template>
     <div class="flex flex-col">
-        <div class="hidden md:block">
-            <div class="grid grid-cols-7 border-t border-l border-border">
-                <div
-                    v-for="weekday in weekdays"
-                    :key="weekday.date"
-                    class="border-r border-b border-border bg-muted/40 px-2 py-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
-                >
-                    {{ weekday.label }}
-                </div>
+        <table class="hidden w-full table-fixed border-collapse border-t border-l border-border md:table">
+            <caption class="sr-only">{{ monthLabel }}</caption>
 
-                <CalendarDayCell
-                    v-for="day in calendar.days"
-                    :key="day.date"
-                    :day="day"
-                    :project-id="projectId"
-                    :today="calendar.today"
-                    :editable="editable"
-                    :creatable="creatable"
-                    :dragging-id="draggingId"
-                    :over="overDay === day.date"
-                    @open="emit('open', $event)"
-                    @expand="emit('expand', $event)"
-                    @pickup="(event, card) => emit('pickup', event, card)"
-                />
-            </div>
-        </div>
+            <thead>
+                <tr>
+                    <th
+                        v-for="weekday in weekdays"
+                        :key="weekday.date"
+                        scope="col"
+                        class="border-r border-b border-border bg-muted/40 px-2 py-1.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        {{ weekday.label }}
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr v-for="week in weeks" :key="week[0].date">
+                    <CalendarDayCell
+                        v-for="day in week"
+                        :key="day.date"
+                        :day="day"
+                        :project-id="projectId"
+                        :today="calendar.today"
+                        :editable="editable"
+                        :creatable="creatable"
+                        :dragging-id="draggingId"
+                        :over="overDay === day.date"
+                        @open="emit('open', $event)"
+                        @expand="emit('expand', $event)"
+                        @pickup="(event, card) => emit('pickup', event, card)"
+                    />
+                </tr>
+            </tbody>
+        </table>
 
         <!-- The phone's month: the days that hold something, in order, with the same chips. -->
         <div v-if="withTasks.length" class="flex flex-col divide-y divide-border border-y border-border md:hidden">

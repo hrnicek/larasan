@@ -39,63 +39,65 @@ const hidden = computed<number>(() => props.day.count - props.day.tasks.length);
 </script>
 
 <template>
-    <div
-        class="group/cell flex min-h-28 flex-col gap-1 border-b border-border p-1.5 transition-colors sm:border-r"
+    <td
+        class="group/cell h-28 border-r border-b border-border p-1.5 align-top transition-colors"
         :class="[
             day.inMonth ? 'bg-background' : 'bg-muted/30',
             over ? 'bg-primary-subtle' : '',
         ]"
         :data-calendar-day="day.date"
     >
-        <div class="flex items-center justify-between">
-            <time
-                :datetime="day.date"
-                class="inline-flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums"
-                :class="[
-                    isToday ? 'bg-primary font-semibold text-primary-foreground' : '',
-                    !isToday && day.inMonth ? 'text-foreground' : '',
-                    !isToday && !day.inMonth ? 'text-muted-foreground' : '',
-                ]"
+        <div class="flex h-full flex-col gap-1">
+            <div class="flex items-center justify-between">
+                <time
+                    :datetime="day.date"
+                    class="inline-flex size-6 items-center justify-center rounded-full text-xs font-medium tabular-nums"
+                    :class="[
+                        isToday ? 'bg-primary font-semibold text-primary-foreground' : '',
+                        !isToday && day.inMonth ? 'text-foreground' : '',
+                        !isToday && !day.inMonth ? 'text-muted-foreground' : '',
+                    ]"
+                >
+                    {{ number }}
+                </time>
+
+                <span v-if="isToday" class="sr-only">Today</span>
+            </div>
+
+            <CalendarTaskChip
+                v-for="card in day.tasks"
+                :key="card.placementId"
+                :card="card"
+                :editable="editable"
+                :dragging="draggingId === card.placementId"
+                @open="emit('open', $event)"
+                @pickup="(event, dragged) => emit('pickup', event, dragged)"
+            />
+
+            <!-- What the cell knows it is not showing. The server states the number, so this is a
+                 fact rather than an inference from a page size. -->
+            <button
+                v-if="day.hasMore"
+                type="button"
+                class="rounded px-1.5 py-0.5 text-left text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                @click="emit('expand', day.date)"
             >
-                {{ number }}
-            </time>
+                +{{ hidden }} more
+            </button>
 
-            <span v-if="isToday" class="sr-only">Today</span>
+            <!--
+                The prompt is drawn on hover, on focus and on a touch screen, where there is no
+                hover to draw it. A control that only appears under a pointer is a control a phone
+                does not have.
+            -->
+            <InlineTaskCreate
+                v-if="creatable"
+                :project-id="projectId"
+                :section-id="null"
+                :due-at="day.date"
+                compact
+                class="mt-auto opacity-100 transition-opacity md:opacity-0 md:group-focus-within/cell:opacity-100 md:group-hover/cell:opacity-100"
+            />
         </div>
-
-        <CalendarTaskChip
-            v-for="card in day.tasks"
-            :key="card.placementId"
-            :card="card"
-            :editable="editable"
-            :dragging="draggingId === card.placementId"
-            @open="emit('open', $event)"
-            @pickup="(event, dragged) => emit('pickup', event, dragged)"
-        />
-
-        <!-- What the cell knows it is not showing. The server states the number, so this is a
-             fact rather than an inference from a page size. -->
-        <button
-            v-if="day.hasMore"
-            type="button"
-            class="rounded px-1.5 py-0.5 text-left text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            @click="emit('expand', day.date)"
-        >
-            +{{ hidden }} more
-        </button>
-
-        <!--
-            The prompt is drawn on hover, on focus and on a touch screen, where there is no hover
-            to draw it. A control that only appears under a pointer is a control a phone does not
-            have.
-        -->
-        <InlineTaskCreate
-            v-if="creatable"
-            :project-id="projectId"
-            :section-id="null"
-            :due-at="day.date"
-            compact
-            class="mt-auto opacity-100 transition-opacity md:opacity-0 md:group-focus-within/cell:opacity-100 md:group-hover/cell:opacity-100"
-        />
-    </div>
+    </td>
 </template>
