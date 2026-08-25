@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
+import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
@@ -124,7 +125,11 @@ onUnmounted(() => {
                 role="dialog"
                 aria-modal="true"
                 :aria-label="detail.task.title"
-                class="absolute inset-x-0 bottom-0 flex h-[88%] flex-col overflow-hidden rounded-t-xl border border-border bg-background shadow-2xl outline-none md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-[86%] md:rounded-t-none md:rounded-l-xl lg:w-[64%] xl:w-[55%]"
+                :class="[
+                    'absolute inset-x-0 bottom-0 flex h-[88%] flex-col overflow-hidden border border-border bg-background shadow-2xl outline-none animate-in duration-300 md:slide-in-from-right max-sm:slide-in-from-bottom',
+                    'md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-[86%] md:rounded-none',
+                    'lg:w-[64%] xl:w-[55%]'
+                ]"
                 @keydown="onKeydown"
             >
                 <TaskDetailToolbar
@@ -137,7 +142,7 @@ onUnmounted(() => {
 
                 <!-- No padding here: the thread at the foot of the body is a surface of its own and
                      has to reach the panel's edges. Each block draws its own. -->
-                <div class="min-h-0 flex-1 overflow-y-auto" @scroll="onScroll">
+                <div class="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent" @scroll="onScroll">
                     <TaskDetailBody
                         :detail="detail"
                         :activity="activity"
@@ -145,6 +150,8 @@ onUnmounted(() => {
                         :priorities="priorities"
                         @open="(taskId) => emit('open', taskId)"
                     />
+
+                    <TaskActivitySkeleton v-if="activity === undefined" />
                 </div>
             </section>
         </div>
