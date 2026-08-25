@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
@@ -17,7 +17,6 @@ import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
-import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
@@ -33,6 +32,13 @@ import type {
     TaskDetail,
 } from '@/modules/task/types';
 import { create as createTask } from '@/routes/tasks';
+
+/*
+ * The panel is the heaviest thing this screen can show and most visits never open one, so it is
+ * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
+ * is idle, which keeps opening a task instant without putting it on the critical path.
+ */
+const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
  * The project's own screen: its list, its board or its month, whichever the URL asked for. One

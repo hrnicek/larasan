@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { BellOff, CheckCheck } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import type { InboxNotification } from '@/modules/notification/types';
-import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+
+/*
+ * The panel is the heaviest thing this screen can show and most visits never open one, so it is
+ * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
+ * is idle, which keeps opening a task instant without putting it on the critical path.
+ */
+const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
  * What is waiting for this person, here.

@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 /**
  * The task detail panel as an address rather than a piece of local state.
@@ -13,6 +13,24 @@ import { ref } from 'vue';
  * per page.
  */
 export function useTaskPanel() {
+    /*
+     * Those four screens import the panel asynchronously, so its chunk is not part of what a list
+     * downloads to draw itself. It is fetched here once the screen has stopped working: early
+     * enough that a click on a row finds it already in memory, late enough to be off the path to
+     * first paint.
+     */
+    onMounted(() => {
+        const fetchPanel = (): void => void import('@/modules/task/components/TaskDetailPanel.vue');
+
+        if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(fetchPanel);
+
+            return;
+        }
+
+        window.setTimeout(fetchPanel, 1_000);
+    });
+
     /*
      * Whether the panel was opened from this screen or entered by its address. Closing has to
      * answer two different questions: "go back to where I was" and "there is no back — take the

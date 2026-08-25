@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Check, ChevronRight, Search as SearchIcon } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { defineAsyncComponent, ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+
+/*
+ * The panel is the heaviest thing this screen can show and most visits never open one, so it is
+ * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
+ * is idle, which keeps opening a task instant without putting it on the critical path.
+ */
+const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
  * Finding work.

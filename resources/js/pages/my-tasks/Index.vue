@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CheckCheck, Plus } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import TaskDetailPanel from '@/modules/task/components/TaskDetailPanel.vue';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 import { create as createTask } from '@/routes/tasks';
+
+/*
+ * The panel is the heaviest thing this screen can show and most visits never open one, so it is
+ * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
+ * is idle, which keeps opening a task instant without putting it on the critical path.
+ */
+const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
  * What this person is responsible for, in the workspace they are standing in.
