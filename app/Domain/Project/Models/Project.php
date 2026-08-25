@@ -47,6 +47,11 @@ use Laravel\Scout\Searchable;
  * @property CarbonImmutable|null $due_date
  * @property CarbonImmutable|null $archived_at
  * @property-read Workspace $workspace
+ *
+ * Present only when a query asks for it, which is what `null` means here: `withExists('stars')`
+ * answers whether *the actor that query named* starred this project. It is not a column and not
+ * a fact about the project — two people reading the same row get two different answers.
+ * @property-read bool|null $stars_exists
  */
 #[UseFactory(ProjectFactory::class)]
 class Project extends Model
@@ -237,6 +242,12 @@ class Project extends Model
         return $this->belongsToMany(User::class, 'project_memberships')
             ->withPivot(['id', 'access_level'])
             ->withTimestamps();
+    }
+
+    /** @return HasMany<ProjectStar, $this> */
+    public function stars(): HasMany
+    {
+        return $this->hasMany(ProjectStar::class);
     }
 
     /** @return BelongsTo<Workspace, $this> */

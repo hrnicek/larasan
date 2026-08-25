@@ -21,6 +21,8 @@ export type SidebarProject = {
     icon: string | null;
     canUpdate: boolean;
     canArchive: boolean;
+    /** This reader's own star, not a property of the project: two people see two answers. */
+    starred: boolean;
 };
 
 /**
@@ -36,6 +38,7 @@ export type ProjectHeading = {
     icon: string | null;
     archived: boolean;
     canUpdate: boolean;
+    starred: boolean;
 };
 
 export type ProjectSettings = ProjectSummary & {

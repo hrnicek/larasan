@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { MoreHorizontal, Settings } from '@lucide/vue';
+import { Link, router } from '@inertiajs/vue3';
+import { MoreHorizontal, Settings, Star, StarOff } from '@lucide/vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,7 +11,7 @@ import ProjectAppearancePicker from '@/modules/project/components/ProjectAppeara
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
 import type { ProjectHeading } from '@/modules/project/types';
-import { edit } from '@/routes/projects';
+import { edit, star, unstar } from '@/routes/projects';
 
 /**
  * The project's own header: what this is, and which way you are looking at it.
@@ -25,6 +25,17 @@ const props = defineProps<{
     view: string;
     views: string[];
 }>();
+
+/** The same write the sidebar's own menu makes, from the screen the project is open on. */
+function toggleStar(): void {
+    if (props.project.starred) {
+        router.delete(unstar(props.project.id).url, { preserveScroll: true });
+
+        return;
+    }
+
+    router.post(star(props.project.id).url, {}, { preserveScroll: true });
+}
 </script>
 
 <template>
@@ -57,7 +68,14 @@ const props = defineProps<{
                 >
                     <MoreHorizontal class="size-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" class="w-48">
+                <!-- Wide enough for *Remove from starred* on one line: a menu item that wraps
+                     reads as two items at a glance. -->
+                <DropdownMenuContent align="start" class="w-56">
+                    <DropdownMenuItem @select="toggleStar">
+                        <component :is="project.starred ? StarOff : Star" class="mr-2 size-4 text-muted-foreground" />
+                        {{ project.starred ? 'Remove from starred' : 'Add to starred' }}
+                    </DropdownMenuItem>
+
                     <DropdownMenuItem as-child>
                         <Link :href="edit(project.id).url" class="block w-full cursor-pointer">
                             <Settings class="mr-2 size-4 text-muted-foreground" />
