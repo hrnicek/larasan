@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Search;
 
 use App\Domain\Search\Queries\GlobalSearchQuery;
+use App\Domain\Search\Queries\RecentItemsForUser;
 use App\Domain\Search\Queries\SavedSearchesForUser;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Controllers\Controller;
@@ -25,6 +26,7 @@ class SearchSuggestionsController extends Controller
         SearchSuggestionsRequest $request,
         GlobalSearchQuery $search,
         SavedSearchesForUser $saved,
+        RecentItemsForUser $recents,
     ): JsonResponse {
         $workspace = ResolveCurrentWorkspace::from($request);
 
@@ -43,6 +45,12 @@ class SearchSuggestionsController extends Controller
              * at while they type.
              */
             'saved' => $term === '' ? $saved($workspace, $actor) : [],
+            /*
+             * The palette with nothing typed into it is still worth opening: what somebody had
+             * open lately is the answer to most of the times they open it. Same rule as the
+             * chips — the empty field only, because that is where they are drawn.
+             */
+            'recents' => $term === '' ? $recents($workspace, $actor) : [],
         ]);
     }
 }

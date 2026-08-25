@@ -116,6 +116,8 @@ class ProjectController extends Controller
         $view = $request->view($project);
         $actor = $this->actor($request);
 
+        $this->rememberOpening($project->workspace, $actor, $project);
+
         return Inertia::render('projects/Show', [
             'project' => [
                 'id' => $project->id,

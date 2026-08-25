@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Notification\Channels\WorkspaceDatabaseChannel;
+use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
@@ -112,6 +113,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Relation::enforceMorphMap([
             'task' => Task::class,
+            // A project is a morph subject too, since `recent_items` remembers both kinds of
+            // thing somebody opened (TASK-210-008).
+            'project' => Project::class,
             // A notification is addressed to an account, and `notifiable_type` is a morph
             // column like any other.
             'user' => User::class,

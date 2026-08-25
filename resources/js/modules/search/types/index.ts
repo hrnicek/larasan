@@ -70,10 +70,17 @@ export type SavedSearch = {
     };
 };
 
+/** A thing this person had open lately: a task or a project, drawn as its own kind. */
+export type RecentItem =
+    | { kind: 'tasks'; id: string; title: string; completed: boolean }
+    | { kind: 'projects'; id: string; title: string; color: string | null; icon: string | null; archived: boolean };
+
 export type SearchAnswer = {
     results: SearchResults;
     /** The chips under the field. Sent on the empty field only, which is where they are drawn. */
     saved: SavedSearch[];
+    /** What this person had open lately, on the empty field for the same reason. */
+    recents: RecentItem[];
     meta: {
         term: string;
         kind: SearchKind | null;

@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui/spinner';
 import UserAvatar from '@/components/UserAvatar.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
-import type { SavedSearch, SearchAnswer, SearchKind } from '@/modules/search/types';
+import type { RecentItem, SavedSearch, SearchAnswer, SearchKind } from '@/modules/search/types';
 import { index as searchIndex, suggestions } from '@/routes/search';
 import { destroy as forgetSaved } from '@/routes/search/saved';
 
@@ -116,6 +116,7 @@ const nothingFound = computed(
 const degraded = computed(() => answer.value?.meta.degraded === true);
 
 const saved = computed<SavedSearch[]>(() => answer.value?.saved ?? []);
+const recents = computed<RecentItem[]>(() => answer.value?.recents ?? []);
 
 function ask(): void {
     const asked = term.value.trim();
@@ -185,6 +186,16 @@ function openSaved(search: SavedSearch): void {
                 completed: search.filters.completed,
             },
         }),
+    );
+}
+
+function openRecent(item: RecentItem): void {
+    hide();
+
+    router.visit(
+        item.kind === 'tasks'
+            ? TaskController.show.url({ task: item.id })
+            : ProjectController.show.url({ project: item.id }),
     );
 }
 
@@ -267,6 +278,33 @@ watch(open, (isOpen) => {
 
             <div ref="list" class="max-h-[22rem] overflow-y-auto p-2">
                 <template v-if="term.trim() === ''">
+                    <div v-if="recents.length > 0" class="mb-2">
+                        <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Recents
+                        </p>
+
+                        <button
+                            v-for="item in recents"
+                            :key="`${item.kind}-${item.id}`"
+                            type="button"
+                            class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent"
+                            @click="openRecent(item)"
+                        >
+                            <template v-if="item.kind === 'tasks'">
+                                <CheckCircle2 class="size-4 shrink-0" :class="item.completed ? 'text-primary' : 'text-muted-foreground'" />
+                                <span class="min-w-0 flex-1 truncate" :class="item.completed ? 'text-muted-foreground line-through' : ''">
+                                    {{ item.title }}
+                                </span>
+                            </template>
+
+                            <template v-else>
+                                <ProjectTile :name="item.title" :color="item.color" :icon="item.icon" size="sm" />
+                                <span class="min-w-0 flex-1 truncate">{{ item.title }}</span>
+                                <span v-if="item.archived" class="shrink-0 text-xs text-muted-foreground">Archived</span>
+                            </template>
+                        </button>
+                    </div>
+
                     <div v-if="saved.length > 0" class="mb-1">
                         <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                             Saved searches
@@ -294,7 +332,10 @@ watch(open, (isOpen) => {
                         </div>
                     </div>
 
-                    <p class="px-2 py-6 text-center text-sm text-muted-foreground">
+                    <p
+                        v-if="recents.length === 0 && saved.length === 0"
+                        class="px-2 py-6 text-center text-sm text-muted-foreground"
+                    >
                         Type to search this workspace.
                     </p>
                 </template>
