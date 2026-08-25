@@ -7,17 +7,17 @@ import { warmView } from '@/modules/project/views';
 import { show } from '@/routes/projects';
 
 /**
- * The views a project has, and the ones it does not have yet.
+ * The views a project has, and the one it does not have yet.
  *
  * The view lives in the URL rather than in local state, so a reload and a shared link both show
  * what the sender saw, and each option is a real link for the same reason.
  *
- * The two that are not built are **shown disabled with a reason** rather than hidden or, worse,
+ * The one that is not built is **shown disabled with a reason** rather than hidden or, worse,
  * linked to an empty screen. A tab that is absent reads as "this product does not do that"; a tab
  * that is disabled and says why reads as "not yet", which is the truth.
  *
  * Timeline is absent rather than disabled. It needs dependencies drawn against a time axis, which
- * is further off than the other two, and a greyed tab is still a promise.
+ * is further off than the dashboard, and a greyed tab is still a promise.
  */
 const props = defineProps<{
     projectId: string;
@@ -29,12 +29,10 @@ const icons: Record<string, Component> = {
     list: List,
     board: LayoutGrid,
     calendar: CalendarDays,
+    files: Paperclip,
 };
 
-const planned: { label: string; icon: Component }[] = [
-    { label: 'Dashboard', icon: LayoutDashboard },
-    { label: 'Files', icon: Paperclip },
-];
+const planned: { label: string; icon: Component }[] = [{ label: 'Dashboard', icon: LayoutDashboard }];
 
 const isCurrent = (view: string): boolean => view === props.current;
 </script>

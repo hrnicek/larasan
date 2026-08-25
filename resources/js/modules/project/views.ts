@@ -1,7 +1,7 @@
 import { defineAsyncComponent } from 'vue';
 
 /**
- * A project has three views and a visit carries the payload of exactly one of them, so the two it
+ * A project has four views and a visit carries the payload of exactly one of them, so the three it
  * did not ask for are fetched the same way the payload is: when somebody goes to them.
  *
  * The list is not here. It is what a project opens on, and a screen does not lazily load itself.
@@ -12,14 +12,17 @@ import { defineAsyncComponent } from 'vue';
 const board = () => import('@/modules/project/components/BoardColumn.vue');
 const grid = () => import('@/modules/project/components/CalendarGrid.vue');
 const toolbar = () => import('@/modules/project/components/CalendarToolbar.vue');
+const files = () => import('@/modules/project/components/FilesTable.vue');
 
 export const BoardColumn = defineAsyncComponent(board);
 export const CalendarGrid = defineAsyncComponent(grid);
 export const CalendarToolbar = defineAsyncComponent(toolbar);
+export const FilesTable = defineAsyncComponent(files);
 
 const drawnWith: Record<string, (() => Promise<unknown>)[]> = {
     board: [board],
     calendar: [grid, toolbar],
+    files: [files],
 };
 
 export function warmView(view: string): void {

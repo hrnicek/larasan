@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
-import { defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
@@ -11,7 +11,8 @@ import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
-import { BoardColumn, CalendarGrid, CalendarToolbar } from '@/modules/project/views';
+import type { ProjectFiles } from '@/modules/project/types';
+import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable } from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
@@ -39,19 +40,20 @@ import { create as createTask } from '@/routes/tasks';
 const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
 /**
- * The project's own screen: its list, its board or its month, whichever the URL asked for. One
- * payload arrives, never two — the server reads the placements the view needs and no others.
+ * The project's own screen: its list, its board, its month or its files, whichever the URL asked
+ * for. One payload arrives, never two — the server reads what the view needs and nothing else.
  */
 const props = defineProps<{
     project: { id: string; name: string; slug: string; color: string | null; icon: string | null; archived: boolean };
     view: string;
     views: string[];
-    // One of the three, decided by `view`: the server sends the payload the view asked for and
-    // not the others, because reading the same placements twice is what "one screen, three
+    // One of the four, decided by `view`: the server sends the payload the view asked for and
+    // not the others, because reading the same placements twice is what "one screen, four
     // views" is supposed to avoid.
     list?: ProjectList;
     board?: ProjectBoard;
     calendar?: ProjectCalendar;
+    files?: ProjectFiles;
     members: TaskAssignee[];
     priorities: string[];
     /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
@@ -76,14 +78,23 @@ watch(() => props.board, (board) => {
 
 const editable = () => (props.board ?? props.list ?? props.calendar)?.can.updateTask === true;
 
+/**
+ * Which payload this screen is drawing, by the name the server sends it under. Read from the
+ * props rather than from `view`, so a reload asks for the region that is actually on the screen
+ * rather than the one a half-landed switch has named.
+ */
+const drawing = computed<string>(() =>
+    props.board ? 'board' : props.calendar ? 'calendar' : props.files ? 'files' : 'list',
+);
+
 /*
- * Somebody else moved a card, renamed a column or commented: refetch what this screen draws
- * and let the server answer (ADR-0008). Only the two view props, so an open detail panel is
- * not thrown away by somebody else's edit elsewhere on the board.
+ * Somebody else moved a card, renamed a column, commented or attached a file: refetch what this
+ * screen draws and let the server answer (ADR-0008). Only the view props, so an open detail panel
+ * is not thrown away by somebody else's edit elsewhere on the board.
  */
 useRealtime({
     channels: () => [`project.${props.project.id}`],
-    only: ['board', 'list', 'calendar'],
+    only: ['board', 'list', 'calendar', 'files'],
 });
 const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
@@ -176,7 +187,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 const reloading = ref(false);
 const failed = ref(false);
 const listening = (event: { detail: { visit: { only: string[] } } }) =>
-    ['list', 'board', 'calendar'].some((key) => event.detail.visit.only.includes(key));
+    ['list', 'board', 'calendar', 'files'].some((key) => event.detail.visit.only.includes(key));
 
 const started = (event: { detail: { visit: { only: string[] } } }) => {
     if (listening(event)) {
@@ -200,7 +211,7 @@ const errored = () => {
 };
 
 const retry = () => {
-    router.reload({ only: [props.board ? 'board' : props.calendar ? 'calendar' : 'list'] });
+    router.reload({ only: [drawing.value] });
 };
 
 const stops: Array<() => void> = [];
@@ -234,8 +245,12 @@ onUnmounted(() => {
             <!--
                 The toolbar: what this view is showing and how to change it, on one line above the
                 content. Adding comes first because it is the thing done most.
+
+                The files table has none of it. Every control here narrows or orders *tasks*, and
+                a tag filter over a list of documents would answer a question about something the
+                reader is not looking at.
             -->
-            <div class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+            <div v-if="!files" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
                 <Link
                     v-if="creatable()"
                     :href="createTask({ query: { project: project.id } })"
@@ -403,6 +418,10 @@ onUnmounted(() => {
             @expand="expand"
             @pickup="calendarDrag.pickUp"
         />
+
+        <!-- The fourth view: what hangs off this project's tasks. It opens the same panel the
+             other three do, because a file is only ever reached through the task it is on. -->
+        <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
             </div>
 
             <!-- The panel teleports itself over the page; it is placed here so it is torn down

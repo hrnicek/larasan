@@ -7,7 +7,7 @@ namespace App\Http\Requests\Project;
 use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
-use App\Domain\Shared\Enums\ProjectDefaultView;
+use App\Domain\Shared\Enums\ProjectView;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -32,7 +32,14 @@ class ShowProjectRequest extends FormRequest
         return [
             // Not `nullable`: an absent parameter means "the project's own view", and an
             // empty one is a client that built a URL wrong.
-            'view' => ['sometimes', Rule::enum(ProjectDefaultView::class)],
+            'view' => ['sometimes', Rule::enum(ProjectView::class)],
+
+            /*
+             * Which page of the files table this is. The only view that pages: the other three
+             * bound themselves by column, by day and by section, where a page number would cut
+             * a group in half.
+             */
+            'page' => ['sometimes', 'integer', 'min:1'],
 
             /*
              * Which columns the reader has asked to see in full. A list of ids rather than a
@@ -82,9 +89,17 @@ class ShowProjectRequest extends FormRequest
      * What this request asked to see: the parameter when it is there, the project's default
      * when it is not.
      */
-    public function view(Project $project): ProjectDefaultView
+    public function view(Project $project): ProjectView
     {
-        return $this->enum('view', ProjectDefaultView::class) ?? $project->default_view;
+        return $this->enum('view', ProjectView::class) ?? ProjectView::fromDefault($project->default_view);
+    }
+
+    /**
+     * The page of the files table, which is the first one unless a URL says otherwise.
+     */
+    public function page(): int
+    {
+        return max(1, $this->integer('page', 1));
     }
 
     /**

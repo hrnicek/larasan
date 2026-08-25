@@ -13,12 +13,14 @@ use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectBoardQuery;
 use App\Domain\Project\Queries\ProjectCalendarQuery;
+use App\Domain\Project\Queries\ProjectFilesQuery;
 use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
+use App\Domain\Shared\Enums\ProjectView;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Queries\TaskDetailQuery;
@@ -91,7 +93,8 @@ class ProjectController extends Controller
     }
 
     /**
-     * The project itself: its list or its board, whichever this request asked for.
+     * The project itself: its list, its board, its month or its files, whichever this request
+     * asked for.
      *
      * `projects.default_view` is the project's own answer, and a `view` parameter overrides
      * it for this request — the URL is the state, so a reload and a shared link both show
@@ -104,6 +107,7 @@ class ProjectController extends Controller
         ProjectListQuery $list,
         ProjectBoardQuery $board,
         ProjectCalendarQuery $calendar,
+        ProjectFilesQuery $files,
         TaskDetailQuery $detail,
     ): Response {
         Gate::authorize('view', $project);
@@ -122,19 +126,23 @@ class ProjectController extends Controller
             ],
             'view' => $view->value,
             /*
-             * One screen, three views, and only the payload the view asked for. Sending more
+             * One screen, four views, and only the payload the view asked for. Sending more
              * than one would read the same placements twice for a reader who can see one of them.
              */
             ...match ($view) {
-                ProjectDefaultView::Board => ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())],
-                ProjectDefaultView::Calendar => ['calendar' => $calendar(
+                ProjectView::Board => ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())],
+                // The files table is the one view with no tags in it: a tag is a property of a
+                // task, and narrowing a list of documents by one would answer a question about
+                // the tasks rather than about the files.
+                ProjectView::Files => ['files' => $files($project, $actor, $request->page())],
+                ProjectView::Calendar => ['calendar' => $calendar(
                     $project,
                     $actor,
                     $request->month(),
                     $request->tags(),
                     $request->expandedDays(),
                 )],
-                ProjectDefaultView::List => ['list' => $list(
+                ProjectView::List => ['list' => $list(
                     $project,
                     $actor,
                     $request->tags(),
@@ -168,7 +176,7 @@ class ProjectController extends Controller
                     ])
                     ->all(),
             ],
-            'views' => array_column(ProjectDefaultView::cases(), 'value'),
+            'views' => array_column(ProjectView::cases(), 'value'),
             /*
              * The panel, the priorities its control offers and who a card can be handed to.
              * Four props, sent identically by every screen that can open a panel, from the one

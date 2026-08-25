@@ -1,0 +1,293 @@
+<script setup lang="ts">
+import { router } from '@inertiajs/vue3';
+import {
+    File as FileIcon,
+    FileArchive,
+    FileImage,
+    FileMusic,
+    FileSpreadsheet,
+    FileText,
+    FileType,
+    Film,
+    Paperclip,
+    Presentation,
+    X,
+} from '@lucide/vue';
+import type { Component } from 'vue';
+import { computed, ref } from 'vue';
+import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import UserAvatar from '@/components/UserAvatar.vue';
+import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import { formatFileSize } from '@/lib/fileSize';
+import type { ProjectFile, ProjectFiles } from '@/modules/project/types';
+
+/**
+ * Everything attached to this project's tasks, in one table.
+ *
+ * A **table** rather than a grid of rows, because that is what it is: five facts about each file,
+ * the same five in the same order, and a screen reader announces which column it is in only if the
+ * markup says there are columns.
+ *
+ * The project has no files of its own — a file hangs from a task — so there is nothing to upload
+ * here and no control that pretends there is. This view finds what has already been attached; the
+ * task's own panel is where a file arrives.
+ *
+ * A **pager**, not an endless list: the server sends one page and this says which one. Appending
+ * page after page into a table nobody has scrolled to the bottom of is a way to make the browser
+ * slow at the exact moment somebody is looking for one row.
+ */
+const props = defineProps<{
+    files: ProjectFiles;
+    loading?: boolean;
+}>();
+
+const emit = defineEmits<{ open: [taskId: string] }>();
+
+/**
+ * The word for a kind and the mark beside it. Both are presentation: the server decided *which*
+ * kind this file is, from the type the upload was sniffed as.
+ */
+const kinds: Record<string, { label: string; icon: Component }> = {
+    image: { label: 'Image', icon: FileImage },
+    video: { label: 'Video', icon: Film },
+    audio: { label: 'Audio', icon: FileMusic },
+    pdf: { label: 'PDF', icon: FileText },
+    document: { label: 'Document', icon: FileText },
+    spreadsheet: { label: 'Spreadsheet', icon: FileSpreadsheet },
+    presentation: { label: 'Presentation', icon: Presentation },
+    archive: { label: 'Archive', icon: FileArchive },
+    text: { label: 'Text', icon: FileType },
+    other: { label: 'Other', icon: FileIcon },
+};
+
+const kindOf = (file: ProjectFile) => kinds[file.kind] ?? kinds.other;
+
+/** Which rows of the whole are on the screen — the sentence a pager exists to be able to say. */
+const range = computed<string>(() => {
+    const { page, perPage, total } = props.files.meta;
+    const first = (page - 1) * perPage + 1;
+
+    return `${first}–${Math.min(page * perPage, total)} of ${total}`;
+});
+
+const goTo = (page: number): void => {
+    router.reload({ only: ['files'], data: { page } });
+};
+
+/*
+ * Removing is asked about first (ADR-0013), and through the endpoint the task's own panel uses:
+ * this screen is a second way into the same attachments, not a second set of rules about them.
+ */
+const removing = ref<ProjectFile | null>(null);
+
+const remove = (): void => {
+    if (removing.value === null) {
+        return;
+    }
+
+    router.delete(AttachmentController.destroy.url(removing.value.id), {
+        preserveScroll: true,
+        onFinish: () => (removing.value = null),
+    });
+};
+</script>
+
+<template>
+    <div class="flex flex-col gap-3 px-4 pt-4 md:px-6">
+        <!-- The table scrolls sideways on a narrow screen rather than reflowing: five columns
+             stacked into five lines per file is not a table any more, and the columns are what
+             makes this view worth having over the list. -->
+        <div
+            v-if="files.files.length"
+            class="[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] overflow-x-auto"
+        >
+            <table class="w-full min-w-3xl border-collapse text-sm">
+                <caption class="sr-only">
+                    Files attached to this project's tasks
+                </caption>
+
+                <thead>
+                    <tr
+                        class="border-y border-border text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
+                        <th
+                            scope="col"
+                            class="py-2 pr-3 text-left font-semibold"
+                        >
+                            File name
+                        </th>
+                        <th
+                            scope="col"
+                            class="px-3 py-2 text-left font-semibold"
+                        >
+                            Attached by
+                        </th>
+                        <th
+                            scope="col"
+                            class="px-3 py-2 text-left font-semibold"
+                        >
+                            Type
+                        </th>
+                        <th
+                            scope="col"
+                            class="px-3 py-2 text-left font-semibold"
+                        >
+                            Attached to
+                        </th>
+                        <th
+                            scope="col"
+                            class="px-3 py-2 text-left font-semibold"
+                        >
+                            Added
+                        </th>
+                        <th scope="col" class="w-10 py-2">
+                            <span class="sr-only">Actions</span>
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody :class="loading ? 'opacity-60' : ''">
+                    <tr
+                        v-for="file in files.files"
+                        :key="file.id"
+                        class="group/file border-b border-border transition-colors hover:bg-accent/40"
+                    >
+                        <th
+                            scope="row"
+                            class="max-w-md py-2 pr-3 text-left font-normal"
+                        >
+                            <a
+                                :href="
+                                    AttachmentController.download.url(file.id)
+                                "
+                                class="flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                            >
+                                <component
+                                    :is="kindOf(file).icon"
+                                    class="size-4 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <span class="truncate hover:underline">{{
+                                    file.name
+                                }}</span>
+                                <span
+                                    class="shrink-0 text-xs text-muted-foreground"
+                                    >{{ formatFileSize(file.size) }}</span
+                                >
+                            </a>
+                        </th>
+
+                        <td class="px-3 py-2">
+                            <span
+                                v-if="file.uploader"
+                                class="flex items-center gap-2"
+                            >
+                                <UserAvatar
+                                    :user="{ name: file.uploader.name }"
+                                    size="xs"
+                                />
+                                <span class="truncate">{{
+                                    file.uploader.name
+                                }}</span>
+                            </span>
+                            <!-- A file outlives the account that uploaded it, and the column says
+                                 so rather than inventing a name for it. -->
+                            <span v-else class="text-muted-foreground"
+                                >Someone who has left</span
+                            >
+                        </td>
+
+                        <td class="px-3 py-2 text-muted-foreground">
+                            {{ kindOf(file).label }}
+                        </td>
+
+                        <td class="max-w-xs px-3 py-2">
+                            <button
+                                v-if="file.task"
+                                type="button"
+                                class="block max-w-full truncate text-left hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                                @click="emit('open', file.task.id)"
+                            >
+                                {{ file.task.title }}
+                            </button>
+                        </td>
+
+                        <td
+                            class="px-3 py-2 whitespace-nowrap text-muted-foreground"
+                        >
+                            <time
+                                v-if="file.attachedAt"
+                                :datetime="file.attachedAt"
+                                :title="fullFeedTime(file.attachedAt)"
+                            >
+                                {{ formatFeedTime(file.attachedAt) }}
+                            </time>
+                        </td>
+
+                        <td class="py-2 text-right">
+                            <button
+                                v-if="file.canDelete"
+                                type="button"
+                                class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:opacity-0 md:group-hover/file:opacity-100"
+                                :aria-label="`Remove ${file.name}`"
+                                @click="removing = file"
+                            >
+                                <X class="size-4" />
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <EmptyState
+            v-else
+            :icon="Paperclip"
+            title="No files here yet"
+            description="Files attached to this project's tasks are collected here. Open a task and add one to its Attachments."
+        />
+
+        <nav
+            v-if="files.meta.total > files.meta.perPage"
+            class="flex items-center gap-2 text-xs"
+            aria-label="Pages"
+        >
+            <button
+                type="button"
+                class="rounded border border-input px-2 py-1 disabled:opacity-50"
+                :disabled="files.meta.page === 1 || loading"
+                @click="goTo(files.meta.page - 1)"
+            >
+                Newer
+            </button>
+
+            <button
+                type="button"
+                class="rounded border border-input px-2 py-1 disabled:opacity-50"
+                :disabled="!files.meta.hasMore || loading"
+                @click="goTo(files.meta.page + 1)"
+            >
+                Older
+            </button>
+
+            <span
+                class="text-muted-foreground"
+                role="status"
+                aria-live="polite"
+                >{{ range }}</span
+            >
+        </nav>
+
+        <ConfirmDialog
+            :open="removing !== null"
+            :title="`Remove ${removing?.name}?`"
+            description="It comes off the task it is attached to, for everybody. Nothing else on the task changes."
+            confirm-label="Remove"
+            cancel-label="Keep it"
+            @update:open="(next) => !next && (removing = null)"
+            @confirm="remove"
+        />
+    </div>
+</template>

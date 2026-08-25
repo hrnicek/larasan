@@ -4,6 +4,7 @@ import { Paperclip, Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { formatFileSize } from '@/lib/fileSize';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskAttachment } from '@/modules/task/types';
 
@@ -22,14 +23,6 @@ const props = defineProps<{
 
 const form = useForm<{ file: File | null }>({ file: null });
 const input = ref<HTMLInputElement | null>(null);
-
-const sizeOf = (bytes: number): string => {
-    if (bytes < 1024) {
-        return `${bytes} B`;
-    }
-
-    return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
 const upload = (event: Event): void => {
     const chosen = (event.target as HTMLInputElement).files?.[0] ?? null;
@@ -117,7 +110,7 @@ const remove = (): void => {
                     {{ attachment.name }}
                 </a>
 
-                <span class="shrink-0 text-xs text-muted-foreground">{{ sizeOf(attachment.size) }}</span>
+                <span class="shrink-0 text-xs text-muted-foreground">{{ formatFileSize(attachment.size) }}</span>
                 <span v-if="attachment.uploader" class="truncate text-xs text-muted-foreground">
                     {{ attachment.uploader.name }}
                 </span>
