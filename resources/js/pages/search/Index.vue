@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Check, ChevronRight, Search as SearchIcon } from '@lucide/vue';
-import { defineAsyncComponent, ref, watch } from 'vue';
+import { Bookmark, Check, ChevronRight, Search as SearchIcon } from '@lucide/vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import SaveSearchDialog from '@/modules/search/components/SaveSearchDialog.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
@@ -24,7 +25,17 @@ const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/compon
  */
 const props = defineProps<{
     tasks: MyTaskRow[];
-    meta: { term: string; page: number; perPage: number; total: number; hasMore: boolean };
+    meta: {
+        term: string;
+        page: number;
+        perPage: number;
+        total: number;
+        hasMore: boolean;
+        /** True when the engine was unreachable and this came from the database instead. */
+        degraded: boolean;
+        /** True when the engine had more matches than it was asked for. */
+        capped: boolean;
+    };
     filters: { project?: string; assignee?: number; completed?: boolean };
     /** The projects the filter offers. Not the sidebar's `projects` — see the controller. */
     filterProjects: { id: string; name: string }[];
@@ -112,6 +123,14 @@ const filterBy = (key: 'project' | 'assignee' | 'completed', value: string): voi
  * reading one result is a search they run once.
  */
 const { open, close: closeTask } = useTaskPanel();
+
+const canKeep = computed(() => props.meta.term !== '');
+
+/**
+ * Keeping a search puts it in the palette's chip row, which is where one is opened from. It is
+ * made here because this is the screen that has the filters on it.
+ */
+const keeping = ref(false);
 </script>
 
 <template>
@@ -166,10 +185,27 @@ const { open, close: closeTask } = useTaskPanel();
                     <option value="1">Finished</option>
                 </select>
 
-                <p v-if="meta.term !== ''" class="ml-auto self-center text-xs text-muted-foreground">
-                    {{ meta.total }} {{ meta.total === 1 ? 'result' : 'results' }}
+                <button
+                    v-if="canKeep"
+                    type="button"
+                    class="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @click="keeping = true"
+                >
+                    <Bookmark class="size-3.5" />
+                    Save search
+                </button>
+
+                <p v-if="meta.term !== ''" class="self-center text-xs text-muted-foreground" :class="canKeep ? '' : 'ml-auto'">
+                    {{ meta.capped ? `${meta.total}+` : meta.total }} {{ meta.total === 1 ? 'result' : 'results' }}
                 </p>
             </div>
+
+            <!-- The engine is a second service and services stop. Saying which half of the
+                 search is answering is the difference between "worse today" and "broken". -->
+            <p v-if="meta.degraded && meta.term !== ''" class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                The search engine is unavailable, so these results are matched by whole words and
+                without tolerance for typing mistakes.
+            </p>
 
             <!-- A result is a row, not a sentence: the name leads, where it lives follows it, and
                  the whole line is the target. -->
@@ -227,6 +263,8 @@ const { open, close: closeTask } = useTaskPanel();
             >
                 Load more
             </button>
+
+        <SaveSearchDialog v-model:open="keeping" :term="meta.term" :filters="filters" />
 
         <TaskDetailPanel
             v-if="taskDetail"

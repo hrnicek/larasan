@@ -12,7 +12,9 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * Finding work, without finding work somebody may not see.
@@ -29,13 +31,22 @@ final readonly class SearchTasksQuery
 {
     public const PER_PAGE = 25;
 
+    /**
+     * How many keys the engine is asked for.
+     *
+     * The screen pages against PostgreSQL, so the total it shows is exact — for the matches it
+     * was given. A cap is unavoidable (the alternative is asking an engine for every match of
+     * "a"), and `meta.capped` is how the screen says it was reached.
+     */
+    public const CANDIDATES = 500;
+
     public function __construct(private ReachableTasks $reachable) {}
 
     /**
      * @param  array{project?: string, assignee?: int, completed?: bool}  $filters
      * @return array{
      *     tasks: list<array<string, mixed>>,
-     *     meta: array{term: string, page: int, perPage: int, total: int, hasMore: bool},
+     *     meta: array{term: string, page: int, perPage: int, total: int, hasMore: bool, degraded: bool, capped: bool},
      * }
      */
     public function __invoke(
@@ -57,7 +68,9 @@ final readonly class SearchTasksQuery
             return $this->empty($term, $page, $perPage);
         }
 
-        $results = $this->paginate($workspace, $actor, $query, $filters, $page, $perPage);
+        $matches = $this->matches($workspace, $term);
+
+        $results = $this->paginate($workspace, $actor, $query, $matches, $filters, $page, $perPage);
 
         return [
             'tasks' => array_values($results->getCollection()
@@ -69,8 +82,55 @@ final readonly class SearchTasksQuery
                 'perPage' => $results->perPage(),
                 'total' => $results->total(),
                 'hasMore' => $results->hasMorePages(),
+                /*
+                 * True when the engine could not be reached and this answer came from the
+                 * generated column instead: narrower, no typo tolerance, and the screen says so
+                 * rather than looking quietly worse (ADR-0016).
+                 */
+                'degraded' => $matches === null,
+                /*
+                 * Whether the engine had more matches than it was asked for. The count below is
+                 * exact for what came back, and this is what keeps "1 of 500" from reading as
+                 * "everything there is".
+                 */
+                'capped' => $matches !== null && count($matches) >= self::CANDIDATES,
             ],
         ];
+    }
+
+    /**
+     * The keys Meilisearch ranks for this term, or null when it cannot be reached.
+     *
+     * Ids rather than rows: what may be *seen* is decided by the query below, in PostgreSQL,
+     * against the same reach rule every other list uses. The engine matches and orders; it never
+     * authorizes (ADR-0016).
+     *
+     * @return list<string>|null
+     */
+    private function matches(Workspace $workspace, string $term): ?array
+    {
+        /*
+         * Meilisearch is the engine this application has (ADR-0016). The other Scout drivers are
+         * not one for this screen's purposes: `collection` matches substrings in memory and
+         * `null` matches nothing, and either would quietly answer a page of results with
+         * semantics no ADR describes. Without an engine, the generated column is the answer.
+         */
+        if (config('scout.driver') !== 'meilisearch') {
+            return null;
+        }
+
+        try {
+            return array_values(Task::search($term)
+                ->where('workspace_id', $workspace->id)
+                ->take(self::CANDIDATES)
+                ->keys()
+                ->map(fn (mixed $key): string => (string) $key)
+                ->all());
+        } catch (Throwable $failure) {
+            Log::warning('The search screen fell back to PostgreSQL.', ['exception' => $failure->getMessage()]);
+
+            return null;
+        }
     }
 
     /**
@@ -105,6 +165,7 @@ final readonly class SearchTasksQuery
     }
 
     /**
+     * @param  list<string>|null  $matches
      * @param  array{project?: string, assignee?: int, completed?: bool}  $filters
      * @return LengthAwarePaginator<int, Task>
      */
@@ -112,6 +173,7 @@ final readonly class SearchTasksQuery
         Workspace $workspace,
         User $actor,
         string $query,
+        ?array $matches,
         array $filters,
         int $page,
         int $perPage,
@@ -122,7 +184,6 @@ final readonly class SearchTasksQuery
         // engine-backed path applies in its hydration query (ADR-0016).
         $tasks = $this->reachable
             ->constrain(Task::query(), $workspace, $actor)
-            ->whereRaw("search_vector @@ to_tsquery('simple', immutable_unaccent(?))", [$query])
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             ->withCount('comments')
             ->with([
@@ -131,10 +192,30 @@ final readonly class SearchTasksQuery
                     ->whereIn('project_id', $visible)
                     ->with('project:id,name,color'),
             ])
-            // Rank first, then the key: `created_at` is `timestamp(0)` and ties are common, so
-            // without a second key a page would reshuffle between requests.
-            ->orderByRaw("ts_rank_cd(search_vector, to_tsquery('simple', immutable_unaccent(?))) desc", [$query])
             ->orderByDesc('id');
+
+        if ($matches === null) {
+            // The degraded path: the generated column and its GIN index, which is what this
+            // screen ran on before there was an engine (ADR-0012).
+            $tasks
+                ->whereRaw("search_vector @@ to_tsquery('simple', immutable_unaccent(?))", [$query])
+                // Rank first, then the key: `created_at` is `timestamp(0)` and ties are common,
+                // so without a second key a page would reshuffle between requests.
+                ->reorder()
+                ->orderByRaw("ts_rank_cd(search_vector, to_tsquery('simple', immutable_unaccent(?))) desc", [$query])
+                ->orderByDesc('id');
+        } else {
+            /*
+             * The engine's own order, kept: `array_position` puts the rows back in the order
+             * Meilisearch ranked them, which is the ordering the palette shows and the reason
+             * a misspelt term finds anything at all.
+             */
+            $tasks
+                ->whereIn('tasks.id', $matches)
+                ->reorder()
+                ->orderByRaw('array_position(?::uuid[], tasks.id)', ['{'.implode(',', $matches).'}'])
+                ->orderByDesc('id');
+        }
 
         $this->applyFilters($tasks, $filters);
 
@@ -168,13 +249,21 @@ final readonly class SearchTasksQuery
     }
 
     /**
-     * @return array{tasks: list<array<string, mixed>>, meta: array{term: string, page: int, perPage: int, total: int, hasMore: bool}}
+     * @return array{tasks: list<array<string, mixed>>, meta: array{term: string, page: int, perPage: int, total: int, hasMore: bool, degraded: bool, capped: bool}}
      */
     private function empty(string $term, int $page, int $perPage): array
     {
         return [
             'tasks' => [],
-            'meta' => ['term' => $term, 'page' => $page, 'perPage' => $perPage, 'total' => 0, 'hasMore' => false],
+            'meta' => [
+                'term' => $term,
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => 0,
+                'hasMore' => false,
+                'degraded' => false,
+                'capped' => false,
+            ],
         ];
     }
 
