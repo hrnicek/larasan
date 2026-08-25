@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { CheckCircle2, Clipboard, MessageSquare, Search as SearchIcon, User as UserIcon } from '@lucide/vue';
+import { Bookmark, CheckCircle2, Clipboard, MessageSquare, Search as SearchIcon, User as UserIcon, X } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
@@ -9,8 +9,9 @@ import { Spinner } from '@/components/ui/spinner';
 import UserAvatar from '@/components/UserAvatar.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
-import type { SearchAnswer, SearchKind } from '@/modules/search/types';
+import type { SavedSearch, SearchAnswer, SearchKind } from '@/modules/search/types';
 import { index as searchIndex, suggestions } from '@/routes/search';
+import { destroy as forgetSaved } from '@/routes/search/saved';
 
 /**
  * The way anywhere: `⌘K`, a term, and the four kinds of thing this application holds.
@@ -40,7 +41,12 @@ const active = ref(0);
 const field = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 
-const http = useHttp<{ q: string; kind: SearchKind | null }, SearchAnswer>({ q: '', kind: null });
+/*
+ * No data on the request: `useHttp` serialises its own state into the query string for a GET,
+ * and a `null` kind goes over the wire as `kind=`, which is not a kind. The term and the kind
+ * are in the URL this builds instead.
+ */
+const http = useHttp<Record<string, never>, SearchAnswer>({});
 
 let pending: ReturnType<typeof setTimeout> | null = null;
 
@@ -109,21 +115,13 @@ const nothingFound = computed(
 
 const degraded = computed(() => answer.value?.meta.degraded === true);
 
+const saved = computed<SavedSearch[]>(() => answer.value?.saved ?? []);
+
 function ask(): void {
     const asked = term.value.trim();
 
-    if (asked === '') {
-        answer.value = null;
-        searching.value = false;
-        http.cancel();
-
-        return;
-    }
-
     searching.value = true;
     http.cancel();
-    http.q = asked;
-    http.kind = kind.value;
 
     http.get(suggestions.url({ query: { q: asked, kind: kind.value ?? undefined } }), {
         onSuccess: (response: SearchAnswer) => {
@@ -171,6 +169,35 @@ function chooseKind(next: SearchKind | null): void {
     ask();
 }
 
+/**
+ * A saved search is a link, not a palette state: it opens the search screen, with the term and
+ * the filters it was kept with, so it can be shared, reloaded and paged.
+ */
+function openSaved(search: SavedSearch): void {
+    hide();
+
+    router.visit(
+        searchIndex.url({
+            query: {
+                q: search.term,
+                project: search.filters.project,
+                assignee: search.filters.assignee,
+                completed: search.filters.completed,
+            },
+        }),
+    );
+}
+
+function forget(search: SavedSearch): void {
+    // No confirmation: a bookmark is a few seconds to make again, and a dialog per chip would
+    // cost more than the mistake it prevents (TASK-200-011 is for what cannot be undone).
+    router.delete(forgetSaved.url({ savedSearch: search.id }), {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => ask(),
+    });
+}
+
 watch(term, schedule);
 watch(open, (isOpen) => {
     if (!isOpen) {
@@ -180,6 +207,9 @@ watch(open, (isOpen) => {
     term.value = '';
     answer.value = null;
     active.value = 0;
+    // The empty field is where the saved searches are, and this is the request that fetches
+    // them.
+    ask();
     nextTick(() => field.value?.focus());
 });
 </script>
@@ -236,11 +266,40 @@ watch(open, (isOpen) => {
             </p>
 
             <div ref="list" class="max-h-[22rem] overflow-y-auto p-2">
-                <p v-if="term.trim() === ''" class="px-2 py-6 text-center text-sm text-muted-foreground">
-                    Type to search this workspace.
-                </p>
+                <template v-if="term.trim() === ''">
+                    <div v-if="saved.length > 0" class="mb-1">
+                        <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                            Saved searches
+                        </p>
 
-                <p v-else-if="nothingFound" class="px-2 py-6 text-center text-sm text-muted-foreground">
+                        <div class="flex flex-wrap gap-1.5 px-2 py-1">
+                            <span
+                                v-for="search in saved"
+                                :key="search.id"
+                                class="group inline-flex items-center gap-1.5 rounded-full border border-border py-1 pr-1 pl-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                            >
+                                <button type="button" class="inline-flex items-center gap-1.5" @click="openSaved(search)">
+                                    <Bookmark class="size-3.5" />
+                                    {{ search.name }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted"
+                                    :aria-label="`Forget ${search.name}`"
+                                    @click="forget(search)"
+                                >
+                                    <X class="size-3" />
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+
+                    <p class="px-2 py-6 text-center text-sm text-muted-foreground">
+                        Type to search this workspace.
+                    </p>
+                </template>
+
+                <p v-if="nothingFound" class="px-2 py-6 text-center text-sm text-muted-foreground">
                     Nothing matched “{{ term.trim() }}”.
                 </p>
 

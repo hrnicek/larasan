@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Search;
 
+use App\Domain\Shared\Enums\SearchKind;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class SearchRequest extends FormRequest
+class StoreSavedSearchRequest extends FormRequest
 {
     /**
-     * Anybody signed in may search; what they *find* is the query's answer, not this one
-     * (TASK-160-002).
+     * Anybody signed in may keep their own search; whose workspace it lands in is the
+     * controller's answer, not this one.
      */
     public function authorize(): bool
     {
@@ -23,24 +25,19 @@ class SearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Bounded because it reaches a text search: a term nobody could have typed is a term
-            // nobody meant.
-            // Nullable because `ConvertEmptyStringsToNull` turns `?q=` — which is what a
-            // cleared search field submits — into null.
-            'q' => ['sometimes', 'nullable', 'string', 'max:200'],
-            'project' => ['sometimes', 'uuid'],
-            'assignee' => ['sometimes', 'integer'],
-            'completed' => ['sometimes', 'boolean'],
-            'page' => ['sometimes', 'integer', 'min:1'],
+            'name' => ['required', 'string', 'max:60'],
+            'term' => ['required', 'string', 'max:200'],
+            'kind' => ['sometimes', 'nullable', Rule::enum(SearchKind::class)],
+            'project' => ['sometimes', 'nullable', 'uuid'],
+            'assignee' => ['sometimes', 'nullable', 'integer'],
+            'completed' => ['sometimes', 'nullable', 'boolean'],
         ];
     }
 
-    public function term(): string
-    {
-        return trim((string) $this->string('q'));
-    }
-
     /**
+     * The filters as the search screen carries them, so a saved search replays into the same
+     * URL it was kept from.
+     *
      * @return array{project?: string, assignee?: int, completed?: bool}
      */
     public function filters(): array

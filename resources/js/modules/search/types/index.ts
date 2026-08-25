@@ -58,8 +58,22 @@ export type SearchResults = {
     messages?: SearchMessageResult[];
 };
 
+export type SavedSearch = {
+    id: string;
+    name: string;
+    term: string;
+    kind: SearchKind | null;
+    filters: {
+        project?: string;
+        assignee?: number;
+        completed?: boolean;
+    };
+};
+
 export type SearchAnswer = {
     results: SearchResults;
+    /** The chips under the field. Sent on the empty field only, which is where they are drawn. */
+    saved: SavedSearch[];
     meta: {
         term: string;
         kind: SearchKind | null;

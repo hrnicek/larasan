@@ -150,3 +150,31 @@ it('names the kinds one place, and the query answers exactly those', function ()
 
     expect(array_keys($answer['results']))->toBe(['tasks', 'projects', 'people', 'messages']);
 });
+
+it('answers the empty field the palette opens with', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+
+    // `?q=` reaches the request as null, which is the shape the palette's first request has.
+    $this->actingAs($actor)
+        ->getJson(route('search.suggestions').'?q=&kind=')
+        ->assertOk()
+        ->assertJsonPath('meta.term', '')
+        ->assertJsonCount(0, 'results.tasks');
+})->with([
+    'the palette asks before anybody has typed, because that is where the saved searches are',
+]);
+
+it('reads an empty kind as no kind at all', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    Task::factory()->in($workspace)->create(['title' => 'Invoice the client']);
+
+    $this->actingAs($actor)
+        ->getJson(route('search.suggestions').'?q=invoice&kind=')
+        ->assertOk()
+        ->assertJsonPath('meta.kind', null)
+        ->assertJsonCount(1, 'results.tasks');
+})->with([
+    'a form that sends everything it has sends the empty ones too',
+]);
