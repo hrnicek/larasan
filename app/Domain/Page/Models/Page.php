@@ -68,6 +68,15 @@ class Page extends Model
      */
     protected $fillable = ['title', 'content', 'excerpt', 'position'];
 
+    /**
+     * The database has the same default, and that is not enough: a model that was just saved
+     * would report `null` for a column it never read back, and the first save from the editor
+     * would carry that null into the version comparison.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = ['version' => 1];
+
     /** @return BelongsTo<Project, $this> */
     public function project(): BelongsTo
     {

@@ -44,6 +44,11 @@ final class PageException extends DomainException implements DomainRefusal
         return new self('That page is not in this project.');
     }
 
+    public static function anchorIsNotASibling(): self
+    {
+        return new self('That page is not where this one would be placed.');
+    }
+
     public static function cannotContainItself(): self
     {
         return new self('A page cannot be moved inside itself.');
