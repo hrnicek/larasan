@@ -62,6 +62,16 @@ it('refuses a visibility, view or colour the domain does not define', function (
     'color' => ['color', 'fuchsia'],
 ]);
 
+it('accepts every default view the enum defines', function (): void {
+    $workspace = Workspace::factory()->create();
+
+    foreach (ProjectDefaultView::cases() as $view) {
+        insertProject($workspace, ['slug' => 'opens-on-'.$view->value, 'default_view' => $view->value]);
+    }
+
+    expect(DB::table('projects')->count())->toBe(count(ProjectDefaultView::cases()));
+});
+
 it('accepts a palette colour and no colour at all', function (): void {
     $workspace = Workspace::factory()->create();
 
