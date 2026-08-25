@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { CalendarDate,  getLocalTimeZone, today } from '@internationalized/date';
-import type {DateValue} from '@internationalized/date';
 import { CalendarPlus, TriangleAlert, X } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { dayOf, formatDay, isOverdue, today } from '@/lib/dueDate';
 
 /**
  * The due date, changed from the row or the panel. Only this field is sent: `tasks.update`
@@ -30,37 +28,29 @@ const props = defineProps<{
     variant?: 'inline' | 'field';
 }>();
 
+/*
+ * The month grid is 50 kB of calendar and date library, and a list draws hundreds of these
+ * triggers without opening one. It is fetched on the intent to open — a pointer over the trigger,
+ * or focus on it — so it is there by the time the popover is.
+ */
+const loadCalendar = () => import('@/modules/task/components/DueDateCalendar.vue');
+
+const DueDateCalendar = defineAsyncComponent(loadCalendar);
+
+const warmCalendar = (): void => void loadCalendar();
+
 const open = ref(false);
 const saving = ref(false);
 
-const date = computed<string>(() => (props.dueAt === null ? '' : props.dueAt.slice(0, 10)));
-
-/** The stored day as the calendar's own type. Date-only: a due date is a day, not an instant. */
-const value = computed<DateValue | undefined>(() => {
-    if (date.value === '') {
-        return undefined;
-    }
-
-    const [year, month, day] = date.value.split('-').map(Number);
-
-    return new CalendarDate(year, month, day);
-});
+const day = computed<string | null>(() => dayOf(props.dueAt));
 
 /**
  * Overdue is said twice — in red **and** with an icon — because colour alone is not a message
- * somebody who cannot see it receives. Compared as days rather than instants: a task due today
- * is not late at nine in the morning.
+ * somebody who cannot see it receives.
  */
-const overdue = computed<boolean>(() => value.value !== undefined && value.value.compare(today(getLocalTimeZone())) < 0);
+const overdue = computed<boolean>(() => isOverdue(day.value));
 
-/** The reader's own locale, short: `12 Aug` is a date, `2026-08-12` is a value. */
-const label = computed<string>(() =>
-    value.value === undefined
-        ? ''
-        : value.value
-              .toDate(getLocalTimeZone())
-              .toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
-);
+const label = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
 
 function save(next: string | null): void {
     saving.value = true;
@@ -78,7 +68,6 @@ function save(next: string | null): void {
     );
 }
 
-const choose = (picked: DateValue | undefined): void => save(picked === undefined ? null : picked.toString());
 </script>
 
 <template>
@@ -100,6 +89,8 @@ const choose = (picked: DateValue | undefined): void => save(picked === undefine
         -->
         <PopoverTrigger
             :disabled="saving"
+            @pointerenter="warmCalendar"
+            @focus="warmCalendar"
             class="inline-flex min-h-11 items-center gap-1.5 rounded-md transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-6"
             :class="[
                 overdue ? 'text-destructive' : 'text-muted-foreground',
@@ -121,7 +112,11 @@ const choose = (picked: DateValue | undefined): void => save(picked === undefine
         </PopoverTrigger>
 
         <PopoverContent class="w-auto p-0" align="start">
-            <Calendar :model-value="value" @update:model-value="choose" />
+            <!-- The room the month will take, held while it is on its way, so the popover does not
+                 resize under the pointer that opened it. -->
+            <div class="min-h-[298px] w-[266px]">
+                <DueDateCalendar :day="day" @pick="save" />
+            </div>
 
             <!-- The two things anybody actually wants from a due date, and neither is a month grid. -->
             <div class="flex items-center gap-1 border-t border-border p-2">
@@ -130,7 +125,7 @@ const choose = (picked: DateValue | undefined): void => save(picked === undefine
                     size="sm"
                     class="h-8 flex-1 text-xs"
                     :disabled="saving"
-                    @click="save(today(getLocalTimeZone()).toString())"
+                    @click="save(today())"
                 >
                     Today
                 </Button>

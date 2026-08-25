@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { accentChipClass } from '@/lib/accentColor';
+import { dayOf, formatDay, isOverdue } from '@/lib/dueDate';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 /**
@@ -35,24 +36,12 @@ const emit = defineEmits<{
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 
-const date = computed<string>(() => (props.card.dueAt === null ? '' : props.card.dueAt.slice(0, 10)));
+const day = computed<string | null>(() => dayOf(props.card.dueAt));
 
 /** Overdue is red **and** carries an icon **and** says so in the label: colour alone is not a message. */
-const overdue = computed<boolean>(() => {
-    if (date.value === '' || props.card.completedAt !== null) {
-        return false;
-    }
+const overdue = computed<boolean>(() => props.card.completedAt === null && isOverdue(day.value));
 
-    const today = new Date();
-
-    return new Date(`${date.value}T00:00:00`) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-});
-
-const dueLabel = computed<string>(() =>
-    date.value === ''
-        ? ''
-        : new Date(`${date.value}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
-);
+const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
 </script>
 
 <template>
