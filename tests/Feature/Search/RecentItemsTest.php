@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Search\Actions\RecordRecentlyOpened;
 use App\Domain\Search\Models\RecentItem;
 use App\Domain\Search\Queries\RecentItemsForUser;
@@ -103,7 +104,7 @@ it('never offers a private project to somebody who lost their membership', funct
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $project = Project::factory()->in($workspace)->private()->create();
-    $membership = App\Domain\Project\Models\ProjectMembership::factory()
+    $membership = ProjectMembership::factory()
         ->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Viewer)->create();
 
     app(RecordRecentlyOpened::class)->handle($workspace, $actor, $project);

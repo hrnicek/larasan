@@ -19,6 +19,7 @@ require __DIR__.'/settings.php';
 require __DIR__.'/workspaces.php';
 require __DIR__.'/projects.php';
 require __DIR__.'/sections.php';
+require __DIR__.'/pages.php';
 require __DIR__.'/tasks.php';
 require __DIR__.'/placements.php';
 require __DIR__.'/comments.php';

@@ -15,6 +15,11 @@ use App\Domain\Comment\Events\CommentCreated;
 use App\Domain\Comment\Listeners\BroadcastCommentChange;
 use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
+use App\Domain\Page\Events\PageCreated;
+use App\Domain\Page\Events\PageDeleted;
+use App\Domain\Page\Events\PageMoved;
+use App\Domain\Page\Events\PageUpdated;
+use App\Domain\Page\Listeners\BroadcastPageChange;
 use App\Domain\Placement\Events\TaskAttachedToProject;
 use App\Domain\Placement\Events\TaskDetachedFromProject;
 use App\Domain\Placement\Events\TaskPlacementMoved;
@@ -88,6 +93,11 @@ class DomainEventServiceProvider extends ServiceProvider
         SectionUpdated::class => [BroadcastSectionChange::class],
         SectionMoved::class => [BroadcastSectionChange::class],
         SectionDeleted::class => [BroadcastSectionChange::class],
+
+        PageCreated::class => [BroadcastPageChange::class],
+        PageUpdated::class => [BroadcastPageChange::class],
+        PageMoved::class => [BroadcastPageChange::class],
+        PageDeleted::class => [BroadcastPageChange::class],
 
         ProjectUpdated::class => [BroadcastProjectChange::class],
         ProjectArchived::class => [BroadcastProjectChange::class],

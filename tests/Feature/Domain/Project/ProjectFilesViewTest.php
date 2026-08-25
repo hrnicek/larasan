@@ -50,7 +50,7 @@ it('offers files as one of the views the switcher may link to', function (): voi
         ->get(route('projects.show', $project))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->where('views', ['list', 'board', 'calendar', 'files']));
+            ->where('views', ['list', 'board', 'calendar', 'files', 'pages']));
 });
 
 it('draws an empty table for a project nobody has attached anything to', function (): void {

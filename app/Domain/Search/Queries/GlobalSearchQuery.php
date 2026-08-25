@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * One term, four kinds of answer.
+ * One term, five kinds of answer.
  *
  * Each kind is asked separately and ranked within itself, because a task and a person have
  * nothing to be ranked against each other by: the palette shows the best few of each and lets a
@@ -34,6 +34,7 @@ final readonly class GlobalSearchQuery
         private ProjectResults $projects,
         private PersonResults $people,
         private MessageResults $messages,
+        private PageResults $pages,
         private SearchTasksQuery $tasksInDatabase,
     ) {}
 
@@ -64,8 +65,8 @@ final readonly class GlobalSearchQuery
                 /*
                  * The engine is a second service, and services stop — one index at a time, in the
                  * case of a deployment that has not run `scout:import` yet. One kind failing must
-                 * not take the other three with it, which is why this is caught per kind rather
-                 * than around the four.
+                 * not take the others with it, which is why this is caught per kind rather than
+                 * around all of them.
                  */
                 Log::warning('Search fell back for one kind.', [
                     'kind' => $name,
@@ -92,6 +93,7 @@ final readonly class GlobalSearchQuery
             SearchKind::Projects => ($this->projects)($workspace, $actor, $term, $limit),
             SearchKind::People => ($this->people)($workspace, $actor, $term, $limit),
             SearchKind::Messages => ($this->messages)($workspace, $actor, $term, $limit),
+            SearchKind::Pages => ($this->pages)($workspace, $actor, $term, $limit),
         };
 
         return $results;

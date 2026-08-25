@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Project\Models\Project;
 use App\Domain\Search\Queries\GlobalSearchQuery;
+use App\Domain\Shared\Enums\SearchKind;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -15,7 +16,7 @@ it('requires authentication', function (): void {
     $this->getJson(route('search.suggestions', ['q' => 'login']))->assertUnauthorized();
 });
 
-it('answers with all four kinds at once', function (): void {
+it('answers with every kind at once', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, user: User::factory()->create(['name' => 'Actor Zero', 'email' => 'actor@pinned.test']));
     $task = Task::factory()->in($workspace)->create(['title' => 'Invoice the client']);
@@ -119,9 +120,15 @@ it('answers tasks from PostgreSQL when the engine cannot be reached', function (
         ->json();
 
     expect($answer['results']['tasks'][0]['title'])->toBe('Invoice the client');
-    // One per kind: the engine is caught per kind so that one index missing — a deployment that
-    // has not imported yet — does not take the other three down with it.
-    $log->shouldHaveReceived('warning')->times(4);
+    /*
+     * One per kind, matched by message rather than by a total: the engine is caught per kind so
+     * that one index missing — a deployment that has not imported yet — does not take the others
+     * down with it. Counting every warning instead would also count the one the degraded path
+     * logs on its own way to PostgreSQL, and would then have to move whenever either changed.
+     */
+    $log->shouldHaveReceived('warning')
+        ->withArgs(fn (string $message): bool => $message === 'Search fell back for one kind.')
+        ->times(count(SearchKind::cases()));
 })->with([
     'search dying entirely because a container restarted is a worse failure than a narrower
     answer',
@@ -148,7 +155,7 @@ it('names the kinds one place, and the query answers exactly those', function ()
 
     $answer = app(GlobalSearchQuery::class)($workspace, $actor, 'invoice');
 
-    expect(array_keys($answer['results']))->toBe(['tasks', 'projects', 'people', 'messages']);
+    expect(array_keys($answer['results']))->toBe(['tasks', 'projects', 'people', 'messages', 'pages']);
 });
 
 it('answers the empty field the palette opens with', function (): void {

@@ -55,6 +55,15 @@ class ProjectPolicy
     }
 
     /**
+     * Starting a document in this project, asked of the project because there is no page yet
+     * to judge.
+     */
+    public function createPage(User $user, Project $project): bool
+    {
+        return $project->allowsChangesBy($user, Capability::PageCreate);
+    }
+
+    /**
      * Putting a task on this board, asked of the project because there is no placement yet
      * to judge. `task.update` rather than `task.create`: attaching an existing task changes
      * where it appears, and creating one is `createTask()` below.

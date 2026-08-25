@@ -46,7 +46,7 @@ it('is refused every workspace-level capability', function (): void {
         expect($gate->allows($capability->value, $workspace))->toBeFalse();
     }
 
-    expect($refused)->toHaveCount(18);
+    expect($refused)->toHaveCount(21);
 });
 
 it('cannot change the workspace it can see', function (): void {

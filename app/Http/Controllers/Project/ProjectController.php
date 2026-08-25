@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Project;
 
 use App\Concerns\OpensTaskPanel;
+use App\Domain\Page\Queries\ProjectPagesQuery;
 use App\Domain\Project\Actions\ArchiveProject;
 use App\Domain\Project\Actions\CreateProject;
 use App\Domain\Project\Actions\UpdateProject;
@@ -109,6 +110,7 @@ class ProjectController extends Controller
         ProjectBoardQuery $board,
         ProjectCalendarQuery $calendar,
         ProjectFilesQuery $files,
+        ProjectPagesQuery $pages,
         TaskDetailQuery $detail,
     ): Response {
         Gate::authorize('view', $project);
@@ -136,7 +138,7 @@ class ProjectController extends Controller
             ],
             'view' => $view->value,
             /*
-             * One screen, four views, and only the payload the view asked for. Sending more
+             * One screen, five views, and only the payload the view asked for. Sending more
              * than one would read the same placements twice for a reader who can see one of them.
              */
             ...match ($view) {
@@ -145,6 +147,9 @@ class ProjectController extends Controller
                 // task, and narrowing a list of documents by one would answer a question about
                 // the tasks rather than about the files.
                 ProjectView::Files => ['files' => $files($project, $actor, $request->page(), ...$request->fileSort())],
+                // The pages tree carries no tags and no sort either: a document is not a task,
+                // and narrowing a list of documents by a tag would answer a different question.
+                ProjectView::Pages => ['pages' => $pages($project, $actor)],
                 ProjectView::Calendar => ['calendar' => $calendar(
                     $project,
                     $actor,

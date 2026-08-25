@@ -32,5 +32,5 @@ it('declares no binding where route caching would lose it', function (): void {
 it('registers every parameter the routes bind', function (string $parameter): void {
     expect(Route::getBindingCallback($parameter))->not->toBeNull();
 })->with([
-    'project', 'task', 'section', 'placement', 'comment', 'attachment', 'tag', 'field', 'notification',
+    'project', 'task', 'section', 'page', 'placement', 'comment', 'attachment', 'tag', 'field', 'notification',
 ]);
