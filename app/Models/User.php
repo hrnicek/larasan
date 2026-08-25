@@ -21,6 +21,7 @@ use Illuminate\Notifications\Notification;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Scout\Searchable;
 
 /**
  * @property int $id
@@ -41,7 +42,29 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+    use HasFactory, Notifiable, PasskeyAuthenticatable, Searchable, TwoFactorAuthenticatable;
+
+    /**
+     * What the search engine is told about a person (ADR-0016).
+     *
+     * Name and email, which is what somebody types to find a colleague, and nothing else — a
+     * user row carries a password hash, two-factor secrets and recovery codes, and an index is
+     * a second copy of whatever it is handed.
+     *
+     * There is no `workspace_id` here because a person belongs to several: the index holds every
+     * user in the installation, and `PersonResults` joins `workspace_memberships` to decide who
+     * this actor may be shown. That join is the boundary; nothing in this array is.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'name' => (string) $this->name,
+            'email' => (string) $this->email,
+        ];
+    }
 
     /** @return BelongsTo<Workspace, $this> */
     public function currentWorkspace(): BelongsTo

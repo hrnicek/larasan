@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Project\Models\Project;
 use App\Domain\Task\Models\Task;
+use App\Models\User;
 
 return [
 
@@ -138,6 +140,21 @@ return [
             Project::class => [
                 'filterableAttributes' => ['workspace_id', 'archived'],
                 'searchableAttributes' => ['name', 'slug', 'description'],
+            ],
+            /*
+             * No `workspace_id`: a person belongs to several workspaces, so their document has
+             * no tenant to filter on. The boundary is the join to `workspace_memberships` in
+             * `PersonResults` — the one place it can be, and the one place it is.
+             */
+            User::class => [
+                'filterableAttributes' => [],
+                'searchableAttributes' => ['name', 'email'],
+            ],
+            Comment::class => [
+                // The subject's type, so "messages on tasks" does not mean reading every
+                // comment in the workspace to find out which are on tasks.
+                'filterableAttributes' => ['workspace_id', 'commentable_type'],
+                'searchableAttributes' => ['body'],
             ],
         ],
     ],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Comment\Models;
 
+use App\Domain\Shared\Html\RichText;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * Something somebody said about something.
@@ -39,7 +41,30 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Comment extends Model
 {
     /** @use HasFactory<CommentFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    /**
+     * What the search engine is told (ADR-0016).
+     *
+     * The body, and the type of thing it was said on so a screen can ask for the messages on
+     * tasks without reading every comment in the workspace. The subject's *key* is not a
+     * searchable word — it is here as a filter, which is what `filterableAttributes` in
+     * `config/scout.php` says about it.
+     *
+     * Nothing here decides who may read the comment: `MessageResults` gives it the reach of the
+     * task it hangs from.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'workspace_id' => (string) $this->workspace_id,
+            'commentable_type' => (string) $this->commentable_type,
+            'body' => RichText::toPlainText($this->body),
+        ];
+    }
 
     /**
      * The body only. The workspace, the subject and the author are decided by the Action from
