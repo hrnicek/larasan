@@ -73,6 +73,15 @@ final class TaskException extends DomainException implements DomainRefusal
         return new self('That person cannot reach this task.');
     }
 
+    /**
+     * A star is a shortcut to a task, so it cannot point at one the actor may not open — the same
+     * rule as the follower above, applied to a list rather than to an inbox.
+     */
+    public static function cannotStarUnreachableTask(): self
+    {
+        return new self('You do not have access to that task.');
+    }
+
     public static function assigneeIsNotAMember(): self
     {
         return new self('A task can only be assigned to an active member of its workspace.');

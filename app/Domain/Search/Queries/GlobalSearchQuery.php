@@ -53,50 +53,62 @@ final readonly class GlobalSearchQuery
             return $this->answer($this->nothing($kind), $term, $kind, degraded: false);
         }
 
-        try {
-            return $this->answer($this->fromEngine($workspace, $actor, $term, $kind, $limit), $term, $kind, degraded: false);
-        } catch (Throwable $failure) {
-            /*
-             * The engine is a second service and services stop. What follows is deliberately
-             * narrower than what was asked for: tasks only, no typo tolerance, from the index
-             * PostgreSQL keeps itself.
-             */
-            Log::warning('Search fell back to PostgreSQL.', ['exception' => $failure->getMessage()]);
-
-            return $this->answer($this->fromDatabase($workspace, $actor, $term, $kind, $limit), $term, $kind, degraded: true);
-        }
-    }
-
-    /**
-     * @return array<string, list<array<string, mixed>>>
-     */
-    private function fromEngine(Workspace $workspace, User $actor, string $term, ?SearchKind $kind, int $limit): array
-    {
-        $wanted = fn (SearchKind $candidate): bool => $kind === null || $kind === $candidate;
-
-        return array_filter([
-            SearchKind::Tasks->value => $wanted(SearchKind::Tasks) ? ($this->tasks)($workspace, $actor, $term, $limit) : null,
-            SearchKind::Projects->value => $wanted(SearchKind::Projects) ? ($this->projects)($workspace, $actor, $term, $limit) : null,
-            SearchKind::People->value => $wanted(SearchKind::People) ? ($this->people)($workspace, $actor, $term, $limit) : null,
-            SearchKind::Messages->value => $wanted(SearchKind::Messages) ? ($this->messages)($workspace, $actor, $term, $limit) : null,
-            SearchKind::Pages->value => $wanted(SearchKind::Pages) ? ($this->pages)($workspace, $actor, $term, $limit) : null,
-        ], fn (?array $results): bool => $results !== null);
-    }
-
-    /**
-     * @return array<string, list<array<string, mixed>>>
-     */
-    private function fromDatabase(Workspace $workspace, User $actor, string $term, ?SearchKind $kind, int $limit): array
-    {
         $results = $this->nothing($kind);
+        $degraded = false;
 
-        if ($kind === null || $kind === SearchKind::Tasks) {
-            $results[SearchKind::Tasks->value] = ($this->tasksInDatabase)(
-                $workspace, $actor, $term, page: 1, filters: [], perPage: $limit,
-            )['tasks'];
+        foreach (array_keys($results) as $name) {
+            $wanted = SearchKind::from($name);
+
+            try {
+                $results[$name] = $this->fromEngine($wanted, $workspace, $actor, $term, $limit);
+            } catch (Throwable $failure) {
+                /*
+                 * The engine is a second service, and services stop — one index at a time, in the
+                 * case of a deployment that has not run `scout:import` yet. One kind failing must
+                 * not take the others with it, which is why this is caught per kind rather than
+                 * around all of them.
+                 */
+                Log::warning('Search fell back for one kind.', [
+                    'kind' => $name,
+                    'exception' => $failure->getMessage(),
+                ]);
+
+                $degraded = true;
+                $results[$name] = $wanted === SearchKind::Tasks
+                    ? $this->tasksFromDatabase($workspace, $actor, $term, $limit)
+                    : [];
+            }
         }
+
+        return $this->answer($results, $term, $kind, degraded: $degraded);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fromEngine(SearchKind $kind, Workspace $workspace, User $actor, string $term, int $limit): array
+    {
+        $results = match ($kind) {
+            SearchKind::Tasks => ($this->tasks)($workspace, $actor, $term, $limit),
+            SearchKind::Projects => ($this->projects)($workspace, $actor, $term, $limit),
+            SearchKind::People => ($this->people)($workspace, $actor, $term, $limit),
+            SearchKind::Messages => ($this->messages)($workspace, $actor, $term, $limit),
+            SearchKind::Pages => ($this->pages)($workspace, $actor, $term, $limit),
+        };
 
         return $results;
+    }
+
+    /**
+     * The degraded path: PostgreSQL's own full-text index, tasks only, no typo tolerance
+     * (ADR-0012, kept by ADR-0016). Search answering less is better than search answering
+     * nothing because a container restarted.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function tasksFromDatabase(Workspace $workspace, User $actor, string $term, int $limit): array
+    {
+        return ($this->tasksInDatabase)($workspace, $actor, $term, page: 1, filters: [], perPage: $limit)['tasks'];
     }
 
     /**

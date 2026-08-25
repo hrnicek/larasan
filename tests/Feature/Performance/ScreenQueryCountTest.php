@@ -149,8 +149,14 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
 })->with([
     // The budgets are what these screens actually cost today, recorded so a change can be
     // compared against them rather than argued about.
-    'the board' => ['board', 20],
-    'the list' => ['list', 19],
+    //
+    // The board and the list each gained one over Phase 200's numbers: opening a project is
+    // remembered for the palette (TASK-210-008), which is an upsert and a trim, deferred until
+    // after the response has gone out. Two statements, one of which the counter attributes to
+    // the screen — bookkeeping nobody waits on, and the price of the palette being useful
+    // before anybody types.
+    'the board' => ['board', 21],
+    'the list' => ['list', 20],
     'the project list' => ['projects', 8],
     'my tasks' => ['my-tasks', 8],
     'the inbox' => ['inbox', 12],

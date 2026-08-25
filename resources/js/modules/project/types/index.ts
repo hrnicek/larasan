@@ -1,3 +1,5 @@
+import type { Component } from 'vue';
+
 export type ProjectSummary = {
     id: string;
     name: string;
@@ -21,6 +23,8 @@ export type SidebarProject = {
     icon: string | null;
     canUpdate: boolean;
     canArchive: boolean;
+    /** This reader's own star, not a property of the project: two people see two answers. */
+    starred: boolean;
 };
 
 /**
@@ -36,6 +40,7 @@ export type ProjectHeading = {
     icon: string | null;
     archived: boolean;
     canUpdate: boolean;
+    starred: boolean;
 };
 
 export type ProjectSettings = ProjectSummary & {
@@ -56,6 +61,22 @@ export type ProjectOptions = {
     colors: string[];
     views: string[];
     visibilities: string[];
+};
+
+/**
+ * One entry in the rail beside the project settings cards. The `id` is the card's element id,
+ * which is what the rail scrolls to and what its scroll-spy reports back.
+ */
+export type ProjectSettingsNavItem = {
+    id: string;
+    label: string;
+    icon: Component;
+};
+
+/** The cards that are read together, under the name the rail and the column both give them. */
+export type ProjectSettingsNavGroup = {
+    label: string;
+    items: ProjectSettingsNavItem[];
 };
 
 export type ProjectAbilities = {

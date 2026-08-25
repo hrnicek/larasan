@@ -1,20 +1,17 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { PanelLeft, Search as SearchIcon } from '@lucide/vue';
-import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import CreateMenu from '@/components/CreateMenu.vue';
 import { useShell } from '@/composables/useShell';
+import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 
 const { toggle, openMobile } = useShell();
 
 /*
- * The field is a button rather than an input. Search is a screen with its own address and its own
- * filters (ADR-0012), so typing here would mean typing into a control that navigates away from
- * itself on the first keystroke.
+ * The field is a button rather than an input, and it opens the palette rather than navigating:
+ * the palette is where typing goes now, and it opens over whatever screen this is. The search
+ * *screen* is still where a search with filters and pages lives (ADR-0012, ADR-0016).
  */
-function openSearch(): void {
-    router.get(SearchController.index.url());
-}
+const { show: openSearch } = useCommandPalette();
 </script>
 
 <template>
@@ -42,7 +39,7 @@ function openSearch(): void {
         <button
             type="button"
             class="mx-auto flex h-8 w-full max-w-md items-center gap-2 rounded-md border border-chrome-border bg-chrome-accent/60 px-2.5 text-[13px] text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none"
-            @click="openSearch"
+            @click="openSearch()"
         >
             <SearchIcon class="size-4 shrink-0" />
             <span class="truncate">Search</span>

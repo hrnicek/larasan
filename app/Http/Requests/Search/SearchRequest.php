@@ -25,7 +25,9 @@ class SearchRequest extends FormRequest
         return [
             // Bounded because it reaches a text search: a term nobody could have typed is a term
             // nobody meant.
-            'q' => ['sometimes', 'string', 'max:200'],
+            // Nullable because `ConvertEmptyStringsToNull` turns `?q=` — which is what a
+            // cleared search field submits — into null.
+            'q' => ['sometimes', 'nullable', 'string', 'max:200'],
             'project' => ['sometimes', 'uuid'],
             'assignee' => ['sometimes', 'integer'],
             'completed' => ['sometimes', 'boolean'],

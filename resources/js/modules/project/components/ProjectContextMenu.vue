@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Archive, Copy, ExternalLink, Palette, PencilLine, Settings } from '@lucide/vue';
+import { Archive, Copy, ExternalLink, Palette, PencilLine, Settings, Star, StarOff } from '@lucide/vue';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -17,7 +17,7 @@ import {
 import ProjectAppearanceFields from '@/modules/project/components/ProjectAppearanceFields.vue';
 import ProjectRenameDialog from '@/modules/project/components/ProjectRenameDialog.vue';
 import type { SidebarProject } from '@/modules/project/types';
-import { archive, edit, show } from '@/routes/projects';
+import { archive, edit, show, star, unstar } from '@/routes/projects';
 
 /**
  * What can be done to a project, from the row that names it.
@@ -44,6 +44,21 @@ async function copyLink(): Promise<void> {
         // it leaves somebody pasting whatever was there before.
         toast('Could not copy — open the project and use the address bar.');
     }
+}
+
+/**
+ * The star is this reader's own, so the write is theirs alone and the server answers with the
+ * sidebar re-ordered around it. `preserveScroll` because a row moving into the starred group is
+ * the whole point, and a rail that jumps to the top with it is not.
+ */
+function toggleStar(): void {
+    if (props.project.starred) {
+        router.delete(unstar(props.project.id).url, { preserveScroll: true });
+
+        return;
+    }
+
+    router.post(star(props.project.id).url, {}, { preserveScroll: true });
 }
 
 function archiveProject(): void {
@@ -105,6 +120,11 @@ function archiveProject(): void {
             <ContextMenuItem v-if="props.project.canUpdate" @select="renaming = true">
                 <PencilLine class="mr-2 size-4" />
                 Rename
+            </ContextMenuItem>
+
+            <ContextMenuItem @select="toggleStar">
+                <component :is="props.project.starred ? StarOff : Star" class="mr-2 size-4" />
+                {{ props.project.starred ? 'Remove from starred' : 'Add to starred' }}
             </ContextMenuItem>
 
             <ContextMenuItem as-child>

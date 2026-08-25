@@ -6,6 +6,7 @@ use App\Domain\Project\Models\Project;
 use App\Http\Controllers\Project\ProjectAppearanceController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\ProjectNameController;
+use App\Http\Controllers\Project\ProjectStarController;
 use App\Http\Controllers\Project\ProjectTaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +46,13 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
      */
     Route::put('projects/{project}/name', [ProjectNameController::class, 'update'])
         ->name('projects.name.update');
+
+    /*
+     * A star is one person's shortcut, not a change to the project: anybody who may read the
+     * project may star it, and the row it writes belongs to the actor alone.
+     */
+    Route::post('projects/{project}/star', [ProjectStarController::class, 'store'])->name('projects.star');
+    Route::delete('projects/{project}/star', [ProjectStarController::class, 'destroy'])->name('projects.unstar');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

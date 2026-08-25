@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Task;
 
+use App\Concerns\RemembersWhatWasOpened;
 use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
@@ -44,6 +45,8 @@ use InertiaUI\Modal\Modal;
  */
 class TaskController extends Controller
 {
+    use RemembersWhatWasOpened;
+
     /**
      * One task, at a real and addressable URL.
      *
@@ -55,6 +58,8 @@ class TaskController extends Controller
         Gate::authorize('view', $task);
 
         $actor = $this->actor($request);
+
+        $this->rememberOpening($task->workspace, $actor, $task);
 
         return Inertia::render('tasks/Show', [
             ...$detail($task, $actor),

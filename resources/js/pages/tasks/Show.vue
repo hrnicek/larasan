@@ -54,6 +54,7 @@ const detail = (): TaskDetail => ({
     availableProjects: props.availableProjects,
     followers: props.followers,
     following: props.following,
+    starred: props.starred,
     subtasks: props.subtasks,
     customFields: props.customFields,
     tags: props.tags,

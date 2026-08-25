@@ -172,10 +172,12 @@ it('reads a task with several subtasks and placements without a query per row', 
      *
      * The bound went 19 → 20 with TASK-200-027: every project's sections are one read for the
      * page, which is the point — the panel moves a task between columns without asking again.
+     * It went 20 → 21 with TASK-200-042: whether this reader starred the task is a row nothing
+     * else on the panel already reads, and it is the reader's own rather than the task's.
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(20);
+        ->and(count($queries))->toBeLessThanOrEqual(21);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -198,6 +200,7 @@ it('carries nothing it cannot yet know about', function (): void {
             'subtasks',
             'followers',
             'following',
+            'starred',
             'can',
         ]);
 });
@@ -267,9 +270,9 @@ it('reads a task s attachments without a query per file', function (): void {
     $detail = detailOf($task, $actor);
 
     // Six files by six different people cost the same three reads one would: the attachments,
-    // their files, and the uploaders.
+    // their files, and the uploaders. The bound went 19 → 20 with the star (TASK-200-042).
     expect($detail['attachments'])->toHaveCount(6)
-        ->and(count($queries))->toBeLessThanOrEqual(19);
+        ->and(count($queries))->toBeLessThanOrEqual(20);
 });
 
 it('offers each placement the columns of its own project, in order', function (): void {

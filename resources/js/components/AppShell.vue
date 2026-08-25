@@ -1,11 +1,24 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppTopbar from '@/components/AppTopbar.vue';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { provideShell } from '@/composables/useShell';
+import CommandPalette from '@/modules/search/components/CommandPalette.vue';
+import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 
 const { mobileOpen } = provideShell();
+
+/*
+ * The palette is drawn once, here: it opens over any screen, and one listener on the document is
+ * what makes `⌘K` mean the same thing everywhere rather than only where somebody remembered to
+ * add it.
+ */
+const { handleShortcut } = useCommandPalette();
+
+onMounted(() => document.addEventListener('keydown', handleShortcut));
+onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
 </script>
 
 <!--
@@ -30,10 +43,22 @@ const { mobileOpen } = provideShell();
                     </SheetContent>
                 </Sheet>
 
-                <div class="min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-xl md:border-t md:border-l md:border-border">
+                <!--
+                    `relative` is load-bearing: `sr-only` is `position: absolute`, and a visually
+                    hidden label with no positioned ancestor is laid out against the document at
+                    its static position — far down the canvas — which grows the page past the
+                    shell's own height and lets the whole application scroll out of the window.
+                    Positioning the canvas keeps every absolute descendant inside the box that
+                    scrolls and clips.
+                -->
+                <div
+                    class="relative min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-xl md:border-t md:border-l md:border-border"
+                >
                     <slot />
                 </div>
             </div>
+
+            <CommandPalette />
         </div>
     </TooltipProvider>
 </template>

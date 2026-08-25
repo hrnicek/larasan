@@ -24,6 +24,8 @@ use Inertia\Inertia;
  */
 trait OpensTaskPanel
 {
+    use RemembersWhatWasOpened;
+
     /**
      * The task whose panel is open, if the URL names one the actor may read.
      *
@@ -45,6 +47,8 @@ trait OpensTaskPanel
         if (! $task instanceof Task || $actor->cannot('view', $task)) {
             abort(404);
         }
+
+        $this->rememberOpening($workspace, $actor, $task);
 
         return $task;
     }

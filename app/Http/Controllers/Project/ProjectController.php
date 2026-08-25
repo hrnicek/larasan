@@ -118,6 +118,8 @@ class ProjectController extends Controller
         $view = $request->view($project);
         $actor = $this->actor($request);
 
+        $this->rememberOpening($project->workspace, $actor, $project);
+
         return Inertia::render('projects/Show', [
             'project' => [
                 'id' => $project->id,
@@ -130,6 +132,9 @@ class ProjectController extends Controller
                 // may use is a control that should not be drawn. The endpoint authorizes
                 // regardless of what the header decided to show.
                 'canUpdate' => $actor->can('update', $project),
+                // This reader's own shortcut, not a property of the project: the header's menu
+                // draws either *Add to starred* or *Remove from starred* from it.
+                'starred' => $project->stars()->where('user_id', $actor->id)->exists(),
             ],
             'view' => $view->value,
             /*

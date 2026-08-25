@@ -44,6 +44,7 @@ const labels: Record<string, string> = {
     upcoming: 'Upcoming',
     overdue: 'Overdue',
     completed: 'Completed',
+    starred: 'Starred',
 };
 
 /**
@@ -63,6 +64,7 @@ const emptyDescriptions: Record<string, string> = {
     upcoming: 'Nothing with a date on it is waiting for you.',
     overdue: 'Nothing has slipped past its date.',
     completed: 'Tasks you finish appear here.',
+    starred: 'Star a task from its panel to keep it here, whoever it belongs to.',
 };
 
 const emptyMessages: Record<string, string> = {
@@ -70,6 +72,7 @@ const emptyMessages: Record<string, string> = {
     upcoming: 'Nothing coming up.',
     overdue: 'Nothing overdue.',
     completed: 'Nothing finished yet.',
+    starred: 'Nothing starred.',
 };
 
 /*

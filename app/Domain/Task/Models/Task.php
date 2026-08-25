@@ -216,6 +216,18 @@ class Task extends Model implements Attachable, Commentable
         return $this->hasMany(TaskFollower::class);
     }
 
+    /**
+     * The rows that say who starred this task. A star is one person's shortcut, so there is no
+     * `starrers()` beside it the way `followers()` sits beside `follows()`: nothing draws the
+     * list of people who starred something.
+     *
+     * @return HasMany<TaskStar, $this>
+     */
+    public function stars(): HasMany
+    {
+        return $this->hasMany(TaskStar::class);
+    }
+
     /** @return BelongsToMany<User, $this> */
     public function followers(): BelongsToMany
     {

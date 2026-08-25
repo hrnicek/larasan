@@ -9,6 +9,7 @@ use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -136,9 +137,17 @@ class HandleInertiaRequests extends Middleware
     {
         $projects = app(VisibleProjectsForUser::class)
             ->query($workspace, $user)
+            ->select(['id', 'name', 'slug', 'color', 'icon', 'archived_at'])
+            ->withExists(['stars' => fn (Builder $stars): Builder => $stars->where('user_id', $user->id)])
+            /*
+             * Starred first, and not only because the sidebar draws them in their own group: the
+             * list is capped, and a project somebody pinned themselves must not be the one the
+             * cap cuts off.
+             */
+            ->orderByDesc('stars_exists')
             ->orderBy('name')
             ->limit(self::SIDEBAR_PROJECT_LIMIT)
-            ->get(['id', 'name', 'slug', 'color', 'icon', 'archived_at']);
+            ->get();
 
         $projects->each(fn (Project $project) => $project->setRelation('workspace', $workspace));
 
@@ -157,6 +166,8 @@ class HandleInertiaRequests extends Middleware
                  */
                 'canUpdate' => $user->can('update', $project),
                 'canArchive' => $user->can('archive', $project),
+                /** A star is this actor's own, so it is read per request rather than cached. */
+                'starred' => (bool) $project->stars_exists,
             ])
             ->all());
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Task\TaskController;
 use App\Http\Controllers\Task\TaskFollowerController;
+use App\Http\Controllers\Task\TaskStarController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): void {
@@ -30,6 +31,13 @@ Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): v
     Route::put('tasks/{task}/assignee', [TaskController::class, 'assign'])->name('tasks.assign');
 
     // Watching is a state with two directions, like completion: POST starts, DELETE stops.
+    /*
+     * A star is one person's shortcut, not a subscription: anybody who may read the task may star
+     * it, nobody is notified, and the row belongs to the actor alone.
+     */
+    Route::post('tasks/{task}/star', [TaskStarController::class, 'store'])->name('tasks.star');
+    Route::delete('tasks/{task}/star', [TaskStarController::class, 'destroy'])->name('tasks.unstar');
+
     Route::post('tasks/{task}/followers', [TaskFollowerController::class, 'store'])->name('tasks.follow');
     Route::delete('tasks/{task}/followers', [TaskFollowerController::class, 'destroy'])->name('tasks.unfollow');
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');

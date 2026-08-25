@@ -25,6 +25,15 @@ final class ProjectException extends DomainException implements DomainRefusal
     }
 
     /**
+     * Starring is a shortcut to a project, so it cannot point at one the actor may not open —
+     * the rule `FollowTask` applies to notifications, applied here to navigation.
+     */
+    public static function cannotStarUnreachableProject(): self
+    {
+        return new self('You do not have access to that project.');
+    }
+
+    /**
      * The invariant TASK-040-021 recorded in Phase 040: access to a project is access inside
      * a workspace, so a project membership for somebody who is not in that workspace is a
      * grant that means nothing and reads as if it means something.

@@ -20,14 +20,29 @@ class SearchSuggestionsRequest extends FormRequest
     }
 
     /**
+     * A form that sends everything it has sends the empty ones too. An absent kind and an empty
+     * kind mean the same thing here — all four — and answering the second with a validation
+     * error would make the palette's first request fail on the empty field it opens with.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('kind') === '') {
+            $this->merge(['kind' => null]);
+        }
+    }
+
+    /**
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
         return [
-            // Bounded because it reaches a search engine: a term nobody could have typed is a
-            // term nobody meant.
-            'q' => ['sometimes', 'string', 'max:200'],
+            /*
+             * Nullable as well as bounded: `ConvertEmptyStringsToNull` turns the `?q=` the
+             * palette opens with into null, and a rule that only allows a string would answer
+             * the empty field with a validation error.
+             */
+            'q' => ['sometimes', 'nullable', 'string', 'max:200'],
             'kind' => ['sometimes', 'nullable', Rule::enum(SearchKind::class)],
         ];
     }

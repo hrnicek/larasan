@@ -2,24 +2,46 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
 import { computed } from 'vue';
-import ChromeNavItem from '@/components/ChromeNavItem.vue';
-import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useCollapsed } from '@/composables/useShell';
-import ProjectContextMenu from '@/modules/project/components/ProjectContextMenu.vue';
-import ProjectTile from '@/modules/project/components/ProjectTile.vue';
+import ProjectNavRow from '@/modules/project/components/ProjectNavRow.vue';
 import type { SidebarProject } from '@/modules/project/types';
-import { create, show } from '@/routes/projects';
+import { create } from '@/routes/projects';
 
 const page = usePage();
-const { isCurrentUrl } = useCurrentUrl();
 const collapsed = useCollapsed();
 
 const projects = computed<SidebarProject[]>(() => page.props.projects);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
+
+/*
+ * Two groups from one prop. The server sends the starred rows first — the list is capped, and a
+ * project somebody pinned themselves must not be the one the cap cuts off — so this splits what
+ * it was given rather than sorting it again.
+ */
+const starred = computed<SidebarProject[]>(() => projects.value.filter((project) => project.starred));
+const rest = computed<SidebarProject[]>(() => projects.value.filter((project) => !project.starred));
 </script>
 
 <template>
     <div class="space-y-1">
+        <!--
+            Starred is a group somebody made themselves, so it is drawn only once they have. An
+            empty "Starred" heading is a promise of a feature rather than a place to look.
+        -->
+        <template v-if="starred.length">
+            <h2
+                v-if="!collapsed"
+                class="flex h-7 items-center pr-1 pl-2 text-[11px] font-semibold tracking-wide text-chrome-muted-foreground uppercase"
+            >
+                Starred
+            </h2>
+
+            <ProjectNavRow v-for="project in starred" :key="project.id" :project="project" />
+
+            <!-- Collapsed there are no headings, so the rule is what says the group ended. -->
+            <hr v-if="collapsed" class="my-1 border-chrome-border" />
+        </template>
+
         <div v-if="!collapsed" class="flex h-7 items-center gap-1 pr-1 pl-2">
             <h2 class="text-[11px] font-semibold tracking-wide text-chrome-muted-foreground uppercase">Projects</h2>
 
@@ -33,43 +55,20 @@ const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes(
             </Link>
         </div>
 
-        <template v-if="projects.length">
-            <!--
-                A project in the sidebar opens the project, not its settings. A right click on the
-                row opens what else can be done to it, which is where somebody reaches for those
-                actions — the alternative is navigating away from what they were looking at first.
-            -->
-            <ProjectContextMenu v-for="project in projects" :key="project.id" :project="project">
-                <ChromeNavItem
-                    :href="show(project.id).url"
-                    :label="project.name"
-                    :active="isCurrentUrl(show(project.id).url)"
-                >
-                    <template #icon>
-                        <!--
-                            The same tile collapsed and expanded. A bare glyph beside a name says
-                            what kind of project it is rather than which one: the colour is what
-                            tells two boards apart at a glance, and the tile carries the project's
-                            first letter when it has no icon at all.
-                        -->
-                        <ProjectTile
-                            :name="project.name"
-                            :color="project.color"
-                            :icon="project.icon"
-                            size="sm"
-                            surface="chrome"
-                        />
-                    </template>
-                </ChromeNavItem>
-            </ProjectContextMenu>
-        </template>
+        <!--
+            A project in the sidebar opens the project, not its settings. A right click on the row
+            opens what else can be done to it, which is where somebody reaches for those actions —
+            the alternative is navigating away from what they were looking at first.
+        -->
+        <ProjectNavRow v-for="project in rest" :key="project.id" :project="project" />
 
         <!--
             The empty state names the next action rather than the absence. Somebody who cannot
             create one is told why the list is empty instead of being offered a control that
-            would refuse them.
+            would refuse them. It answers for the whole list, not for this group: somebody whose
+            only project is starred has projects.
         -->
-        <template v-else-if="!collapsed">
+        <template v-if="!projects.length && !collapsed">
             <Link
                 v-if="canCreate"
                 :href="create()"
