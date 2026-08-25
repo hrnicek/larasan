@@ -13,6 +13,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Html\RichText;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -28,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Laravel\Scout\Searchable;
 
 /**
  * @property string $id
@@ -50,7 +52,29 @@ use Illuminate\Support\Str;
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    /**
+     * What the search engine is told (ADR-0016).
+     *
+     * The name, the description as words, and the slug — somebody who pastes a URL fragment is
+     * looking for the project it addresses. `visibility` is indexed as a fact about the row, not
+     * as a permission: what an actor may open is decided by `VisibleProjectsForUser` when the
+     * rows are read.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'workspace_id' => (string) $this->workspace_id,
+            'name' => (string) $this->name,
+            'slug' => (string) $this->slug,
+            'description' => RichText::toPlainText($this->description),
+            'archived' => $this->archived_at !== null,
+        ];
+    }
 
     protected $fillable = [
         'name',

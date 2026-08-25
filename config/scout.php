@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Project\Models\Project;
 use App\Domain\Task\Models\Task;
 
 return [
@@ -133,6 +134,10 @@ return [
                 // The id is a key, not a word: leaving it searchable makes a UUID somebody
                 // pasted match every task whose id happens to share a run of characters.
                 'searchableAttributes' => ['title', 'description'],
+            ],
+            Project::class => [
+                'filterableAttributes' => ['workspace_id', 'archived'],
+                'searchableAttributes' => ['name', 'slug', 'description'],
             ],
         ],
     ],
