@@ -2,6 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
+import { perFrame } from '@/lib/perFrame';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 /**
@@ -214,6 +215,15 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
             const startY = event.clientY;
             let dragging = false;
 
+            // Where the card would land, answered once a frame rather than once a pointer event:
+            // the answer reads a box per card in the column, and it can only be seen once a frame.
+            const track = perFrame((x: number, y: number): void => {
+                const under = targetUnder(x, y);
+
+                overColumn.value = under?.key ?? null;
+                dropTarget.value = under;
+            });
+
             const onMove = (moved: PointerEvent): void => {
                 if (!dragging && Math.hypot(moved.clientX - startX, moved.clientY - startY) < THRESHOLD) {
                     return;
@@ -222,15 +232,13 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
                 dragging = true;
                 draggingId.value = card.placementId ?? null;
 
-                const under = targetUnder(moved.clientX, moved.clientY);
-
-                overColumn.value = under?.key ?? null;
-                dropTarget.value = under;
+                track.call(moved.clientX, moved.clientY);
             };
 
             const onUp = (up: PointerEvent): void => {
                 document.removeEventListener('pointermove', onMove);
                 document.removeEventListener('pointerup', onUp);
+                track.cancel();
 
                 const wasDragging = dragging;
 
@@ -250,8 +258,8 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
                 }
             };
 
-            document.addEventListener('pointermove', onMove);
-            document.addEventListener('pointerup', onUp);
+            document.addEventListener('pointermove', onMove, { passive: true });
+            document.addEventListener('pointerup', onUp, { passive: true });
         },
     };
 }

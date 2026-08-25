@@ -2,6 +2,7 @@ import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
+import { perFrame } from '@/lib/perFrame';
 import type { CalendarCardData, CalendarDay, ProjectCalendar } from '@/modules/task/types';
 
 /** Below this the pointer was a click on a chip, not a drag of one. */
@@ -110,6 +111,12 @@ export function useCalendarDrag(
             const startY = event.clientY;
             let dragging = false;
 
+            // The day under the pointer is a hit test and a highlight over forty-two cells; once a
+            // frame is as often as either is worth doing.
+            const track = perFrame((x: number, y: number): void => {
+                overDay.value = dayUnder(x, y);
+            });
+
             const onMove = (moved: PointerEvent): void => {
                 if (!dragging && Math.hypot(moved.clientX - startX, moved.clientY - startY) < THRESHOLD) {
                     return;
@@ -117,12 +124,14 @@ export function useCalendarDrag(
 
                 dragging = true;
                 draggingId.value = card.placementId;
-                overDay.value = dayUnder(moved.clientX, moved.clientY);
+
+                track.call(moved.clientX, moved.clientY);
             };
 
             const onUp = (up: PointerEvent): void => {
                 document.removeEventListener('pointermove', onMove);
                 document.removeEventListener('pointerup', onUp);
+                track.cancel();
 
                 const wasDragging = dragging;
 
@@ -141,8 +150,8 @@ export function useCalendarDrag(
                 }
             };
 
-            document.addEventListener('pointermove', onMove);
-            document.addEventListener('pointerup', onUp);
+            document.addEventListener('pointermove', onMove, { passive: true });
+            document.addEventListener('pointerup', onUp, { passive: true });
         },
     };
 }
