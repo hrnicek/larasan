@@ -33,7 +33,10 @@ it('offers only the projects the actor may add to', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('tasks/Create')
             ->has('targetProjects', 1)
-            ->where('projects.0.id', $project->id));
+            // `targetProjects`, not the shared `projects`: that prop carries both projects the
+            // actor can see, ordered by name — and the factory's name is random, so which of the
+            // two is first was chance rather than the answer this test is asking for.
+            ->where('targetProjects.0.id', $project->id));
 });
 
 it('sends the chosen project its own sections and nobody else\'s', function (): void {
