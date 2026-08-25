@@ -11,7 +11,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use Illuminate\Support\Facades\Event;
 
 it('removes a page', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     app(DeletePage::class)->handle($page, $actor);
@@ -21,7 +21,7 @@ it('removes a page', function (): void {
 });
 
 it('removes what was written underneath it', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     $child = Page::factory()->under($page)->create();
     $grandchild = Page::factory()->under($child)->create();
@@ -37,7 +37,7 @@ it('removes what was written underneath it', function (): void {
 it('names the subtree it took with it', function (): void {
     Event::fake([PageDeleted::class]);
 
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     $child = Page::factory()->under($page)->create();
 
@@ -49,7 +49,7 @@ it('names the subtree it took with it', function (): void {
 });
 
 it('refuses an editor without the delete capability of a viewer', function (): void {
-    [$project, $actor] = projectWithWriter(ProjectAccessLevel::Viewer);
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     $page = Page::factory()->in($project)->create();
 
     expect(fn () => app(DeletePage::class)->handle($page, $actor))
@@ -59,7 +59,7 @@ it('refuses an editor without the delete capability of a viewer', function (): v
 });
 
 it('refuses somebody from another workspace holding a valid id', function (): void {
-    [$project] = projectWithWriter();
+    [$project] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     [, $stranger] = workspaceWith(WorkspaceRole::Owner);
 

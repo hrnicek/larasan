@@ -203,6 +203,14 @@ class AppServiceProvider extends ServiceProvider
          */
         RateLimiter::for('search', fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->user()?->id));
 
+        /*
+         * A page is cheap to create and each one appears in a tree other people read; the
+         * saves are the editor's own pace, which is a request every few seconds at most while
+         * somebody is writing, and a loop above that.
+         */
+        RateLimiter::for('page-creation', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
+        RateLimiter::for('page-saves', fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->user()?->id));
+
         RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
 
         // An upload writes bytes and is the most expensive thing a member can ask for without

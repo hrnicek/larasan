@@ -29,7 +29,7 @@ function rootOrder(string $projectId): array
 }
 
 it('puts a page behind one of its siblings', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $first = Page::factory()->in($project)->at(SparsePosition::GAP)->create();
     $second = Page::factory()->in($project)->at(SparsePosition::GAP * 2)->create();
     $third = Page::factory()->in($project)->at(SparsePosition::GAP * 3)->create();
@@ -40,7 +40,7 @@ it('puts a page behind one of its siblings', function (): void {
 });
 
 it('puts a page at the front when there is nothing to follow', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $first = Page::factory()->in($project)->at(SparsePosition::GAP)->create();
     $second = Page::factory()->in($project)->at(SparsePosition::GAP * 2)->create();
 
@@ -50,7 +50,7 @@ it('puts a page at the front when there is nothing to follow', function (): void
 });
 
 it('moves a page inside another one', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $parent = Page::factory()->in($project)->create();
     $page = Page::factory()->in($project)->create();
 
@@ -61,7 +61,7 @@ it('moves a page inside another one', function (): void {
 });
 
 it('moves a page back out to the root', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $parent = Page::factory()->in($project)->create();
     $child = Page::factory()->under($parent)->create();
 
@@ -69,7 +69,7 @@ it('moves a page back out to the root', function (): void {
 });
 
 it('takes the subtree with the page that moves', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $parent = Page::factory()->in($project)->create();
     $page = Page::factory()->in($project)->create();
     $child = Page::factory()->under($page)->create();
@@ -81,7 +81,7 @@ it('takes the subtree with the page that moves', function (): void {
 });
 
 it('refuses to move a page inside itself', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(MovePage::class)->handle($page, $actor, $page, null))
@@ -89,7 +89,7 @@ it('refuses to move a page inside itself', function (): void {
 });
 
 it('refuses to move a page inside its own child', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     $child = Page::factory()->under($page)->create();
     $grandchild = Page::factory()->under($child)->create();
@@ -99,7 +99,7 @@ it('refuses to move a page inside its own child', function (): void {
 });
 
 it('refuses a parent in another project', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(MovePage::class)->handle($page, $actor, Page::factory()->create(), null))
@@ -107,7 +107,7 @@ it('refuses a parent in another project', function (): void {
 });
 
 it('refuses a move that would put the subtree past the depth limit', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
 
     $parent = Page::factory()->in($project)->create();
 
@@ -123,7 +123,7 @@ it('refuses a move that would put the subtree past the depth limit', function ()
 });
 
 it('refuses an anchor that is not where the page is going', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $parent = Page::factory()->in($project)->create();
     $elsewhere = Page::factory()->under($parent)->create();
     $page = Page::factory()->in($project)->create();
@@ -133,7 +133,7 @@ it('refuses an anchor that is not where the page is going', function (): void {
 });
 
 it('refuses a page as its own anchor', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(MovePage::class)->handle($page, $actor, null, $page))
@@ -141,7 +141,7 @@ it('refuses a page as its own anchor', function (): void {
 });
 
 it('respreads a level whose neighbours have closed up', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $first = Page::factory()->in($project)->at(10)->create();
     $second = Page::factory()->in($project)->at(11)->create();
     $page = Page::factory()->in($project)->at(SparsePosition::GAP)->create();
@@ -154,7 +154,7 @@ it('respreads a level whose neighbours have closed up', function (): void {
 });
 
 it('refuses a viewer', function (): void {
-    [$project, $actor] = projectWithWriter(ProjectAccessLevel::Viewer);
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(MovePage::class)->handle($page, $actor, null, null))
@@ -162,7 +162,7 @@ it('refuses a viewer', function (): void {
 });
 
 it('refuses somebody from another workspace', function (): void {
-    [$project] = projectWithWriter();
+    [$project] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     [, $stranger] = workspaceWith(WorkspaceRole::Owner);
 
@@ -173,7 +173,7 @@ it('refuses somebody from another workspace', function (): void {
 it('tells the project where the page went', function (): void {
     Event::fake([PageMoved::class]);
 
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $parent = Page::factory()->in($project)->create();
     $page = Page::factory()->in($project)->create();
 

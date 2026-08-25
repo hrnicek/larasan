@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Domain\Comment\Models\Comment;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\File\Models\Attachment;
+use App\Domain\Page\Models\Page;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
@@ -85,6 +86,16 @@ class RouteBindingServiceProvider extends ServiceProvider
          */
         Route::bind('section', function (string $id): Section {
             return Section::query()->whereKey($id)->whereIn('project_id', $this->visibleProjectIds())->first() ?? abort(404);
+        });
+
+        /*
+         * `{page}` resolves the same way `{section}` does, and for the same reason: a document
+         * inside a project the actor cannot open is indistinguishable from one that does not
+         * exist. Without this the page endpoints answered a stranger with 403, which confirms
+         * the id — and a page id travels in links people paste.
+         */
+        Route::bind('page', function (string $id): Page {
+            return Page::query()->whereKey($id)->whereIn('project_id', $this->visibleProjectIds())->first() ?? abort(404);
         });
 
         /*

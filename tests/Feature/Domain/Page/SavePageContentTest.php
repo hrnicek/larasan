@@ -12,7 +12,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use Illuminate\Support\Facades\Event;
 
 it('writes the document and moves the version on', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create(['version' => 1]);
 
     $saved = app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -27,7 +27,7 @@ it('writes the document and moves the version on', function (): void {
 });
 
 it('reduces the document to what this application draws before writing it', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     $saved = app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -47,7 +47,7 @@ it('reduces the document to what this application draws before writing it', func
 });
 
 it('refuses a save that was written against an older version', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create(['version' => 4]);
 
     expect(fn (): Page => app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -60,7 +60,7 @@ it('refuses a save that was written against an older version', function (): void
 });
 
 it('refuses a save that claims a version from the future', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create(['version' => 2]);
 
     expect(fn (): Page => app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -70,7 +70,7 @@ it('refuses a save that claims a version from the future', function (): void {
 });
 
 it('leaves the row untouched when the document is refused', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -82,7 +82,7 @@ it('leaves the row untouched when the document is refused', function (): void {
 });
 
 it('has no excerpt for a page emptied back out', function (): void {
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create(['excerpt' => 'Something']);
 
     $saved = app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -94,7 +94,7 @@ it('has no excerpt for a page emptied back out', function (): void {
 });
 
 it('refuses a commenter and a viewer', function (ProjectAccessLevel $access): void {
-    [$project, $actor] = projectWithWriter($access);
+    [$project, $actor] = projectFor(WorkspaceRole::Member, $access);
     $page = Page::factory()->in($project)->create();
 
     expect(fn (): Page => app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
@@ -107,7 +107,7 @@ it('refuses a commenter and a viewer', function (ProjectAccessLevel $access): vo
 ]);
 
 it('refuses somebody from another workspace holding a valid page', function (): void {
-    [$project] = projectWithWriter();
+    [$project] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
     [, $stranger] = workspaceWith(WorkspaceRole::Owner);
 
@@ -120,7 +120,7 @@ it('refuses somebody from another workspace holding a valid page', function (): 
 it('tells the project the page was written in', function (): void {
     Event::fake([PageUpdated::class]);
 
-    [$project, $actor] = projectWithWriter();
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();
 
     app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
