@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
-use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -29,7 +29,7 @@ final readonly class SearchTasksQuery
 {
     public const PER_PAGE = 25;
 
-    public function __construct(private VisibleProjectsForUser $visibleProjects) {}
+    public function __construct(private ReachableTasks $reachable) {}
 
     /**
      * @param  array{project?: string, assignee?: int, completed?: bool}  $filters
@@ -116,30 +116,13 @@ final readonly class SearchTasksQuery
         int $page,
         int $perPage,
     ): LengthAwarePaginator {
-        $visible = $this->visibleProjects
-            ->query($workspace, $actor, includeArchived: true)
-            ->select('projects.id');
+        $visible = $this->reachable->projectIds($workspace, $actor);
 
-        $isGuest = $workspace->membershipFor($actor)?->role->isGuest() === true;
-
-        $tasks = Task::query()
-            ->where('tasks.workspace_id', $workspace->id)
+        // Reach is `ReachableTasks` and is not restated here: it is the same sentence the
+        // engine-backed path applies in its hydration query (ADR-0016).
+        $tasks = $this->reachable
+            ->constrain(Task::query(), $workspace, $actor)
             ->whereRaw("search_vector @@ to_tsquery('simple', immutable_unaccent(?))", [$query])
-            /*
-             * Reach, as one condition: a task in a project the actor can open, or in no project
-             * at all when they are not a guest — guests hold projects, and a task in none was
-             * never given to them.
-             */
-            ->where(function (Builder $reachable) use ($visible, $isGuest): void {
-                $reachable->whereHas(
-                    'placements',
-                    fn (Builder $placements): Builder => $placements->whereIn('project_id', $visible),
-                );
-
-                if (! $isGuest) {
-                    $reachable->orWhereDoesntHave('placements');
-                }
-            })
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             ->withCount('comments')
             ->with([

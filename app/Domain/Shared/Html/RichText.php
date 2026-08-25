@@ -96,6 +96,31 @@ final readonly class RichText
     }
 
     /**
+     * The words, without the markup around them.
+     *
+     * What a search index wants: `p`, `li`, `strong` and every attribute value are terms to a
+     * search engine, so an unstripped description makes *strong* return every task somebody had
+     * emboldened a word in. The generated column that feeds the PostgreSQL path solves the same
+     * problem with `regexp_replace` (ADR-0012); this is that rule for the engine (ADR-0016).
+     *
+     * A space in place of each tag, so `one</p><p>two` does not become one word.
+     */
+    public static function toPlainText(?string $html): string
+    {
+        if ($html === null || trim($html) === '') {
+            return '';
+        }
+
+        $text = html_entity_decode(
+            (string) preg_replace('/<[^>]*>/', ' ', $html),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+        );
+
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
      * Elements whose *content* is the danger rather than their tag. Unwrapping a `<script>` the
      * way an unknown tag is unwrapped would leave its source in the text.
      */

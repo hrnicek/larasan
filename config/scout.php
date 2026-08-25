@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\Task\Models\Task;
+
 return [
 
     /*
@@ -119,7 +121,19 @@ return [
         'host' => env('MEILISEARCH_HOST', 'http://127.0.0.1:7700'),
         'key' => env('MEILISEARCH_KEY'),
         'index-settings' => [
-            //
+            Task::class => [
+                /*
+                 * `workspace_id` because every query sends it; `completed` because the palette
+                 * and the search screen both offer "still open" as a filter, and Meilisearch
+                 * silently returns the wrong set when asked to filter on an attribute it was
+                 * not told about.
+                 */
+                'filterableAttributes' => ['workspace_id', 'completed'],
+                'sortableAttributes' => ['created_at'],
+                // The id is a key, not a word: leaving it searchable makes a UUID somebody
+                // pasted match every task whose id happens to share a run of characters.
+                'searchableAttributes' => ['title', 'description'],
+            ],
         ],
     ],
 

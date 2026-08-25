@@ -71,7 +71,9 @@ it('revokes the membership before the queue has run', function (): void {
         ->toBe(WorkspaceMembershipStatus::Revoked)
         // Still theirs on paper, and unreachable in practice: the membership is already revoked.
         ->and(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(3)
-        ->and(DB::table('jobs')->count())->toBe(1);
+        // Named rather than counted: creating those three tasks also queued three indexing
+        // jobs (ADR-0016), and this test is about the one job the removal itself queues.
+        ->and(DB::table('jobs')->where('payload', 'like', '%ReleaseRemovedMembersWork%')->count())->toBe(1);
 })->with([
     'a removal that waits on a queue is a security answer arriving late; the tasks keeping a
     stale name for a moment is a label, not a grant',

@@ -12,6 +12,7 @@ use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Shared\Html\RichText;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -27,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * A task belongs to a workspace and to no project (ADR-0003). Where it appears is a
@@ -50,7 +52,33 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Task extends Model implements Attachable, Commentable
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, Searchable, SoftDeletes;
+
+    /**
+     * What the search engine is told, which is less than what the screen draws.
+     *
+     * Title and description are what somebody types a search box to find; the description
+     * arrives as markup and goes in as words, because `p`, `li` and `strong` are terms to a
+     * search engine and *strong* would otherwise return every task with a bold word in it.
+     *
+     * `workspace_id` is a filter, not a permission: every query sends it so one tenant's typing
+     * cannot rank against another's data, and the rows are still hydrated through
+     * `ReachableTasks` afterwards. Nothing here decides what anybody may see (ADR-0016).
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => (string) $this->id,
+            'workspace_id' => (string) $this->workspace_id,
+            'title' => (string) $this->title,
+            'description' => RichText::toPlainText($this->description),
+            'completed' => $this->completed_at !== null,
+            // Seconds since the epoch: Meilisearch sorts numbers, not ISO strings.
+            'created_at' => (int) $this->created_at?->getTimestamp(),
+        ];
+    }
 
     /**
      * Completion, ownership and authorship are absent by design: each is set by the Action
