@@ -152,3 +152,26 @@ function channelCallback(string $pattern): Closure
 
     return $callback;
 }
+
+/**
+ * A page document, and one run of text inside it. Wanted by the sanitizer's unit tests and by
+ * every test that writes a page, so they live here rather than at file scope in several.
+ *
+ * @param  list<array<string, mixed>>  $content
+ * @return array<string, mixed>
+ */
+function doc(array $content): array
+{
+    return ['type' => 'doc', 'content' => $content];
+}
+
+/**
+ * @param  list<array<string, mixed>>  $marks
+ * @return array<string, mixed>
+ */
+function textNode(string $text, array $marks = []): array
+{
+    return $marks === []
+        ? ['type' => 'text', 'text' => $text]
+        : ['type' => 'text', 'text' => $text, 'marks' => $marks];
+}
