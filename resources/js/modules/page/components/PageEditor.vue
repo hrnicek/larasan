@@ -179,6 +179,17 @@ watch(
 );
 
 onBeforeUnmount(() => editor.value?.destroy());
+
+/**
+ * The title's Enter ends the title and starts the document, so the screen above needs a way to
+ * put the caret in here. `start` rather than `end`: a page whose title was just typed is a page
+ * with nothing in it yet.
+ */
+defineExpose({
+    focus: (): void => {
+        editor.value?.commands.focus('start');
+    },
+});
 </script>
 
 <template>

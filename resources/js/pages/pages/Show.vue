@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useRealtime } from '@/composables/useRealtime';
 import PageSaveState from '@/modules/page/components/PageSaveState.vue';
+import PageTitleField from '@/modules/page/components/PageTitleField.vue';
 import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
 import { usePageAutosave } from '@/modules/page/composables/usePageAutosave';
 import type { PageDetail, PageDocument, ProjectPages } from '@/modules/page/types';
@@ -59,6 +60,9 @@ const write = (next: PageDocument): void => {
 };
 
 const editable = (): boolean => props.pages.can.updatePage;
+
+/** Where the title's Enter goes. */
+const body = ref<{ focus: () => void } | null>(null);
 </script>
 
 <template>
@@ -118,7 +122,12 @@ const editable = (): boolean => props.pages.can.updatePage;
                 <PageSaveState :state="state" class="ml-auto" />
             </div>
 
-            <h1 class="pb-4 text-2xl font-semibold tracking-tight text-foreground">{{ page.title }}</h1>
+            <PageTitleField
+                :page-id="page.id"
+                :title="page.title"
+                :editable="editable()"
+                @done="body?.focus()"
+            />
 
             <!-- A conflict stops the editor rather than letting somebody keep writing into a
                  copy that can no longer be saved. Reloading is the only honest way out of it
@@ -137,6 +146,7 @@ const editable = (): boolean => props.pages.can.updatePage;
 
             <PageEditor
                 :key="page.id"
+                ref="body"
                 :model-value="document"
                 :editable="editable() && state !== 'conflict'"
                 @update:model-value="write"
