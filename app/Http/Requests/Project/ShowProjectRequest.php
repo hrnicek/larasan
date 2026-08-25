@@ -169,6 +169,21 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
+     * The days the reader has asked to see in full — the calendar's half of `expand`, which the
+     * board spends on columns. One parameter rather than two: a URL names one view, so the two
+     * meanings can never be in the same address.
+     *
+     * @return list<string>
+     */
+    public function expandedDays(): array
+    {
+        return array_values(array_filter(
+            $this->expandedColumns(),
+            fn (string $day): bool => preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) === 1,
+        ));
+    }
+
+    /**
      * @return list<string>
      */
     public function expandedColumns(): array

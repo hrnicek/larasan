@@ -5,11 +5,14 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
+import { useCalendarDrag } from '@/composables/useCalendarDrag';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import BoardColumn from '@/modules/project/components/BoardColumn.vue';
+import CalendarGrid from '@/modules/project/components/CalendarGrid.vue';
+import CalendarToolbar from '@/modules/project/components/CalendarToolbar.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
@@ -19,7 +22,9 @@ import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
     BoardColumnData,
+    CalendarDay,
     ProjectBoard,
+    ProjectCalendar,
     ProjectList,
     TaskFeed,
     TaskAssignee,
@@ -30,18 +35,19 @@ import type {
 import { create as createTask } from '@/routes/tasks';
 
 /**
- * The project's own screen. The board arrives in Phase 090; until then the switcher is
- * honest about it rather than rendering a list under the wrong name.
+ * The project's own screen: its list, its board or its month, whichever the URL asked for. One
+ * payload arrives, never two — the server reads the placements the view needs and no others.
  */
 const props = defineProps<{
     project: { id: string; name: string; slug: string; color: string | null; icon: string | null; archived: boolean };
     view: string;
     views: string[];
-    // One of the two, decided by `view`: the server sends the payload the view asked for and
-    // not the other, because reading the same placements twice is what "one screen, two
+    // One of the three, decided by `view`: the server sends the payload the view asked for and
+    // not the others, because reading the same placements twice is what "one screen, three
     // views" is supposed to avoid.
     list?: ProjectList;
     board?: ProjectBoard;
+    calendar?: ProjectCalendar;
     members: TaskAssignee[];
     priorities: string[];
     /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
@@ -64,7 +70,7 @@ watch(() => props.board, (board) => {
     columns.value = board?.columns ?? [];
 });
 
-const editable = () => (props.board ?? props.list)?.can.updateTask === true;
+const editable = () => (props.board ?? props.list ?? props.calendar)?.can.updateTask === true;
 
 /*
  * Somebody else moved a card, renamed a column or commented: refetch what this screen draws
@@ -73,9 +79,9 @@ const editable = () => (props.board ?? props.list)?.can.updateTask === true;
  */
 useRealtime({
     channels: () => [`project.${props.project.id}`],
-    only: ['board', 'list'],
+    only: ['board', 'list', 'calendar'],
 });
-const creatable = () => (props.board ?? props.list)?.can.createTask === true;
+const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
 /**
  * Asking for one column in full. The ids live in the URL, so the state survives a reload and
@@ -108,6 +114,21 @@ const listDrag = useTaskDragAndDrop(sections, () => editable(), {
 });
 
 /*
+ * The calendar's own copy of the month and of its tray, for the reason the board and the list
+ * keep theirs: a chip lands on a day before the server has agreed, and a refusal puts it back on
+ * the day it came from. The server's answer replaces both whenever a new month arrives.
+ */
+const days = ref<CalendarDay[]>(props.calendar?.days ?? []);
+const undated = ref<ProjectCalendar['undated']>(props.calendar?.undated ?? { count: 0, hasMore: false, tasks: [] });
+
+watch(() => props.calendar, (calendar) => {
+    days.value = calendar?.days ?? [];
+    undated.value = calendar?.undated ?? { count: 0, hasMore: false, tasks: [] };
+});
+
+const calendarDrag = useCalendarDrag(days, undated, () => editable());
+
+/*
  * Below `md` the board shows one column at a time. A row of four columns on a phone is four
  * columns nobody can read, and a drag across a pager is a gesture nobody can land — which is
  * why every card carries a "Move…" action rather than relying on the drag.
@@ -122,12 +143,16 @@ const activeColumn = ref(0);
 const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
-const expand = (columnId: string | null): void => {
-    const key = columnId ?? 'ungrouped';
+/**
+ * Asking for one group in full — a column of the board, or a day of the calendar. Both spend the
+ * same `expand` parameter, because a URL names one view and the two meanings can never meet.
+ */
+const expand = (group: string | null): void => {
+    const key = group ?? 'ungrouped';
     const current = new URLSearchParams(window.location.search).getAll('expand[]');
 
     router.reload({
-        only: ['board'],
+        only: [props.calendar ? 'calendar' : 'board'],
         data: { expand: [...current, key] },
     });
 };
@@ -147,7 +172,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 const reloading = ref(false);
 const failed = ref(false);
 const listening = (event: { detail: { visit: { only: string[] } } }) =>
-    event.detail.visit.only.includes('list') || event.detail.visit.only.includes('board');
+    ['list', 'board', 'calendar'].some((key) => event.detail.visit.only.includes(key));
 
 const started = (event: { detail: { visit: { only: string[] } } }) => {
     if (listening(event)) {
@@ -171,7 +196,7 @@ const errored = () => {
 };
 
 const retry = () => {
-    router.reload({ only: props.board ? ['board'] : ['list'] });
+    router.reload({ only: [props.board ? 'board' : props.calendar ? 'calendar' : 'list'] });
 };
 
 const stops: Array<() => void> = [];
@@ -219,8 +244,21 @@ onUnmounted(() => {
                 <TagFilter
                     :project-id="project.id"
                     :view="view"
+                    :month="calendar?.month"
                     :active="tags.active"
                     :available="tags.available"
+                />
+
+                <CalendarToolbar
+                    v-if="calendar"
+                    :project-id="project.id"
+                    :calendar="calendar"
+                    :tags="tags.active"
+                    :editable="editable()"
+                    :dragging-id="calendarDrag.draggingId.value"
+                    class="w-full md:ml-2 md:w-auto md:flex-1"
+                    @open="openTask"
+                    @pickup="calendarDrag.pickUp"
                 />
 
                 <FieldSortControl
@@ -346,6 +384,20 @@ onUnmounted(() => {
                 </template>
             </EmptyState>
             </template>
+
+        <CalendarGrid
+            v-else-if="calendar"
+            :calendar="{ ...calendar, days, undated }"
+            :project-id="project.id"
+            :editable="editable()"
+            :creatable="creatable()"
+            :dragging-id="calendarDrag.draggingId.value"
+            :over-day="calendarDrag.overDay.value"
+            class="mt-4"
+            @open="openTask"
+            @expand="expand"
+            @pickup="calendarDrag.pickUp"
+        />
             </div>
 
             <!-- The panel teleports itself over the page; it is placed here so it is torn down

@@ -17,11 +17,17 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * @param  list<string>  $tags
+ * @param  list<string>  $expanded
  * @return array<string, mixed>
  */
-function calendarOf(Project $project, User $actor, string $month = '2026-07', array $tags = []): array
-{
-    return app(ProjectCalendarQuery::class)($project, $actor, CarbonImmutable::parse($month.'-01'), $tags);
+function calendarOf(
+    Project $project,
+    User $actor,
+    string $month = '2026-07',
+    array $tags = [],
+    array $expanded = [],
+): array {
+    return app(ProjectCalendarQuery::class)($project, $actor, CarbonImmutable::parse($month.'-01'), $tags, $expanded);
 }
 
 /**
@@ -134,6 +140,25 @@ it('stops a day at a page and says how many it did not draw', function (): void 
     expect($cell['tasks'])->toHaveCount(ProjectCalendarQuery::PER_DAY)
         ->and($cell['count'])->toBe(ProjectCalendarQuery::PER_DAY + 3)
         ->and($cell['hasMore'])->toBeTrue();
+});
+
+it('draws a day in full once the reader opens it', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+
+    foreach (range(1, ProjectCalendarQuery::PER_DAY + 3) as $slot) {
+        due($workspace, $project, '2026-07-07 09:00', "Card {$slot}");
+    }
+
+    due($workspace, $project, '2026-07-08 09:00', 'Elsewhere');
+
+    $calendar = calendarOf($project, $actor, '2026-07', [], ['2026-07-07']);
+    $opened = day($calendar, '2026-07-07');
+
+    // The opened day only: every other cell keeps its page, or "see all" would be a switch that
+    // reads the whole month.
+    expect($opened['tasks'])->toHaveCount(ProjectCalendarQuery::PER_DAY + 3)
+        ->and($opened['hasMore'])->toBeFalse()
+        ->and(array_column(day($calendar, '2026-07-08')['tasks'], 'title'))->toBe(['Elsewhere']);
 });
 
 it('keeps the tasks nobody has scheduled in a tray of their own', function (): void {

@@ -127,7 +127,13 @@ class ProjectController extends Controller
              */
             ...match ($view) {
                 ProjectDefaultView::Board => ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())],
-                ProjectDefaultView::Calendar => ['calendar' => $calendar($project, $actor, $request->month(), $request->tags())],
+                ProjectDefaultView::Calendar => ['calendar' => $calendar(
+                    $project,
+                    $actor,
+                    $request->month(),
+                    $request->tags(),
+                    $request->expandedDays(),
+                )],
                 ProjectDefaultView::List => ['list' => $list(
                     $project,
                     $actor,

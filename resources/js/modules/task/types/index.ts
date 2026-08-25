@@ -104,6 +104,47 @@ export type ProjectBoard = {
     can: TaskAbilities & SectionAbilities;
 };
 
+/**
+ * A chip on the calendar: less than a board card carries, because a day cell is read at a glance
+ * and in bulk. No comment count and no field answers — what a cell has room for is who has it,
+ * what it is about and whether it is done.
+ */
+export type CalendarCardData = {
+    placementId: string;
+    id: string;
+    title: string;
+    completedAt: string | null;
+    dueAt: string | null;
+    priority: string;
+    tags: TaskTag[];
+    assignee: TaskAssignee | null;
+};
+
+/**
+ * One cell of the grid. `count` is every task due that day and `tasks` is the page drawn from
+ * it, so `hasMore` is the server's statement rather than something the cell infers from a size.
+ */
+export type CalendarDay = {
+    date: string;
+    /** False for the days that spill in from the months on either side. */
+    inMonth: boolean;
+    count: number;
+    hasMore: boolean;
+    tasks: CalendarCardData[];
+};
+
+export type ProjectCalendar = {
+    /** The month being drawn, as `YYYY-MM` — the same value the URL carries. */
+    month: string;
+    /** The server's today, so the ringed cell and the *Today* control agree on which day it is. */
+    today: string;
+    perDay: number;
+    days: CalendarDay[];
+    /** Work nobody has scheduled: counted, and offered as a tray rather than hidden. */
+    undated: { count: number; hasMore: boolean; tasks: CalendarCardData[] };
+    can: TaskAbilities;
+};
+
 export type TaskDetailPlacement = {
     placementId: string;
     project: { id: string; name: string; color: string | null; archived: boolean };

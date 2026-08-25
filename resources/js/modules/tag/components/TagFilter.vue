@@ -25,12 +25,17 @@ import { show } from '@/routes/projects';
  * nothing. Once something is chosen it says so, with the count in the label, and carries its
  * own way out.
  */
-const props = defineProps<{
-    projectId: string;
-    view: string;
-    active: string[];
-    available: TaskTag[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        projectId: string;
+        view: string;
+        active: string[];
+        available: TaskTag[];
+        /** The calendar's month, carried through so filtering does not page back to this one. */
+        month?: string;
+    }>(),
+    { month: undefined },
+);
 
 const count = computed<number>(() => props.active.length);
 
@@ -40,10 +45,10 @@ const toggled = (tag: TaskTag): string => {
         ? props.active.filter((id) => id !== tag.id)
         : [...props.active, tag.id];
 
-    return show(props.projectId, { query: { view: props.view, tags: next } }).url;
+    return show(props.projectId, { query: { view: props.view, month: props.month, tags: next } }).url;
 };
 
-const cleared = computed<string>(() => show(props.projectId, { query: { view: props.view } }).url);
+const cleared = computed<string>(() => show(props.projectId, { query: { view: props.view, month: props.month } }).url);
 </script>
 
 <template>

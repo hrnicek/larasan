@@ -47,6 +47,7 @@ final readonly class ProjectCalendarQuery
 
     /**
      * @param  list<string>  $tags  every one of which a card must carry
+     * @param  list<string>  $expanded  days the reader has asked to see in full, as `Y-m-d`
      * @return array{
      *     month: string,
      *     today: string,
@@ -56,14 +57,19 @@ final readonly class ProjectCalendarQuery
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
      */
-    public function __invoke(Project $project, User $actor, CarbonImmutable $month, array $tags = []): array
-    {
+    public function __invoke(
+        Project $project,
+        User $actor,
+        CarbonImmutable $month,
+        array $tags = [],
+        array $expanded = [],
+    ): array {
         $first = $month->startOfMonth();
         $start = $first->startOfWeek(CarbonImmutable::MONDAY);
         $end = $month->endOfMonth()->endOfWeek(CarbonImmutable::SUNDAY);
 
         $counts = $this->counts($project, $tags, $start, $end);
-        $cards = $this->cards($project, $tags, $start, $end);
+        $cards = $this->cards($project, $tags, $start, $end, $expanded);
 
         $days = [];
 
@@ -138,11 +144,20 @@ final readonly class ProjectCalendarQuery
     /**
      * One page of cards per day, cut in the database and keyed by the day it belongs to.
      *
+     * A day the reader has opened is read in full instead. That is one day, on purpose, rather
+     * than a page size somebody can turn off for the whole month.
+     *
      * @param  list<string>  $tags
+     * @param  list<string>  $expanded
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
      */
-    private function cards(Project $project, array $tags, CarbonImmutable $start, CarbonImmutable $end): Grouped
-    {
+    private function cards(
+        Project $project,
+        array $tags,
+        CarbonImmutable $start,
+        CarbonImmutable $end,
+        array $expanded,
+    ): Grouped {
         $ranked = $this->inRange($project, $tags, $start, $end)
             ->join('tasks', 'tasks.id', '=', 'task_project_memberships.task_id')
             ->toBase()
@@ -160,7 +175,18 @@ final readonly class ProjectCalendarQuery
             ->all();
 
         $page = TaskProjectMembership::query()
-            ->whereIn('task_project_memberships.id', $ids)
+            ->visible()
+            ->taggedWithAll($tags)
+            ->where('task_project_memberships.project_id', $project->id)
+            ->where(function (Builder $rows) use ($ids, $expanded): void {
+                $rows->whereIn('task_project_memberships.id', $ids);
+
+                foreach ($expanded as $day) {
+                    $opened = CarbonImmutable::parse($day);
+
+                    $rows->orWhereBetween('tasks.due_at', [$opened->startOfDay(), $opened->endOfDay()]);
+                }
+            })
             // Ordered by the same two columns the page was cut on, so a cell draws its page in
             // the order the database chose it rather than in whatever order the ids came back.
             ->join('tasks', 'tasks.id', '=', 'task_project_memberships.task_id')
