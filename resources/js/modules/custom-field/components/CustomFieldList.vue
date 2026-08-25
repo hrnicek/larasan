@@ -7,6 +7,9 @@ import type { TaskCustomField } from '@/modules/task/types';
 /**
  * The fields this task's projects record, and what this task has answered.
  *
+ * Drawn as the same label-and-value rows the task's own fields use, because to somebody reading
+ * the screen a project's field and a task's field are the same kind of thing.
+ *
  * Each type gets the control it deserves rather than a text box with a promise: a date opens a
  * date picker, a choice offers the choices, and a number refuses letters before the request is
  * ever made. What is written is still the server's decision — these controls only ask.
@@ -54,50 +57,51 @@ const onText = (field: TaskCustomField, event: Event): void => {
 </script>
 
 <template>
-    <section v-if="fields.length" class="flex flex-col gap-2">
-        <h3 class="text-xs text-muted-foreground">Fields</h3>
+    <!-- Empty is said rather than left blank: a gap here reads as a screen that failed to draw
+         something, when in fact these projects ask nothing extra of this task. -->
+    <p v-if="!fields.length" class="text-sm text-muted-foreground">No custom fields in these projects.</p>
 
-        <dl class="flex flex-col gap-2">
-            <div v-for="field in fields" :key="field.id" class="flex flex-col gap-1">
-                <dt class="text-xs text-muted-foreground">{{ field.name }}</dt>
+    <dl v-else class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]">
+        <template v-for="field in fields" :key="field.id">
+            <dt class="truncate text-[13px] text-muted-foreground">{{ field.name }}</dt>
 
-                <dd>
-                    <select
-                        v-if="field.type === 'select'"
-                        :value="field.value ?? ''"
-                        :disabled="!editable || saving === field.id"
-                        class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-70"
-                        @change="save(field, ($event.target as HTMLSelectElement).value || null)"
-                    >
-                        <option value="">—</option>
-                        <option v-for="option in field.options" :key="option.id" :value="option.id">
-                            {{ option.label }}
-                        </option>
-                    </select>
+            <dd class="flex min-h-8 flex-col justify-center">
+                <select
+                    v-if="field.type === 'select'"
+                    :value="field.value ?? ''"
+                    :disabled="!editable || saving === field.id"
+                    class="h-8 w-full max-w-72 rounded-md border border-input bg-transparent px-2 text-sm disabled:opacity-70"
+                    :aria-label="field.name"
+                    @change="save(field, ($event.target as HTMLSelectElement).value || null)"
+                >
+                    <option value="">—</option>
+                    <option v-for="option in field.options" :key="option.id" :value="option.id">
+                        {{ option.label }}
+                    </option>
+                </select>
 
-                    <input
-                        v-else-if="field.type === 'boolean'"
-                        type="checkbox"
-                        :checked="field.value === true"
-                        :disabled="!editable || saving === field.id"
-                        class="size-4 rounded border border-input"
-                        @change="save(field, ($event.target as HTMLInputElement).checked)"
-                    />
+                <input
+                    v-else-if="field.type === 'boolean'"
+                    type="checkbox"
+                    :checked="field.value === true"
+                    :disabled="!editable || saving === field.id"
+                    class="size-4 rounded border border-input"
+                    :aria-label="field.name"
+                    @change="save(field, ($event.target as HTMLInputElement).checked)"
+                />
 
-                    <input
-                        v-else
-                        :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
-                        :value="field.value ?? ''"
-                        :disabled="!editable || saving === field.id"
-                        class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-70"
-                        @change="onText(field, $event)"
-                    />
+                <input
+                    v-else
+                    :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
+                    :value="field.value ?? ''"
+                    :disabled="!editable || saving === field.id"
+                    class="h-8 w-full max-w-72 rounded-md border border-transparent bg-transparent px-2 text-sm transition-colors hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
+                    :aria-label="field.name"
+                    @change="onText(field, $event)"
+                />
 
-                    <p v-if="failed === field.id" class="text-xs text-destructive">
-                        Could not save that value.
-                    </p>
-                </dd>
-            </div>
-        </dl>
-    </section>
+                <p v-if="failed === field.id" class="text-xs text-destructive">Could not save that value.</p>
+            </dd>
+        </template>
+    </dl>
 </template>

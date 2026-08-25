@@ -8,6 +8,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -164,7 +165,12 @@ final readonly class TaskFeedQuery
         return [
             'id' => (string) $line->id,
             'kind' => (string) $line->kind,
-            'createdAt' => (string) $line->created_at,
+            /*
+             * ISO 8601 rather than the database's own `Y-m-d H:i:s`. The screen draws this in the
+             * reader's locale and time zone, and only one of the two formats can be parsed the
+             * same way by every browser.
+             */
+            'createdAt' => Carbon::parse($line->created_at)->toIso8601String(),
             /*
              * Null where the account is gone rather than a placeholder name: the row survives
              * its author on purpose, and inventing "Deleted user" here would put a name in the

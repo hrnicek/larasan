@@ -1,20 +1,31 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { UserPlus } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import TaskFollowerController from '@/actions/App/Http/Controllers/Task/TaskFollowerController';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
 /**
- * Who is watching this task, and whether the reader is one of them.
+ * Who is watching this task, drawn as the faces watching it.
  *
- * The server says which way the control points (`following`), because it already compared the
- * ids and a client comparing them again is a second answer to the same question.
+ * In the bar rather than in a section, because it belongs to the task rather than to any of its
+ * fields, and because a row of faces answers "who will hear about this" without being read.
+ *
+ * The server says which way the control points (`following`): it already compared the ids, and a
+ * client comparing them again is a second answer to the same question.
  */
 const props = defineProps<{
     taskId: string;
     followers: TaskAssignee[];
     following: boolean;
 }>();
+
+/** Three faces and a number. Past that the stack stops being a glance and becomes a queue. */
+const shown = computed<TaskAssignee[]>(() => props.followers.slice(0, 3));
+const hidden = computed<number>(() => Math.max(props.followers.length - shown.value.length, 0));
 
 const working = ref(false);
 
@@ -40,25 +51,78 @@ const toggle = (): void => {
 </script>
 
 <template>
-    <section>
-        <h3 class="mb-1 text-xs text-muted-foreground">Followers</h3>
+    <div class="flex items-center gap-1">
+        <Popover v-if="followers.length">
+            <PopoverTrigger
+                class="flex items-center rounded-md pr-1 transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                :aria-label="`${followers.length} watching this task`"
+            >
+                <span class="flex -space-x-1.5">
+                    <span
+                        v-for="follower in shown"
+                        :key="follower.id"
+                        class="rounded-md ring-2 ring-background"
+                    >
+                        <UserAvatar :user="{ ...follower, avatar: follower.avatar }" size="sm" />
+                    </span>
 
-        <ul v-if="followers.length" class="flex flex-wrap gap-2 text-sm">
-            <li v-for="follower in followers" :key="follower.id" class="rounded bg-muted px-2 py-0.5 text-xs">
-                {{ follower.name }}
-            </li>
-        </ul>
+                    <span
+                        v-if="hidden"
+                        class="flex size-6 items-center justify-center rounded-md bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-background"
+                    >
+                        +{{ hidden }}
+                    </span>
+                </span>
+            </PopoverTrigger>
 
-        <p v-else class="text-sm text-muted-foreground">Nobody is watching this task.</p>
+            <PopoverContent align="end" class="w-64 p-0">
+                <p class="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+                    Watching this task
+                </p>
 
-        <button
-            type="button"
-            class="mt-2 rounded border px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+                <ul class="max-h-56 overflow-y-auto p-1">
+                    <li
+                        v-for="follower in followers"
+                        :key="follower.id"
+                        class="flex items-center gap-2 rounded-md px-2 py-1.5"
+                    >
+                        <UserAvatar :user="{ ...follower, avatar: follower.avatar }" size="sm" />
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm">{{ follower.name }}</span>
+                            <span class="block truncate text-xs text-muted-foreground">{{ follower.email }}</span>
+                        </span>
+                    </li>
+                </ul>
+
+                <div class="border-t border-border p-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        class="w-full justify-start text-xs"
+                        :disabled="working"
+                        :aria-pressed="following"
+                        @click="toggle"
+                    >
+                        {{ following ? 'Stop watching' : 'Watch this task' }}
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+
+        <!--
+            Watching is joining the faces above, so the control that does it is the empty place at
+            the end of them. Once this reader is one of the faces, the way out is inside the list.
+        -->
+        <Button
+            v-if="!following"
+            variant="ghost"
+            size="icon-sm"
+            class="size-6 border border-dashed border-muted-foreground/50 text-muted-foreground"
             :disabled="working"
-            :aria-pressed="following"
+            aria-label="Watch this task"
             @click="toggle"
         >
-            {{ following ? 'Stop watching' : 'Watch' }}
-        </button>
-    </section>
+            <UserPlus class="size-3.5" />
+        </Button>
+    </div>
 </template>

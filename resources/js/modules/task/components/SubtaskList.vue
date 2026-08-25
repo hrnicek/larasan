@@ -1,21 +1,28 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3';
-import { nextTick, ref } from 'vue';
+import { router } from '@inertiajs/vue3';
+import { ChevronRight, CircleCheck, Plus } from '@lucide/vue';
+import { computed, nextTick, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
+import { Button } from '@/components/ui/button';
+import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
 /**
- * A task's children, and a way to add one.
+ * A task's children: how many are finished, what they are called, and a way to add one.
  *
- * The depth limit is `CreateTask`'s to enforce (`ParentChain::MAX_DEPTH`), and this surfaces
- * its refusal rather than pre-empting it: a client that counted depth itself would be a second
- * copy of the rule, and the second copy is the one that drifts.
+ * The depth limit is `CreateTask`'s to enforce (`ParentChain::MAX_DEPTH`), and this surfaces its
+ * refusal rather than pre-empting it: a client that counted depth itself would be a second copy
+ * of the rule, and the second copy is the one that drifts.
  */
 const props = defineProps<{
     parentId: string;
     subtasks: TaskDetail['subtasks'];
     editable: boolean;
 }>();
+
+const emit = defineEmits<{ open: [taskId: string] }>();
+
+const done = computed<number>(() => props.subtasks.filter((subtask) => subtask.completedAt !== null).length);
 
 const open = ref(false);
 const title = ref('');
@@ -57,48 +64,105 @@ const submit = (): void => {
         },
     );
 };
+
+/**
+ * A subtask is finished where it is read. Called on the router rather than pulled off it: a
+ * method in a variable loses its receiver, and Inertia's methods reach for `this`.
+ */
+const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
+    if (!props.editable) {
+        return;
+    }
+
+    if (subtask.completedAt !== null) {
+        router.delete(TaskController.reopen.url(subtask.id), { preserveScroll: true, preserveState: true });
+
+        return;
+    }
+
+    router.put(TaskController.complete.url(subtask.id), {}, { preserveScroll: true, preserveState: true });
+};
 </script>
 
 <template>
-    <section>
-        <h3 class="mb-1 text-xs text-muted-foreground">Subtasks</h3>
+    <section class="flex flex-col gap-1">
+        <TaskSectionHeading title="Subtasks" :count="subtasks.length ? `${done} / ${subtasks.length}` : null">
+            <template v-if="editable" #add>
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    class="size-7 text-muted-foreground"
+                    aria-label="Add a subtask"
+                    @click="start"
+                >
+                    <Plus class="size-4" />
+                </Button>
+            </template>
+        </TaskSectionHeading>
 
-        <ul v-if="subtasks.length" class="flex flex-col gap-1 text-sm">
-            <li v-for="subtask in subtasks" :key="subtask.id">
-                <!-- A subtask opens the same detail view, because it is the same kind of thing. -->
-                <Link
-                    :href="`/tasks/${subtask.id}`"
+        <ul v-if="subtasks.length" class="flex flex-col divide-y divide-border border-y border-border">
+            <li
+                v-for="subtask in subtasks"
+                :key="subtask.id"
+                class="group/subtask flex items-center gap-2.5 py-1.5 pr-1 transition-colors hover:bg-accent/40"
+            >
+                <button
+                    type="button"
+                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6"
+                    :class="
+                        subtask.completedAt
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-muted-foreground hover:text-foreground'
+                    "
+                    :disabled="!editable"
+                    :aria-pressed="subtask.completedAt !== null"
+                    :aria-label="subtask.completedAt ? `Reopen ${subtask.title}` : `Complete ${subtask.title}`"
+                    @click="toggle(subtask)"
+                >
+                    <CircleCheck class="size-4" />
+                </button>
+
+                <button
+                    type="button"
+                    class="min-h-11 min-w-0 flex-1 truncate text-left text-sm transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-6"
                     :class="subtask.completedAt ? 'text-muted-foreground line-through' : ''"
+                    @click="emit('open', subtask.id)"
                 >
                     {{ subtask.title }}
-                </Link>
+                </button>
+
+                <ChevronRight
+                    class="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover/subtask:opacity-100"
+                    aria-hidden="true"
+                />
             </li>
         </ul>
 
-        <p v-else class="text-sm text-muted-foreground">No subtasks.</p>
-
-        <div v-if="editable" class="mt-2">
-            <button
-                v-if="!open"
-                type="button"
-                class="inline-flex min-h-11 items-center md:min-h-6 text-xs text-muted-foreground hover:text-foreground"
-                @click="start"
-            >
-                + Add subtask
-            </button>
-
+        <div v-if="editable">
             <input
-                v-else
+                v-if="open"
                 ref="input"
                 v-model="title"
                 type="text"
                 placeholder="Subtask name"
                 :disabled="saving"
-                class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-50"
+                class="w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm disabled:opacity-50"
                 @keydown.enter.prevent="submit"
                 @keydown.esc.prevent="close"
                 @blur="title.trim() === '' ? close() : undefined"
             />
+
+            <button
+                v-else
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1.5 rounded-md px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
+                @click="start"
+            >
+                <Plus class="size-4" aria-hidden="true" />
+                Add subtask
+            </button>
         </div>
+
+        <p v-else-if="!subtasks.length" class="text-sm text-muted-foreground">No subtasks.</p>
     </section>
 </template>

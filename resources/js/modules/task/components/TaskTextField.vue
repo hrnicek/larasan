@@ -76,7 +76,7 @@ const save = (): void => {
             :disabled="!editable || saving"
             :placeholder="placeholder"
             rows="4"
-            class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-70"
+            class="w-full resize-y rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm transition-colors hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
             @blur="save"
             @keydown.enter.meta.prevent="save"
             @keydown.enter.ctrl.prevent="save"
@@ -102,7 +102,11 @@ const save = (): void => {
                 :disabled="!editable || saving"
                 :placeholder="placeholder"
                 class="col-start-1 row-start-1 w-full rounded-md border border-transparent bg-transparent hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
-                :class="size === 'row' ? 'min-h-11 px-1 text-sm md:min-h-6' : 'px-1 text-lg font-semibold'"
+                :class="
+                    size === 'row'
+                        ? 'min-h-11 px-1 text-sm md:min-h-6'
+                        : 'px-1.5 py-1 text-2xl leading-tight font-semibold tracking-tight'
+                "
                 @blur="save"
                 @keydown.enter.prevent="save"
             />

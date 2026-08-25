@@ -3,6 +3,8 @@ import { router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import CommentController from '@/actions/App/Http/Controllers/Comment/CommentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import UserAvatar from '@/components/UserAvatar.vue';
+import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import type { TaskFeedEntry } from '@/modules/task/types';
 
 /**
@@ -46,10 +48,20 @@ const remove = (): void => {
 </script>
 
 <template>
-    <li class="flex flex-col gap-1 text-sm">
+    <li class="group/comment flex gap-2 text-sm">
+        <UserAvatar
+            v-if="entry.actor"
+            :user="{ name: entry.actor.name, avatar: entry.actor.avatar }"
+            size="sm"
+            class="mt-0.5 shrink-0"
+        />
+
+        <div class="flex min-w-0 flex-1 flex-col gap-1">
         <p class="flex items-baseline gap-2">
             <span class="font-medium">{{ entry.actor?.name ?? 'Someone' }}</span>
-            <time class="text-xs text-muted-foreground">{{ entry.createdAt }}</time>
+            <time class="text-xs text-muted-foreground" :title="fullFeedTime(entry.createdAt)">
+                {{ formatFeedTime(entry.createdAt) }}
+            </time>
             <span v-if="entry.edited" class="text-xs text-muted-foreground">edited</span>
         </p>
 
@@ -67,19 +79,47 @@ const remove = (): void => {
             />
 
             <div class="flex gap-2 text-xs">
-                <button type="button" class="underline" :disabled="form.processing" @click="save">Save</button>
-                <button type="button" class="text-muted-foreground underline" @click="editing = false">Cancel</button>
+                <button
+                    type="button"
+                    class="min-h-11 underline md:min-h-6"
+                    :disabled="form.processing"
+                    @click="save"
+                >
+                    Save
+                </button>
+                <button type="button" class="min-h-11 text-muted-foreground underline md:min-h-6" @click="editing = false">
+                    Cancel
+                </button>
             </div>
         </template>
 
         <template v-else>
             <p class="whitespace-pre-line">{{ entry.body }}</p>
 
-            <div v-if="entry.canEdit || entry.canDelete" class="flex gap-2 text-xs text-muted-foreground">
-                <button v-if="entry.canEdit" type="button" class="underline" @click="startEditing">Edit</button>
-                <button v-if="entry.canDelete" type="button" class="underline" @click="removing = true">Delete</button>
+            <div
+                v-if="entry.canEdit || entry.canDelete"
+                class="flex gap-2 text-xs text-muted-foreground transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover/comment:opacity-100"
+            >
+                <button
+                    v-if="entry.canEdit"
+                    type="button"
+                    class="min-h-11 underline md:min-h-6"
+                    @click="startEditing"
+                >
+                    Edit
+                </button>
+                <button
+                    v-if="entry.canDelete"
+                    type="button"
+                    class="min-h-11 underline md:min-h-6"
+                    @click="removing = true"
+                >
+                    Delete
+                </button>
             </div>
         </template>
+        </div>
+
         <ConfirmDialog
             :open="removing"
             title="Delete this comment?"

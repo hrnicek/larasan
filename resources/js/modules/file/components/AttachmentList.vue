@@ -4,6 +4,7 @@ import { Paperclip, Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskAttachment } from '@/modules/task/types';
 
 /**
@@ -74,14 +75,38 @@ const remove = (): void => {
 </script>
 
 <template>
-    <section class="flex flex-col gap-2">
-        <h3 class="text-xs text-muted-foreground">Attachments</h3>
+    <section class="flex flex-col gap-1">
+        <TaskSectionHeading title="Attachments" :count="attachments.length ? String(attachments.length) : null">
+            <!-- The input is the hidden half of the control. A bare file input draws the browser's
+                 own text — in the reader's locale, not the application's — beside a button nobody
+                 styled; the visible half is the `+` every other block on this screen adds with. -->
+            <!-- Only once there is a list to add to. With none, the row below already says
+                 *Add a file* in words, and two controls doing one thing is one too many. -->
+            <template v-if="canAttach && attachments.length" #add>
+                <label
+                    class="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-within:ring-2 focus-within:ring-primary-ring"
+                    :class="form.processing ? 'pointer-events-none opacity-60' : ''"
+                    :title="form.processing ? 'Uploading…' : 'Add a file'"
+                >
+                    <Plus class="size-4" aria-hidden="true" />
+                    <span class="sr-only">{{ form.processing ? 'Uploading…' : 'Add a file' }}</span>
 
-        <ul v-if="attachments.length" class="flex flex-col gap-0.5 text-sm">
+                    <input
+                        ref="input"
+                        type="file"
+                        :disabled="form.processing"
+                        class="sr-only"
+                        @change="upload"
+                    />
+                </label>
+            </template>
+        </TaskSectionHeading>
+
+        <ul v-if="attachments.length" class="flex flex-col text-sm">
             <li
                 v-for="attachment in attachments"
                 :key="attachment.id"
-                class="group/file flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/40"
+                class="group/file flex items-center gap-2 border-b border-border py-2 transition-colors hover:bg-accent/40"
             >
                 <Paperclip class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
 
@@ -109,35 +134,22 @@ const remove = (): void => {
             </li>
         </ul>
 
+        <!-- Hidden rather than disabled where somebody may not upload: an affordance that leads
+             nowhere is worse than none, and the server refuses either way. -->
+        <label
+            v-else-if="canAttach"
+            class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-within:ring-2 focus-within:ring-primary-ring md:min-h-8"
+            :class="form.processing ? 'pointer-events-none opacity-60' : ''"
+        >
+            <Plus class="size-4" aria-hidden="true" />
+            {{ form.processing ? 'Uploading…' : 'Add a file' }}
+
+            <input type="file" :disabled="form.processing" class="sr-only" @change="upload" />
+        </label>
+
         <p v-else class="text-sm text-muted-foreground">No attachments.</p>
 
-        <!-- Hidden rather than disabled where somebody may not upload: an affordance that leads
-             nowhere is worse than none, and the server refuses either way.
-
-             The input itself is the hidden half of the control. A bare file input draws the
-             browser's own text — in the reader's locale, not the application's — beside a button
-             nobody styled; the label is the button, and it says what it does. -->
-        <template v-if="canAttach">
-            <div class="flex items-center gap-2">
-                <label
-                    class="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] font-medium transition-colors hover:bg-accent focus-within:ring-2 focus-within:ring-primary-ring"
-                    :class="form.processing ? 'pointer-events-none opacity-60' : ''"
-                >
-                    <Plus class="size-4" aria-hidden="true" />
-                    {{ form.processing ? 'Uploading…' : 'Add file' }}
-
-                    <input
-                        ref="input"
-                        type="file"
-                        :disabled="form.processing"
-                        class="sr-only"
-                        @change="upload"
-                    />
-                </label>
-            </div>
-
-            <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
-        </template>
+        <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
         <ConfirmDialog
             :open="removing !== null"
             :title="`Remove ${removing?.name}?`"

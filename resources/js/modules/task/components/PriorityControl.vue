@@ -18,6 +18,8 @@ const props = defineProps<{
     priority: string;
     priorities: string[];
     editable: boolean;
+    /** The panel gives the field a row of its own; a list row gives it a narrow column. */
+    variant?: 'inline' | 'field';
 }>();
 
 const open = ref(false);
@@ -41,11 +43,16 @@ function change(priority: string): void {
 </script>
 
 <template>
-    <span v-if="!editable" class="text-xs capitalize text-muted-foreground">{{ priority }}</span>
+    <span
+        v-if="!editable"
+        class="capitalize text-muted-foreground"
+        :class="variant === 'field' ? 'text-sm' : 'text-xs'"
+    >{{ priority }}</span>
 
     <DropdownMenu v-else v-model:open="open">
         <DropdownMenuTrigger
-            class="inline-flex min-h-11 items-center md:min-h-6 rounded px-1 text-xs text-muted-foreground capitalize hover:text-foreground disabled:opacity-50"
+            class="inline-flex min-h-11 items-center rounded-md text-muted-foreground capitalize transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-6"
+            :class="variant === 'field' ? 'px-1.5 py-1 text-sm hover:bg-accent md:min-h-8' : 'px-1 text-xs'"
             :disabled="saving"
             aria-label="Priority"
         >

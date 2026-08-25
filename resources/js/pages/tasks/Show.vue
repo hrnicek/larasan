@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { useRealtime } from '@/composables/useRealtime';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
+import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 import { index as myTasks } from '@/routes/my-tasks';
 import { show as showProject } from '@/routes/projects';
+import { show as showTask } from '@/routes/tasks';
 
 /**
  * A task's own page: the same component the panel renders, with nothing to close to.
@@ -59,29 +61,40 @@ const detail = (): TaskDetail => ({
     attachments: props.attachments,
     can: props.can,
 });
+
+/** A deleted task has no page left to stand on, so the page leaves for wherever it came from. */
+const leave = (): void => router.visit(back().url);
+
+/** A subtask is a task, and on a page the way to open one is to go to it. */
+const openTask = (taskId: string): void => router.visit(showTask(taskId).url);
 </script>
 
 <template>
-    <div class="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-8 md:px-6">
+    <div class="mx-auto flex w-full max-w-3xl flex-col">
         <Head :title="task.title" />
 
-        <!-- The task is what this page is. The panel renders the title as a field, which is
-             a control rather than a heading. -->
+        <!-- The task is what this page is. The body renders the title as a field, which is a
+             control rather than a heading. -->
         <h1 class="sr-only">{{ task.title }}</h1>
 
-        <Link
-            :href="back().url"
-            class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-        >
-            <ArrowLeft class="size-4" aria-hidden="true" />
-            {{ back().label }}
-        </Link>
+        <div class="px-4 pt-6 pb-3 md:px-6">
+            <Link
+                :href="back().url"
+                class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+            >
+                <ArrowLeft class="size-4" aria-hidden="true" />
+                {{ back().label }}
+            </Link>
+        </div>
+
+        <TaskDetailToolbar :detail="detail()" variant="page" class="sticky top-0 z-10" @deleted="leave" />
 
         <TaskDetailBody
             :detail="detail()"
             :members="members"
             :priorities="priorities"
             :activity="activity"
+            @open="openTask"
         />
     </div>
 </template>

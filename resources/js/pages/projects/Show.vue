@@ -357,6 +357,7 @@ onUnmounted(() => {
                 :members="members"
                 :priorities="priorities"
                 :activity="activity"
+                @open="openTask"
                 @close="closeTask"
             />
         </div>

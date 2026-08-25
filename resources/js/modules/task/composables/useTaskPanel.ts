@@ -36,8 +36,15 @@ export function useTaskPanel() {
 
         params.set('task', taskId);
 
+        /*
+         * `activity` as well as `taskDetail`. It is a deferred prop, so the response carries the
+         * *promise* of it rather than the region itself — but a partial reload that never names
+         * it leaves the key at whatever the last screen put there, and `Deferred` reads a key
+         * that exists as a region that has already arrived. The thread then stays empty however
+         * much has been said on the task.
+         */
         router.get(window.location.pathname, Object.fromEntries(params), {
-            only: ['taskDetail'],
+            only: ['taskDetail', 'activity'],
             preserveState: true,
             preserveScroll: true,
         });

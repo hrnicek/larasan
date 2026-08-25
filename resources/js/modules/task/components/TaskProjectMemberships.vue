@@ -1,23 +1,29 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { X } from '@lucide/vue';
+import { Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { accentDotClass } from '@/lib/accentColor';
+import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
 /**
  * Where this task appears, and the only screen where a person can change it.
  *
- * Removing the last project is allowed (ADR-0003): a task with no project is still a task.
- * The warning is honest about what changes — it becomes reachable from My Tasks and search
- * rather than from a board — instead of pretending the task is about to be lost.
+ * Removing the last project is allowed (ADR-0003): a task with no project is still a task. The
+ * warning is honest about what changes — it becomes reachable from My Tasks and search rather
+ * than from a board — instead of pretending the task is about to be lost.
+ *
+ * The block holds whatever a project asks of this task, which is why the fields render inside it
+ * rather than under a heading of their own: a custom field exists because a project defines it.
  */
 const props = defineProps<{
     taskId: string;
@@ -34,9 +40,13 @@ const attach = (projectId: string): void => {
     router.post(
         PlacementController.store.url(projectId),
         { task: props.taskId },
-        { preserveScroll: true, preserveState: true, onFinish: () => {
- working.value = false; 
-} },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                working.value = false;
+            },
+        },
     );
 };
 
@@ -66,53 +76,82 @@ const detach = (): void => {
 </script>
 
 <template>
-    <section>
-        <h3 class="mb-1 text-xs text-muted-foreground">Projects</h3>
+    <section class="flex flex-col gap-1">
+        <TaskSectionHeading title="Projects" :count="placements.length ? String(placements.length) : null">
+            <template v-if="editable && availableProjects.length" #add>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            class="size-7 text-muted-foreground"
+                            :disabled="working"
+                            aria-label="Add this task to a project"
+                        >
+                            <Plus class="size-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
 
-        <ul v-if="placements.length" class="flex flex-col gap-0.5 text-sm">
+                    <DropdownMenuContent align="start" class="w-56">
+                        <DropdownMenuItem
+                            v-for="project in availableProjects"
+                            :key="project.id"
+                            @select="attach(project.id)"
+                        >
+                            {{ project.name }}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </template>
+        </TaskSectionHeading>
+
+        <ul v-if="placements.length" class="flex flex-col">
             <li
                 v-for="placement in placements"
                 :key="placement.placementId"
-                class="group/placement flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-accent/40"
+                class="group/placement flex items-center gap-2 border-b border-border py-2"
             >
-                <span class="truncate">{{ placement.project.name }}</span>
-                <span class="truncate text-muted-foreground">· {{ placement.section?.name ?? 'No section' }}</span>
+                <span
+                    class="size-2.5 shrink-0 rounded-sm"
+                    :class="accentDotClass(placement.project.color)"
+                    aria-hidden="true"
+                />
 
-                <button
+                <span class="truncate text-sm font-medium">{{ placement.project.name }}</span>
+
+                <span class="truncate text-xs tracking-wide text-muted-foreground uppercase">
+                    {{ placement.section?.name ?? 'No section' }}
+                </span>
+
+                <Button
                     v-if="editable && placement.canDetach"
-                    type="button"
-                    class="ml-auto inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:opacity-0 md:group-hover/placement:opacity-100"
+                    variant="ghost"
+                    size="icon-sm"
+                    class="ml-auto size-7 text-muted-foreground focus-visible:opacity-100 md:opacity-0 md:group-hover/placement:opacity-100"
                     :disabled="working"
                     :aria-label="`Remove from ${placement.project.name}`"
-                    :title="placements.length === 1 ? 'This is the last project — the task will only be reachable from My Tasks and search.' : undefined"
+                    :title="
+                        placements.length === 1
+                            ? 'This is the last project — the task will only be reachable from My Tasks and search.'
+                            : undefined
+                    "
                     @click="detaching = { placementId: placement.placementId, name: placement.project.name }"
                 >
                     <X class="size-4" />
-                </button>
+                </Button>
             </li>
         </ul>
 
-        <p v-else class="text-sm text-muted-foreground">
+        <p v-else class="border-b border-border py-2 text-sm text-muted-foreground">
             In no project — reachable from My Tasks and search.
         </p>
 
-        <DropdownMenu v-if="editable && availableProjects.length">
-            <DropdownMenuTrigger
-                class="mt-2 rounded border border-dashed px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-                :disabled="working"
-            >
-                + Add to project
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-                <DropdownMenuItem
-                    v-for="project in availableProjects"
-                    :key="project.id"
-                    @select="attach(project.id)"
-                >
-                    {{ project.name }}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <!-- What the projects above ask of this task. Empty is said rather than left blank: a gap
+             here reads as a screen that failed to draw something. -->
+        <div class="py-2">
+            <slot name="fields" />
+        </div>
+
         <ConfirmDialog
             :open="detaching !== null"
             :title="`Remove from ${detaching?.name}?`"

@@ -208,6 +208,7 @@ const { open, close: closeTask } = useTaskPanel();
             :members="members"
             :priorities="priorities"
             :activity="activity"
+            @open="open"
             @close="closeTask"
         />
         </div>
