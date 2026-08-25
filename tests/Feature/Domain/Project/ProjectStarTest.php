@@ -105,9 +105,9 @@ it('lets somebody unstar a project they can no longer open', function (): void {
     $project->memberships()->where('user_id', $actor->id)->delete();
     $project->forceFill(['visibility' => ProjectVisibility::Private->value])->save();
 
-    expect($project->fresh()?->isVisibleTo($actor))->toBeFalse();
+    expect($project->refresh()->isVisibleTo($actor))->toBeFalse();
 
-    app(UnstarProject::class)->handle($project->fresh(), $actor);
+    app(UnstarProject::class)->handle($project, $actor);
 
     expect(ProjectStar::query()->where('project_id', $project->id)->exists())->toBeFalse();
 });

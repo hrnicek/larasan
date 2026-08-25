@@ -45,6 +45,7 @@ final readonly class TaskDetailQuery
      *     subtasks: list<array<string, mixed>>,
      *     followers: list<array<string, mixed>>,
      *     following: bool,
+     *     starred: bool,
      *     can: array{update: bool, delete: bool, comment: bool, attach: bool},
      * }
      */
@@ -135,6 +136,11 @@ final readonly class TaskDetailQuery
             // Whether the actor is one of them, so the control knows which way it points
             // without the client comparing ids the server already compared.
             'following' => $task->followers->contains('id', $actor->id),
+            /*
+             * This reader's own star, which is not a fact about the task: two people opening the
+             * same panel get two different answers, and neither is told about the other's.
+             */
+            'starred' => $task->stars()->where('user_id', $actor->id)->exists(),
             'can' => [
                 'update' => $actor->can('update', $task),
                 'delete' => $actor->can('delete', $task),

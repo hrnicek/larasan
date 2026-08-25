@@ -23,14 +23,22 @@ use Illuminate\Pagination\LengthAwarePaginator;
  * are allowed to see (ADR-0006).
  *
  * A task assigned to somebody with **no due date** appears in Upcoming, after everything dated.
- * The four tabs are the whole screen, so a task that matched none of them would be work somebody
- * had been given and could not find.
+ * The dated tabs are the whole of what somebody was given, so a task that matched none of them
+ * would be work they had been handed and could not find.
+ *
+ * Starred is the exception, and the only tab that drops the assignee: it answers "what did I want
+ * at hand" rather than "what am I responsible for", so it may hold a task somebody else is doing.
+ * Reach is asked there for the same reason it is not asked anywhere else here — assignment proves
+ * nothing about a task the reader starred and then lost access to.
  */
 final readonly class MyTasksQuery
 {
     public const PER_PAGE = 25;
 
-    public function __construct(private VisibleProjectsForUser $visibleProjects) {}
+    public function __construct(
+        private VisibleProjectsForUser $visibleProjects,
+        private ReachableTasks $reachableTasks,
+    ) {}
 
     /**
      * @return array{
@@ -77,7 +85,6 @@ final readonly class MyTasksQuery
 
         $query = Task::query()
             ->where('workspace_id', $workspace->id)
-            ->where('assignee_id', $actor->id)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             // The count the row draws, as a subquery rather than a read per row (TASK-110-015).
             ->withCount('comments')
@@ -89,6 +96,17 @@ final readonly class MyTasksQuery
                     ->whereIn('project_id', $visible)
                     ->with('project:id,name,color'),
             ]);
+
+        if ($tab->isAboutAssignment()) {
+            $query->where('assignee_id', $actor->id);
+        } else {
+            /*
+             * Starred lists what this person marked, whoever it belongs to — so the reach rule
+             * every other list uses has to be asked here rather than inherited from assignment.
+             */
+            $this->reachableTasks->constrain($query, $workspace, $actor);
+            $query->whereHas('stars', fn (Builder $stars): Builder => $stars->where('user_id', $actor->id));
+        }
 
         $this->applyTab($query, $tab);
 
@@ -116,6 +134,9 @@ final readonly class MyTasksQuery
             MyTasksTab::Upcoming => $query->whereNull('completed_at')
                 ->where(fn (Builder $inner) => $inner->whereNull('due_at')->orWhere('due_at', '>=', $tomorrow)),
             MyTasksTab::Completed => $query->whereNotNull('completed_at'),
+            // Starred says nothing about dates or completion: it is the list somebody built, and
+            // hiding half of it would make the star look like it had stopped working.
+            MyTasksTab::Starred => $query,
         };
 
         if ($tab->showsCompleted()) {
@@ -124,6 +145,12 @@ final readonly class MyTasksQuery
             $query->orderByDesc('completed_at')->orderBy('id');
 
             return;
+        }
+
+        if ($tab === MyTasksTab::Starred) {
+            // Finished work sinks rather than disappearing, so the tab opens on what is still to
+            // do without pretending the rest was never starred.
+            $query->orderByRaw('completed_at is not null');
         }
 
         $query->orderByRaw('due_at is null')

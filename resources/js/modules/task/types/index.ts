@@ -159,6 +159,8 @@ export type TaskDetail = {
     availableProjects: { id: string; name: string }[];
     followers: TaskAssignee[];
     following: boolean;
+    /** This reader's own star, not a fact about the task: two people get two answers. */
+    starred: boolean;
     task: {
         id: string;
         title: string;

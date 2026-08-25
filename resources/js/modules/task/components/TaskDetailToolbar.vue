@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Check, CircleCheck, Ellipsis, Link2, Maximize2, PanelRightClose, Trash2 } from '@lucide/vue';
+import { Check, CircleCheck, Ellipsis, Link2, Maximize2, PanelRightClose, Star, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FollowerList from '@/modules/task/components/FollowerList.vue';
 import type { TaskDetail } from '@/modules/task/types';
-import { show } from '@/routes/tasks';
+import { show, star, unstar } from '@/routes/tasks';
 
 /**
  * The bar above a task: whether it is done, who is watching it, and every action that applies to
@@ -73,6 +73,21 @@ async function copyLink(): Promise<void> {
         // it leaves somebody pasting whatever was there before.
         toast('Could not copy — the address is in the URL bar.');
     }
+}
+
+/**
+ * A star is this reader's own: nobody is notified, and nobody else's panel changes. It sits beside
+ * the followers because both answer "what is this task to me", and apart from them because
+ * following is a subscription and starring is a shortcut.
+ */
+function toggleStar(): void {
+    if (props.detail.starred) {
+        router.delete(unstar(props.detail.task.id).url, { preserveScroll: true });
+
+        return;
+    }
+
+    router.post(star(props.detail.task.id).url, {}, { preserveScroll: true });
 }
 
 const deleting = ref(false);
@@ -140,6 +155,19 @@ function destroy(): void {
             />
 
             <span class="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+
+            <Button
+                variant="ghost"
+                size="icon-sm"
+                :class="detail.starred ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground'"
+                :aria-pressed="detail.starred"
+                :aria-label="detail.starred ? 'Remove this task from starred' : 'Add this task to starred'"
+                @click="toggleStar"
+            >
+                <!-- Filled when it is on: a star that only changes colour is a star somebody has
+                     to remember the meaning of. -->
+                <Star class="size-4" :class="detail.starred && 'fill-current'" />
+            </Button>
 
             <Button
                 variant="ghost"
