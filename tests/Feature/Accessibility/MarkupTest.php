@@ -177,9 +177,16 @@ it('renders no HTML it did not build, except the one place it does', function ()
         ->all();
 
     /*
+     * Two, and each one is a decision somebody had to make.
+     *
      * The two-factor QR code is an SVG the server generates from Fortify's own secret — no part
-     * of it comes from anybody's input. Every other `v-html` is a decision somebody has to make
-     * again, which is what this list is for.
+     * of it comes from anybody's input.
+     *
+     * A task's description *is* somebody's input, and it is drawn as markup because a person
+     * wrote it in an editor. What makes that safe is upstream and testable: `RichText::sanitize`
+     * reduces it to an allowlist inside `CreateTask` and `UpdateTask`, so the column can only
+     * ever hold tags this application draws (`RichTextTest`). Nothing else may render markup
+     * without the same guarantee, which is what this list is for.
      */
-    expect($offenders)->toBe(['TwoFactorSetupModal.vue']);
+    expect($offenders)->toBe(['TwoFactorSetupModal.vue', 'TaskDescriptionField.vue']);
 });

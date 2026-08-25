@@ -4,21 +4,23 @@ import { ref, watch } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 
 /**
- * A task's title or description, edited where it is read.
+ * A task's title, edited where it is read — as the task's own heading, and inside a list row.
+ *
+ * The description left this component when it became rich text (`TaskDescriptionField`): an
+ * allowlist, an editor loaded on demand and markup on the way back are three concerns a plain
+ * text field has none of.
  *
  * The rule that matters is the failure one: **a failed save never discards what was typed.**
  * The field keeps the text, says so, and offers to try again — an editor that throws away a
  * paragraph because the network blinked is one people copy out of before using.
  *
- * Only this field is sent. `tasks.update` treats an absent field as untouched
- * (TASK-080-008), so editing a title cannot clear a description.
+ * Only the title is sent. `tasks.update` treats an absent field as untouched
+ * (TASK-080-008), so renaming a task cannot clear its description.
  */
 const props = defineProps<{
     taskId: string;
-    field: 'title' | 'description';
     value: string | null;
     editable: boolean;
-    multiline?: boolean;
     placeholder?: string;
     /**
      * `title` is the task's own heading in the panel and on its page; `row` is the same field
@@ -50,7 +52,7 @@ const save = (): void => {
 
     router.put(
         TaskController.update.url(props.taskId),
-        { [props.field]: props.field === 'description' && next === '' ? null : next },
+        { title: next },
         {
             preserveScroll: true,
             preserveState: true,
@@ -70,24 +72,12 @@ const save = (): void => {
 
 <template>
     <div class="flex min-w-0 flex-col gap-1">
-        <textarea
-            v-if="multiline"
-            v-model="draft"
-            :disabled="!editable || saving"
-            :placeholder="placeholder"
-            rows="4"
-            class="w-full resize-y rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm transition-colors hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
-            @blur="save"
-            @keydown.enter.meta.prevent="save"
-            @keydown.enter.ctrl.prevent="save"
-        />
-
         <!--
             In a row the field is only as wide as what is written in it: the rest of the cell
             belongs to the row, which opens the task. An input will not size itself to its value,
             so a hidden twin of the text does the measuring and both share one grid cell.
         -->
-        <div v-else class="grid min-w-0 max-w-full">
+        <div class="grid min-w-0 max-w-full">
             <span
                 v-if="size === 'row'"
                 class="invisible col-start-1 row-start-1 min-w-8 truncate px-1 text-sm whitespace-pre"

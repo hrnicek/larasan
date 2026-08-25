@@ -174,7 +174,6 @@ defineExpose({ focus: () => row.value?.focus() });
             <TaskTextField
                 v-if="editable"
                 :task-id="task.id"
-                field="title"
                 :value="task.title"
                 :editable="editable"
                 size="row"

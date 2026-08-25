@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Task\Actions;
 
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Html\RichText;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\CreateTaskData;
 use App\Domain\Task\Events\TaskCreated;
@@ -35,7 +36,7 @@ final readonly class CreateTask
             $task = new Task([
                 'parent_id' => $parent?->id,
                 'title' => $data->title,
-                'description' => $data->description,
+                'description' => RichText::sanitize($data->description),
                 'priority' => $data->priority,
                 'due_at' => $data->dueAt,
                 'assignee_id' => $data->assigneeId,

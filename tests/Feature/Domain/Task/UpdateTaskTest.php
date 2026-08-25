@@ -241,3 +241,26 @@ it('still refuses a blank title when one is sent', function (): void {
         ->put(route('tasks.update', $task), ['title' => ''])
         ->assertSessionHasErrors('title');
 });
+
+it('stores only the markup the allowlist names', function (): void {
+    [$task, $actor] = taskEditableBy();
+
+    $this->actingAs($actor)
+        ->put(route('tasks.update', $task), [
+            'description' => '<p onclick="steal()">Ship it</p><script>alert(1)</script>',
+        ])
+        ->assertRedirect();
+
+    expect($task->fresh()?->description)->toBe('<p>Ship it</p>');
+});
+
+it('treats the empty document the editor sends as no description', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill(['description' => '<p>Something</p>'])->save();
+
+    $this->actingAs($actor)
+        ->put(route('tasks.update', $task), ['description' => '<p><br></p>'])
+        ->assertRedirect();
+
+    expect($task->fresh()?->description)->toBeNull();
+});

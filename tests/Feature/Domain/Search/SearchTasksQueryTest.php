@@ -225,3 +225,21 @@ it('reads a page of results without a query per row', function (): void {
     expect($result['tasks'])->toHaveCount(10)
         ->and(count($queries))->toBeLessThanOrEqual(8);
 });
+
+/*
+ * A description holds markup since TASK-200-026, and the generated column search reads strips it
+ * before indexing. Without that, `strong` is a term and every emboldened task answers to it.
+ */
+it('searches the words of a description and not its markup', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+
+    Task::factory()->in($workspace)->create([
+        'title' => 'Ship the release',
+        'description' => '<p><strong>Deployment</strong> notes</p>',
+    ]);
+
+    expect(found($workspace, $actor, 'deployment'))->toBe(['Ship the release'])
+        ->and(found($workspace, $actor, 'strong'))->toBe([])
+        ->and(found($workspace, $actor, 'p'))->toBe([]);
+});

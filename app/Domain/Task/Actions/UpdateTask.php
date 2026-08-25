@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Task\Actions;
 
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Html\RichText;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
@@ -40,7 +41,10 @@ final readonly class UpdateTask
          * row editing one field must not clear the ones it does not carry.
          */
         $task->fill($this->changed($data, [
-            'description' => $data->description,
+            // Rich text, so what arrives is markup and only the allowlist's version of it is
+            // stored. Here rather than in the FormRequest: the rule has to hold for the console
+            // and the queue too.
+            'description' => RichText::sanitize($data->description),
             'due_at' => $data->dueAt,
             'parent_id' => $parent?->id,
         ]));

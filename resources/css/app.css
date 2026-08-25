@@ -197,3 +197,73 @@
         @apply bg-background text-foreground;
     }
 }
+
+/*
+ * Rich text, drawn the same way whether it is being read or written.
+ *
+ * The task description is the one field in this application that holds markup (TASK-200-026), and
+ * two sets of rules for it — one for the editor and one for what the editor produced — is how a
+ * paragraph comes to look different the moment you stop typing. `.rich-text` is applied to both.
+ */
+@layer components {
+    .rich-text {
+        @apply text-sm leading-relaxed;
+    }
+
+    .rich-text > * + * {
+        @apply mt-2;
+    }
+
+    .rich-text p {
+        @apply min-h-5;
+    }
+
+    .rich-text h1 {
+        @apply text-lg font-semibold;
+    }
+
+    .rich-text h2 {
+        @apply text-base font-semibold;
+    }
+
+    .rich-text h3 {
+        @apply text-sm font-semibold;
+    }
+
+    .rich-text a {
+        @apply text-primary underline underline-offset-2;
+    }
+
+    .rich-text ol {
+        @apply list-decimal pl-5;
+    }
+
+    .rich-text ul {
+        @apply list-disc pl-5;
+    }
+
+    /* Quill 2 writes every list as `<ol>` and says which kind it is on the line. */
+    .rich-text li[data-list='bullet'] {
+        @apply list-disc;
+    }
+
+    .rich-text li[data-list='ordered'] {
+        @apply list-decimal;
+    }
+
+    .rich-text ol:has(> li[data-list]) {
+        @apply list-none;
+    }
+
+    .rich-text blockquote {
+        @apply border-l-2 border-border pl-3 text-muted-foreground;
+    }
+
+    .rich-text pre {
+        @apply overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs;
+    }
+
+    .rich-text code {
+        @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+    }
+}

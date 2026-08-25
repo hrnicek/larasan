@@ -10,6 +10,7 @@ import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import SubtaskList from '@/modules/task/components/SubtaskList.vue';
+import TaskDescriptionField from '@/modules/task/components/TaskDescriptionField.vue';
 import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -62,7 +63,6 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
 
                 <TaskTextField
                     :task-id="detail.task.id"
-                    field="title"
                     :value="detail.task.title"
                     :editable="fieldsEditable"
                     placeholder="Task name"
@@ -143,12 +143,10 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
             <section class="flex flex-col gap-1">
                 <h3 class="text-sm font-semibold">Description</h3>
 
-                <TaskTextField
+                <TaskDescriptionField
                     :task-id="detail.task.id"
-                    field="description"
                     :value="detail.task.description"
                     :editable="fieldsEditable"
-                    :multiline="true"
                     placeholder="What is this task about?"
                     class="-mx-2"
                 />

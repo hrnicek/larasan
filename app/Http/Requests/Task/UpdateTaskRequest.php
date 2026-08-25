@@ -34,7 +34,12 @@ class UpdateTaskRequest extends FormRequest
              * can be blanked.
              */
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
+            /*
+             * Rich text, so the ceiling is on markup rather than on prose: the same paragraph
+             * that fitted in 5,000 characters as plain text carries tags now, and the limit is
+             * meant to stop a payload rather than a description somebody meant to write.
+             */
+            'description' => ['nullable', 'string', 'max:20000'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],
             'parent_id' => [
