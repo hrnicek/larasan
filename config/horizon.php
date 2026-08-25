@@ -126,6 +126,8 @@ return [
         'redis:broadcasts' => 10,
         'redis:notifications' => 60,
         'redis:default' => 60,
+        // Indexing that has waited a minute is a palette answering from a stale index.
+        'redis:search' => 60,
     ],
 
     /*
@@ -227,7 +229,7 @@ return [
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['broadcasts', 'notifications', 'default'],
+            'queue' => ['broadcasts', 'notifications', 'search', 'default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

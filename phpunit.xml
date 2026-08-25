@@ -37,6 +37,13 @@
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <!--
+            The suite exercises Scout's own API and the reach rule in its query() callback
+            without a search engine to start (ADR-0016). What the collection engine cannot
+            prove — typo tolerance, ranking, index settings — is proven by the tests that skip
+            themselves when nothing answers on MEILISEARCH_HOST.
+        -->
+        <env name="SCOUT_DRIVER" value="collection"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
