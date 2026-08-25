@@ -35,6 +35,26 @@ it('lands on the page it just created rather than back on the tree', function ()
         ->assertRedirect(route('pages.show', Page::query()->where('project_id', $project->id)->firstOrFail()));
 });
 
+it('says who last changed the page, by name and nothing else', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $page = Page::factory()->in($project)->create(['updated_by' => $actor->id]);
+
+    $this->actingAs($actor)
+        ->get(route('pages.show', $page))
+        ->assertInertia(fn (AssertableInertia $inertia) => $inertia
+            ->where('page.updatedBy', $actor->name)
+            ->missing('page.editor'));
+});
+
+it('says nothing about an editor who has left rather than inventing one', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $page = Page::factory()->in($project)->create(['updated_by' => null]);
+
+    $this->actingAs($actor)
+        ->get(route('pages.show', $page))
+        ->assertInertia(fn (AssertableInertia $inertia) => $inertia->where('page.updatedBy', null));
+});
+
 it('lets a viewer read a page and tells the screen they may not write it', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     $page = Page::factory()->in($project)->create();

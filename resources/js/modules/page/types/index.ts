@@ -20,6 +20,8 @@ export type PageDetail = {
     content: PageDocument;
     version: number;
     updatedAt: string | null;
+    /** The name of whoever last changed it, or null for a page whose author has left. */
+    updatedBy: string | null;
 };
 
 /**

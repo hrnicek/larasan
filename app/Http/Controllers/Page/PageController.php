@@ -34,6 +34,8 @@ class PageController extends Controller
         $project = $page->project;
         $actor = $this->actor($request);
 
+        $page->load('editor:id,name');
+
         return Inertia::render('pages/Show', [
             'page' => [
                 'id' => $page->id,
@@ -43,6 +45,9 @@ class PageController extends Controller
                 // this is the one number on the screen that has to be exact.
                 'version' => $page->version,
                 'updatedAt' => $page->updated_at?->toIso8601String(),
+                // The name only. Sharing the model would ship whatever columns `users` has
+                // (`.ai/rules/js.md`), and a page needs to say who wrote in it, not who they are.
+                'updatedBy' => $page->editor?->name,
             ],
             'project' => [
                 'id' => $project->id,

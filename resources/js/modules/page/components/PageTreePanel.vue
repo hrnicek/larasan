@@ -12,6 +12,7 @@ import PageTreeRow from '@/modules/page/components/PageTreeRow.vue';
 import { placementFor  } from '@/modules/page/lib/movePage';
 import type {MoveDirection} from '@/modules/page/lib/movePage';
 import type { PageNode, ProjectPages } from '@/modules/page/types';
+import { show as showProject } from '@/routes/projects';
 
 /**
  * The project's pages, drawn as the tree they are — in the project's fifth view and beside a page
@@ -58,6 +59,9 @@ const move = ({ page, direction }: { page: PageNode; direction: MoveDirection })
  * from the sidebar of the page being removed, the answer is a screen that no longer exists, so
  * the visit lands on the project's tree instead.
  */
+const holds = (node: PageNode, id: string): boolean =>
+    node.id === id || node.children.some((child) => holds(child, id));
+
 const remove = (): void => {
     const page = removing.value;
 
@@ -65,9 +69,21 @@ const remove = (): void => {
         return;
     }
 
+    /*
+     * The endpoint answers with a redirect back, which is right everywhere except here: deleting
+     * the page being read — or the branch it is in — sends the reader back to a page that no
+     * longer exists, and a 404 is a poor way to learn that a delete worked.
+     */
+    const readingItsOwnGrave = props.currentId !== null && holds(page, props.currentId);
+
     router.delete(PageController.destroy.url(page.id), {
         preserveScroll: true,
         onFinish: () => (removing.value = null),
+        onSuccess: () => {
+            if (readingItsOwnGrave) {
+                router.visit(showProject(props.projectId, { query: { view: 'pages' } }).url);
+            }
+        },
     });
 };
 </script>

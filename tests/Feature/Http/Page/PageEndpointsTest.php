@@ -160,7 +160,7 @@ it('places a page behind a sibling under a new parent in one request', function 
         ->assertRedirect();
 
     expect($page->fresh()?->parent_id)->toBe($parent->id)
-        ->and($page->fresh()?->position)->toBeGreaterThan($first->fresh()?->position ?? 0);
+        ->and($page->fresh()?->position)->toBeGreaterThan($first->fresh()->position);
 });
 
 it('moves a page out beside its own parent', function (): void {
@@ -173,7 +173,7 @@ it('moves a page out beside its own parent', function (): void {
         ->assertRedirect();
 
     expect($child->fresh()?->parent_id)->toBeNull()
-        ->and($child->fresh()?->position)->toBeGreaterThan($parent->fresh()?->position ?? 0);
+        ->and($child->fresh()?->position)->toBeGreaterThan($parent->fresh()->position);
 });
 
 it('refuses a parent from another project on a move', function (): void {

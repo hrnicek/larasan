@@ -12,7 +12,9 @@ import type { SaveState } from '@/modules/page/composables/usePageAutosave';
 const props = defineProps<{ state: SaveState }>();
 
 const wording = computed(() => ({
-    idle: { label: 'All changes saved', icon: Check, tone: 'text-muted-foreground' },
+    // Nothing has been typed yet, so there is nothing to report. A screen that opens saying
+    // "All changes saved" is answering a question nobody asked.
+    idle: null,
     pending: { label: 'Unsaved changes', icon: Loader2, tone: 'text-muted-foreground' },
     saving: { label: 'Saving…', icon: Loader2, tone: 'text-muted-foreground' },
     saved: { label: 'Saved', icon: Check, tone: 'text-muted-foreground' },
@@ -22,13 +24,15 @@ const wording = computed(() => ({
 </script>
 
 <template>
-    <p class="flex items-center gap-1.5 text-xs" :class="wording.tone" aria-live="polite">
-        <component
-            :is="wording.icon"
-            class="size-3.5"
-            :class="state === 'saving' && 'animate-spin'"
-            aria-hidden="true"
-        />
-        {{ wording.label }}
+    <p class="flex min-h-4 items-center gap-1.5 text-xs" :class="wording?.tone" aria-live="polite">
+        <template v-if="wording">
+            <component
+                :is="wording.icon"
+                class="size-3.5"
+                :class="state === 'saving' && 'animate-spin'"
+                aria-hidden="true"
+            />
+            {{ wording.label }}
+        </template>
     </p>
 </template>

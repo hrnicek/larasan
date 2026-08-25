@@ -5,6 +5,8 @@ import { defineAsyncComponent, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useRealtime } from '@/composables/useRealtime';
+import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import PageBreadcrumb from '@/modules/page/components/PageBreadcrumb.vue';
 import PageSaveState from '@/modules/page/components/PageSaveState.vue';
 import PageTitleField from '@/modules/page/components/PageTitleField.vue';
 import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
@@ -63,6 +65,13 @@ const editable = (): boolean => props.pages.can.updatePage;
 
 /** Where the title's Enter goes. */
 const body = ref<{ focus: () => void } | null>(null);
+
+/** Whether anything has been written here at all — a document of no blocks, or of none with words. */
+const empty = (): boolean => {
+    const blocks = document.value.content;
+
+    return !Array.isArray(blocks) || blocks.length === 0;
+};
 </script>
 
 <template>
@@ -122,12 +131,29 @@ const body = ref<{ focus: () => void } | null>(null);
                 <PageSaveState :state="state" class="ml-auto" />
             </div>
 
+            <!-- Where this page sits, for the reader the sidebar cannot reach: below `lg` there
+                 is no tree on the screen, and a nested page would otherwise look like a root one. -->
+            <PageBreadcrumb
+                :tree="pages.tree"
+                :page-id="page.id"
+                :project="project"
+                class="pb-2 lg:hidden"
+            />
+
             <PageTitleField
                 :page-id="page.id"
                 :title="page.title"
                 :editable="editable()"
                 @done="body?.focus()"
             />
+
+            <p v-if="page.updatedAt" class="pb-4 text-xs text-muted-foreground">
+                Last changed
+                <time :datetime="page.updatedAt" :title="fullFeedTime(page.updatedAt)">
+                    {{ formatFeedTime(page.updatedAt) }}
+                </time>
+                <template v-if="page.updatedBy"> by {{ page.updatedBy }}</template>
+            </p>
 
             <!-- A conflict stops the editor rather than letting somebody keep writing into a
                  copy that can no longer be saved. Reloading is the only honest way out of it
@@ -144,7 +170,15 @@ const body = ref<{ focus: () => void } | null>(null);
                 <Button size="sm" variant="outline" @click="router.reload()">Reload</Button>
             </div>
 
+            <!-- A page nobody has written in, to somebody who cannot write in it. The editor
+                 would render an empty document with a placeholder inviting an edit they may not
+                 make. -->
+            <p v-if="!editable() && empty()" class="text-sm text-muted-foreground">
+                Nothing has been written on this page yet.
+            </p>
+
             <PageEditor
+                v-else
                 :key="page.id"
                 ref="body"
                 :model-value="document"
