@@ -393,6 +393,7 @@ onUnmounted(() => {
             :creatable="creatable()"
             :dragging-id="calendarDrag.draggingId.value"
             :over-day="calendarDrag.overDay.value"
+            :loading="reloading"
             class="mt-4"
             @open="openTask"
             @expand="expand"

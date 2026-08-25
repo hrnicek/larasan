@@ -18,8 +18,14 @@ const props = withDefaults(
         dueAt?: string | null;
         /** A day cell has no room for the list's left margin, and says "Add" rather than "Add task". */
         compact?: boolean;
+        /**
+         * Draw nothing until it is opened. A calendar cell offers adding from its own header and
+         * from its empty space, so a second prompt would cost every cell a line of height for a
+         * control that is already there.
+         */
+        hideTrigger?: boolean;
     }>(),
-    { dueAt: null, compact: false },
+    { dueAt: null, compact: false, hideTrigger: false },
 );
 
 const open = ref(false);
@@ -27,11 +33,14 @@ const title = ref('');
 const input = ref<HTMLInputElement | null>(null);
 const saving = ref(false);
 
+/** Exposed, so a calendar cell can open this from a click anywhere in the day. */
 async function start(): Promise<void> {
     open.value = true;
     await nextTick();
     input.value?.focus();
 }
+
+defineExpose({ start });
 
 function close(): void {
     open.value = false;
@@ -68,7 +77,7 @@ function submit(): void {
          row of the column rather than as a control under it. -->
     <div :class="compact ? '' : 'px-4 py-2 md:pl-21'">
         <button
-            v-if="!open"
+            v-if="!open && !hideTrigger"
             type="button"
             data-add-task
             class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
@@ -79,7 +88,7 @@ function submit(): void {
         </button>
 
         <input
-            v-else
+            v-if="open"
             ref="input"
             v-model="title"
             type="text"

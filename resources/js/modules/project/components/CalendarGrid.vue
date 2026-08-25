@@ -23,6 +23,8 @@ const props = defineProps<{
     draggingId: string | null;
     /** The day a drop would land on, as `Y-m-d`. */
     overDay: string | null;
+    /** True while another month is on its way, so the one on screen can step back rather than blink. */
+    loading: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -62,13 +64,23 @@ const monthLabel = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
 );
 
+/** Why the month is empty, said once — the line on a desktop and the panel on a phone share it. */
+const emptyDetail = computed<string>(() =>
+    props.calendar.undated.count > 0
+        ? `${props.calendar.undated.count} task${props.calendar.undated.count === 1 ? '' : 's'} in this project have no due date yet.`
+        : 'Give a task a due date and it appears on the day it is due.',
+);
+
 const dayLabel = (date: string): string =>
     new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
 </script>
 
 <template>
     <div class="flex flex-col">
-        <table class="hidden w-full table-fixed border-collapse border-t border-l border-border md:table">
+        <table
+            class="hidden w-full table-fixed border-collapse border-t border-l border-border transition-opacity md:table"
+            :class="loading ? 'pointer-events-none opacity-60' : ''"
+        >
             <caption class="sr-only">{{ monthLabel }}</caption>
 
             <thead>
@@ -77,7 +89,7 @@ const dayLabel = (date: string): string =>
                         v-for="weekday in weekdays"
                         :key="weekday.date"
                         scope="col"
-                        class="border-r border-b border-border bg-muted/40 px-2 py-1.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        class="border-r border-b border-border bg-muted/40 px-1.5 py-1.5 text-left text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                     >
                         {{ weekday.label }}
                     </th>
@@ -106,9 +118,9 @@ const dayLabel = (date: string): string =>
 
         <!-- The phone's month: the days that hold something, in order, with the same chips. -->
         <div v-if="withTasks.length" class="flex flex-col divide-y divide-border border-y border-border md:hidden">
-            <section v-for="day in withTasks" :key="day.date" class="flex flex-col gap-1 px-4 py-3">
+            <section v-for="day in withTasks" :key="day.date" class="flex flex-col gap-0.5 px-2 py-3">
                 <h3
-                    class="text-xs font-semibold tracking-wide uppercase"
+                    class="px-2 pb-1 text-xs font-semibold tracking-wide uppercase"
                     :class="day.date === calendar.today ? 'text-primary' : 'text-muted-foreground'"
                 >
                     {{ dayLabel(day.date) }}
@@ -121,13 +133,14 @@ const dayLabel = (date: string): string =>
                     :card="card"
                     :editable="false"
                     :dragging="false"
+                    variant="row"
                     @open="emit('open', $event)"
                 />
 
                 <button
                     v-if="day.hasMore"
                     type="button"
-                    class="self-start rounded px-1.5 py-0.5 text-left text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                    class="min-h-11 self-start rounded px-2 text-left text-[13px] font-medium text-muted-foreground hover:text-foreground"
                     @click="emit('expand', day.date)"
                 >
                     +{{ day.count - day.tasks.length }} more
@@ -135,16 +148,18 @@ const dayLabel = (date: string): string =>
             </section>
         </div>
 
+        <!-- The grid says "empty" by being empty, so on a desktop the month needs a line rather
+             than a panel. Below `md` there is no grid to read, and the panel is the whole answer. -->
+        <p v-if="!withTasks.length" class="hidden px-4 py-3 text-sm text-muted-foreground md:block md:px-6">
+            Nothing is due in {{ monthLabel }}. {{ emptyDetail }}
+        </p>
+
         <EmptyState
             v-if="!withTasks.length"
-            class="mx-4 mt-4 md:mx-6"
+            class="mx-4 mt-4 md:hidden"
             :icon="CalendarDays"
             :title="`Nothing is due in ${monthLabel}`"
-            :description="
-                calendar.undated.count > 0
-                    ? `${calendar.undated.count} task${calendar.undated.count === 1 ? '' : 's'} in this project have no due date yet.`
-                    : 'Give a task a due date and it appears on the day it is due.'
-            "
+            :description="emptyDetail"
         />
     </div>
 </template>

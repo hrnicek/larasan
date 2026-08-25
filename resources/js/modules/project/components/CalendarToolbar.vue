@@ -51,39 +51,49 @@ const undated = computed(() => props.calendar.undated);
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-1.5">
-        <Link
-            :href="address(shifted(-1))"
-            class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            aria-label="Previous month"
-            preserve-scroll
-        >
-            <ChevronLeft class="size-4" />
-        </Link>
+    <div class="flex flex-wrap items-center gap-2">
+        <!-- The three month controls are one segmented group: they do one job between them, and a
+             row of separately floating buttons reads as three unrelated ones. -->
+        <div class="inline-flex items-center overflow-hidden rounded-md border border-border">
+            <Link
+                :href="address(shifted(-1))"
+                :only="['calendar']"
+                preserve-state
+                preserve-scroll
+                class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                aria-label="Previous month"
+            >
+                <ChevronLeft class="size-4" />
+            </Link>
 
-        <Link
-            :href="address(thisMonth)"
-            class="inline-flex h-8 items-center rounded-md px-2.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            :class="
-                calendar.month === thisMonth
-                    ? 'bg-accent text-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            "
-            preserve-scroll
-        >
-            Today
-        </Link>
+            <Link
+                :href="address(thisMonth)"
+                :only="['calendar']"
+                preserve-state
+                preserve-scroll
+                class="inline-flex h-8 items-center border-x border-border px-2.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                :class="
+                    calendar.month === thisMonth
+                        ? 'bg-accent text-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                "
+            >
+                Today
+            </Link>
 
-        <Link
-            :href="address(shifted(1))"
-            class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            aria-label="Next month"
-            preserve-scroll
-        >
-            <ChevronRight class="size-4" />
-        </Link>
+            <Link
+                :href="address(shifted(1))"
+                :only="['calendar']"
+                preserve-state
+                preserve-scroll
+                class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                aria-label="Next month"
+            >
+                <ChevronRight class="size-4" />
+            </Link>
+        </div>
 
-        <h2 class="ml-1 text-sm font-semibold text-foreground">{{ label }}</h2>
+        <h2 class="text-base font-semibold text-foreground first-letter:uppercase">{{ label }}</h2>
 
         <!--
             Work with no due date. Counted rather than hidden: a month that draws only what is
@@ -92,7 +102,7 @@ const undated = computed(() => props.calendar.undated);
         -->
         <Popover v-if="undated.count > 0">
             <PopoverTrigger
-                class="ml-auto inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 md:ml-auto text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             >
                 <CalendarOff class="size-4" aria-hidden="true" />
                 No date ({{ undated.count }})

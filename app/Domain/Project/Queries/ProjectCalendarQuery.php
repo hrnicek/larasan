@@ -39,8 +39,12 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class ProjectCalendarQuery
 {
-    /** As many as a cell can show before it becomes a list nobody reads. */
-    public const PER_DAY = 8;
+    /**
+     * As many as a cell shows at a glance without changing height. A calendar whose rows grow
+     * with their busiest day is a calendar where one deadline pushes the rest of the month off
+     * the screen — the cell stays the same size and says how many it did not draw.
+     */
+    public const PER_DAY = 4;
 
     /** The tray is a shortcut for scheduling, not a second list view. */
     public const UNDATED = 50;
