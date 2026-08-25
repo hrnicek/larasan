@@ -3,6 +3,7 @@ import Suggestion from '@tiptap/suggestion';
 import { Editor, EditorContent, Extension } from '@tiptap/vue-3';
 import type { Range } from '@tiptap/vue-3';
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import PageSelectionToolbar from '@/modules/page/components/PageSelectionToolbar.vue';
 import PageSlashMenu from '@/modules/page/components/PageSlashMenu.vue';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
 import { pageExtensions } from '@/modules/page/lib/extensions';
@@ -32,6 +33,12 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{ 'update:modelValue': [document: PageDocument] }>();
+
+/**
+ * The contextual toolbar: what it is showing, and where. Null while there is nothing to offer —
+ * a caret sitting in a paragraph is not a question.
+ */
+const toolbar = ref<{ mode: 'marks' | 'code' | 'table'; anchor: { top: number; left: number } } | null>(null);
 
 /** The menu a slash opens, and where the caret was when it did. */
 const menu = ref<{
@@ -144,19 +151,89 @@ const slashMenu = Extension.create({
     },
 });
 
+/**
+ * Where the toolbar hangs, in viewport coordinates: above the start of the selection, nudged back
+ * inside the window when the selection is near an edge. Read from ProseMirror's own coordinates
+ * rather than from a DOM range, because a selection can span nodes the editor drew itself.
+ */
+const placeToolbar = (mode: 'marks' | 'code' | 'table'): void => {
+    const instance = editor.value;
+
+    if (!instance) {
+        return;
+    }
+
+    const { from } = instance.state.selection;
+    const start = instance.view.coordsAtPos(from);
+
+    toolbar.value = {
+        mode,
+        anchor: {
+            top: Math.max(8, start.top - 44),
+            left: Math.min(Math.max(8, start.left), window.innerWidth - 320),
+        },
+    };
+};
+
+/**
+ * What the selection is asking for. A table wins over a code block and a code block over a run of
+ * text, because the more specific context is the one somebody is working in — and an empty
+ * selection in ordinary text is asking for nothing at all.
+ */
+const readSelection = (): void => {
+    const instance = editor.value;
+
+    if (!instance || !instance.isEditable) {
+        toolbar.value = null;
+
+        return;
+    }
+
+    if (instance.isActive('table')) {
+        placeToolbar('table');
+
+        return;
+    }
+
+    if (instance.isActive('codeBlock')) {
+        placeToolbar('code');
+
+        return;
+    }
+
+    if (instance.state.selection.empty) {
+        toolbar.value = null;
+
+        return;
+    }
+
+    placeToolbar('marks');
+};
+
 editor.value = new Editor({
     content: props.modelValue,
     editable: props.editable,
     extensions: [...pageExtensions(props.placeholder), slashMenu],
     editorProps: {
         attributes: {
-            class: 'page-document min-h-64 outline-none',
+            class: 'page-document outline-none',
             role: 'textbox',
             'aria-multiline': 'true',
             'aria-label': 'Page content',
         },
     },
     onUpdate: ({ editor: instance }) => emit('update:modelValue', instance.getJSON() as PageDocument),
+    onSelectionUpdate: readSelection,
+    onBlur: ({ event }) => {
+        // Clicking a control in the toolbar blurs the editor, and tearing the toolbar down on
+        // the way to being clicked is how a formatting button becomes unclickable. Anything
+        // outside both is a person who has finished with the selection.
+        const moved = event.relatedTarget;
+
+        if (!(moved instanceof HTMLElement) || moved.closest('[role="toolbar"]') === null) {
+            toolbar.value = null;
+        }
+    },
 });
 
 /*
@@ -175,7 +252,13 @@ watch(
 
 watch(
     () => props.editable,
-    (editable) => editor.value?.setEditable(editable),
+    (editable) => {
+        editor.value?.setEditable(editable);
+
+        if (!editable) {
+            toolbar.value = null;
+        }
+    },
 );
 
 onBeforeUnmount(() => editor.value?.destroy());
@@ -197,6 +280,22 @@ defineExpose({
         <EditorContent
             :editor="editor"
             :aria-activedescendant="menu ? `page-slash-${menu.commands[menu.selected]?.key}` : undefined"
+        />
+
+        <!-- The space under the last block is part of the document as far as a person is
+             concerned: clicking it puts the caret at the end rather than doing nothing. -->
+        <div
+            v-if="editable"
+            class="min-h-32 cursor-text"
+            aria-hidden="true"
+            @click="editor?.commands.focus('end')"
+        />
+
+        <PageSelectionToolbar
+            v-if="toolbar && editor && editable"
+            :editor="editor"
+            :anchor="toolbar.anchor"
+            :mode="toolbar.mode"
         />
 
         <PageSlashMenu

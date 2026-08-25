@@ -153,11 +153,38 @@
     z-index: 2;
 }
 
-/* What an empty document says, on the first line only. */
+/* A link is drawn as one. Colour is not the only carrier — the underline is what survives a
+   theme, a screenshot and a person who does not see the hue. */
+.page-document a {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.page-document a:hover {
+    color: var(--color-primary-hover);
+}
+
+/* A table wider than the page scrolls inside its own wrapper rather than pushing the document
+   sideways. Tiptap draws the wrapper; this is what makes it useful. */
+.page-document .tableWrapper {
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+/* What an empty line says. The placeholder extension marks the line the caret is on, so this is
+   a hint where somebody is about to type rather than a page full of grey suggestions. */
+.page-document .is-empty::before,
 .page-document p.is-editor-empty:first-child::before {
     color: var(--color-muted-foreground);
     content: attr(data-placeholder);
     float: left;
     height: 0;
     pointer-events: none;
+}
+
+/* A page somebody may only read is not a form: no placeholder, and a caret that does not pretend
+   to be an insertion point. */
+.page-document[contenteditable='false'] .is-empty::before {
+    content: none;
 }
