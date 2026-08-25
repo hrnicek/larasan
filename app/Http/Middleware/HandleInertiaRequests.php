@@ -5,8 +5,10 @@ namespace App\Http\Middleware;
 use App\Domain\Notification\Queries\InboxQuery;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -105,19 +107,9 @@ class HandleInertiaRequests extends Middleware
              * projects the actor may see in this workspace, archived ones excluded. Asking
              * the model per row here would be an N+1 on every request in the application.
              */
-            'projects' => $workspace === null || $request->user() === null ? [] : app(VisibleProjectsForUser::class)
-                ->query($workspace, $request->user())
-                ->orderBy('name')
-                ->limit(self::SIDEBAR_PROJECT_LIMIT)
-                ->get(['id', 'name', 'slug', 'color', 'icon'])
-                ->map(fn (Project $project): array => [
-                    'id' => $project->id,
-                    'name' => $project->name,
-                    'slug' => $project->slug,
-                    'color' => $project->color?->value,
-                    'icon' => $project->icon?->value,
-                ])
-                ->all(),
+            'projects' => $workspace === null || $request->user() === null
+                ? []
+                : $this->sidebarProjects($workspace, $request->user()),
             /*
              * The shell's unread badge, scoped to the workspace this request resolved. One
              * count, on the index TASK-110-014 built for it — and none at all when nobody is
@@ -128,5 +120,44 @@ class HandleInertiaRequests extends Middleware
                 : app(InboxQuery::class)->unreadCount($workspace, $request->user()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * The rows the sidebar draws, each with the two abilities its own menu renders.
+     *
+     * The abilities are the project policy's answers rather than a second copy of its rules,
+     * which costs one `project_memberships` read for the whole list instead of one per row:
+     * the memberships are memoised up front and each project is handed the workspace the
+     * request already resolved, so no ability check reaches the database.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function sidebarProjects(Workspace $workspace, User $user): array
+    {
+        $projects = app(VisibleProjectsForUser::class)
+            ->query($workspace, $user)
+            ->orderBy('name')
+            ->limit(self::SIDEBAR_PROJECT_LIMIT)
+            ->get(['id', 'name', 'slug', 'color', 'icon', 'archived_at']);
+
+        $projects->each(fn (Project $project) => $project->setRelation('workspace', $workspace));
+
+        app(MembershipRegistry::class)->preloadProjects($projects, $user);
+
+        return array_values($projects
+            ->map(fn (Project $project): array => [
+                'id' => $project->id,
+                'name' => $project->name,
+                'slug' => $project->slug,
+                'color' => $project->color?->value,
+                'icon' => $project->icon?->value,
+                /*
+                 * What the row's context menu draws itself on. The client renders these and
+                 * derives neither (ADR-0010); every endpoint behind the menu authorizes again.
+                 */
+                'canUpdate' => $user->can('update', $project),
+                'canArchive' => $user->can('archive', $project),
+            ])
+            ->all());
     }
 }

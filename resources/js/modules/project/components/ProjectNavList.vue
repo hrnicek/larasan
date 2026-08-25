@@ -5,17 +5,16 @@ import { computed } from 'vue';
 import ChromeNavItem from '@/components/ChromeNavItem.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useCollapsed } from '@/composables/useShell';
-import { accentDotClass } from '@/lib/accentColor';
-import { projectIconComponent } from '@/lib/projectIcon';
+import ProjectContextMenu from '@/modules/project/components/ProjectContextMenu.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
-import type { ProjectSummary } from '@/modules/project/types';
+import type { SidebarProject } from '@/modules/project/types';
 import { create, show } from '@/routes/projects';
 
 const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
 const collapsed = useCollapsed();
 
-const projects = computed<ProjectSummary[]>(() => page.props.projects);
+const projects = computed<SidebarProject[]>(() => page.props.projects);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
 </script>
 
@@ -36,43 +35,33 @@ const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes(
 
         <template v-if="projects.length">
             <!--
-                A project in the sidebar opens the project, not its settings. The dot is the fixed
-                accent palette and is decoration: the name beside it is what identifies the row.
+                A project in the sidebar opens the project, not its settings. A right click on the
+                row opens what else can be done to it, which is where somebody reaches for those
+                actions — the alternative is navigating away from what they were looking at first.
             -->
-            <ChromeNavItem
-                v-for="project in projects"
-                :key="project.id"
-                :href="show(project.id).url"
-                :label="project.name"
-                :active="isCurrentUrl(show(project.id).url)"
-            >
-                <template #icon>
-                    <!--
-                        Expanded, the dot is decoration beside a name — or the project's own icon,
-                        which says more in the same square. Collapsed, there is no name, so the tile
-                        carries the icon or the project's first letter: several projects share a
-                        colour and most keep the default, which makes a dot alone identify nothing.
-                    -->
-                    <ProjectTile
-                        v-if="collapsed"
-                        :name="project.name"
-                        :color="project.color"
-                        :icon="project.icon"
-                        size="sm"
-                        surface="chrome"
-                    />
-                    <span v-else class="flex size-4 shrink-0 items-center justify-center">
-                        <!-- In the row's own colour, not the project's: the rail is dark in both
-                             themes, so an accent tuned for a page reads as a dimmer glyph here. -->
-                        <component
-                            :is="projectIconComponent(project.icon)"
-                            v-if="projectIconComponent(project.icon)"
-                            class="size-4"
+            <ProjectContextMenu v-for="project in projects" :key="project.id" :project="project">
+                <ChromeNavItem
+                    :href="show(project.id).url"
+                    :label="project.name"
+                    :active="isCurrentUrl(show(project.id).url)"
+                >
+                    <template #icon>
+                        <!--
+                            The same tile collapsed and expanded. A bare glyph beside a name says
+                            what kind of project it is rather than which one: the colour is what
+                            tells two boards apart at a glance, and the tile carries the project's
+                            first letter when it has no icon at all.
+                        -->
+                        <ProjectTile
+                            :name="project.name"
+                            :color="project.color"
+                            :icon="project.icon"
+                            size="sm"
+                            surface="chrome"
                         />
-                        <span v-else class="size-2.5 rounded-[3px]" :class="accentDotClass(project.color)" />
-                    </span>
-                </template>
-            </ChromeNavItem>
+                    </template>
+                </ChromeNavItem>
+            </ProjectContextMenu>
         </template>
 
         <!--

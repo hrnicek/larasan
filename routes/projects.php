@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Project\Models\Project;
 use App\Http\Controllers\Project\ProjectAppearanceController;
 use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\ProjectNameController;
 use App\Http\Controllers\Project\ProjectTaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +36,15 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
      */
     Route::put('projects/{project}/appearance', [ProjectAppearanceController::class, 'update'])
         ->name('projects.appearance.update');
+
+    /*
+     * The name, from the sidebar's own menu, for the same reason: `projects.update` would take
+     * the description and the dates the rename dialog never showed away with it. The slug is
+     * not re-derived — that is a decision made in the settings form, where the consequence for
+     * saved links can be seen.
+     */
+    Route::put('projects/{project}/name', [ProjectNameController::class, 'update'])
+        ->name('projects.name.update');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

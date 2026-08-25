@@ -8,6 +8,22 @@ export type ProjectSummary = {
 };
 
 /**
+ * A row in the sidebar's project list. Narrower than `ProjectSummary` — the shared prop sends no
+ * visibility, because a rail that lists what somebody may see has already answered that question
+ * — and wider by the two abilities the row's own context menu renders. Both are the project
+ * policy's answers, computed per row on the server; the client renders them and derives neither.
+ */
+export type SidebarProject = {
+    id: string;
+    name: string;
+    slug: string;
+    color: string | null;
+    icon: string | null;
+    canUpdate: boolean;
+    canArchive: boolean;
+};
+
+/**
  * What the project screen's header renders itself from. `canUpdate` is the project policy's
  * answer, not a role the client read: the header draws the appearance picker only for somebody
  * the server would let use it, and the endpoint authorizes again regardless.

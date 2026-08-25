@@ -5,14 +5,14 @@ import { computed } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import { accentDotClass } from '@/lib/accentColor';
-import type { ProjectSummary } from '@/modules/project/types';
+import type { SidebarProject } from '@/modules/project/types';
 import { create, show } from '@/routes/projects';
 
 const page = usePage();
 
 const user = computed(() => page.props.auth.user);
 const workspace = computed(() => page.props.workspace);
-const projects = computed<ProjectSummary[]>(() => page.props.projects);
+const projects = computed<SidebarProject[]>(() => page.props.projects);
 const unread = computed<number>(() => page.props.unreadNotifications);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
 

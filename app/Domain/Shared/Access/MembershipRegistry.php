@@ -50,6 +50,41 @@ final class MembershipRegistry
         return $this->workspaces[$key];
     }
 
+    /**
+     * Seed this actor's rows for many projects at once, in one query.
+     *
+     * The shared sidebar props ask the project policy about every row they send, and each ask
+     * would otherwise be its own `project_memberships` read — fifteen of them on every request
+     * in the application. Absence is memoised too: a project the actor has no row in has to
+     * answer null from here rather than fall through to a query of its own.
+     *
+     * @param  iterable<int, Project>  $projects
+     */
+    public function preloadProjects(iterable $projects, User $user): void
+    {
+        $missing = [];
+
+        foreach ($projects as $project) {
+            if (! array_key_exists($project->id.':'.$user->id, $this->projects)) {
+                $missing[] = $project->id;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        $rows = ProjectMembership::query()
+            ->whereIn('project_id', $missing)
+            ->where('user_id', $user->id)
+            ->get()
+            ->keyBy('project_id');
+
+        foreach ($missing as $projectId) {
+            $this->projects[$projectId.':'.$user->id] = $rows->get($projectId);
+        }
+    }
+
     public function forProject(Project $project, User $user): ?ProjectMembership
     {
         $key = $project->id.':'.$user->id;
