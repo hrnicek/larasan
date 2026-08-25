@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Plus, X } from '@lucide/vue';
+import { ChevronDown, Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import PlacementController from '@/actions/App/Http/Controllers/Placement/PlacementController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -33,6 +33,32 @@ const props = defineProps<{
 }>();
 
 const working = ref(false);
+
+/**
+ * Which column of that project the task sits in.
+ *
+ * The move endpoint takes a section and, optionally, where in it — this sends only the section,
+ * so the card lands at the end of the column. Dropping it at a chosen place between two cards is
+ * the board's job and the board already does it (ADR-0009).
+ *
+ * A null section is the ungrouped bucket rather than the absence of an answer (ADR-0004), which
+ * is why the menu offers it as an entry of its own.
+ */
+const move = (placementId: string, sectionId: string | null): void => {
+    working.value = true;
+
+    router.put(
+        PlacementController.move.url(placementId),
+        { section: sectionId },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                working.value = false;
+            },
+        },
+    );
+};
 
 const attach = (projectId: string): void => {
     working.value = true;
@@ -119,12 +145,41 @@ const detach = (): void => {
 
                 <span class="truncate text-sm font-medium">{{ placement.project.name }}</span>
 
-                <span class="truncate text-xs tracking-wide text-muted-foreground uppercase">
+                <DropdownMenu v-if="editable && placement.canChange">
+                    <DropdownMenuTrigger
+                        class="inline-flex min-w-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50"
+                        :disabled="working"
+                        :aria-label="`Move this task to another section of ${placement.project.name}`"
+                    >
+                        <span class="truncate">{{ placement.section?.name ?? 'No section' }}</span>
+                        <ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+                    </DropdownMenuTrigger>
+
+                    <DropdownMenuContent align="start" class="w-56">
+                        <DropdownMenuItem
+                            :class="placement.section === null ? 'bg-accent' : ''"
+                            @select="move(placement.placementId, null)"
+                        >
+                            No section
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                            v-for="section in placement.sections"
+                            :key="section.id"
+                            :class="section.id === placement.section?.id ? 'bg-accent' : ''"
+                            @select="move(placement.placementId, section.id)"
+                        >
+                            {{ section.name }}
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <span v-else class="truncate text-xs tracking-wide text-muted-foreground uppercase">
                     {{ placement.section?.name ?? 'No section' }}
                 </span>
 
                 <Button
-                    v-if="editable && placement.canDetach"
+                    v-if="editable && placement.canChange"
                     variant="ghost"
                     size="icon-sm"
                     class="ml-auto size-7 text-muted-foreground focus-visible:opacity-100 md:opacity-0 md:group-hover/placement:opacity-100"

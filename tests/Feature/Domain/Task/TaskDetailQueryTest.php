@@ -102,7 +102,7 @@ it('says which placements the actor may remove', function (): void {
     $detail = detailOf($task, $actor);
     $byProject = array_combine(
         array_column(array_column($detail['placements'], 'project'), 'id'),
-        array_column($detail['placements'], 'canDetach'),
+        array_column($detail['placements'], 'canChange'),
     );
 
     expect($byProject[$project->id])->toBeFalse()
@@ -166,13 +166,16 @@ it('reads a task with several subtasks and placements without a query per row', 
 
     /*
      * Five subtasks and two placements: the task, the assignee, the creator, the parent, the
-     * children, the placements, their projects and sections, and the memberships the
-     * permissions ask for. A bound rather than an exact number, because those membership
-     * lookups are memoised per request (TASK-040-020).
+     * children, the placements, their projects, the column each sits in, the columns each
+     * project offers, and the memberships the permissions ask for. A bound rather than an exact
+     * number, because those membership lookups are memoised per request (TASK-040-020).
+     *
+     * The bound went 19 → 20 with TASK-200-027: every project's sections are one read for the
+     * page, which is the point — the panel moves a task between columns without asking again.
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(19);
+        ->and(count($queries))->toBeLessThanOrEqual(20);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -267,4 +270,28 @@ it('reads a task s attachments without a query per file', function (): void {
     // their files, and the uploaders.
     expect($detail['attachments'])->toHaveCount(6)
         ->and(count($queries))->toBeLessThanOrEqual(19);
+});
+
+it('offers each placement the columns of its own project, in order', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $other = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($other)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    $doing = Section::factory()->in($project)->create(['name' => 'Doing', 'position' => 2000]);
+    Section::factory()->in($project)->create(['name' => 'To do', 'position' => 1000]);
+    $elsewhere = Section::factory()->in($other)->create(['name' => 'Elsewhere']);
+
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->inSection($doing)->create();
+    TaskProjectMembership::factory()->placing($task, $other)->create();
+
+    $placements = detailOf($task, $actor)['placements'];
+    $byProject = array_combine(array_column(array_column($placements, 'project'), 'id'), $placements);
+
+    // Position order, so the menu reads the way the board does.
+    expect(array_column($byProject[$project->id]['sections'], 'name'))->toBe(['To do', 'Doing'])
+        ->and(array_column($byProject[$other->id]['sections'], 'name'))->toBe([$elsewhere->name])
+        // A column of another project would be a card in two boards at once; the menu must not
+        // be able to offer it in the first place.
+        ->and(array_column($byProject[$project->id]['sections'], 'id'))->not->toContain($elsewhere->id);
 });

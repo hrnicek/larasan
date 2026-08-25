@@ -11,6 +11,7 @@ use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Tag\Models\Tag;
@@ -74,6 +75,9 @@ final readonly class TaskDetailQuery
                 // relation's key breaks the relation rather than the query.
                 'project:id,workspace_id,name,color,visibility,archived_at',
                 'project.workspace',
+                // The columns each project offers, so the panel can move the task between them
+                // without a second request per project.
+                'project.sections:id,project_id,name,position',
                 'section:id,name',
             ]),
         ]);
@@ -242,8 +246,12 @@ final readonly class TaskDetailQuery
     }
 
     /**
-     * The projects this task appears in — each with the column it sits in, and whether the
-     * actor may still change what that project holds.
+     * The projects this task appears in — each with the column it sits in, the columns it could
+     * sit in instead, and whether the actor may still change what that project holds.
+     *
+     * `canChange` is one flag because moving and detaching are one permission: a card belongs to
+     * a project, and `TaskProjectMembershipPolicy` answers both with `task.update`. Two flags
+     * carrying one rule is two things to keep in step.
      *
      * @return list<array<string, mixed>>
      */
@@ -263,7 +271,11 @@ final readonly class TaskDetailQuery
                     'id' => $placement->section->id,
                     'name' => $placement->section->name,
                 ],
-                'canDetach' => $placement->project->allowsChangesBy($actor, Capability::TaskUpdate),
+                'sections' => $placement->project->sections
+                    ->map(fn (Section $section): array => ['id' => $section->id, 'name' => $section->name])
+                    ->values()
+                    ->all(),
+                'canChange' => $placement->project->allowsChangesBy($actor, Capability::TaskUpdate),
             ])
             ->all();
 

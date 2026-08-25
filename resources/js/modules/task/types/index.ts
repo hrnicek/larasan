@@ -108,7 +108,10 @@ export type TaskDetailPlacement = {
     placementId: string;
     project: { id: string; name: string; color: string | null; archived: boolean };
     section: { id: string; name: string } | null;
-    canDetach: boolean;
+    /** The columns this project offers, so the panel can move the task without a second read. */
+    sections: { id: string; name: string }[];
+    /** Moving and detaching are one permission — see `TaskProjectMembershipPolicy`. */
+    canChange: boolean;
 };
 
 export type TaskDetail = {
