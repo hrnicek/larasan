@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight, FolderOpen, Lock, Plus, Settings } from '@lucide/vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
-import { accentTileClass } from '@/lib/accentColor';
+import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { ProjectSummary } from '@/modules/project/types';
 import { create, edit, show } from '@/routes/projects';
 
@@ -47,13 +47,7 @@ defineProps<{
                     :href="show(project.id).url"
                     class="flex min-h-11 min-w-0 flex-1 items-center gap-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
-                    <span
-                        class="flex size-7 shrink-0 items-center justify-center rounded-md text-xs font-bold"
-                        :class="accentTileClass(project.color)"
-                        aria-hidden="true"
-                    >
-                        {{ project.name.charAt(0).toUpperCase() }}
-                    </span>
+                    <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" />
 
                     <span class="truncate font-medium">{{ project.name }}</span>
 

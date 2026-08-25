@@ -7,6 +7,7 @@ namespace App\Http\Requests\Project;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
+use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
@@ -46,7 +47,7 @@ class UpdateProjectRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:2000'],
             'color' => ['nullable', Rule::enum(ProjectColor::class)],
-            'icon' => ['nullable', 'string', 'max:64'],
+            'icon' => ['nullable', Rule::enum(ProjectIcon::class)],
             'default_view' => ['nullable', Rule::enum(ProjectDefaultView::class)],
             'visibility' => ['nullable', Rule::enum(ProjectVisibility::class)],
             'start_date' => ['nullable', 'date'],

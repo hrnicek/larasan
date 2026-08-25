@@ -11,6 +11,7 @@ use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
+use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
@@ -35,7 +36,7 @@ use Illuminate\Support\Str;
  * @property string $slug
  * @property string|null $description
  * @property ProjectColor|null $color
- * @property string|null $icon
+ * @property ProjectIcon|null $icon
  * @property int|null $owner_id
  * @property int|null $created_by
  * @property ProjectDefaultView $default_view
@@ -246,6 +247,7 @@ class Project extends Model
     {
         return [
             'color' => ProjectColor::class,
+            'icon' => ProjectIcon::class,
             'default_view' => ProjectDefaultView::class,
             'visibility' => ProjectVisibility::class,
             'start_date' => 'immutable_date',

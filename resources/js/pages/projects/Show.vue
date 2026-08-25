@@ -11,7 +11,7 @@ import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
-import type { ProjectFiles } from '@/modules/project/types';
+import type { ProjectFiles, ProjectHeading } from '@/modules/project/types';
 import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable } from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
@@ -44,7 +44,7 @@ const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/compon
  * for. One payload arrives, never two — the server reads what the view needs and nothing else.
  */
 const props = defineProps<{
-    project: { id: string; name: string; slug: string; color: string | null; icon: string | null; archived: boolean };
+    project: ProjectHeading;
     view: string;
     views: string[];
     // One of the four, decided by `view`: the server sends the payload the view asked for and

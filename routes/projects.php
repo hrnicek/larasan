@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Project\Models\Project;
+use App\Http\Controllers\Project\ProjectAppearanceController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\ProjectTaskController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,15 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
 
     // Adding a task where you are looking: the task and its card, in one request.
     Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
+
+    /*
+     * Colour and icon, from the project's own header rather than from its settings form.
+     * A route of its own because `projects.update` takes the whole form and reads an absent
+     * nullable field as a deliberate clearing — a colour picked here would empty the
+     * description and the dates the picker never showed.
+     */
+    Route::put('projects/{project}/appearance', [ProjectAppearanceController::class, 'update'])
+        ->name('projects.appearance.update');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

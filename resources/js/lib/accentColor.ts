@@ -45,6 +45,15 @@ export function accentDotClass(color: string | null): string {
 }
 
 /**
+ * The palette in the order a picker draws it, from the record that already lists it.
+ *
+ * `ProjectColor` and `TagColor` are the server's copy of the same eight names. A picker offered
+ * them as a prop where the page already has one — the settings form does — and reads them here
+ * where it does not, rather than a second literal list going stale against this file's classes.
+ */
+export const accentColorNames = Object.keys(accentDotClasses) as AccentColor[];
+
+/**
  * The palette as a tile: a tinted square carrying the first letter of a name.
  *
  * What the icon rail needs. A 10px dot identifies nothing when the sidebar is collapsed and the
@@ -64,6 +73,30 @@ const accentTileClasses = {
 
 export function accentTileClass(color: string | null): string {
     return accentTileClasses[color as AccentColor] ?? accentTileClasses.slate;
+}
+
+/**
+ * The same tile on a page instead of on the chrome.
+ *
+ * The record above is tuned for the sidebar rail, which stays dark in both themes — its light
+ * text on a tint is what a dark rail needs and is close to invisible on a page that follows the
+ * theme. This one follows the theme the way the text classes do: a darker step in light, a
+ * lighter one in dark. Two records rather than one because the two surfaces genuinely disagree,
+ * and one set of classes cannot be right on both.
+ */
+const accentContentTileClasses = {
+    slate: 'bg-slate-500/15 text-slate-700 dark:text-slate-300',
+    red: 'bg-red-500/15 text-red-700 dark:text-red-300',
+    amber: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    emerald: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    teal: 'bg-teal-500/15 text-teal-700 dark:text-teal-300',
+    sky: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
+    violet: 'bg-violet-500/15 text-violet-700 dark:text-violet-300',
+    rose: 'bg-rose-500/15 text-rose-700 dark:text-rose-300',
+} as const;
+
+export function accentContentTileClass(color: string | null): string {
+    return accentContentTileClasses[color as AccentColor] ?? accentContentTileClasses.slate;
 }
 
 /**

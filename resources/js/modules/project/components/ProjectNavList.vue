@@ -5,7 +5,9 @@ import { computed } from 'vue';
 import ChromeNavItem from '@/components/ChromeNavItem.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useCollapsed } from '@/composables/useShell';
-import { accentDotClass, accentTileClass } from '@/lib/accentColor';
+import { accentDotClass } from '@/lib/accentColor';
+import { projectIconComponent } from '@/lib/projectIcon';
+import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { ProjectSummary } from '@/modules/project/types';
 import { create, show } from '@/routes/projects';
 
@@ -46,20 +48,28 @@ const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes(
             >
                 <template #icon>
                     <!--
-                        Expanded, the dot is decoration beside a name. Collapsed, there is no name,
-                        so the tile carries the project's first letter — several projects share a
+                        Expanded, the dot is decoration beside a name — or the project's own icon,
+                        which says more in the same square. Collapsed, there is no name, so the tile
+                        carries the icon or the project's first letter: several projects share a
                         colour and most keep the default, which makes a dot alone identify nothing.
                     -->
-                    <span
+                    <ProjectTile
                         v-if="collapsed"
-                        class="flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold"
-                        :class="accentTileClass(project.color)"
-                        aria-hidden="true"
-                    >
-                        {{ project.name.charAt(0).toUpperCase() }}
-                    </span>
+                        :name="project.name"
+                        :color="project.color"
+                        :icon="project.icon"
+                        size="sm"
+                        surface="chrome"
+                    />
                     <span v-else class="flex size-4 shrink-0 items-center justify-center">
-                        <span class="size-2.5 rounded-[3px]" :class="accentDotClass(project.color)" />
+                        <!-- In the row's own colour, not the project's: the rail is dark in both
+                             themes, so an accent tuned for a page reads as a dimmer glyph here. -->
+                        <component
+                            :is="projectIconComponent(project.icon)"
+                            v-if="projectIconComponent(project.icon)"
+                            class="size-4"
+                        />
+                        <span v-else class="size-2.5 rounded-[3px]" :class="accentDotClass(project.color)" />
                     </span>
                 </template>
             </ChromeNavItem>

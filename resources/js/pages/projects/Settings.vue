@@ -92,6 +92,12 @@ const viewLabels: Record<string, string> = {
             >
                 <input type="hidden" name="id" :value="props.project.id" />
                 <input type="hidden" name="color" :value="color" />
+                <!--
+                    The icon is picked from the project's header, and this form still has to send
+                    it: `projects.update` reads an absent nullable field as a deliberate clearing,
+                    so a settings save that omitted the icon would quietly take it away.
+                -->
+                <input type="hidden" name="icon" :value="props.project.icon ?? ''" />
                 <input type="hidden" name="default_view" :value="defaultView" />
                 <input type="hidden" name="visibility" :value="visibility" />
 
@@ -138,6 +144,9 @@ const viewLabels: Record<string, string> = {
                         <!-- A select cannot offer an empty option, so clearing gets its own control. -->
                         <Button v-if="color" type="button" variant="ghost" @click="color = ''">Clear</Button>
                     </div>
+                    <p class="text-xs text-muted-foreground">
+                        The project's icon is picked from its own header, beside the name.
+                    </p>
                     <InputError :message="errors.color" />
                 </div>
 

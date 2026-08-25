@@ -7,8 +7,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { accentTileClass } from '@/lib/accentColor';
+import ProjectAppearancePicker from '@/modules/project/components/ProjectAppearancePicker.vue';
+import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
+import type { ProjectHeading } from '@/modules/project/types';
 import { edit } from '@/routes/projects';
 
 /**
@@ -18,8 +20,8 @@ import { edit } from '@/routes/projects';
  * the project at a glance in a list of them — as a tile here and a dot in the sidebar — and a
  * heading tinted the same way is a heading whose contrast depends on which colour somebody picked.
  */
-defineProps<{
-    project: { id: string; name: string; color: string | null; archived: boolean };
+const props = defineProps<{
+    project: ProjectHeading;
     view: string;
     views: string[];
 }>();
@@ -28,13 +30,19 @@ defineProps<{
 <template>
     <header class="border-b border-border">
         <div class="flex flex-wrap items-center gap-3 px-4 pt-4 pb-3 md:px-6">
-            <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
-                :class="accentTileClass(project.color)"
-                aria-hidden="true"
-            >
-                {{ project.name.charAt(0).toUpperCase() }}
-            </span>
+            <!--
+                The tile is the control for somebody who may change the project, and the same tile
+                without a handle for everybody else. A picker drawn for a reader who cannot save is
+                a promise the endpoint would refuse.
+            -->
+            <ProjectAppearancePicker v-if="props.project.canUpdate" :project="props.project" />
+            <ProjectTile
+                v-else
+                :name="props.project.name"
+                :color="props.project.color"
+                :icon="props.project.icon"
+                size="lg"
+            />
 
             <h1 class="min-w-0 truncate text-xl font-semibold tracking-tight">{{ project.name }}</h1>
 

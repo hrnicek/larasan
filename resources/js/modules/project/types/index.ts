@@ -3,12 +3,27 @@ export type ProjectSummary = {
     name: string;
     slug: string;
     color: string | null;
+    icon: string | null;
     visibility: string;
+};
+
+/**
+ * What the project screen's header renders itself from. `canUpdate` is the project policy's
+ * answer, not a role the client read: the header draws the appearance picker only for somebody
+ * the server would let use it, and the endpoint authorizes again regardless.
+ */
+export type ProjectHeading = {
+    id: string;
+    name: string;
+    slug: string;
+    color: string | null;
+    icon: string | null;
+    archived: boolean;
+    canUpdate: boolean;
 };
 
 export type ProjectSettings = ProjectSummary & {
     description: string | null;
-    icon: string | null;
     default_view: string;
     start_date: string | null;
     due_date: string | null;

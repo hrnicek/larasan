@@ -115,7 +115,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $project->name,
                     'slug' => $project->slug,
                     'color' => $project->color?->value,
-                    'icon' => $project->icon,
+                    'icon' => $project->icon?->value,
                 ])
                 ->all(),
             /*

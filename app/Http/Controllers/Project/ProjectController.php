@@ -55,6 +55,7 @@ class ProjectController extends Controller
                     'name' => $project->name,
                     'slug' => $project->slug,
                     'color' => $project->color?->value,
+                    'icon' => $project->icon?->value,
                     'visibility' => $project->visibility->value,
                 ])
                 ->all(),
@@ -121,8 +122,12 @@ class ProjectController extends Controller
                 'name' => $project->name,
                 'slug' => $project->slug,
                 'color' => $project->color?->value,
-                'icon' => $project->icon,
+                'icon' => $project->icon?->value,
                 'archived' => $project->isArchived(),
+                // What the header's appearance picker renders itself on: a control nobody
+                // may use is a control that should not be drawn. The endpoint authorizes
+                // regardless of what the header decided to show.
+                'canUpdate' => $actor->can('update', $project),
             ],
             'view' => $view->value,
             /*
@@ -199,7 +204,7 @@ class ProjectController extends Controller
                 'slug' => $project->slug,
                 'description' => $project->description,
                 'color' => $project->color?->value,
-                'icon' => $project->icon,
+                'icon' => $project->icon?->value,
                 'default_view' => $project->default_view->value,
                 'visibility' => $project->visibility->value,
                 'start_date' => $project->start_date?->toDateString(),
