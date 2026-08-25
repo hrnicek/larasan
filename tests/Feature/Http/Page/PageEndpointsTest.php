@@ -149,6 +149,33 @@ it('moves a page in the tree', function (): void {
     expect($page->fresh()?->parent_id)->toBe($parent->id);
 });
 
+it('places a page behind a sibling under a new parent in one request', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $parent = Page::factory()->in($project)->create();
+    $first = Page::factory()->under($parent)->create();
+    $page = Page::factory()->in($project)->create();
+
+    $this->actingAs($actor)
+        ->put(route('pages.placement.update', $page), ['parent' => $parent->id, 'after' => $first->id])
+        ->assertRedirect();
+
+    expect($page->fresh()?->parent_id)->toBe($parent->id)
+        ->and($page->fresh()?->position)->toBeGreaterThan($first->fresh()?->position ?? 0);
+});
+
+it('moves a page out beside its own parent', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $parent = Page::factory()->in($project)->create();
+    $child = Page::factory()->under($parent)->create();
+
+    $this->actingAs($actor)
+        ->put(route('pages.placement.update', $child), ['parent' => null, 'after' => $parent->id])
+        ->assertRedirect();
+
+    expect($child->fresh()?->parent_id)->toBeNull()
+        ->and($child->fresh()?->position)->toBeGreaterThan($parent->fresh()?->position ?? 0);
+});
+
 it('refuses a parent from another project on a move', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
     $page = Page::factory()->in($project)->create();

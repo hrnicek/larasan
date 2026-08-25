@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, PanelLeft } from '@lucide/vue';
 import { defineAsyncComponent, ref, watch } from 'vue';
-import PageController from '@/actions/App/Http/Controllers/Page/PageController';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useRealtime } from '@/composables/useRealtime';
 import PageSaveState from '@/modules/page/components/PageSaveState.vue';
-import PageTreeRow from '@/modules/page/components/PageTreeRow.vue';
+import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
 import { usePageAutosave } from '@/modules/page/composables/usePageAutosave';
-import type { PageDetail, PageDocument, PageNode, ProjectPages } from '@/modules/page/types';
+import type { PageDetail, PageDocument, ProjectPages } from '@/modules/page/types';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
-import pageRoutes from '@/routes/pages';
 import { show as showProject } from '@/routes/projects';
 
 /*
@@ -60,10 +59,6 @@ const write = (next: PageDocument): void => {
 };
 
 const editable = (): boolean => props.pages.can.updatePage;
-
-const addChild = (parent: PageNode): void => {
-    router.post(PageController.store.url(props.project.id), { parent: parent.id });
-};
 </script>
 
 <template>
@@ -72,7 +67,7 @@ const addChild = (parent: PageNode): void => {
 
         <!-- The tree, beside the page rather than above it: what a document needs at hand is
              where it sits, and a sidebar keeps that visible while the page scrolls. -->
-        <aside class="hidden w-64 shrink-0 border-r border-border py-4 lg:block">
+        <aside class="hidden w-72 shrink-0 border-r border-border py-4 lg:block">
             <div class="px-3 pb-2">
                 <Link
                     :href="showProject(project.id, { query: { view: 'pages' } }).url"
@@ -83,29 +78,42 @@ const addChild = (parent: PageNode): void => {
                 </Link>
             </div>
 
-            <ul role="tree" aria-label="Pages in this project" class="list-none px-1">
-                <PageTreeRow
-                    v-for="node in pages.tree"
-                    :key="node.id"
-                    :page="node"
-                    :depth="1"
-                    :can="pages.can"
-                    @add-child="addChild"
-                    @rename="router.visit(pageRoutes.show($event.id).url)"
-                    @remove="router.visit(pageRoutes.show($event.id).url)"
-                />
-            </ul>
+            <PageTreePanel
+                :project-id="project.id"
+                :pages="pages"
+                :current-id="page.id"
+                variant="sidebar"
+                class="px-1"
+            />
         </aside>
 
         <div class="mx-auto flex w-full max-w-3xl flex-col px-4 py-6 md:px-8">
-            <div class="flex items-center justify-between gap-3 pb-1">
-                <Link
-                    :href="showProject(project.id, { query: { view: 'pages' } }).url"
-                    class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none lg:hidden"
-                >
-                    <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" class="size-5" />
-                    {{ project.name }}
-                </Link>
+            <div class="flex items-center justify-between gap-3 pb-2">
+                <!-- Below `lg` the sidebar is gone, so the tree is a sheet rather than absent:
+                     a page nobody can navigate away from is a dead end on a phone. -->
+                <Sheet>
+                    <SheetTrigger
+                        class="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none lg:hidden"
+                    >
+                        <PanelLeft class="size-4" aria-hidden="true" />
+                        <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" class="size-5" />
+                        <span class="truncate">{{ project.name }}</span>
+                    </SheetTrigger>
+
+                    <SheetContent side="left" class="w-80 overflow-y-auto p-0">
+                        <SheetHeader class="px-4 pt-4 pb-2">
+                            <SheetTitle>Pages</SheetTitle>
+                        </SheetHeader>
+
+                        <PageTreePanel
+                            :project-id="project.id"
+                            :pages="pages"
+                            :current-id="page.id"
+                            variant="sidebar"
+                            class="px-2 pb-6"
+                        />
+                    </SheetContent>
+                </Sheet>
 
                 <PageSaveState :state="state" class="ml-auto" />
             </div>
