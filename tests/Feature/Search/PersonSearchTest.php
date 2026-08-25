@@ -7,7 +7,9 @@ use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Laravel\Scout\Jobs\MakeSearchable;
 
 /**
  * A person whose name and email cannot collide with the term a test searches for.
@@ -115,4 +117,24 @@ it('ships no more of a user row than a result draws', function (): void {
         ->toEqualCanonicalizing(['id', 'name', 'email', 'role']);
 })->with([
     'a user row carries a password hash, two-factor secrets and recovery codes',
+]);
+
+it('does not queue an indexing job when only the current workspace changed', function (): void {
+    $workspace = Workspace::factory()->create();
+    $person = pinnedMemberOf($workspace, 'Jana Nováková');
+
+    Queue::fake();
+
+    // Freshly loaded, the way a later request sees them: `wasRecentlyCreated` is what marks the
+    // row that has to be indexed once, and it stays true on the instance that created it.
+    $person = User::findOrFail($person->id);
+
+    $person->forceFill(['current_workspace_id' => $workspace->id])->save();
+    Queue::assertNothingPushed();
+
+    $person->update(['name' => 'Jana Svobodová']);
+    Queue::assertPushed(MakeSearchable::class);
+})->with([
+    'a person moving between two workspaces would otherwise queue a job per move, for a document
+    whose two fields did not change',
 ]);

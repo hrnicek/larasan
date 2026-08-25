@@ -196,6 +196,13 @@ class AppServiceProvider extends ServiceProvider
          * people's inboxes rather than a table. Thirty a minute is faster than anybody types
          * and far below what a stuck client produces.
          */
+        /*
+         * The palette debounces, so a person types perhaps two searches a second at the very
+         * worst; this is high enough never to be reached by somebody using the application and
+         * low enough that a held-down key is not a query per keystroke against a search engine.
+         */
+        RateLimiter::for('search', fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->user()?->id));
+
         RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
 
         // An upload writes bytes and is the most expensive thing a member can ask for without

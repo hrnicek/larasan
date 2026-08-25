@@ -66,6 +66,18 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         ];
     }
 
+    /**
+     * Only a change to what the index holds is worth an indexing job.
+     *
+     * Every workspace switch writes `current_workspace_id` on this row, and without this a
+     * person moving between two workspaces would queue an indexing job per move — for a document
+     * whose two fields did not change.
+     */
+    public function searchIndexShouldBeUpdated(): bool
+    {
+        return $this->wasChanged(['name', 'email']) || $this->wasRecentlyCreated;
+    }
+
     /** @return BelongsTo<Workspace, $this> */
     public function currentWorkspace(): BelongsTo
     {
