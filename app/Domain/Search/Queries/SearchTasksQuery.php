@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
@@ -188,6 +189,7 @@ final readonly class SearchTasksQuery
             ->withCount('comments')
             ->with([
                 'assignee:id,name,email',
+                'tags:id,name,color',
                 'placements' => fn (Relation $placements) => $placements
                     ->whereIn('project_id', $visible)
                     ->with('project:id,name,color'),
@@ -289,6 +291,13 @@ final readonly class SearchTasksQuery
                 'email' => $assignee->email,
                 'avatar' => null,
             ],
+            'tags' => array_values($task->tags
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
             // Only the projects this reader can open — the same rule `MyTasksQuery` follows.
             'projects' => array_values($task->placements
                 ->map(fn (TaskProjectMembership $placement): array => [

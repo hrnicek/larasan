@@ -7,6 +7,7 @@ namespace App\Domain\Task\Queries;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\MyTasksTab;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -90,6 +91,7 @@ final readonly class MyTasksQuery
             ->withCount('comments')
             ->with([
                 'assignee:id,name,email',
+                'tags:id,name,color',
                 // Only the placements whose project the reader can open, and the project itself
                 // — one query for the page rather than one per row.
                 'placements' => fn (Relation $placements) => $placements
@@ -185,6 +187,13 @@ final readonly class MyTasksQuery
                 'email' => $assignee->email,
                 'avatar' => null,
             ],
+            'tags' => array_values($task->tags
+                ->map(fn (Tag $tag): array => [
+                    'id' => $tag->id,
+                    'name' => $tag->name,
+                    'color' => $tag->color?->value,
+                ])
+                ->all()),
             // Where the task lives, which is where multi-project membership becomes visible
             // (`docs/ui/inbox.md`) — and only the parts of it this reader may know about.
             'projects' => array_values($task->placements

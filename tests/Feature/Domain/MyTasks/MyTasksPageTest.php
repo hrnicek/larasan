@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
@@ -160,4 +161,31 @@ it('refuses to be paged past the end into nothing sensible', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->has('tasks', 0)
             ->where('meta.hasMore', false));
+});
+
+it('carries the tags a row draws', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    $task = Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
+    $task->tags()->attach(Tag::factory()->in($workspace)->named('Billing')->create());
+
+    // The row is the list view's component and it draws chips unconditionally: a payload without
+    // the key crashes the render, and a crashed render is a screen whose controls do nothing.
+    $this->actingAs($actor)
+        ->get(route('my-tasks.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('tasks.0.tags', 1)
+            ->where('tasks.0.tags.0.name', 'Billing'));
+});
+
+it('sends an empty list for a task nobody tagged', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
+
+    $this->actingAs($actor)
+        ->get(route('my-tasks.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('tasks.0.tags', 0));
 });

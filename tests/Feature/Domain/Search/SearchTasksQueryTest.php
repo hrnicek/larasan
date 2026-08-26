@@ -10,6 +10,7 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
+use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -242,4 +243,22 @@ it('searches the words of a description and not its markup', function (): void {
     expect(found($workspace, $actor, 'deployment'))->toBe(['Ship the release'])
         ->and(found($workspace, $actor, 'strong'))->toBe([])
         ->and(found($workspace, $actor, 'p'))->toBe([]);
+});
+
+it('carries the tags a result row draws', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+
+    $task = Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
+    $task->tags()->attach(Tag::factory()->in($workspace)->named('Billing')->create());
+
+    // A result is drawn by the same row component as My Tasks, and that component draws chips
+    // unconditionally: a row without the key takes the render down with it.
+    $rows = app(SearchTasksQuery::class)($workspace, $actor, 'login', 1)['tasks'];
+
+    expect($rows[0]['tags'])->toBe([[
+        'id' => $task->tags()->sole()->id,
+        'name' => 'Billing',
+        'color' => $task->tags()->sole()->color?->value,
+    ]]);
 });

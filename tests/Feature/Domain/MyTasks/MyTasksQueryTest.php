@@ -196,7 +196,8 @@ it('reads a page of tasks in several projects without a query per row', function
 
     $result = myTasks($workspace, $actor);
 
-    // Ten tasks in three projects each: the count, the page, the placements and their projects.
+    // Ten tasks in three projects each: the count, the page, the tags, the placements and their
+    // projects.
     expect($result['tasks'])->toHaveCount(10)
-        ->and(count($queries))->toBeLessThanOrEqual(6);
+        ->and(count($queries))->toBeLessThanOrEqual(7);
 });
