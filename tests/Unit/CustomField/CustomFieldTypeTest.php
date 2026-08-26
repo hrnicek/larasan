@@ -10,7 +10,7 @@ it('names one column per type, and lists each column once', function (): void {
      * A type has exactly one column; a column may serve several types. `email`, `phone` and
      * `link` are text with a format rather than a new kind of storage — they sort as text, so a
      * column each would buy no ordering and cost an index each on the largest table in the
-     * schema (TASK-240-007 amends `docs/architecture/database.md`).
+     * schema (TASK-240-008 amends `docs/architecture/database.md`).
      */
     foreach (CustomFieldType::cases() as $type) {
         expect($type->column())->toBeIn(CustomFieldType::columns());
