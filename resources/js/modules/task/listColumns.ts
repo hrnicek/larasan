@@ -10,11 +10,11 @@
  * two lines below `md`.
  *
  * What the name cell gives its room to, it gives in this order: the title first, down to a floor
- * (`TaskTextField`), then as many tag chips as the cell can hold with a count for the rest
- * (`TagChips`), then the comment count. The cell is a container query container, so those two read
- * its width rather than the window's — a project's custom field columns decide how much of the
- * window the name ever sees. Three components share that one rule, and the row where the chips won
- * it, a title measured at zero with the tags drawn over it, is why it is written down here.
+ * (`TaskTextField`), then the comment count. The cell is a container query container, so the floor
+ * reads its width rather than the window's — a project's custom field columns decide how much of
+ * the window the name ever sees. Tags were drawn here too until they were taken out of the row
+ * (TASK-230-010); the floor is what is left of that, and it is what stops a title being measured
+ * at zero by whatever ends up beside it next.
  *
  * Every width is `md:`-scoped, and that is not a detail. Below `md` the row *is* two lines and
  * the cells are no longer columns; a 176px assignee and a 112px priority on a 375px line push the

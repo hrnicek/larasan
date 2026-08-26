@@ -5,6 +5,10 @@
  * input of the column the focus is in. Everything else — completing with `Space`, opening a
  * picker, `Esc` to cancel — belongs to the control that has focus, because a list-wide
  * handler that guessed would fight the popovers.
+ *
+ * A field that is being typed in is the whole of the keyboard. `n` is a letter before it is a
+ * shortcut, and `↑` and `↓` are the caret before they are the list — a row's title could not be
+ * renamed to anything containing an `n` while this handler still had an opinion about it.
  */
 export function useTaskListKeyboard(container: () => HTMLElement | null): {
     onKeydown: (event: KeyboardEvent) => void;
@@ -12,11 +16,15 @@ export function useTaskListKeyboard(container: () => HTMLElement | null): {
     const rowsOf = (root: HTMLElement): HTMLElement[] =>
         Array.from(root.querySelectorAll<HTMLElement>('[data-task-row]'));
 
+    const isTyping = (target: EventTarget | null): boolean =>
+        target instanceof HTMLElement
+        && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+
     return {
         onKeydown(event: KeyboardEvent): void {
             const root = container();
 
-            if (root === null) {
+            if (root === null || isTyping(event.target)) {
                 return;
             }
 

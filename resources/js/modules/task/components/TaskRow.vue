@@ -3,7 +3,6 @@ import { Form, router } from '@inertiajs/vue3';
 import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import TagChips from '@/modules/tag/components/TagChips.vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
@@ -85,7 +84,7 @@ defineExpose({ focus: () => row.value?.focus() });
         :data-placement-id="task.placementId"
         class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-muted/40 focus-visible:bg-accent md:flex-row md:items-stretch md:gap-0 md:px-0 md:py-0"
         :class="[completed() ? 'text-muted-foreground' : '', dragging ? 'opacity-50' : '']"
-        @keydown.space.prevent="toggleCompletion"
+        @keydown.space.self.prevent="toggleCompletion"
         @keydown.enter.self="emit('open', task.id)"
     >
         <!--
@@ -182,12 +181,8 @@ defineExpose({ focus: () => row.value?.focus() });
 
             <span v-else class="flex min-h-11 min-w-0 items-center truncate md:min-h-6">{{ task.title }}</span>
 
-            <!-- Beside the name, because a tag says what the task is about, and a count says how
-                 much has been said about it. Both come after the title: `TagChips` draws as many
-                 chips as this cell can hold and counts the rest, and the cell is the `@container`
-                 it measures itself against. -->
-            <TagChips :tags="task.tags" />
-
+            <!-- After the title, because a count says how much has been said about the task and
+                 the title says what it is. -->
             <span v-if="task.comments > 0" class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                 <MessageSquare class="size-3.5" aria-hidden="true" />
                 {{ task.comments }}
