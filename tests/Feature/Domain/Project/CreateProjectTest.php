@@ -8,6 +8,7 @@ use App\Domain\Project\Events\ProjectCreated;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Section\Data\CreateSectionData;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
@@ -58,7 +59,10 @@ it('opens the project with one placeholder column', function (): void {
     expect($project->sections()->pluck('name')->all())->toBe(['Untitled section'])
         ->and(Section::DEFAULT_NAMES)->toBe(['Untitled section'])
         ->and($project->sections()->pluck('position')->all())
-        ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)));
+        ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)))
+        // Slate, the same colour a column added by hand starts with — the project's first column
+        // is not a different kind of column.
+        ->and($project->sections()->first()?->color)->toBe(CreateSectionData::DEFAULT_COLOR);
 });
 
 it('rolls the default sections back with the project', function (): void {

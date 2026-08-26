@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { MoreHorizontal, Palette, Pencil, Plus, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, MoreHorizontal, Palette, Pencil, Plus, Trash2 } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import {
@@ -30,6 +30,16 @@ const props = defineProps<{
     name: string | null;
     /** The column's own colour, so the palette opens on the one it already has. */
     color: string | null;
+    /**
+     * Every column this project draws, in the order it draws them — the ungrouped bucket
+     * included, since it is one of them on the screen even though it is not a section.
+     *
+     * Needed because a move is an anchor rather than a position (ADR-0009): "one place earlier"
+     * can only be expressed as "after the one two places above", which needs the neighbours.
+     */
+    siblings: (string | null)[];
+    /** Columns move sideways on the board and up and down in the list. The verb follows. */
+    variant: 'board' | 'list';
     can: { create: boolean; update: boolean; delete: boolean };
 }>();
 
@@ -37,6 +47,36 @@ const emit = defineEmits<{ rename: [] }>();
 
 const deleting = ref(false);
 const working = ref(false);
+
+/** The real sections, in order. The ungrouped bucket has no id and cannot be moved. */
+const order = computed((): string[] => props.siblings.filter((id): id is string => id !== null));
+
+const index = computed((): number => (props.sectionId === null ? -1 : order.value.indexOf(props.sectionId)));
+
+const canMoveEarlier = computed((): boolean => index.value > 0);
+const canMoveLater = computed((): boolean => index.value >= 0 && index.value < order.value.length - 1);
+
+/**
+ * Moving is the endpoint `SectionManager` used one screen away, brought to the column itself —
+ * which is where somebody looking at a board wants it, and is why the settings screen no longer
+ * carries a copy of these controls.
+ *
+ * `after` is the section this one lands behind: two places above for a step earlier, because the
+ * one directly above is the one being passed; `null` is the front.
+ */
+function move(after: string | null): void {
+    if (props.sectionId === null) {
+        return;
+    }
+
+    working.value = true;
+
+    router.put(
+        SectionController.move.url(props.sectionId),
+        { after },
+        { preserveScroll: true, onFinish: () => (working.value = false) },
+    );
+}
 
 /**
  * A new column, at the end.
@@ -128,6 +168,31 @@ function remove(): void {
                     />
                 </DropdownMenuSubContent>
             </DropdownMenuSub>
+
+            <template v-if="can.update && sectionId !== null && order.length > 1">
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                    :disabled="working || !canMoveEarlier"
+                    @select="move(index >= 2 ? order[index - 2] : null)"
+                >
+                    <component
+                        :is="variant === 'board' ? ChevronLeft : ChevronUp"
+                        class="mr-2 size-4 text-muted-foreground"
+                    />
+                    {{ variant === 'board' ? 'Move left' : 'Move up' }}
+                </DropdownMenuItem>
+
+                <DropdownMenuItem :disabled="working || !canMoveLater" @select="move(order[index + 1])">
+                    <component
+                        :is="variant === 'board' ? ChevronRight : ChevronDown"
+                        class="mr-2 size-4 text-muted-foreground"
+                    />
+                    {{ variant === 'board' ? 'Move right' : 'Move down' }}
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+            </template>
 
             <DropdownMenuItem v-if="can.create" :disabled="working" @select="add">
                 <Plus class="mr-2 size-4 text-muted-foreground" />

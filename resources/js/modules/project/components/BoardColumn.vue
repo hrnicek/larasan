@@ -113,6 +113,8 @@ const emit = defineEmits<{
                 :section-id="column.id"
                 :name="column.name"
                 :color="column.color"
+                :siblings="columns.map((sibling) => sibling.id)"
+                variant="board"
                 :can="canSection"
                 @rename="startRename"
             />

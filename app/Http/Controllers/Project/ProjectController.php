@@ -20,7 +20,6 @@ use App\Domain\Project\Queries\ProjectCalendarQuery;
 use App\Domain\Project\Queries\ProjectFilesQuery;
 use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
-use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
@@ -294,17 +293,6 @@ class ProjectController extends Controller
                 'due_date' => $project->due_date?->toDateString(),
                 'archived' => $project->isArchived(),
             ],
-            /*
-             * The columns, in order, with the abilities the actor has over them. Sections
-             * are edited here until the board and the list screens exist (Phases 080 and
-             * 090) — a project already has one screen, and columns nobody can reach are
-             * columns nobody can fix.
-             */
-            'sections' => $project->sections()->get()->map(fn (Section $section): array => [
-                'id' => $section->id,
-                'name' => $section->name,
-                'color' => $section->color?->value,
-            ])->all(),
             /*
              * What this project records beyond a title and a due date, and what the workspace has
              * defined that it does not. Both lists whole: a workspace's fields are few, and

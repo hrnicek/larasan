@@ -48,10 +48,15 @@ it('announces only what changed, and stays quiet on a no-op', function (): void 
     $section = addSection($project, $actor, 'Backlog');
     Event::fake();
 
-    renameSection($section, $actor, new UpdateSectionData(name: 'Backlog'));
+    /*
+     * The colour goes with the name, because `PUT` replaces both columns and a column now starts
+     * slate rather than colourless — omitting it would clear it, which is a change and would
+     * announce itself. Every caller on the screen sends both for the same reason.
+     */
+    renameSection($section, $actor, new UpdateSectionData(name: 'Backlog', color: $section->color));
     Event::assertNotDispatched(SectionUpdated::class);
 
-    renameSection($section, $actor, new UpdateSectionData(name: 'Later'));
+    renameSection($section, $actor, new UpdateSectionData(name: 'Later', color: $section->color));
     Event::assertDispatched(SectionUpdated::class, fn (SectionUpdated $event): bool => $event->changed === ['name']);
 });
 

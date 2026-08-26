@@ -10,7 +10,6 @@ import {
     Columns3,
     Eye,
     Kanban,
-    Layers,
     List,
     ListChecks,
     Lock,
@@ -41,12 +40,10 @@ import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 import ProjectSettingsNav from '@/modules/project/components/ProjectSettingsNav.vue';
 import ProjectSettingsSection from '@/modules/project/components/ProjectSettingsSection.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
-import SectionManager from '@/modules/project/components/SectionManager.vue';
 import type {
     ProjectAbilities,
     ProjectCustomFields,
     ProjectOptions,
-    ProjectSection,
     ProjectSettings,
     ProjectSettingsNavGroup,
 } from '@/modules/project/types';
@@ -55,7 +52,6 @@ import { show } from '@/routes/projects';
 const props = defineProps<{
     project: ProjectSettings;
     options: ProjectOptions;
-    sections: ProjectSection[];
     customFields: ProjectCustomFields;
     can: ProjectAbilities;
 }>();
@@ -151,7 +147,8 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
     {
         label: 'Structure',
         items: [
-            { id: 'sections', label: 'Sections', icon: Layers },
+            // Sections are not here: a column is added, renamed, coloured, moved and deleted from
+            // the board and the list, which is where somebody is looking at it (TASK-250-007).
             { id: 'fields', label: 'Fields', icon: ListChecks },
         ],
     },
@@ -483,18 +480,6 @@ function discard(reset: () => void): void {
                         <h2 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
                             Structure
                         </h2>
-
-                        <ProjectSettingsSection
-                            id="sections"
-                            title="Sections"
-                            description="The columns this project's tasks are grouped into"
-                        >
-                            <SectionManager
-                                :project-id="props.project.id"
-                                :sections="props.sections"
-                                :can="{ update: props.can.update, createSection: props.can.createSection }"
-                            />
-                        </ProjectSettingsSection>
 
                         <ProjectSettingsSection
                             id="fields"

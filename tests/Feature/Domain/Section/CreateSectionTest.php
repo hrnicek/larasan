@@ -78,6 +78,19 @@ it('announces the section it created', function (): void {
         && $event->createdById === $actor->id);
 });
 
+it('starts a column slate rather than colourless', function (): void {
+    [$project, $actor] = projectEditableBy();
+
+    $section = app(CreateSection::class)->handle($project, $actor, new CreateSectionData(name: 'Blocked'));
+
+    /*
+     * A column with no colour draws no band at all, which reads as one somebody forgot rather
+     * than a neutral one — and beside a coloured column it looks like a bug. The palette can
+     * still clear it afterwards.
+     */
+    expect($section->fresh()?->color)->toBe(ProjectColor::Slate);
+});
+
 it('stores a palette colour', function (): void {
     [$project, $actor] = projectEditableBy();
 

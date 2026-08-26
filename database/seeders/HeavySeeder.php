@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
+use App\Domain\Section\Data\CreateSectionData;
 use App\Domain\Shared\Enums\ActivityType;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
@@ -517,7 +518,7 @@ class HeavySeeder extends Seeder
                 'id' => $id,
                 'project_id' => $project,
                 'name' => $name,
-                'color' => null,
+                'color' => CreateSectionData::DEFAULT_COLOR->value,
                 'position' => $positions[$index],
                 'created_at' => $created,
                 'updated_at' => $created,

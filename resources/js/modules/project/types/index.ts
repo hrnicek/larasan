@@ -104,12 +104,6 @@ export type ProjectSettings = ProjectSummary & {
     archived: boolean;
 };
 
-export type ProjectSection = {
-    id: string;
-    name: string;
-    color: string | null;
-};
-
 export type ProjectOptions = {
     colors: string[];
     views: string[];

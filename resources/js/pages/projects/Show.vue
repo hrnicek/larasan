@@ -11,6 +11,7 @@ import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import type { ProjectPages } from '@/modules/page/types';
+import InlineSectionCreate from '@/modules/project/components/InlineSectionCreate.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import type { ProjectCustomize, ProjectFiles, ProjectHeading, ProjectShare } from '@/modules/project/types';
 import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable, PagesTree } from '@/modules/project/views';
@@ -366,6 +367,13 @@ onUnmounted(() => {
                 @moveto="drag.moveTo"
                 @open="openTask"
             />
+
+            <!-- At the end of the row, where the next column would go. -->
+            <InlineSectionCreate
+                v-if="board.can.createSection"
+                :project-id="project.id"
+                variant="board"
+            />
         </div>
 
         <template v-else-if="list">
@@ -394,6 +402,7 @@ onUnmounted(() => {
                     :creatable="creatable()"
                     :project-id="project.id"
                     :columns="list?.columns"
+                    :siblings="sections.map((group) => group.id)"
                 :can-section="list ? {
                     create: list.can.createSection,
                     update: list.can.updateSection,
@@ -407,6 +416,13 @@ onUnmounted(() => {
                     @open="openTask"
                 @pickup="(event, task) => listDrag.pickUp(event, task)"
                 />
+
+                <!-- Under the last group, where the next one would start. -->
+                <InlineSectionCreate
+                    v-if="list.can.createSection"
+                    :project-id="project.id"
+                    variant="list"
+                />
             </div>
 
             <EmptyState
@@ -416,7 +432,7 @@ onUnmounted(() => {
                 title="This project is empty"
                 :description="
                     creatable()
-                        ? 'Add the first task, or give it columns in the project settings.'
+                        ? 'Add the first task, or give it a section to group them under.'
                         : 'Nothing has been put in it yet.'
                 "
             >

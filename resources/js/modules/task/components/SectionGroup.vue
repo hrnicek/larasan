@@ -38,6 +38,11 @@ const props = defineProps<{
     /** The project's field columns, passed through to each row (TASK-150-008). */
     /** The columns after the name, in the order the project draws them (TASK-240-010). */
     columns?: ListColumn[];
+    /**
+     * Every group this list draws, in order, so the menu can express a move as an anchor
+     * (ADR-0009). The ungrouped bucket is one of them on the screen and has no id.
+     */
+    siblings?: (string | null)[];
 }>();
 
 const emit = defineEmits<{
@@ -137,6 +142,8 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 :section-id="section.id"
                 :name="section.name"
                 :color="section.color"
+                :siblings="siblings ?? []"
+                variant="list"
                 :can="canSection"
                 @rename="startRename"
             />

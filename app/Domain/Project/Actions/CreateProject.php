@@ -9,6 +9,7 @@ use App\Domain\Project\Events\ProjectCreated;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Section\Data\CreateSectionData;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
@@ -88,7 +89,7 @@ final readonly class CreateProject
             $positions = SparsePosition::spread(count(Section::DEFAULT_NAMES));
 
             foreach (Section::DEFAULT_NAMES as $index => $name) {
-                $section = new Section(['name' => $name, 'color' => null, 'position' => $positions[$index]]);
+                $section = new Section(['name' => $name, 'color' => CreateSectionData::DEFAULT_COLOR, 'position' => $positions[$index]]);
                 $section->project_id = $project->id;
                 $section->save();
             }
