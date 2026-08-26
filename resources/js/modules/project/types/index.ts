@@ -1,4 +1,5 @@
 import type { Component } from 'vue';
+import type { CustomFieldType } from '@/modules/custom-field/types';
 
 export type ProjectSummary = {
     id: string;
@@ -85,6 +86,20 @@ export type ProjectAbilities = {
     delete: boolean;
     manageMembers: boolean;
     createSection: boolean;
+    /**
+     * A column on everybody's board is a workspace decision (ADR-0010), so this is not implied by
+     * `update`: a project editor can rename the project and still not choose what it records.
+     */
+    manageFields: boolean;
+};
+
+/**
+ * What this project records beyond a title and a due date, and what the workspace has defined that
+ * it does not yet show.
+ */
+export type ProjectCustomFields = {
+    attached: { id: string; name: string; type: CustomFieldType }[];
+    available: { id: string; name: string; type: CustomFieldType }[];
 };
 
 /**

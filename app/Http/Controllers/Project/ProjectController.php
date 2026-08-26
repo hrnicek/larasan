@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Project;
 
 use App\Concerns\OpensTaskPanel;
+use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Page\Queries\ProjectPagesQuery;
 use App\Domain\Project\Actions\ArchiveProject;
 use App\Domain\Project\Actions\CreateProject;
@@ -31,6 +32,7 @@ use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Project\ShowProjectRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -243,6 +245,20 @@ class ProjectController extends Controller
                 'color' => $section->color?->value,
             ])->all(),
             /*
+             * What this project records beyond a title and a due date, and what the workspace has
+             * defined that it does not. Both lists whole: a workspace's fields are few, and
+             * paginating a picker somebody opens once is machinery for nothing.
+             */
+            'customFields' => [
+                'attached' => $this->fields($project->customFields),
+                'available' => $this->fields(
+                    $project->workspace->customFields()
+                        ->whereNotIn('id', $project->customFields->modelKeys())
+                        ->orderBy('name')
+                        ->get(),
+                ),
+            ],
+            /*
              * The enums the form offers come from the server, so a case added later
              * appears in the UI without a second list to remember.
              */
@@ -257,6 +273,12 @@ class ProjectController extends Controller
                 'delete' => $user->can('delete', $project),
                 'manageMembers' => $user->can('manageMembers', $project),
                 'createSection' => $user->can('createSection', $project),
+                /*
+                 * A column on everybody's board is a workspace decision (ADR-0010), so a project
+                 * editor who is not an owner or an admin reads this card and changes nothing on
+                 * it.
+                 */
+                'manageFields' => $user->can(Capability::CustomFieldManage->value, $project->workspace),
             ],
         ]);
     }
@@ -300,5 +322,20 @@ class ProjectController extends Controller
     private function currentWorkspace(Request $request): Workspace
     {
         return ResolveCurrentWorkspace::from($request) ?? abort(404);
+    }
+
+    /**
+     * @param  Collection<int, CustomField>  $fields
+     * @return list<array{id: string, name: string, type: string}>
+     */
+    private function fields(Collection $fields): array
+    {
+        return array_values($fields
+            ->map(fn (CustomField $field): array => [
+                'id' => $field->id,
+                'name' => $field->name,
+                'type' => $field->type->value,
+            ])
+            ->all());
     }
 }

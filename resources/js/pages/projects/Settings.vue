@@ -12,6 +12,7 @@ import {
     Kanban,
     Layers,
     List,
+    ListChecks,
     Lock,
     Palette,
     TriangleAlert,
@@ -34,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ProjectFieldManager from '@/modules/custom-field/components/ProjectFieldManager.vue';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 import ProjectSettingsNav from '@/modules/project/components/ProjectSettingsNav.vue';
@@ -42,6 +44,7 @@ import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import SectionManager from '@/modules/project/components/SectionManager.vue';
 import type {
     ProjectAbilities,
+    ProjectCustomFields,
     ProjectOptions,
     ProjectSection,
     ProjectSettings,
@@ -53,6 +56,7 @@ const props = defineProps<{
     project: ProjectSettings;
     options: ProjectOptions;
     sections: ProjectSection[];
+    customFields: ProjectCustomFields;
     can: ProjectAbilities;
 }>();
 
@@ -144,7 +148,13 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
               },
           ]
         : []),
-    { label: 'Structure', items: [{ id: 'sections', label: 'Sections', icon: Layers }] },
+    {
+        label: 'Structure',
+        items: [
+            { id: 'sections', label: 'Sections', icon: Layers },
+            { id: 'fields', label: 'Fields', icon: ListChecks },
+        ],
+    },
     ...(props.can.archive
         ? [
               {
@@ -483,6 +493,19 @@ function discard(reset: () => void): void {
                                 :project-id="props.project.id"
                                 :sections="props.sections"
                                 :can="{ update: props.can.update, createSection: props.can.createSection }"
+                            />
+                        </ProjectSettingsSection>
+
+                        <ProjectSettingsSection
+                            id="fields"
+                            title="Fields"
+                            description="What this project records about a task beyond its title and dates"
+                        >
+                            <ProjectFieldManager
+                                :project-id="props.project.id"
+                                :attached="props.customFields.attached"
+                                :available="props.customFields.available"
+                                :can-manage="props.can.manageFields"
                             />
                         </ProjectSettingsSection>
                     </section>
