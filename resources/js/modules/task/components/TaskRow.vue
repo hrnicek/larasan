@@ -3,7 +3,7 @@ import { Form, router } from '@inertiajs/vue3';
 import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
 import { ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import { accentChipClass } from '@/lib/accentColor';
+import TagChips from '@/modules/tag/components/TagChips.vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
@@ -121,7 +121,7 @@ defineExpose({ focus: () => row.value?.focus() });
             renaming is the thing done most often to a row.
         -->
         <div
-            class="flex items-center gap-2 md:cursor-pointer"
+            class="@container flex min-w-0 items-center gap-2 overflow-hidden md:cursor-pointer"
             :class="[listColumns.name, listColumns.cell, listColumns.hover]"
             @click.self="emit('open', task.id)"
         >
@@ -183,15 +183,10 @@ defineExpose({ focus: () => row.value?.focus() });
             <span v-else class="flex min-h-11 min-w-0 items-center truncate md:min-h-6">{{ task.title }}</span>
 
             <!-- Beside the name, because a tag says what the task is about, and a count says how
-                 much has been said about it. -->
-            <span
-                v-for="tag in task.tags"
-                :key="tag.id"
-                class="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium"
-                :class="accentChipClass(tag.color)"
-            >
-                {{ tag.name }}
-            </span>
+                 much has been said about it. Both come after the title: `TagChips` draws as many
+                 chips as this cell can hold and counts the rest, and the cell is the `@container`
+                 it measures itself against. -->
+            <TagChips :tags="task.tags" />
 
             <span v-if="task.comments > 0" class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
                 <MessageSquare class="size-3.5" aria-hidden="true" />
@@ -222,9 +217,9 @@ defineExpose({ focus: () => row.value?.focus() });
                 :key="field.id"
                 class="hidden items-center text-xs text-muted-foreground md:flex"
                 :class="[listColumns.field, listColumns.cell, listColumns.hover]"
-                :title="field.name"
+                :title="`${field.name}: ${answerOf(field.id, field.type)}`"
             >
-                {{ answerOf(field.id, field.type) }}
+                <span class="truncate">{{ answerOf(field.id, field.type) }}</span>
             </span>
 
             <div class="flex items-center" :class="[listColumns.assignee, listColumns.cell, listColumns.hover]">

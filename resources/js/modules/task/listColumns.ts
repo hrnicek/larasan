@@ -9,6 +9,13 @@
  * span components that are siblings, and a table would give up the row's ability to reflow onto
  * two lines below `md`.
  *
+ * What the name cell gives its room to, it gives in this order: the title first, down to a floor
+ * (`TaskTextField`), then as many tag chips as the cell can hold with a count for the rest
+ * (`TagChips`), then the comment count. The cell is a container query container, so those two read
+ * its width rather than the window's — a project's custom field columns decide how much of the
+ * window the name ever sees. Three components share that one rule, and the row where the chips won
+ * it, a title measured at zero with the tags drawn over it, is why it is written down here.
+ *
  * Every width is `md:`-scoped, and that is not a detail. Below `md` the row *is* two lines and
  * the cells are no longer columns; a 176px assignee and a 112px priority on a 375px line push the
  * last one off the screen — which is exactly what they did before this was scoped.
@@ -26,8 +33,12 @@ export const listColumns = {
     assignee: 'md:w-44 md:shrink-0',
     due: 'md:w-28 md:shrink-0',
     priority: 'md:w-28 md:shrink-0',
-    /** One custom field's answer. Narrow on purpose: a project can attach several. */
-    field: 'truncate md:w-32 md:shrink-0',
+    /**
+     * One custom field's answer. Narrow on purpose: a project can attach several. The cell is a
+     * flex row, where `truncate` clips without ever drawing the ellipsis it is asked for, so the
+     * text inside it carries that class instead — here it would only hide the overflow.
+     */
+    field: 'md:w-32 md:shrink-0',
     /** The empty column that carries the table to the right edge of the page. */
     filler: 'hidden md:block md:w-12 md:shrink-0',
     /** What makes a cell a cell: the line to its right and the room inside it. */

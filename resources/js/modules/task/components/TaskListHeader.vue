@@ -37,7 +37,7 @@ withDefaults(defineProps<{
             :class="[listColumns.field, listColumns.cell]"
             :title="field.name"
         >
-            {{ field.name }}
+            <span class="truncate">{{ field.name }}</span>
         </span>
 
         <span class="flex items-center" :class="[listColumns.assignee, listColumns.cell]">Assignee</span>

@@ -71,11 +71,19 @@ const save = (): void => {
 </script>
 
 <template>
-    <div class="flex min-w-0 flex-col gap-1">
+    <div class="flex flex-col gap-1" :class="size === 'row' ? 'min-w-24 shrink @lg:min-w-32' : 'min-w-0'">
         <!--
             In a row the field is only as wide as what is written in it: the rest of the cell
             belongs to the row, which opens the task. An input will not size itself to its value,
             so a hidden twin of the text does the measuring and both share one grid cell.
+
+            The floor is the other half of that rule. What is beside the field in a row — tags, a
+            comment count — used to be able to take every pixel of it, and a title measured at zero
+            is a row with no name on it. So the field is the one thing in the cell that gives way,
+            and it gives way down to a floor: 6rem in a narrow name cell, 8rem once that cell is
+            wide enough to afford it — the cell is the container these widths answer to, because
+            a project's field columns decide how much of the window the name ever sees. An input
+            cannot draw an ellipsis, so what it had to cut is in the tooltip.
         -->
         <div class="grid min-w-0 max-w-full">
             <span
@@ -91,6 +99,7 @@ const save = (): void => {
                 type="text"
                 :disabled="!editable || saving"
                 :placeholder="placeholder"
+                :title="size === 'row' ? draft : undefined"
                 class="col-start-1 row-start-1 w-full rounded-md border border-transparent bg-transparent hover:border-input focus:border-input focus:outline-none disabled:opacity-70"
                 :class="
                     size === 'row'
