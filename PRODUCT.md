@@ -20,7 +20,7 @@ ADR-0006) that is enforced separately.
 
 ## Product Purpose
 
-**Basalt** is a multi-tenant project management application: workspaces contain projects,
+**Larasan** is a multi-tenant project management application: workspaces contain projects,
 projects contain tasks, and a task can appear in more than one project without being copied.
 Success is a team that can see its work in a list, a board and a personal queue that all agree,
 because the server is the single authority for domain state.
@@ -74,10 +74,11 @@ dashboard builders, multi-assignee tasks, offline sync.
 
 ## Brand Commitments
 
-- The name is **Basalt**, written down in exactly one place (`APP_NAME`); the manifest, the
-  shell and the browser tab all read it from there.
-- The mark is a flat-top hexagon with a vertical slot left of centre — a basalt column seen
-  end-on (`resources/js/components/AppLogoIcon.vue`, `public/favicon.svg`).
+- The name is **Larasan** — *laras*, to be in tune, and *-an*, the thing brought into tune —
+  written down in exactly one place (`APP_NAME`); the manifest, the shell and the browser tab all
+  read it from there.
+- The mark is three slabs of unequal length with slanted ends: gamelan keys in tune, and task
+  bars on a timeline (`resources/js/components/AppLogoIcon.vue`, `public/favicon.svg`).
 - The visual language is settled in `docs/adr/0014-brand-and-visual-language.md`: dark chrome
   in both themes, plum accent at hue 330, Instrument Sans, no new font package.
 - Voice: material and unfussy. Short, literal labels ("unassigned", not an empty box). The
