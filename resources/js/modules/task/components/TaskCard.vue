@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckSquare, MessageSquare, MoveRight, TriangleAlert, UserRound } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import {
     DropdownMenu,
@@ -37,6 +37,42 @@ const emit = defineEmits<{
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 
+/*
+ * Where the pointer went down, so the card can tell a click from the end of a drag — the same
+ * guard `CalendarTaskChip` uses, and for the same reason: both finish with a `click` over
+ * whatever the pointer is above, and opening the panel every time somebody moves a card would
+ * make dragging useless.
+ */
+const origin = ref<{ x: number; y: number } | null>(null);
+
+const down = (event: PointerEvent): void => {
+    origin.value = { x: event.clientX, y: event.clientY };
+
+    if (props.editable) {
+        emit('pickup', event, props.card);
+    }
+};
+
+/**
+ * The whole card opens the task, not only its title. A card is a thing to click, and the parts
+ * of it that are not the title — the cover, the chips, the room around them — were dead surface
+ * that looked exactly as clickable as the rest.
+ *
+ * Controls inside it are not: the menu answers for itself, and a click that reached it is not a
+ * click on the card.
+ */
+const activate = (event: MouseEvent): void => {
+    const from = origin.value;
+
+    origin.value = null;
+
+    if (from !== null && Math.hypot(event.clientX - from.x, event.clientY - from.y) >= 4) {
+        return;
+    }
+
+    emit('open', props.card.id);
+};
+
 const day = computed<string | null>(() => dayOf(props.card.dueAt));
 
 /** Overdue is red **and** carries an icon **and** says so in the label: colour alone is not a message. */
@@ -51,14 +87,18 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
         data-task-card
         :data-task-id="card.id"
         :data-placement-id="card.placementId"
-        class="group/card rounded-md border border-border bg-card p-3 text-sm outline-none transition-shadow hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary-ring"
+        class="group/card cursor-pointer rounded-md border border-border bg-card p-3 text-sm outline-none transition-shadow hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary-ring"
         :class="[
             card.completedAt ? 'text-muted-foreground' : '',
             dragging ? 'opacity-50' : '',
-            editable ? 'cursor-grab touch-none active:cursor-grabbing' : '',
+            // The pointer, not the open hand: the card's first meaning is that it opens, and
+            // `active:` still says what a drag in progress is. A viewer who cannot drag gets the
+            // same pointer, because they can still open it.
+            editable ? 'touch-none active:cursor-grabbing' : '',
         ]"
-        @pointerdown="editable ? emit('pickup', $event, card) : undefined"
-        @keydown.enter="emit('open', card.id)"
+        @pointerdown="down"
+        @click="activate"
+        @keydown.enter.self="emit('open', card.id)"
     >
         <!-- The first picture attached to the task, if it has one. The thumbnail rather than the
              original, at a fixed ratio: a column of cards whose heights depend on what somebody
@@ -84,11 +124,12 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
             </span>
         </div>
 
+        <!-- Still a control of its own, so the title is reachable by keyboard and named to a
+             screen reader. Its click needs no handler: it lands on the card like any other. -->
         <button
             type="button"
-            class="line-clamp-3 w-full text-left"
+            class="line-clamp-3 w-full cursor-pointer text-left"
             :class="card.completedAt ? 'line-through' : ''"
-            @click="emit('open', card.id)"
         >
             {{ card.title }}
         </button>
@@ -137,6 +178,8 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
                 <DropdownMenuTrigger
                     class="ml-auto inline-flex size-6 items-center justify-center rounded-md opacity-0 transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     aria-label="Move to another column"
+                    @click.stop
+                    @pointerdown.stop
                 >
                     <MoveRight class="size-3.5" />
                 </DropdownMenuTrigger>

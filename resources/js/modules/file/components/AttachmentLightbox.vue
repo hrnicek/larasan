@@ -2,6 +2,7 @@
 import { ChevronLeft, ChevronRight, Download } from '@lucide/vue';
 import { computed, onBeforeUnmount, watch } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { formatFileSize } from '@/lib/fileSize';
 import type { TaskAttachment } from '@/modules/task/types';
@@ -85,13 +86,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     </DialogDescription>
                 </div>
 
-                <a
+                <!-- Named, not an icon. It sat beside the dialog's own close cross as a glyph
+                     nobody read as a control, and `mr-8` is the room that cross occupies. -->
+                <Button
+                    as="a"
+                    variant="outline"
+                    size="sm"
+                    class="mr-8 ml-auto shrink-0 gap-1.5"
                     :href="AttachmentController.download.url(current.id)"
-                    class="ml-auto inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    :aria-label="`Download ${current.name}`"
+                    :download="current.name"
                 >
-                    <Download class="size-4" />
-                </a>
+                    <Download class="size-4" aria-hidden="true" />
+                    Download
+                </Button>
             </div>
 
             <div class="relative flex min-h-0 items-center justify-center">
