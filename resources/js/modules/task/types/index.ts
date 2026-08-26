@@ -1,3 +1,5 @@
+import type { CustomFieldType } from '@/modules/custom-field/types';
+
 export type TaskAssignee = {
     id: number;
     name: string;
@@ -41,7 +43,7 @@ export type TaskRowData = {
 export type ListFieldColumn = {
     id: string;
     name: string;
-    type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+    type: CustomFieldType;
 };
 
 export type TaskSectionGroup = {
@@ -228,7 +230,7 @@ export type TaskAttachment = {
 export type TaskCustomField = {
     id: string;
     name: string;
-    type: 'text' | 'number' | 'date' | 'boolean' | 'select';
+    type: CustomFieldType;
     options: { id: string; label: string; color: string | null }[];
     value: string | number | boolean | null;
 };

@@ -224,3 +224,67 @@ it('answers a field from another workspace with a 404', function (): void {
 it('turns nobody away who is not signed in', function (): void {
     $this->get(route('custom-fields.index'))->assertRedirect(route('login'));
 });
+
+/*
+ * `email`, `phone` and `link` are text with a format: the server stores all four in `value_text`
+ * and refuses the shape before the request reaches the database.
+ */
+
+it('defines a field of each text-shaped type', function (string $type): void {
+    [, $owner] = workspaceWith(WorkspaceRole::Owner);
+
+    $this->actingAs($owner)
+        ->post(route('custom-fields.store'), ['name' => ucfirst($type), 'type' => $type])
+        ->assertRedirect();
+
+    expect(CustomField::query()->sole()->type)->toBe(CustomFieldType::from($type));
+})->with(['email', 'phone', 'link']);
+
+it('writes an address, a number to call and a link into the text column', function (
+    CustomFieldType $type,
+    string $sent,
+): void {
+    [$task, $field, $actor] = fieldOnATask($type);
+
+    $this->actingAs($actor)
+        ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => $sent])
+        ->assertRedirect();
+
+    // One column for four types, and the field in hand says which of them this is.
+    expect($task->customFieldValues()->sole()->value_text)->toBe($sent);
+})->with([
+    'email' => [CustomFieldType::Email, 'someone@example.com'],
+    'phone' => [CustomFieldType::Phone, '+420 123 456 789'],
+    'link' => [CustomFieldType::Link, 'https://example.com/handover'],
+]);
+
+it('refuses a value that is not the shape its type promises', function (
+    CustomFieldType $type,
+    string $sent,
+): void {
+    [$task, $field, $actor] = fieldOnATask($type);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => $sent])
+        ->assertSessionHasErrors('value');
+
+    expect(TaskCustomFieldValue::query()->count())->toBe(0);
+})->with([
+    'an address that is not one' => [CustomFieldType::Email, 'someone at example'],
+    'a link that is not one' => [CustomFieldType::Link, 'not a link'],
+    'a phone number that is prose' => [CustomFieldType::Phone, 'call the office'],
+]);
+
+it('clears a text-shaped answer the way every other type is cleared', function (): void {
+    [$task, $field, $actor] = fieldOnATask(CustomFieldType::Email);
+    $this->actingAs($actor)->put(route('tasks.custom-fields.update', [$task, $field]), [
+        'value' => 'someone@example.com',
+    ]);
+
+    $this->actingAs($actor)
+        ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => null])
+        ->assertRedirect();
+
+    expect(TaskCustomFieldValue::query()->count())->toBe(0);
+});

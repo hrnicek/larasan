@@ -10,6 +10,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { typeHints, typeLabels } from '@/modules/custom-field/fieldTypes';
 import type { CustomFieldType, WorkspaceCustomField } from '@/modules/custom-field/types';
 
 /**
@@ -25,27 +26,6 @@ const props = defineProps<{
     types: CustomFieldType[];
     can: { manage: boolean };
 }>();
-
-/**
- * What each type is called to a reader. The picker's *contents* come from the server, so a case
- * added there appears here without a second list — this map only names them, and a case missing
- * from it is a type error rather than a blank option.
- */
-const typeLabels: Record<CustomFieldType, string> = {
-    text: 'Text',
-    number: 'Number',
-    date: 'Date',
-    boolean: 'Yes / no',
-    select: 'Choice',
-};
-
-const typeHints: Record<CustomFieldType, string> = {
-    text: 'A short line of text',
-    number: 'A number, sortable',
-    date: 'A single date',
-    boolean: 'A box that is ticked or not',
-    select: 'One of a list you write',
-};
 
 const form = useForm<{ name: string; type: CustomFieldType; options: string[] }>({
     name: '',

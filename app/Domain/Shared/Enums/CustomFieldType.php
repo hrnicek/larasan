@@ -14,6 +14,13 @@ use Carbon\CarbonImmutable;
  * filtering on it all have to agree, and three copies of that agreement is two too many
  * (`docs/architecture/database.md`).
  *
+ * **A type has one column; a column may serve several types.** `email`, `phone` and `link` are
+ * text with a format rather than a new kind of storage: they sort as text, so a column of their
+ * own would buy no ordering and cost an index each on the largest table in the schema. Nothing
+ * reads a value without the field in hand — `TaskCustomFieldValue::value()` takes it and every
+ * query joins on `custom_field_id` — so which of them a `value_text` holds is never a question
+ * the row has to answer alone.
+ *
  * Values are persisted, so they are stable.
  */
 enum CustomFieldType: string
@@ -23,6 +30,9 @@ enum CustomFieldType: string
     case Date = 'date';
     case Boolean = 'boolean';
     case Select = 'select';
+    case Email = 'email';
+    case Phone = 'phone';
+    case Link = 'link';
 
     /**
      * The column a value of this type is written to and read from.
@@ -30,7 +40,7 @@ enum CustomFieldType: string
     public function column(): string
     {
         return match ($this) {
-            self::Text => 'value_text',
+            self::Text, self::Email, self::Phone, self::Link => 'value_text',
             self::Number => 'value_number',
             self::Date => 'value_date',
             self::Boolean => 'value_boolean',
@@ -40,13 +50,16 @@ enum CustomFieldType: string
 
     /**
      * Every column a value could be written to — the set the "one answer per row" rule is
-     * about.
+     * about, and therefore **distinct**: the CHECK is built from this list, and counting
+     * `value_text` once per type that shares it would make a single text answer look like four.
      *
      * @return list<string>
      */
     public static function columns(): array
     {
-        return array_map(fn (self $type): string => $type->column(), self::cases());
+        return array_values(array_unique(
+            array_map(fn (self $type): string => $type->column(), self::cases()),
+        ));
     }
 
     /**
@@ -59,6 +72,18 @@ enum CustomFieldType: string
     {
         return match ($this) {
             self::Text => ['string', 'max:255'],
+            // Checked for shape, not for existence: whether anybody answers is not this
+            // application's question.
+            self::Email => ['email', 'max:255'],
+            /*
+             * Permissive on purpose. Numbers are written a dozen ways across countries and this
+             * project has no phone-number library, so the rule keeps out prose and lets a person
+             * write the number the way their colleagues will recognise it.
+             */
+            self::Phone => ['string', 'max:32', 'regex:/^[0-9+()\\-.\\/ ]{3,32}$/'],
+            // `value_text` is 255 wide, so the length is the column's rather than a guess. A
+            // longer address is refused rather than quietly cut in half.
+            self::Link => ['url', 'max:255'],
             self::Number => ['numeric'],
             self::Date => ['date'],
             self::Boolean => ['boolean'],
@@ -85,7 +110,7 @@ enum CustomFieldType: string
         }
 
         return match ($this) {
-            self::Text, self::Select => trim((string) $value),
+            self::Text, self::Select, self::Email, self::Phone, self::Link => trim((string) $value),
             self::Number => (float) $value,
             self::Date => CarbonImmutable::parse((string) $value)->startOfDay(),
             // `filter_var` rather than a cast: `(bool) "false"` is true, which is the wrong

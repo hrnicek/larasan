@@ -3,9 +3,20 @@
  *
  * The type is stated as the union the server's enum produces rather than as `string`, so a case
  * added on one side and forgotten on the other is a type error instead of a control that draws
- * nothing.
+ * nothing. Written once and imported — the task module's own field types read it from here.
+ *
+ * `email`, `phone` and `link` are text with a format: the server stores all four in `value_text`,
+ * and what differs is the control drawn and the validation applied.
  */
-export type CustomFieldType = 'text' | 'number' | 'date' | 'boolean' | 'select';
+export type CustomFieldType =
+    | 'text'
+    | 'number'
+    | 'date'
+    | 'boolean'
+    | 'select'
+    | 'email'
+    | 'phone'
+    | 'link';
 
 export type CustomFieldOption = {
     id: string;

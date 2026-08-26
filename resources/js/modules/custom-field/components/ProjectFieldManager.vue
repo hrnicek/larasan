@@ -4,6 +4,7 @@ import { Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import ProjectCustomFieldController from '@/actions/App/Http/Controllers/CustomField/ProjectCustomFieldController';
 import { Button } from '@/components/ui/button';
+import { typeLabels } from '@/modules/custom-field/fieldTypes';
 import type { CustomFieldType } from '@/modules/custom-field/types';
 import { index as workspaceFields } from '@/routes/custom-fields';
 
@@ -20,14 +21,6 @@ const props = defineProps<{
     available: { id: string; name: string; type: CustomFieldType }[];
     canManage: boolean;
 }>();
-
-const typeLabels: Record<CustomFieldType, string> = {
-    text: 'Text',
-    number: 'Number',
-    date: 'Date',
-    boolean: 'Yes / no',
-    select: 'Choice',
-};
 
 /**
  * A write finished. The settings screen has no use for it — its props come back with the redirect

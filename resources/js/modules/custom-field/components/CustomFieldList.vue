@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import TaskCustomFieldController from '@/actions/App/Http/Controllers/CustomField/TaskCustomFieldController';
+import { inputTypeFor } from '@/modules/custom-field/fieldTypes';
 import type { TaskCustomField } from '@/modules/task/types';
 
 /**
@@ -11,8 +12,9 @@ import type { TaskCustomField } from '@/modules/task/types';
  * the screen a project's field and a task's field are the same kind of thing.
  *
  * Each type gets the control it deserves rather than a text box with a promise: a date opens a
- * date picker, a choice offers the choices, and a number refuses letters before the request is
- * ever made. What is written is still the server's decision — these controls only ask.
+ * date picker, a choice offers the choices, an address raises the keyboard with the `@` on it and
+ * a number refuses letters before the request is ever made. What is written is still the server's
+ * decision — these controls only ask.
  */
 const props = defineProps<{
     taskId: string;
@@ -92,7 +94,7 @@ const onText = (field: TaskCustomField, event: Event): void => {
 
                 <input
                     v-else
-                    :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
+                    :type="inputTypeFor(field.type)"
                     :value="field.value ?? ''"
                     :disabled="!editable || saving === field.id"
                     class="h-8 w-full max-w-72 rounded-md border border-transparent bg-transparent px-2 text-sm transition-colors hover:border-input focus:border-input focus:outline-none disabled:opacity-70"

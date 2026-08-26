@@ -213,7 +213,10 @@ final readonly class TaskDetailQuery
             CustomFieldType::Number => (float) $answer->value_number,
             CustomFieldType::Boolean => (bool) $answer->value_boolean,
             CustomFieldType::Date => $answer->value_date?->toDateString(),
-            CustomFieldType::Text => (string) $answer->value_text,
+            CustomFieldType::Text,
+            CustomFieldType::Email,
+            CustomFieldType::Phone,
+            CustomFieldType::Link => (string) $answer->value_text,
             CustomFieldType::Select => (string) $answer->value_option_id,
         };
     }

@@ -212,7 +212,12 @@ final class ProjectListQuery
          * database as SQL, and the only safe kind of that is one the code states literally.
          */
         $column = match ($sort->field->type) {
-            CustomFieldType::Text => 'value_text',
+            // The four text-shaped types share the column, and therefore the ordering: an
+            // address, a number to call and a link all sort as text.
+            CustomFieldType::Text,
+            CustomFieldType::Email,
+            CustomFieldType::Phone,
+            CustomFieldType::Link => 'value_text',
             CustomFieldType::Number => 'value_number',
             CustomFieldType::Date => 'value_date',
             CustomFieldType::Boolean => 'value_boolean',
@@ -263,7 +268,10 @@ final class ProjectListQuery
                 CustomFieldType::Number => (float) $value->value_number,
                 CustomFieldType::Boolean => (bool) $value->value_boolean,
                 CustomFieldType::Date => $value->value_date?->toDateString(),
-                CustomFieldType::Text => (string) $value->value_text,
+                CustomFieldType::Text,
+                CustomFieldType::Email,
+                CustomFieldType::Phone,
+                CustomFieldType::Link => (string) $value->value_text,
                 CustomFieldType::Select => (string) $value->value_option_id,
             };
         }

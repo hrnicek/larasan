@@ -784,6 +784,9 @@ class HeavySeeder extends Seeder
         // enforces: the type decides which one, exactly as `CustomFieldType::column()` does.
         $row[$field['type']->column()] = match ($field['type']) {
             CustomFieldType::Text => fake()->company(),
+            CustomFieldType::Email => fake()->safeEmail(),
+            CustomFieldType::Phone => fake()->numerify('+420 ### ### ###'),
+            CustomFieldType::Link => fake()->url(),
             CustomFieldType::Number => mt_rand(1, 40) / 2,
             CustomFieldType::Date => $created->addDays(mt_rand(5, 90))->toDateString(),
             CustomFieldType::Boolean => $this->chance(40),
