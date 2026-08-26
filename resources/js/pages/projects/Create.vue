@@ -1,31 +1,193 @@
 <script setup lang="ts">
-import { Form } from '@inertiajs/vue3';
+import { Form, usePage } from '@inertiajs/vue3';
+import { Check, Lock, Plus, Users } from '@lucide/vue';
+import type { Component } from 'vue';
+import { computed, ref } from 'vue';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
 import InputError from '@/components/InputError.vue';
 import ModalShell from '@/components/ModalShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
+import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
+import ProjectTile from '@/modules/project/components/ProjectTile.vue';
+
+/**
+ * The screen that makes a project, with the project beside it.
+ *
+ * The three things asked for here are the three a project cannot open without an answer to:
+ * what it is called, who may reach it, and how it is recognised in a sidebar of them.
+ * Everything else a project carries — its description, its dates, its default view, its
+ * address — is on the settings screen, because none of it is needed before the first task.
+ *
+ * The panel on the right is the project as it will open: the tile and the name being typed,
+ * and the one section `CreateProject` gives it. It is decorative and marked as such, and its
+ * point is that a colour is a colour on a screen rather than a swatch in a form.
+ */
+const props = defineProps<{
+    options: { visibilities: string[] };
+}>();
+
+const workspace = computed(() => usePage().props.workspace);
+
+const name = ref('');
+const color = ref<string | null>(null);
+const icon = ref<string | null>(null);
+const visibility = ref(props.options.visibilities[0] ?? 'workspace');
+const appearanceOpen = ref(false);
+
+/** What the preview calls the project before it is called anything. */
+const previewName = computed(() => name.value.trim() || 'Untitled project');
+
+type Choice = { label: string; hint: string; icon: Component };
+
+/*
+ * The workspace-wide option is named after the workspace: "Everyone in the workspace" is a
+ * rule, and the name of the place is what somebody choosing between the two recognises.
+ */
+const visibilities = computed<Record<string, Choice>>(() => ({
+    workspace: {
+        label: workspace.value?.name ?? 'Everyone in the workspace',
+        hint: 'Everyone in your workspace can find and open this project.',
+        icon: Users,
+    },
+    private: {
+        label: 'Private',
+        hint: 'Only invited members can find it. Until you invite somebody, that is you.',
+        icon: Lock,
+    },
+}));
+
+/*
+ * The enum comes from the server, so a case this file has no words for is still offered, under
+ * its own name — the same rule the settings form follows.
+ */
+function choice(option: string): Choice {
+    return visibilities.value[option] ?? { label: option, hint: '', icon: Users };
+}
 </script>
 
 <template>
-    <ModalShell title="Create a project" description="Tasks, sections and members live inside a project" v-slot="{ close }">
-        <Form v-bind="ProjectController.store.form()" class="space-y-5" v-slot="{ errors, processing }">
-            <div class="grid gap-2">
-                <Label for="name">Name</Label>
-                <Input id="name" name="name" required autofocus placeholder="Web redesign" />
-                <InputError :message="errors.name" />
-            </div>
+    <ModalShell
+        v-slot="{ close }"
+        title="New project"
+        description="Tasks, sections and members live inside a project"
+        max-width="4xl"
+    >
+        <Form v-bind="ProjectController.store.form()" v-slot="{ errors, processing }">
+            <div class="grid gap-8 lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+                <div class="space-y-5">
+                    <div class="grid gap-2">
+                        <Label for="name">Project name</Label>
+                        <Input id="name" v-model="name" name="name" required autofocus placeholder="Web redesign" />
+                        <InputError :message="errors.name" />
+                    </div>
 
-            <div class="grid gap-2">
-                <Label for="slug">Address</Label>
-                <Input id="slug" name="slug" placeholder="web-redesign" />
-                <InputError :message="errors.slug" />
-            </div>
+                    <div class="grid gap-2">
+                        <Label>Project access</Label>
 
-            <div class="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="ghost" @click="close">Cancel</Button>
-                <Button type="submit" :disabled="processing">Create project</Button>
+                        <label
+                            v-for="option in props.options.visibilities"
+                            :key="option"
+                            class="group relative flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50 has-[:checked]:border-primary-ring has-[:checked]:bg-primary-subtle has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-ring"
+                        >
+                            <input v-model="visibility" type="radio" name="visibility" class="sr-only" :value="option" />
+
+                            <component
+                                :is="choice(option).icon"
+                                class="mt-0.5 size-4 shrink-0 text-muted-foreground group-has-[:checked]:text-primary-subtle-foreground"
+                            />
+
+                            <span class="min-w-0">
+                                <span class="block truncate text-sm font-medium group-has-[:checked]:text-primary-subtle-foreground">
+                                    {{ choice(option).label }}
+                                </span>
+                                <span class="mt-0.5 block text-xs text-muted-foreground">{{ choice(option).hint }}</span>
+                            </span>
+
+                            <Check
+                                class="ml-auto size-4 shrink-0 text-primary-subtle-foreground opacity-0 group-has-[:checked]:opacity-100"
+                            />
+                        </label>
+
+                        <InputError :message="errors.visibility" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label>Colour and icon</Label>
+
+                        <!-- The tile is the control, the way it is in the project header: the shortest
+                             route to changing how something looks is clicking the thing itself. -->
+                        <Popover v-model:open="appearanceOpen">
+                            <PopoverTrigger
+                                type="button"
+                                class="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-left transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                                aria-label="Colour and icon for this project"
+                            >
+                                <ProjectTile :name="previewName" :color="color" :icon="icon" />
+                                <span class="truncate text-sm text-muted-foreground">
+                                    {{ color || icon ? 'Chosen' : 'Pick a colour and an icon' }}
+                                </span>
+                            </PopoverTrigger>
+
+                            <PopoverContent class="w-72 p-3" align="start">
+                                <AccentColorGrid v-model="color" />
+                                <ProjectIconGrid v-model="icon" class="mt-4" />
+                            </PopoverContent>
+                        </Popover>
+
+                        <input type="hidden" name="color" :value="color ?? ''" />
+                        <input type="hidden" name="icon" :value="icon ?? ''" />
+
+                        <InputError :message="errors.color" />
+                        <InputError :message="errors.icon" />
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-1">
+                        <Button type="button" variant="ghost" @click="close">Cancel</Button>
+                        <Button type="submit" :disabled="processing">Create project</Button>
+                    </div>
+                </div>
+
+                <!-- Decorative: every line of it is drawn again for real once the project exists,
+                     and a screen reader that read it would be reading the future. -->
+                <aside class="hidden overflow-hidden rounded-xl border border-border bg-muted/30 lg:block" aria-hidden="true">
+                    <div class="flex items-center gap-3 border-b border-border bg-background/60 px-5 py-4">
+                        <ProjectTile :name="previewName" :color="color" :icon="icon" size="lg" />
+
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold tracking-tight">{{ previewName }}</p>
+
+                            <div class="mt-2 flex gap-2">
+                                <span
+                                    v-for="width in ['w-10', 'w-12', 'w-9', 'w-14']"
+                                    :key="width"
+                                    class="h-2 rounded-full bg-muted-foreground/20"
+                                    :class="width"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 p-5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold tracking-tight">Untitled section</span>
+                            <span class="text-xs text-muted-foreground">0</span>
+                        </div>
+
+                        <div class="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+                            <Plus class="size-4" />
+                            Add task
+                        </div>
+
+                        <p class="pt-1 text-xs text-muted-foreground">
+                            A new project opens with one section. Rename it, or add more, once there is
+                            something to put in them.
+                        </p>
+                    </div>
+                </aside>
             </div>
         </Form>
     </ModalShell>

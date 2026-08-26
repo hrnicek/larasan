@@ -78,7 +78,17 @@ class ProjectController extends Controller
     {
         Gate::authorize(Capability::ProjectCreate->value, $this->currentWorkspace($request));
 
-        return Inertia::modal('projects/Create')->baseRoute('projects.index');
+        return Inertia::modal('projects/Create', [
+            /*
+             * The access levels come from the server, the way the settings form takes them:
+             * a case added later reaches both screens without a list in the client to
+             * remember it. The palette and the icon library do not — those are drawn from
+             * `lib/accentColor.ts` and `lib/projectIcon.ts`, where the class names live.
+             */
+            'options' => [
+                'visibilities' => array_column(ProjectVisibility::cases(), 'value'),
+            ],
+        ])->baseRoute('projects.index');
     }
 
     public function store(StoreProjectRequest $request, CreateProject $createProject): RedirectResponse

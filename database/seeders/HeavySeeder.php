@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
-use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ActivityType;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
@@ -490,8 +489,8 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * A project's columns. Most open with the three `CreateProject` gives them; the rest
-     * have been reshaped by the people using them, which is what a year does to a board.
+     * A project's columns. Most carry the three a board settles into; the rest have been
+     * reshaped further by the people using them, which is what a year does to a board.
      *
      * @param  list<array<string, mixed>>  $sectionRows
      * @return list<SeedColumn>
@@ -499,7 +498,7 @@ class HeavySeeder extends Seeder
     private function columnsFor(string $project, CarbonImmutable $created, array &$sectionRows): array
     {
         $names = $this->chance(55)
-            ? Section::DEFAULT_NAMES
+            ? ['Backlog', 'In progress', 'Done']
             : $this->pick([
                 ['Backlog', 'Ready', 'In progress', 'Done'],
                 ['Inbox', 'This week', 'In progress', 'In review', 'Done'],

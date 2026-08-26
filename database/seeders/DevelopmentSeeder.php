@@ -11,7 +11,9 @@ use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Section\Actions\CreateSection;
+use App\Domain\Section\Actions\RenameSection;
 use App\Domain\Section\Data\CreateSectionData;
+use App\Domain\Section\Data\UpdateSectionData;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
@@ -180,12 +182,13 @@ class DevelopmentSeeder extends Seeder
     }
 
     /**
-     * The project's columns, created if it has none.
+     * The project's columns, as a board worth looking at.
      *
-     * `CreateProject` opens a project with the default columns, but a development database
-     * older than that change holds projects without them — and cards seeded into a project
-     * with no columns all land in the ungrouped bucket, which looks like a bug in the list
-     * view rather than a gap in the data.
+     * `CreateProject` opens a project with one placeholder column, which is where a team
+     * starts rather than where it ends up. A seeded project exists to be looked at, so it
+     * gets the three a team would have written itself — named here rather than read from
+     * `Section::DEFAULT_NAMES`, which answers a different question. The placeholder becomes
+     * the first of them instead of sitting empty beside them.
      *
      * @return Collection<int, Section>
      */
@@ -193,11 +196,21 @@ class DevelopmentSeeder extends Seeder
     {
         $columns = $project->sections()->get();
 
-        if ($columns->isNotEmpty()) {
+        if ($columns->count() > 1) {
             return $columns;
         }
 
-        foreach (Section::DEFAULT_NAMES as $name) {
+        $names = ['Backlog', 'In progress', 'Done'];
+        $placeholder = $columns->first();
+
+        if ($placeholder instanceof Section) {
+            app(RenameSection::class)->handle($placeholder, $owner, new UpdateSectionData(
+                name: (string) array_shift($names),
+                color: $placeholder->color,
+            ));
+        }
+
+        foreach ($names as $name) {
             app(CreateSection::class)->handle($project, $owner, new CreateSectionData(name: $name));
         }
 

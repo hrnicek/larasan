@@ -38,14 +38,15 @@ class Section extends Model
     public const POSITION_GAP = SparsePosition::GAP;
 
     /**
-     * The columns a new project opens with. Data, not behaviour: these are a starting
-     * point a team renames, and nothing in the application may read them back (ADR-0004).
-     * "Done" here is a column somebody can rename tomorrow — completion is
-     * `tasks.completed_at`.
+     * The columns a new project opens with: one, unnamed in everything but the placeholder
+     * it carries until somebody renames it. A project's shape is the team's, not ours —
+     * three invented columns are three things to delete before the first real one.
+     *
+     * Data, not behaviour: nothing in the application may read these back (ADR-0004).
      *
      * @var list<string>
      */
-    public const DEFAULT_NAMES = ['Backlog', 'In progress', 'Done'];
+    public const DEFAULT_NAMES = ['Untitled section'];
 
     protected $fillable = ['name', 'color', 'position'];
 

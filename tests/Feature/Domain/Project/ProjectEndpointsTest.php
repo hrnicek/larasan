@@ -49,6 +49,16 @@ it('refuses the creation screen to an actor without the capability', function ()
         ->assertForbidden();
 });
 
+it('offers the access levels on the creation screen', function (): void {
+    $workspace = Workspace::factory()->create();
+
+    $this->actingAs(memberOf($workspace, WorkspaceRole::Member))
+        ->get(route('projects.create'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('_inertiaui_modal.props.options.visibilities', array_column(ProjectVisibility::cases(), 'value'))
+            ->etc());
+});
+
 it('creates a project and lands on its settings', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Member);

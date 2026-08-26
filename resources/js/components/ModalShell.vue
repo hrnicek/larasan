@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 const props = defineProps<{
     title: string;
     description?: string;
+    /**
+     * The package's own scale, forwarded. Omitted, a dialog keeps the width every dialog in this
+     * application has (`lib/modalLayer.ts`); one that is a working surface rather than a question
+     * asks for a wider one.
+     */
+    maxWidth?: '2xl' | '3xl' | '4xl' | '5xl';
 }>();
 
 const titleId = useId();
@@ -40,7 +46,7 @@ watch(panel, (element) => {
 </script>
 
 <template>
-    <Modal v-slot="{ close }" :close-button="false">
+    <Modal v-slot="{ close }" :close-button="false" :max-width="props.maxWidth">
         <div ref="panel" class="flex flex-col gap-5">
             <header class="flex items-start justify-between gap-4">
                 <div class="space-y-1">

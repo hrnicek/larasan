@@ -49,13 +49,14 @@ it('stores the accent colour by name and reads it back as the enum', function ()
         ->and($project->fresh()?->color)->toBe(ProjectColor::Violet);
 });
 
-it('opens the project with its default columns', function (): void {
+it('opens the project with one placeholder column', function (): void {
     $workspace = Workspace::factory()->create();
     $creator = memberOf($workspace, WorkspaceRole::Member);
 
     $project = createProject($workspace, $creator);
 
-    expect($project->sections()->pluck('name')->all())->toBe(Section::DEFAULT_NAMES)
+    expect($project->sections()->pluck('name')->all())->toBe(['Untitled section'])
+        ->and(Section::DEFAULT_NAMES)->toBe(['Untitled section'])
         ->and($project->sections()->pluck('position')->all())
         ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)));
 });
