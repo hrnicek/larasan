@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import type { CustomFieldType } from '@/modules/custom-field/types';
+import type { ListColumn } from '@/modules/task/listColumns';
 
 export type ProjectSummary = {
     id: string;
@@ -91,6 +92,8 @@ export type ProjectShare = {
  */
 export type ProjectCustomize = {
     fields: ProjectCustomFields;
+    /** The list's columns in the order the project draws them (TASK-240-010). */
+    columns: ListColumn[];
 };
 
 export type ProjectSettings = ProjectSummary & {

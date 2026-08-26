@@ -311,7 +311,7 @@ onUnmounted(() => {
                 />
             </div>
 
-            <TaskListHeader v-if="list && list.sections.length" :fields="list.fields" />
+            <TaskListHeader v-if="list && list.sections.length" :columns="list.columns" />
         </div>
 
         <div class="flex flex-col pb-6">
@@ -393,7 +393,7 @@ onUnmounted(() => {
                     :editable="editable()"
                     :creatable="creatable()"
                     :project-id="project.id"
-                    :fields="list?.fields"
+                    :columns="list?.columns"
                 :can-section="list ? {
                     create: list.can.createSection,
                     update: list.can.updateSection,

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { Form, router } from '@inertiajs/vue3';
 import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
-import { listColumns } from '@/modules/task/listColumns';
+import type { ListColumn } from '@/modules/task/listColumns';
+import { defaultListColumns, listColumns } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
@@ -33,8 +34,12 @@ const props = defineProps<{
     index?: number;
     /** Whether this row is the one currently being dragged. */
     dragging?: boolean;
-    /** The project's field columns, when this row is drawn inside one (TASK-150-008). */
-    fields?: { id: string; name: string; type: string }[];
+    /**
+     * The columns after the name, in the order the project draws them (TASK-240-010). The header
+     * above reads the same list, so the two cannot disagree about which column is which. The
+     * default is for the lists that belong to no project and have nothing to reorder.
+     */
+    columns?: ListColumn[];
 }>();
 
 const emit = defineEmits<{ open: [taskId: string]; pickup: [event: PointerEvent, task: TaskRowData] }>();
@@ -44,7 +49,9 @@ const emit = defineEmits<{ open: [taskId: string]; pickup: [event: PointerEvent,
  * field nobody answered is a dash rather than a gap you would have to count columns to
  * interpret.
  */
-const answerOf = (fieldId: string, type: string): string => {
+const columns = computed<ListColumn[]>(() => props.columns ?? defaultListColumns);
+
+const answerOf = (fieldId: string, type: string | null): string => {
     const value = props.task.fields?.[fieldId];
 
     if (value === undefined || value === null || value === '') {
@@ -207,37 +214,52 @@ defineExpose({ focus: () => row.value?.focus() });
         <!-- Below `md` this is the second line, indented past the checkbox so the name leads. From
              `md` the wrapper disappears (`contents`) and its children are cells of the row itself. -->
         <div class="flex items-center gap-3 pl-7 md:contents">
-            <span
-                v-for="field in fields"
-                :key="field.id"
-                class="hidden items-center text-xs text-muted-foreground md:flex"
-                :class="[listColumns.field, listColumns.cell, listColumns.hover]"
-                :title="`${field.name}: ${answerOf(field.id, field.type)}`"
-            >
-                <span class="truncate">{{ answerOf(field.id, field.type) }}</span>
-            </span>
+            <template v-for="column in columns" :key="column.key">
+                <!-- A field's answer is text; the other three are controls. One loop rather than
+                     three lists, so the order the server sends is the order drawn. -->
+                <span
+                    v-if="column.kind === 'field'"
+                    class="hidden items-center text-xs text-muted-foreground md:flex"
+                    :class="[listColumns.field, listColumns.cell, listColumns.hover]"
+                    :title="`${column.label}: ${answerOf(column.key, column.type)}`"
+                >
+                    <span class="truncate">{{ answerOf(column.key, column.type) }}</span>
+                </span>
 
-            <div class="flex items-center" :class="[listColumns.assignee, listColumns.cell, listColumns.hover]">
-                <AssigneePicker
-                    :task-id="task.id"
-                    :assignee="task.assignee"
-                    :members="members"
-                    :editable="editable"
-                />
-            </div>
+                <div
+                    v-else-if="column.kind === 'assignee'"
+                    class="flex items-center"
+                    :class="[listColumns.assignee, listColumns.cell, listColumns.hover]"
+                >
+                    <AssigneePicker
+                        :task-id="task.id"
+                        :assignee="task.assignee"
+                        :members="members"
+                        :editable="editable"
+                    />
+                </div>
 
-            <div class="flex items-center" :class="[listColumns.due, listColumns.cell, listColumns.hover]">
-                <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
-            </div>
+                <div
+                    v-else-if="column.kind === 'due'"
+                    class="flex items-center"
+                    :class="[listColumns.due, listColumns.cell, listColumns.hover]"
+                >
+                    <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
+                </div>
 
-            <div class="flex items-center" :class="[listColumns.priority, listColumns.cell, listColumns.hover]">
-                <PriorityControl
-                    :task-id="task.id"
-                    :priority="task.priority"
-                    :priorities="priorities"
-                    :editable="editable"
-                />
-            </div>
+                <div
+                    v-else
+                    class="flex items-center"
+                    :class="[listColumns.priority, listColumns.cell, listColumns.hover]"
+                >
+                    <PriorityControl
+                        :task-id="task.id"
+                        :priority="task.priority"
+                        :priorities="priorities"
+                        :editable="editable"
+                    />
+                </div>
+            </template>
 
             <span :class="listColumns.filler" />
         </div>

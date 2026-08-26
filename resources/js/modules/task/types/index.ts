@@ -1,4 +1,5 @@
 import type { CustomFieldType } from '@/modules/custom-field/types';
+import type { ListColumn } from '@/modules/task/listColumns';
 
 export type TaskAssignee = {
     id: number;
@@ -69,8 +70,13 @@ export type SectionAbilities = {
 
 export type ProjectList = {
     sections: TaskSectionGroup[];
-    /** The project's fields, once — each row answers them by id. */
+    /** The project's fields, once — each row answers them by id. What the sort control offers. */
     fields: ListFieldColumn[];
+    /**
+     * The columns after the name, in the order this project draws them (TASK-240-010). The header
+     * and the rows read the same list, so they cannot disagree about which column is which.
+     */
+    columns: ListColumn[];
     can: TaskAbilities & SectionAbilities;
 };
 

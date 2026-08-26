@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Project\Models\Project;
 use App\Http\Controllers\Project\ProjectAppearanceController;
+use App\Http\Controllers\Project\ProjectColumnController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\ProjectMemberController;
 use App\Http\Controllers\Project\ProjectNameController;
@@ -68,6 +69,14 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
     Route::delete('projects/{project}/members/{membership}', [ProjectMemberController::class, 'destroy'])
         ->whereUuid('membership')
         ->name('projects.members.destroy');
+
+    /*
+     * The order the list draws its columns in — the whole order, for the reason the controller
+     * gives. `custom_field.manage`, like attaching a field: it is one drawer and one kind of
+     * decision about everybody's board.
+     */
+    Route::put('projects/{project}/columns', [ProjectColumnController::class, 'update'])
+        ->name('projects.columns.update');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

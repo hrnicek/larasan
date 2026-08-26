@@ -33,6 +33,7 @@ use Laravel\Scout\Searchable;
 
 /**
  * @property string $id
+ * @property list<string>|null $list_columns
  * @property string $workspace_id
  * @property string $name
  * @property string $slug
@@ -288,6 +289,13 @@ class Project extends Model
             'start_date' => 'immutable_date',
             'due_date' => 'immutable_date',
             'archived_at' => 'immutable_datetime',
+            /*
+             * The order the list draws its columns in — read whole, written whole, never sorted
+             * or filtered by, which is what makes JSON the right answer here and the wrong one
+             * for a custom field's value. Null is a project nobody has reordered, not a project
+             * with no columns.
+             */
+            'list_columns' => 'array',
         ];
     }
 }

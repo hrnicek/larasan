@@ -46,3 +46,32 @@ export const listColumns = {
     /** A cell answers the pointer itself, so it is clear which one a click would land in. */
     hover: 'transition-colors md:hover:bg-accent/40 md:hover:ring-1 md:hover:ring-border md:hover:ring-inset',
 } as const;
+
+/**
+ * One column the list draws, as the server orders them.
+ *
+ * `kind` is what to draw, `key` is what identifies it in the stored order, `label` is the header,
+ * and `type` is a field's — it is what lets a row draw a tick for a boolean rather than the word
+ * `true`. The task name is not one of these: it is always the first column.
+ */
+export type ListColumn = {
+    key: string;
+    kind: 'field' | 'assignee' | 'due' | 'priority';
+    label: string;
+    type: string | null;
+};
+
+/**
+ * What a list draws when nobody has ordered it — My Tasks and the search results, which belong to
+ * no project and so have nothing to reorder.
+ */
+export const defaultListColumns: ListColumn[] = [
+    { key: 'assignee', kind: 'assignee', label: 'Assignee', type: null },
+    { key: 'due', kind: 'due', label: 'Due', type: null },
+    { key: 'priority', kind: 'priority', label: 'Priority', type: null },
+];
+
+/** The width a column of this kind takes. */
+export function widthFor(kind: ListColumn['kind']): string {
+    return kind === 'field' ? listColumns.field : listColumns[kind];
+}

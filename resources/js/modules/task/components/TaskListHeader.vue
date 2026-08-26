@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { listColumns } from '@/modules/task/listColumns';
+import type { ListColumn } from '@/modules/task/listColumns';
+import { defaultListColumns, listColumns, widthFor } from '@/modules/task/listColumns';
 
 /**
  * The list's column names, once above the whole list.
@@ -14,12 +15,18 @@ import { listColumns } from '@/modules/task/listColumns';
  *
  * The widths come from `listColumns`, which the rows read too — a header that has drifted from
  * the cell beneath it is worse than no header, because it labels the wrong thing with confidence.
+ * The **order** comes from the server for the same reason: the rows read the same list, so the two
+ * cannot disagree about which column is which (TASK-240-010).
  */
 withDefaults(defineProps<{
-    fields?: { id: string; name: string; type: string }[];
+    /**
+     * The columns after the name, in the order the project draws them (TASK-240-010). The default
+     * is for the lists that belong to no project and so have nothing to reorder.
+     */
+    columns?: ListColumn[];
     /** Rows are numbered inside a project's sections and nowhere else, so the column follows them. */
     numbered?: boolean;
-}>(), { numbered: true });
+}>(), { numbered: true, columns: () => defaultListColumns });
 </script>
 
 <template>
@@ -31,18 +38,14 @@ withDefaults(defineProps<{
         <span class="flex items-center" :class="[listColumns.name, listColumns.cell]">Task name</span>
 
         <span
-            v-for="field in fields"
-            :key="field.id"
+            v-for="column in columns"
+            :key="column.key"
             class="flex items-center"
-            :class="[listColumns.field, listColumns.cell]"
-            :title="field.name"
+            :class="[widthFor(column.kind), listColumns.cell]"
+            :title="column.label"
         >
-            <span class="truncate">{{ field.name }}</span>
+            <span class="truncate">{{ column.label }}</span>
         </span>
-
-        <span class="flex items-center" :class="[listColumns.assignee, listColumns.cell]">Assignee</span>
-        <span class="flex items-center" :class="[listColumns.due, listColumns.cell]">Due</span>
-        <span class="flex items-center" :class="[listColumns.priority, listColumns.cell]">Priority</span>
         <span :class="listColumns.filler" />
     </div>
 </template>

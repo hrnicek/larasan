@@ -11,6 +11,7 @@ use App\Domain\Project\Actions\ArchiveProject;
 use App\Domain\Project\Actions\CreateProject;
 use App\Domain\Project\Actions\UpdateProject;
 use App\Domain\Project\Data\CreateProjectData;
+use App\Domain\Project\Data\ListColumns;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
@@ -257,6 +258,12 @@ class ProjectController extends Controller
                             ->get(),
                     ),
                 ],
+                /*
+                 * The list's columns in the order it draws them, sent from here as well as from
+                 * `ProjectListQuery` — the drawer opens over the board and the calendar too, and
+                 * the order is the project's rather than the list view's.
+                 */
+                'columns' => ListColumns::describe($project),
             ]),
             /*
              * The panel, the priorities its control offers and who a card can be handed to.

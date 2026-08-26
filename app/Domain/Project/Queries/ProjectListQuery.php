@@ -7,6 +7,7 @@ namespace App\Domain\Project\Queries;
 use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Data\ListColumns;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
@@ -50,6 +51,7 @@ final class ProjectListQuery
      * @param  array<string, string>  $fieldFilters  field id => the answer a row must carry
      * @return array{
      *     fields: list<array{id: string, name: string, type: string}>,
+     *     columns: list<array{key: string, kind: string, label: string, type: string|null}>,
      *     sections: list<array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}>,
      *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
      * }
@@ -99,6 +101,16 @@ final class ProjectListQuery
                     'type' => $field->type->value,
                 ])
                 ->all()),
+            /*
+             * The columns, in the order this project draws them, with the label each one carries
+             * in the header. The header and the rows are two components and both read this — a
+             * header that has drifted from the cell beneath it labels the wrong thing with
+             * confidence, which is the rule `listColumns` already keeps for their widths.
+             *
+             * The task name is not here: it is always first, so a list that could omit it would
+             * be a list with no titles in it.
+             */
+            'columns' => ListColumns::describe($project),
             /*
              * The permissions the screen renders, answered by the server. Three different
              * questions, not one: creating a task and placing it here is `createTask`,

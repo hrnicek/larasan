@@ -9,6 +9,7 @@ import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
+import type { ListColumn } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData, TaskSectionGroup } from '@/modules/task/types';
 import { create } from '@/routes/tasks';
 
@@ -35,7 +36,8 @@ const props = defineProps<{
     dropTarget?: { key: string; before: string | null } | null;
     projectId: string;
     /** The project's field columns, passed through to each row (TASK-150-008). */
-    fields?: { id: string; name: string; type: string }[];
+    /** The columns after the name, in the order the project draws them (TASK-240-010). */
+    columns?: ListColumn[];
 }>();
 
 const emit = defineEmits<{
@@ -172,7 +174,7 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                     :members="members"
                     :priorities="priorities"
                     :editable="editable"
-                    :fields="fields"
+                    :columns="columns"
                     @open="(taskId) => emit('open', taskId)"
                     @pickup="(event, dragged) => emit('pickup', event, dragged)"
                 />
