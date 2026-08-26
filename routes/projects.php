@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Project\Models\Project;
 use App\Http\Controllers\Project\ProjectAppearanceController;
 use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\ProjectMemberController;
 use App\Http\Controllers\Project\ProjectNameController;
 use App\Http\Controllers\Project\ProjectStarController;
 use App\Http\Controllers\Project\ProjectTaskController;
@@ -53,6 +54,20 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
      */
     Route::post('projects/{project}/star', [ProjectStarController::class, 'store'])->name('projects.star');
     Route::delete('projects/{project}/star', [ProjectStarController::class, 'destroy'])->name('projects.unstar');
+
+    /*
+     * Who may reach this project, and what they may do here. The project's own routes rather than
+     * a variant of the workspace's: access inside a project is a different question from
+     * membership of the workspace, and granting one changes nothing about the other (ADR-0006).
+     */
+    Route::post('projects/{project}/members', [ProjectMemberController::class, 'store'])
+        ->name('projects.members.store');
+    Route::put('projects/{project}/members/{membership}', [ProjectMemberController::class, 'update'])
+        ->whereUuid('membership')
+        ->name('projects.members.update');
+    Route::delete('projects/{project}/members/{membership}', [ProjectMemberController::class, 'destroy'])
+        ->whereUuid('membership')
+        ->name('projects.members.destroy');
 
     Route::get('projects/{project}/settings', [ProjectController::class, 'edit'])->name('projects.edit');
     Route::put('projects/{project}', [ProjectController::class, 'update'])->name('projects.update');

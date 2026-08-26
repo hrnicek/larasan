@@ -34,6 +34,21 @@ final class ProjectException extends DomainException implements DomainRefusal
     }
 
     /**
+     * Managing a project needs an explicit `owner` row (`Project::isManageableBy`), so a project
+     * whose last owner was demoted or removed is one nobody can manage — not an editor, not the
+     * workspace's own owner. The row is the only way back in, so it cannot be the row that goes.
+     */
+    public static function projectNeedsAnOwner(): self
+    {
+        return new self('A project needs at least one owner.');
+    }
+
+    public static function membershipIsNotOnThisProject(): self
+    {
+        return new self('That membership does not belong to this project.');
+    }
+
+    /**
      * The invariant TASK-040-021 recorded in Phase 040: access to a project is access inside
      * a workspace, so a project membership for somebody who is not in that workspace is a
      * grant that means nothing and reads as if it means something.

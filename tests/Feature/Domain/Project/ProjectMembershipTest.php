@@ -2,129 +2,255 @@
 
 declare(strict_types=1);
 
+use App\Domain\Project\Actions\GrantProjectAccess;
+use App\Domain\Project\Actions\RevokeProjectAccess;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
-use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
-use Illuminate\Database\LazyLoadingViolationException;
 
-it('casts the access level and relates both ways', function (): void {
-    $project = Project::factory()->create();
-    $user = User::factory()->create();
+/*
+ * Access inside one project (ADR-0006). Until now the only row ever written was the one
+ * `CreateProject` gives the creator, so a project could not be shared with anybody.
+ */
 
-    $membership = ProjectMembership::factory()->in($project)->forUser($user)
-        ->withAccess(ProjectAccessLevel::Commenter)->create();
+/**
+ * A project, its owner, and a second workspace member with no access to it yet.
+ *
+ * @return array{Workspace, Project, User, User}
+ */
+function projectWithOwner(): array
+{
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    $other = memberOf($workspace, WorkspaceRole::Member);
 
-    expect($membership->access_level)->toBe(ProjectAccessLevel::Commenter)
-        ->and($membership->project->is($project))->toBeTrue()
-        ->and($membership->user->is($user))->toBeTrue()
-        ->and($membership->getRawOriginal('access_level'))->toBe('commenter');
+    $project = Project::factory()->in($workspace)->create();
+    ProjectMembership::query()->create([
+        'project_id' => $project->id,
+        'user_id' => $owner->id,
+        'access_level' => ProjectAccessLevel::Owner,
+    ]);
+
+    return [$workspace, $project, $owner, $other];
+}
+
+it('grants access at the level asked for', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+
+    $this->actingAs($owner)
+        ->post(route('projects.members.store', $project), [
+            'user' => $other->id,
+            'access_level' => ProjectAccessLevel::Editor->value,
+        ])
+        ->assertRedirect();
+
+    expect($project->memberships()->where('user_id', $other->id)->sole()->access_level)
+        ->toBe(ProjectAccessLevel::Editor);
 });
 
-it('answers what the level permits without anyone comparing strings', function (): void {
-    $editor = ProjectMembership::factory()->withAccess(ProjectAccessLevel::Editor)->create();
-    $viewer = ProjectMembership::factory()->withAccess(ProjectAccessLevel::Viewer)->create();
+it('treats granting twice as changing the level, not as a second row', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
 
-    expect($editor->access_level->canEdit())->toBeTrue()
-        ->and($editor->access_level->canManageProject())->toBeFalse()
-        ->and($viewer->access_level->canComment())->toBeFalse();
-});
-
-it('finds the membership for a person, and null for everyone else', function (): void {
-    $project = Project::factory()->create();
-    $member = User::factory()->create();
-    ProjectMembership::factory()->in($project)->forUser($member)->create();
-
-    expect($project->memberFor($member)?->access_level)->toBe(ProjectAccessLevel::Editor)
-        ->and($project->memberFor(User::factory()->create()))->toBeNull();
-});
-
-it('lists a workspace its projects and a user their explicit projects', function (): void {
-    $workspace = Workspace::factory()->create();
-    $mine = Project::factory()->in($workspace)->create();
-    Project::factory()->in($workspace)->create();
-    Project::factory()->create();
-    $user = User::factory()->create();
-
-    ProjectMembership::factory()->in($mine)->forUser($user)->create();
-
-    expect($workspace->projects()->count())->toBe(2)
-        ->and($user->projects()->pluck('projects.id')->all())->toBe([$mine->id]);
-});
-
-it('carries the access level on the pivot, so a listing needs no second query', function (): void {
-    $user = User::factory()->create();
-    $project = Project::factory()->create();
-    ProjectMembership::factory()->in($project)->forUser($user)
-        ->withAccess(ProjectAccessLevel::Owner)->create();
-
-    $pivot = $user->projects()->first()?->getRelationValue('pivot');
-
-    expect($pivot?->getAttribute('access_level'))->toBe('owner');
-});
-
-it('resolves memberships without an n+1 when eager loaded', function (): void {
-    $projects = Project::factory()->count(2)->create();
-
-    foreach ($projects as $project) {
-        ProjectMembership::factory()->in($project)->create();
+    foreach ([ProjectAccessLevel::Viewer, ProjectAccessLevel::Editor] as $level) {
+        $this->actingAs($owner)->post(route('projects.members.store', $project), [
+            'user' => $other->id,
+            'access_level' => $level->value,
+        ])->assertRedirect();
     }
 
-    $eager = Project::query()->with('memberships.user')->get();
-
-    expect($eager->pluck('memberships')->flatten()->pluck('user')->filter())->toHaveCount(2);
-
-    $lazy = Project::query()->get();
-
-    expect(fn (): mixed => $lazy->firstOrFail()->memberships)
-        ->toThrow(LazyLoadingViolationException::class);
+    // UNIQUE(project_id, user_id) says the same thing the Action does.
+    expect($project->memberships()->where('user_id', $other->id)->count())->toBe(1)
+        ->and($project->memberships()->where('user_id', $other->id)->sole()->access_level)
+        ->toBe(ProjectAccessLevel::Editor);
 });
 
-it('refuses a project membership for somebody who is not in the workspace', function (): void {
-    $project = Project::factory()->create();
-    $stranger = User::factory()->create();
+it('changes an access level', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    $membership = app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Viewer);
+
+    $this->actingAs($owner)
+        ->put(route('projects.members.update', [$project, $membership]), [
+            'access_level' => ProjectAccessLevel::Commenter->value,
+        ])
+        ->assertRedirect();
+
+    expect($membership->fresh()?->access_level)->toBe(ProjectAccessLevel::Commenter);
+});
+
+it('revokes access and keeps what the person wrote', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    $membership = app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
+
+    $this->actingAs($owner)
+        ->delete(route('projects.members.destroy', [$project, $membership]))
+        ->assertRedirect();
+
+    expect($project->memberships()->where('user_id', $other->id)->count())->toBe(0)
+        ->and(User::query()->whereKey($other->id)->exists())->toBeTrue();
+});
+
+it('refuses somebody who is not in the workspace', function (): void {
+    [, $project, $owner] = projectWithOwner();
+    $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
     /*
-     * TASK-040-021's invariant. Access to a project is access inside a workspace, so a grant
-     * to somebody who is not in that workspace means nothing and reads as if it means
-     * something — which is worse than not existing.
+     * A project membership for somebody outside the workspace is a grant that means nothing and
+     * reads as if it means something (ADR-0006). The FormRequest answers first; the Action holds
+     * the same rule for the console and the queue.
      */
-    expect(fn (): ProjectMembership => ProjectMembership::query()->create([
-        'project_id' => $project->id,
-        'user_id' => $stranger->id,
-        'access_level' => ProjectAccessLevel::Editor,
-    ]))->toThrow(ProjectException::class, 'not an active member');
+    $this->actingAs($owner)
+        ->from(route('projects.edit', $project))
+        ->post(route('projects.members.store', $project), [
+            'user' => $outsider->id,
+            'access_level' => ProjectAccessLevel::Editor->value,
+        ])
+        ->assertSessionHasErrors('user');
 
-    expect($project->memberships()->count())->toBe(0);
+    expect(fn () => app(GrantProjectAccess::class)->handle($project, $owner, $outsider, ProjectAccessLevel::Editor))
+        ->toThrow(ProjectException::class);
+
+    expect($project->memberships()->count())->toBe(1);
 });
 
-it('refuses one for somebody whose workspace membership has not been accepted', function (): void {
-    $workspace = Workspace::factory()->create();
-    $invited = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Invited);
-    $project = Project::factory()->in($workspace)->create();
+it('will not let the last owner be demoted', function (): void {
+    [, $project, $owner] = projectWithOwner();
+    $membership = $project->memberships()->sole();
 
-    // An invitation is not a membership: until it is accepted there is nobody to grant to.
-    expect(fn (): ProjectMembership => ProjectMembership::query()->create([
-        'project_id' => $project->id,
-        'user_id' => $invited->id,
-        'access_level' => ProjectAccessLevel::Viewer,
-    ]))->toThrow(ProjectException::class);
+    /*
+     * Managing a project needs an explicit owner row (`Project::isManageableBy`), so a project
+     * whose last owner became an editor is one nobody can manage — not even the workspace's owner.
+     */
+    $this->actingAs($owner)
+        ->from(route('projects.edit', $project))
+        ->put(route('projects.members.update', [$project, $membership]), [
+            'access_level' => ProjectAccessLevel::Editor->value,
+        ])
+        ->assertSessionHasErrors();
+
+    expect($membership->fresh()?->access_level)->toBe(ProjectAccessLevel::Owner);
 });
 
-it('keeps a grant that was made while the person was still a member', function (): void {
-    $workspace = Workspace::factory()->create();
-    $member = memberOf($workspace, WorkspaceRole::Member);
-    $project = Project::factory()->in($workspace)->create();
-    $membership = ProjectMembership::factory()->in($project)->forUser($member)->create();
+it('will not let the last owner be removed', function (): void {
+    [, $project, $owner] = projectWithOwner();
+    $membership = $project->memberships()->sole();
 
-    $workspace->membershipFor($member)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
+    $this->actingAs($owner)
+        ->from(route('projects.edit', $project))
+        ->delete(route('projects.members.destroy', [$project, $membership]))
+        ->assertSessionHasErrors();
 
-    // The row survives — what it grants does not, which is `isVisibleTo()`'s answer rather
-    // than the row's existence.
-    expect($membership->fresh())->not->toBeNull()
-        ->and($project->fresh()?->isVisibleTo($member))->toBeFalse();
+    expect($project->memberships()->count())->toBe(1);
+});
+
+it('lets an owner step down once there is a second one', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Owner);
+    $membership = $project->memberships()->where('user_id', $owner->id)->sole();
+
+    $this->actingAs($owner)
+        ->put(route('projects.members.update', [$project, $membership]), [
+            'access_level' => ProjectAccessLevel::Editor->value,
+        ])
+        ->assertRedirect();
+
+    expect($membership->fresh()?->access_level)->toBe(ProjectAccessLevel::Editor);
+});
+
+it('refuses an editor, and a workspace owner without an owner row', function (): void {
+    [$workspace, $project, , $other] = projectWithOwner();
+    $editor = memberOf($workspace, WorkspaceRole::Member);
+    app(GrantProjectAccess::class)->handle($project, $project->memberships()->sole()->user, $editor, ProjectAccessLevel::Editor);
+
+    // Editing what is in a project and deciding who may reach it are different questions.
+    $this->actingAs($editor)
+        ->post(route('projects.members.store', $project), [
+            'user' => $other->id,
+            'access_level' => ProjectAccessLevel::Viewer->value,
+        ])
+        ->assertForbidden();
+
+    /*
+     * And a workspace admin with no membership row on this project: `isManageableBy` needs both
+     * the workspace capability and an owner row, which is the whole reason the last owner cannot
+     * be removed.
+     */
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $this->actingAs($admin)
+        ->post(route('projects.members.store', $project), [
+            'user' => $other->id,
+            'access_level' => ProjectAccessLevel::Viewer->value,
+        ])
+        ->assertForbidden();
+
+    expect($project->memberships()->count())->toBe(2);
+});
+
+it('answers a membership from another project with a 404', function (): void {
+    [$workspace, $project, $owner, $other] = projectWithOwner();
+    $elsewhere = Project::factory()->in($workspace)->create();
+    ProjectMembership::query()->create([
+        'project_id' => $elsewhere->id,
+        'user_id' => $owner->id,
+        'access_level' => ProjectAccessLevel::Owner,
+    ]);
+    $theirs = $elsewhere->memberships()->sole();
+
+    $this->actingAs($owner)
+        ->put(route('projects.members.update', [$project, $theirs]), [
+            'access_level' => ProjectAccessLevel::Viewer->value,
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($owner)
+        ->delete(route('projects.members.destroy', [$project, $theirs]))
+        ->assertNotFound();
+
+    expect($theirs->fresh()?->access_level)->toBe(ProjectAccessLevel::Owner)
+        ->and($other->id)->not->toBeNull();
+});
+
+it('answers a project in another workspace with a 404', function (): void {
+    [, , $owner] = projectWithOwner();
+    [$elsewhere, $stranger] = workspaceWith(WorkspaceRole::Owner);
+    $theirs = Project::factory()->in($elsewhere)->create();
+
+    $this->actingAs($owner)
+        ->post(route('projects.members.store', $theirs), [
+            'user' => $stranger->id,
+            'access_level' => ProjectAccessLevel::Editor->value,
+        ])
+        ->assertNotFound();
+});
+
+it('refuses an access level that is not one', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+
+    $this->actingAs($owner)
+        ->from(route('projects.edit', $project))
+        ->post(route('projects.members.store', $project), [
+            'user' => $other->id,
+            'access_level' => 'superuser',
+        ])
+        ->assertSessionHasErrors('access_level');
+
+    expect($project->memberships()->count())->toBe(1);
+});
+
+it('refuses a membership id that is not a uuid', function (): void {
+    [, $project, $owner] = projectWithOwner();
+
+    $this->actingAs($owner)
+        ->delete("/projects/{$project->id}/members/not-a-uuid")
+        ->assertNotFound();
+});
+
+it('holds the last-owner rule for a caller without a request', function (): void {
+    [, $project, $owner] = projectWithOwner();
+
+    expect(fn () => app(RevokeProjectAccess::class)->handle($project, $owner, $project->memberships()->sole()))
+        ->toThrow(ProjectException::class, 'A project needs at least one owner.');
 });
