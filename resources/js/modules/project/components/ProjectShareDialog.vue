@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { Check, Globe, Link2, Lock } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import ProjectMemberController from '@/actions/App/Http/Controllers/Project/ProjectMemberController';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { reloadOptional } from '@/lib/optionalProps';
 import type { ProjectMember, ProjectShare } from '@/modules/project/types';
 
 /**
@@ -52,10 +53,27 @@ watch(open, (isOpen) => {
 });
 
 function reload(): void {
-    router.reload({ only: ['share'] });
+    // Deferred, and `reloadOptional` says why: a visit started from inside the write's own
+    // callbacks is aborted before it answers.
+    reloadOptional(['share']);
 }
 
-const share = computed<ProjectShare | null>(() => props.share ?? null);
+/*
+ * The last answer the server sent, kept while the next one is on its way — the redirect after a
+ * write does not carry an optional prop, so reading the prop directly would blank the list every
+ * time somebody is added.
+ */
+const share = ref<ProjectShare | null>(props.share ?? null);
+
+watch(
+    () => props.share,
+    (next) => {
+        if (next !== undefined) {
+            share.value = next;
+        }
+    },
+    { immediate: true },
+);
 
 const levelLabels: Record<string, string> = {
     owner: 'Project owner',

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, ListChecks, SlidersHorizontal } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Sheet,
@@ -12,6 +11,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { reloadOptional } from '@/lib/optionalProps';
 import ProjectFieldManager from '@/modules/custom-field/components/ProjectFieldManager.vue';
 import type { ProjectCustomize } from '@/modules/project/types';
 
@@ -54,10 +54,29 @@ watch(open, (isOpen) => {
 
 /** The one place the drawer's own props are asked for, so opening and writing agree. */
 function reload(): void {
-    router.reload({ only: ['customize'] });
+    reloadOptional(['customize']);
 }
 
-const fields = computed(() => props.customize?.fields ?? null);
+/*
+ * The last list the server sent, kept while the next one is on its way.
+ *
+ * A write inside the drawer redirects, and the page that comes back does not carry an optional
+ * prop — so reading `props.customize` directly would blank the list on every attach and draw a
+ * skeleton over something the reader had just changed. Holding the last answer means the drawer
+ * shows the old list for the length of one request instead of nothing at all, and `null` keeps its
+ * real meaning: not read yet.
+ */
+const fields = ref<ProjectCustomize['fields'] | null>(props.customize?.fields ?? null);
+
+watch(
+    () => props.customize,
+    (next) => {
+        if (next !== undefined) {
+            fields.value = next.fields;
+        }
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
