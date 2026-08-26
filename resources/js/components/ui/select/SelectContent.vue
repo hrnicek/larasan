@@ -8,6 +8,7 @@ import {
   SelectViewport,
   useForwardPropsEmits,
 } from "reka-ui"
+import { useModalPortalTarget } from "@/composables/useModalPortalTarget"
 import { cn } from "@/lib/utils"
 import { SelectScrollDownButton, SelectScrollUpButton } from "."
 
@@ -26,10 +27,13 @@ const emits = defineEmits<SelectContentEmits>()
 const delegatedProps = reactiveOmit(props, "class")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+/** `body` everywhere except inside a modal, whose native dialog would render it inert. */
+const portalTarget = useModalPortalTarget()
 </script>
 
 <template>
-  <SelectPortal>
+  <SelectPortal :to="portalTarget ?? undefined">
     <SelectContent
       data-slot="select-content"
       v-bind="{ ...$attrs, ...forwarded }"

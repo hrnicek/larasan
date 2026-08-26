@@ -9,7 +9,6 @@ import ModalShell from '@/components/ModalShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
@@ -36,7 +35,6 @@ const name = ref('');
 const color = ref<string | null>(null);
 const icon = ref<string | null>(null);
 const visibility = ref(props.options.visibilities[0] ?? 'workspace');
-const appearanceOpen = ref(false);
 
 /** What the preview calls the project before it is called anything. */
 const previewName = computed(() => name.value.trim() || 'Untitled project');
@@ -115,35 +113,20 @@ function choice(option: string): Choice {
                         <InputError :message="errors.visibility" />
                     </div>
 
-                    <div class="grid gap-2">
-                        <Label>Colour and icon</Label>
-
-                        <!-- The tile is the control, the way it is in the project header: the shortest
-                             route to changing how something looks is clicking the thing itself. -->
-                        <Popover v-model:open="appearanceOpen">
-                            <PopoverTrigger
-                                type="button"
-                                class="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-left transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                                aria-label="Colour and icon for this project"
-                            >
-                                <ProjectTile :name="previewName" :color="color" :icon="icon" />
-                                <span class="truncate text-sm text-muted-foreground">
-                                    {{ color || icon ? 'Chosen' : 'Pick a colour and an icon' }}
-                                </span>
-                            </PopoverTrigger>
-
-                            <PopoverContent class="w-72 p-3" align="start">
-                                <AccentColorGrid v-model="color" />
-                                <ProjectIconGrid v-model="icon" class="mt-4" />
-                            </PopoverContent>
-                        </Popover>
-
-                        <input type="hidden" name="color" :value="color ?? ''" />
-                        <input type="hidden" name="icon" :value="icon ?? ''" />
-
-                        <InputError :message="errors.color" />
-                        <InputError :message="errors.icon" />
+                    <!-- Drawn in the form rather than behind a popover: the swatches fit, and a
+                         floating layer inside a native `<dialog>` is a portal that has to be aimed
+                         back into it (`composables/useModalPortalTarget.ts`) — one moving part this
+                         form does not need. -->
+                    <div class="grid gap-4 rounded-lg border border-border p-3">
+                        <AccentColorGrid v-model="color" />
+                        <ProjectIconGrid v-model="icon" />
                     </div>
+
+                    <input type="hidden" name="color" :value="color ?? ''" />
+                    <input type="hidden" name="icon" :value="icon ?? ''" />
+
+                    <InputError :message="errors.color" />
+                    <InputError :message="errors.icon" />
 
                     <div class="flex justify-end gap-2 pt-1">
                         <Button type="button" variant="ghost" @click="close">Cancel</Button>

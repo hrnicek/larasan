@@ -3,6 +3,7 @@ import type { PopoverContentEmits, PopoverContentProps } from 'reka-ui';
 import type { HTMLAttributes } from 'vue';
 import { reactiveOmit } from '@vueuse/core';
 import { PopoverContent, PopoverPortal, useForwardPropsEmits } from 'reka-ui';
+import { useModalPortalTarget } from '@/composables/useModalPortalTarget';
 import { cn } from '@/lib/utils';
 
 defineOptions({
@@ -17,10 +18,13 @@ const props = withDefaults(defineProps<PopoverContentProps & { class?: HTMLAttri
 const emits = defineEmits<PopoverContentEmits>();
 
 const forwarded = useForwardPropsEmits(reactiveOmit(props, 'class'), emits);
+
+/** `body` everywhere except inside a modal, whose native dialog would render it inert. */
+const portalTarget = useModalPortalTarget();
 </script>
 
 <template>
-    <PopoverPortal>
+    <PopoverPortal :to="portalTarget ?? undefined">
         <PopoverContent
             data-slot="popover-content"
             v-bind="{ ...forwarded, ...$attrs }"

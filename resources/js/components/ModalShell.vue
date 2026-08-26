@@ -3,6 +3,7 @@ import { Modal } from '@inertiaui/modal-vue';
 import { X } from '@lucide/vue';
 import { ref, useId, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { provideModalPortalTarget } from '@/composables/useModalPortalTarget';
 
 const props = defineProps<{
     title: string;
@@ -18,6 +19,13 @@ const props = defineProps<{
 const titleId = useId();
 const descriptionId = useId();
 const panel = ref<HTMLElement | null>(null);
+
+/**
+ * Where a popover or a select inside this dialog is teleported to. The dialog is opened with
+ * `showModal()`, so anything portalled to `body` is inert underneath it — see
+ * `composables/useModalPortalTarget.ts`.
+ */
+const portalTarget = provideModalPortalTarget();
 
 /**
  * Name the dialog after its own heading.
@@ -36,6 +44,8 @@ watch(panel, (element) => {
     if (!dialog) {
         return;
     }
+
+    portalTarget.value = dialog instanceof HTMLElement ? dialog : null;
 
     dialog.setAttribute('aria-labelledby', titleId);
 
