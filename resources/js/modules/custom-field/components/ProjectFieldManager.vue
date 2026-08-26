@@ -29,6 +29,13 @@ const typeLabels: Record<CustomFieldType, string> = {
     select: 'Choice',
 };
 
+/**
+ * A write finished. The settings screen has no use for it — its props come back with the redirect
+ * — but the *Customize* drawer's list is `Inertia::optional` and is not in that response, so it
+ * asks for its own again.
+ */
+const emit = defineEmits<{ changed: [] }>();
+
 /** Which row is mid-request, so a slow network is not mistaken for a control that did nothing. */
 const pending = ref<string | null>(null);
 
@@ -38,7 +45,11 @@ function attach(id: string): void {
     router.post(
         ProjectCustomFieldController.store.url(props.projectId),
         { field: id },
-        { preserveScroll: true, onFinish: () => (pending.value = null) },
+        {
+            preserveScroll: true,
+            onSuccess: () => emit('changed'),
+            onFinish: () => (pending.value = null),
+        },
     );
 }
 
@@ -52,6 +63,7 @@ function detach(id: string): void {
 
     router.delete(ProjectCustomFieldController.destroy.url({ project: props.projectId, field: id }), {
         preserveScroll: true,
+        onSuccess: () => emit('changed'),
         onFinish: () => (pending.value = null),
     });
 }

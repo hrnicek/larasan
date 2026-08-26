@@ -8,9 +8,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import ProjectAppearancePicker from '@/modules/project/components/ProjectAppearancePicker.vue';
+import ProjectCustomizeSheet from '@/modules/project/components/ProjectCustomizeSheet.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
-import type { ProjectHeading } from '@/modules/project/types';
+import type { ProjectCustomize, ProjectHeading } from '@/modules/project/types';
 import { edit, star, unstar } from '@/routes/projects';
 
 /**
@@ -24,6 +25,8 @@ const props = defineProps<{
     project: ProjectHeading;
     view: string;
     views: string[];
+    /** Absent until the *Customize* drawer asks for it — see `ProjectCustomizeSheet`. */
+    customize?: ProjectCustomize;
 }>();
 
 /** The same write the sidebar's own menu makes, from the screen the project is open on. */
@@ -84,6 +87,17 @@ function toggleStar(): void {
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <!-- Pushed to the trailing edge: this is a control for the project as a whole, not
+                 another item in the row of things that name it. -->
+            <div class="ml-auto flex shrink-0 items-center gap-2">
+                <ProjectCustomizeSheet
+                    v-if="project.canCustomize"
+                    :project-id="project.id"
+                    :can-manage="project.canCustomize"
+                    :customize="props.customize"
+                />
+            </div>
         </div>
 
         <div class="px-2 md:px-4">

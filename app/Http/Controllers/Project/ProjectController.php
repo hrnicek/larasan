@@ -147,6 +147,12 @@ class ProjectController extends Controller
                 // This reader's own shortcut, not a property of the project: the header's menu
                 // draws either *Add to starred* or *Remove from starred* from it.
                 'starred' => $project->stars()->where('user_id', $actor->id)->exists(),
+                /*
+                 * Whether the header draws *Customize* at all. A drawer that can only be read is
+                 * a control that promises something, so it is not offered to somebody who cannot
+                 * change what the project records (ADR-0010).
+                 */
+                'canCustomize' => $actor->can(Capability::CustomFieldManage->value, $project->workspace),
             ],
             'view' => $view->value,
             /*
@@ -204,6 +210,22 @@ class ProjectController extends Controller
                     ->all(),
             ],
             'views' => array_column(ProjectView::cases(), 'value'),
+            /*
+             * What the *Customize* drawer holds, asked for when it is opened rather than sent to
+             * everybody who opens a project: it is a control most visits never touch, and
+             * `available` is a query of its own. `Inertia::optional` is v3's name for it.
+             */
+            'customize' => Inertia::optional(fn (): array => [
+                'fields' => [
+                    'attached' => $this->fields($project->customFields),
+                    'available' => $this->fields(
+                        $project->workspace->customFields()
+                            ->whereNotIn('id', $project->customFields->modelKeys())
+                            ->orderBy('name')
+                            ->get(),
+                    ),
+                ],
+            ]),
             /*
              * The panel, the priorities its control offers and who a card can be handed to.
              * Four props, sent identically by every screen that can open a panel, from the one

@@ -14,6 +14,7 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use App\Http\Middleware\HandleInertiaRequests;
 use Inertia\Testing\AssertableInertia;
 
 /*
@@ -175,4 +176,58 @@ it('turns away a workspace that is not the actor s', function (): void {
     $this->actingAs($outsider)
         ->post(route('projects.custom-fields.store', $project), ['field' => fake()->uuid()])
         ->assertNotFound();
+});
+
+/*
+ * The *Customize* drawer in the project's own header. Its contents are `Inertia::optional`, so a
+ * visit that never opens it pays nothing for it.
+ */
+
+it('does not send the drawer to somebody who only opened the project', function (): void {
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    $project = Project::factory()->in($workspace)->create();
+    app(DefineCustomField::class)->handle($workspace, $owner, 'Estimate', CustomFieldType::Text);
+
+    $this->actingAs($owner)
+        ->get(route('projects.show', $project))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('projects/Show')
+            ->where('project.canCustomize', true)
+            ->missing('customize'),
+        );
+});
+
+it('answers the drawer when it asks', function (): void {
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    $project = Project::factory()->in($workspace)->create();
+    $shown = app(DefineCustomField::class)->handle($workspace, $owner, 'Estimate', CustomFieldType::Text);
+    app(DefineCustomField::class)->handle($workspace, $owner, 'Client', CustomFieldType::Text);
+    app(AttachFieldToProject::class)->handle($project, $shown, $owner);
+
+    /*
+     * The asset-version middleware is skipped for the reason `TaskDetailPageTest` skips it: a
+     * partial request carries a version header a test cannot know, and this is about the prop.
+     */
+    $this->actingAs($owner)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('projects.show', $project), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'projects/Show',
+            'X-Inertia-Partial-Data' => 'customize',
+        ])
+        ->assertOk()
+        ->assertJsonPath('props.customize.fields.attached.0.name', 'Estimate')
+        ->assertJsonPath('props.customize.fields.available.0.name', 'Client');
+});
+
+it('does not draw the drawer for somebody who may not customize', function (): void {
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($project)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
+
+    // The control is not drawn, and the endpoints behind it refuse regardless — proved above.
+    $this->actingAs($member)
+        ->get(route('projects.show', $project))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('project.canCustomize', false));
 });

@@ -48,9 +48,9 @@ function choiceField(): array
  */
 function asSent(CustomField $field): array
 {
-    return $field->options()->get()
+    return array_values($field->options()->get()
         ->map(fn (CustomFieldOption $option): array => ['id' => $option->id, 'label' => $option->label])
-        ->all();
+        ->all());
 }
 
 it('renames a choice, adds one and removes one in a single request', function (): void {

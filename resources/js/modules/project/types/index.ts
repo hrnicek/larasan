@@ -42,6 +42,20 @@ export type ProjectHeading = {
     archived: boolean;
     canUpdate: boolean;
     starred: boolean;
+    /**
+     * Whether the header draws *Customize*. Not implied by `canUpdate`: what a project records is
+     * a workspace decision (ADR-0010), and a drawer that can only be read promises something.
+     */
+    canCustomize: boolean;
+};
+
+/**
+ * What the *Customize* drawer holds. Absent until the drawer is opened — the server sends it
+ * through `Inertia::optional`, so the type is what arrives, and `undefined` is "not asked for
+ * yet" rather than "empty".
+ */
+export type ProjectCustomize = {
+    fields: ProjectCustomFields;
 };
 
 export type ProjectSettings = ProjectSummary & {
