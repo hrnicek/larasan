@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Enums\UiTheme;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
@@ -33,6 +34,7 @@ use Laravel\Scout\Searchable;
  * @property string|null $two_factor_recovery_codes
  * @property CarbonImmutable|null $two_factor_confirmed_at
  * @property string|null $current_workspace_id
+ * @property UiTheme $ui_theme
  * @property string|null $remember_token
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
@@ -135,12 +137,24 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
      *
      * @return array<string, string>
      */
+    /**
+     * A database default fills the column but leaves the *model* without the attribute until it
+     * is read back, and `Model::shouldBeStrict()` throws on a missing one — so the first request
+     * after a sign-up went through `HandleUiTheme` and 500'd. The default belongs on both sides.
+     *
+     * @var array<string, string>
+     */
+    protected $attributes = [
+        'ui_theme' => UiTheme::Slate->value,
+    ];
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'ui_theme' => UiTheme::class,
         ];
     }
 }
