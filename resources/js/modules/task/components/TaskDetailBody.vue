@@ -163,6 +163,7 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                 :task-id="detail.task.id"
                 :attachments="detail.attachments"
                 :can-attach="detail.can.attach"
+                :can-reorder="detail.can.update"
             />
         </div>
 
