@@ -61,3 +61,47 @@ it('draws the mark in the brand plum where it cannot inherit a colour', function
         ->and((string) File::get(public_path('favicon.svg')))
         ->toContain('#8C2A87');
 });
+
+/*
+ * The brand kit outside the application (ADR-0018, `docs/brand/README.md`). It is generated from
+ * the same path and the same typeface the product uses, and the README quotes both — so what is
+ * asserted here is that the generated files exist and still agree with the source of the mark.
+ */
+
+it('ships the brand kit the README points at', function (string $file): void {
+    $path = base_path("docs/brand/{$file}");
+
+    expect(File::exists($path))->toBeTrue("docs/brand/{$file} is named in the brand README and is not there")
+        ->and(File::size($path))->toBeGreaterThan(0);
+})->with([
+    'larasan-mark.svg',
+    'larasan-mark-mono.svg',
+    'larasan-wordmark.svg',
+    'larasan-lockup.svg',
+    'larasan-lockup-dark.svg',
+    'larasan-lockup-stacked.svg',
+    'larasan-banner-light.png',
+    'larasan-banner-dark.png',
+    'larasan-og.png',
+    'larasan-avatar.png',
+]);
+
+it('draws the same mark in the brand kit as in the application', function (string $file): void {
+    $kit = markPathData((string) File::get(base_path("docs/brand/{$file}")));
+    $component = markPathData((string) File::get(resource_path('js/components/AppLogoIcon.vue')));
+
+    expect($kit)->toContain($component[0]);
+})->with(['larasan-mark.svg', 'larasan-mark-mono.svg']);
+
+it('sets the wordmark as outlines rather than as text', function (): void {
+    // Nothing that renders the kit is guaranteed to have Instrument Sans — GitHub does not load
+    // fonts for SVG at all — so a `<text>` element here is a wordmark that silently becomes
+    // whatever the viewer had lying around.
+    $wordmark = (string) File::get(base_path('docs/brand/larasan-wordmark.svg'));
+
+    expect($wordmark)->not->toContain('<text')
+        ->and($wordmark)->not->toContain('font-family')
+        ->and($wordmark)->toContain('<path');
+})->with([
+    'a wordmark set as live text is a wordmark drawn in a font the reader happens to have',
+]);

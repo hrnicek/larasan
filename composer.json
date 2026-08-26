@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/vue-starter-kit",
+    "name": "jakubhrncir/larasan",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "An open-source project manager that keeps a team in tune.",
     "keywords": [
+        "project-management",
         "laravel",
-        "framework"
+        "inertia",
+        "vue"
     ],
     "license": "MIT",
     "require": {
