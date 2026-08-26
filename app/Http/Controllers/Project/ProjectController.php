@@ -13,6 +13,7 @@ use App\Domain\Project\Actions\UpdateProject;
 use App\Domain\Project\Data\CreateProjectData;
 use App\Domain\Project\Data\UpdateProjectData;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Project\Queries\ProjectBoardQuery;
 use App\Domain\Project\Queries\ProjectCalendarQuery;
 use App\Domain\Project\Queries\ProjectFilesQuery;
@@ -20,6 +21,7 @@ use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectView;
@@ -32,6 +34,7 @@ use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Project\ShowProjectRequest;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -132,6 +135,13 @@ class ProjectController extends Controller
 
         $this->rememberOpening($project->workspace, $actor, $project);
 
+        /*
+         * The project's people, read once: the header draws five faces and says how many there
+         * are, and a project's membership list is the people rather than the work, so reading it
+         * whole costs one query instead of two.
+         */
+        $people = $project->members()->orderBy('name')->get(['users.id', 'users.name']);
+
         return Inertia::render('projects/Show', [
             'project' => [
                 'id' => $project->id,
@@ -153,6 +163,22 @@ class ProjectController extends Controller
                  * change what the project records (ADR-0010).
                  */
                 'canCustomize' => $actor->can(Capability::CustomFieldManage->value, $project->workspace),
+                /*
+                 * The faces in the header. Five and a number rather than everybody: past that a
+                 * stack stops being a glance and becomes a queue, and the dialog behind it is
+                 * where the whole list belongs.
+                 */
+                'members' => array_values($people
+                    ->take(5)
+                    ->map(fn (User $member): array => [
+                        'id' => $member->id,
+                        'name' => $member->name,
+                        // No uploaded faces yet: `UserAvatar` draws initials, and every other
+                        // payload in this application sends the same null.
+                        'avatar' => null,
+                    ])
+                    ->all()),
+                'memberCount' => $people->count(),
             ],
             'view' => $view->value,
             /*
@@ -215,6 +241,12 @@ class ProjectController extends Controller
              * everybody who opens a project: it is a control most visits never touch, and
              * `available` is a query of its own. `Inertia::optional` is v3's name for it.
              */
+            /*
+             * What the *Share* dialog holds, asked for when it is opened. The faces above are on
+             * every visit because the header draws them; the list, the levels and everybody who
+             * could be added are not.
+             */
+            'share' => Inertia::optional(fn (): array => $this->share($project, $actor)),
             'customize' => Inertia::optional(fn (): array => [
                 'fields' => [
                     'attached' => $this->fields($project->customFields),
@@ -359,5 +391,65 @@ class ProjectController extends Controller
                 'type' => $field->type->value,
             ])
             ->all());
+    }
+
+    /**
+     * Who has access to this project, and who could be given it.
+     *
+     * `isLastOwner` is counted once rather than asked per row: managing a project needs an
+     * explicit owner row, so the last one cannot be demoted or removed and the dialog should not
+     * offer it — the endpoint refuses regardless.
+     *
+     * @return array{canManage: bool, visibility: string, accessLevels: list<string>, link: string, members: list<array<string, mixed>>, candidates: list<array<string, mixed>>}
+     */
+    private function share(Project $project, User $actor): array
+    {
+        $canManage = $actor->can('manageMembers', $project);
+
+        $owners = $project->memberships()
+            ->where('access_level', ProjectAccessLevel::Owner->value)
+            ->count();
+
+        $memberships = $project->memberships()->with('user')->get();
+
+        return [
+            'canManage' => $canManage,
+            'visibility' => $project->visibility->value,
+            // Owner last: it is the level somebody is promoted to, not the one a form offers first.
+            'accessLevels' => array_column(ProjectAccessLevel::cases(), 'value'),
+            'link' => route('projects.show', $project),
+            'members' => array_values($memberships
+                ->sortBy(fn (ProjectMembership $membership): string => $membership->user->name)
+                ->map(fn (ProjectMembership $membership): array => [
+                    'membershipId' => $membership->id,
+                    'id' => $membership->user_id,
+                    'name' => $membership->user->name,
+                    'email' => $membership->user->email,
+                    'avatar' => null,
+                    'accessLevel' => $membership->access_level->value,
+                    'isYou' => $membership->user_id === $actor->id,
+                    'isLastOwner' => $membership->access_level->canManageProject() && $owners === 1,
+                ])
+                ->values()
+                ->all()),
+            /*
+             * Everybody in the workspace who is not on the project yet. A guest is deliberately
+             * included: a project membership is exactly how somebody outside the workspace's own
+             * work is given a way in (ADR-0006).
+             */
+            'candidates' => $canManage
+                ? array_values($project->workspace->members()
+                    ->whereNotIn('users.id', $memberships->pluck('user_id')->all())
+                    ->orderBy('name')
+                    ->get(['users.id', 'users.name', 'users.email'])
+                    ->map(fn (User $user): array => [
+                        'id' => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'avatar' => null,
+                    ])
+                    ->all())
+                : [],
+        ];
     }
 }

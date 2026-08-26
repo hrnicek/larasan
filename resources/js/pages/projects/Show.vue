@@ -12,7 +12,7 @@ import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import type { ProjectPages } from '@/modules/page/types';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
-import type { ProjectCustomize, ProjectFiles, ProjectHeading } from '@/modules/project/types';
+import type { ProjectCustomize, ProjectFiles, ProjectHeading, ProjectShare } from '@/modules/project/types';
 import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable, PagesTree } from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
@@ -69,6 +69,8 @@ const props = defineProps<{
     activity?: TaskFeed;
     /** Absent until the header's *Customize* drawer asks for it (`Inertia::optional`). */
     customize?: ProjectCustomize;
+    /** Absent until the header's *Share* dialog asks for it, for the same reason. */
+    share?: ProjectShare;
 }>();
 
 /*
@@ -253,7 +255,13 @@ onUnmounted(() => {
             which project this is, which view you are in and what the fourth column means.
         -->
         <div class="sticky top-0 z-20 bg-background">
-            <ProjectHeader :project="project" :view="view" :views="views" :customize="customize" />
+            <ProjectHeader
+                :project="project"
+                :view="view"
+                :views="views"
+                :customize="customize"
+                :share="share"
+            />
 
             <!--
                 The toolbar: what this view is showing and how to change it, on one line above the

@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
+import { accentBandClass, accentDotClass } from '@/lib/accentColor';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
@@ -56,9 +57,13 @@ function saveRename(): void {
         return;
     }
 
+    /*
+     * The colour goes with the name. `PUT /sections/{section}` replaces both columns and reads an
+     * absent colour as "clear it", so a rename carrying only the name silently blanks the colour.
+     */
     router.put(
         SectionController.update.url(props.column.id),
-        { name: next },
+        { name: next, color: props.column.color },
         { preserveScroll: true, onFinish: () => (renaming.value = false) },
     );
 }
@@ -73,7 +78,10 @@ const emit = defineEmits<{
 
 <template>
     <section class="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-muted/30" data-task-section>
-        <header class="group/section flex items-center gap-1 px-3 py-2.5 text-[13px] font-semibold">
+        <header
+            class="group/section flex items-center gap-1 rounded-t-lg px-3 py-2.5 text-[13px] font-semibold"
+            :class="accentBandClass(column.color)"
+        >
             <input
                 v-if="renaming"
                 ref="renameInput"
@@ -85,7 +93,15 @@ const emit = defineEmits<{
                 @keydown.enter.prevent="saveRename"
                 @keydown.esc.prevent="renaming = false"
             />
-            <span v-else class="flex-1 truncate">{{ column.name ?? 'No section' }}</span>
+            <!-- The colour, on the header of the column it belongs to. The band says it across the
+                 whole width; the dot is what survives a tint too pale to read as a background. -->
+            <span
+                v-else
+                class="size-2 shrink-0 rounded-full"
+                :class="accentDotClass(column.color)"
+                aria-hidden="true"
+            />
+            <span v-if="!renaming" class="flex-1 truncate">{{ column.name ?? 'No section' }}</span>
 
             <span class="shrink-0 rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground">
                 {{ column.count }}
@@ -96,6 +112,7 @@ const emit = defineEmits<{
                 :project-id="projectId"
                 :section-id="column.id"
                 :name="column.name"
+                :color="column.color"
                 :can="canSection"
                 @rename="startRename"
             />

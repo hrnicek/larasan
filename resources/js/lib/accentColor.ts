@@ -45,6 +45,29 @@ export function accentDotClass(color: string | null): string {
 }
 
 /**
+ * The same palette as a band behind a section's header, at the opacity a full-width row can carry
+ * without the rows under it having to compete with it.
+ *
+ * Unlike every other record here, an unknown name falls through to nothing rather than to slate: a
+ * section's colour is nullable and the migration calls that "the neutral default", so an
+ * uncoloured column has no band at all instead of a grey one.
+ */
+const accentBandClasses = {
+    slate: 'bg-slate-500/10',
+    red: 'bg-red-500/10',
+    amber: 'bg-amber-500/10',
+    emerald: 'bg-emerald-500/10',
+    teal: 'bg-teal-500/10',
+    sky: 'bg-sky-500/10',
+    violet: 'bg-violet-500/10',
+    rose: 'bg-rose-500/10',
+} as const;
+
+export function accentBandClass(color: string | null): string {
+    return accentBandClasses[color as AccentColor] ?? '';
+}
+
+/**
  * The palette in the order a picker draws it, from the record that already lists it.
  *
  * `ProjectColor` and `TagColor` are the server's copy of the same eight names. A picker offered

@@ -10,7 +10,9 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
+use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia;
 
 /*
  * Access inside one project (ADR-0006). Until now the only row ever written was the one
@@ -253,4 +255,97 @@ it('holds the last-owner rule for a caller without a request', function (): void
 
     expect(fn () => app(RevokeProjectAccess::class)->handle($project, $owner, $project->memberships()->sole()))
         ->toThrow(ProjectException::class, 'A project needs at least one owner.');
+});
+
+/*
+ * What the header draws, and what the *Share* dialog asks for when it opens.
+ */
+
+it('sends the project s faces with the screen', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
+
+    $this->actingAs($owner)
+        ->get(route('projects.show', $project))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('project.members', 2)
+            ->where('project.memberCount', 2)
+            // The dialog's own contents are optional and were not asked for.
+            ->missing('share'),
+        );
+});
+
+it('draws five faces and counts the rest', function (): void {
+    [$workspace, $project, $owner] = projectWithOwner();
+
+    foreach (range(1, 7) as $ignored) {
+        app(GrantProjectAccess::class)->handle(
+            $project,
+            $owner,
+            memberOf($workspace, WorkspaceRole::Member),
+            ProjectAccessLevel::Viewer,
+        );
+    }
+
+    $this->actingAs($owner)
+        ->get(route('projects.show', $project))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('project.members', 5)
+            ->where('project.memberCount', 8),
+        );
+});
+
+it('answers the share dialog when it asks', function (): void {
+    [$workspace, $project, $owner, $other] = projectWithOwner();
+    app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
+    $candidate = memberOf($workspace, WorkspaceRole::Member);
+
+    // Named so the list's own ordering is what the assertions read, rather than whatever the
+    // factory happened to invent.
+    $owner->update(['name' => 'Aaron Owner']);
+    $other->update(['name' => 'Bella Editor']);
+    $candidate->update(['name' => 'Cara Candidate']);
+
+    $this->actingAs($owner)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('projects.show', $project), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'projects/Show',
+            'X-Inertia-Partial-Data' => 'share',
+        ])
+        ->assertOk()
+        ->assertJsonPath('props.share.canManage', true)
+        ->assertJsonPath('props.share.link', route('projects.show', $project))
+        ->assertJsonCount(2, 'props.share.members')
+        ->assertJsonPath('props.share.members.0.id', $owner->id)
+        ->assertJsonPath('props.share.members.0.accessLevel', ProjectAccessLevel::Owner->value)
+        // Counted once on the server: the last owner can be neither demoted nor removed, so the
+        // dialog does not offer either.
+        ->assertJsonPath('props.share.members.0.isLastOwner', true)
+        ->assertJsonPath('props.share.members.1.id', $other->id)
+        ->assertJsonPath('props.share.members.1.isLastOwner', false)
+        ->assertJsonCount(1, 'props.share.candidates')
+        ->assertJsonPath('props.share.candidates.0.id', $candidate->id);
+});
+
+it('sends no candidates to somebody who may not manage members', function (): void {
+    [$workspace, $project, $owner] = projectWithOwner();
+    $viewer = memberOf($workspace, WorkspaceRole::Member);
+    app(GrantProjectAccess::class)->handle($project, $owner, $viewer, ProjectAccessLevel::Viewer);
+
+    /*
+     * The list is what a reader may see; who *could* be added is only useful to somebody who may
+     * add them, and offering it would be a control with nothing behind it.
+     */
+    $this->actingAs($viewer)
+        ->withoutMiddleware(HandleInertiaRequests::class)
+        ->get(route('projects.show', $project), [
+            'X-Inertia' => 'true',
+            'X-Inertia-Partial-Component' => 'projects/Show',
+            'X-Inertia-Partial-Data' => 'share',
+        ])
+        ->assertOk()
+        ->assertJsonPath('props.share.canManage', false)
+        ->assertJsonCount(2, 'props.share.members')
+        ->assertJsonCount(0, 'props.share.candidates');
 });

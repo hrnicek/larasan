@@ -39,6 +39,28 @@ it('renames a section', function (): void {
     expect($section->fresh()?->name)->toBe('Up next');
 });
 
+/*
+ * The contract every caller of this endpoint has to know: it replaces the row's two writable
+ * columns rather than patching one of them. Asserted here because the list and the board both
+ * rename a section from its own header, and a request carrying only the new name silently blanks
+ * a colour somebody chose.
+ */
+it('replaces the colour rather than patching it', function (): void {
+    [$project, $actor] = projectEditableBy();
+    $section = addSection($project, $actor, 'Backlog');
+    $section->update(['color' => ProjectColor::Violet]);
+
+    $this->actingAs($actor)
+        ->put(route('sections.update', $section), ['name' => 'Up next', 'color' => ProjectColor::Violet->value])
+        ->assertRedirect();
+
+    expect($section->fresh()?->color)->toBe(ProjectColor::Violet);
+
+    $this->actingAs($actor)->put(route('sections.update', $section), ['name' => 'Up next'])->assertRedirect();
+
+    expect($section->fresh()?->color)->toBeNull();
+});
+
 it('moves a section behind another and to the front', function (): void {
     [$project, $actor] = projectEditableBy();
     $a = addSection($project, $actor, 'A');

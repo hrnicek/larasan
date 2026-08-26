@@ -155,8 +155,14 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
     // after the response has gone out. Two statements, one of which the counter attributes to
     // the screen — bookkeeping nobody waits on, and the price of the palette being useful
     // before anybody types.
-    'the board' => ['board', 21],
-    'the list' => ['list', 20],
+    //
+    // And one more each in Phase 240: the header draws the project's people, so `projects.show`
+    // reads them. Once, not twice — the faces and the count come from the same collection — and
+    // it is a membership list rather than a list of work, so its size does not follow the
+    // workspace's. Everything the *Share* dialog needs beyond it is `Inertia::optional` and
+    // costs a visit that never opens it nothing.
+    'the board' => ['board', 22],
+    'the list' => ['list', 21],
     'the project list' => ['projects', 8],
     'my tasks' => ['my-tasks', 8],
     'the inbox' => ['inbox', 12],

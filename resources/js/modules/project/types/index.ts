@@ -47,6 +47,41 @@ export type ProjectHeading = {
      * a workspace decision (ADR-0010), and a drawer that can only be read promises something.
      */
     canCustomize: boolean;
+    /** Five faces for the header, and how many there are in total. The rest is in the dialog. */
+    members: ProjectPerson[];
+    memberCount: number;
+};
+
+/** Somebody, as a face and a name. */
+export type ProjectPerson = {
+    id: number;
+    name: string;
+    avatar: string | null;
+};
+
+export type ProjectMember = ProjectPerson & {
+    membershipId: string;
+    email: string;
+    accessLevel: string;
+    isYou: boolean;
+    /**
+     * Managing a project needs an explicit owner row, so the last owner can be neither demoted nor
+     * removed. Counted on the server; the endpoint refuses regardless of what the dialog offers.
+     */
+    isLastOwner: boolean;
+};
+
+/**
+ * What the *Share* dialog holds. Absent until it is opened — `Inertia::optional`, like
+ * `ProjectCustomize` — so `undefined` is "not asked for yet" rather than "nobody has access".
+ */
+export type ProjectShare = {
+    canManage: boolean;
+    visibility: string;
+    accessLevels: string[];
+    link: string;
+    members: ProjectMember[];
+    candidates: (ProjectPerson & { email: string })[];
 };
 
 /**

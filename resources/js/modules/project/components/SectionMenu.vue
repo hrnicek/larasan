@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { MoreHorizontal, Pencil, Plus, Trash2 } from '@lucide/vue';
+import { MoreHorizontal, Palette, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -9,8 +9,12 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 
 /**
  * What can be done to a column, from the column.
@@ -24,6 +28,8 @@ const props = defineProps<{
     /** `null` is the ungrouped bucket, which is a place but not a section: it cannot be edited. */
     sectionId: string | null;
     name: string | null;
+    /** The column's own colour, so the palette opens on the one it already has. */
+    color: string | null;
     can: { create: boolean; update: boolean; delete: boolean };
 }>();
 
@@ -46,6 +52,33 @@ function add(): void {
         SectionController.store.url(props.projectId),
         { name: 'New section' },
         { preserveScroll: true, onFinish: () => (working.value = false) },
+    );
+}
+
+/**
+ * Recolouring, which is the same endpoint as renaming.
+ *
+ * `PUT /sections/{section}` replaces both columns, so the name goes with every pick — the server
+ * reads an absent colour as "clear it", deliberately, and a request carrying only the colour would
+ * blank the name for the same reason.
+ */
+function recolor(next: string | null): void {
+    if (props.sectionId === null || props.name === null) {
+        return;
+    }
+
+    working.value = true;
+
+    router.put(
+        SectionController.update.url(props.sectionId),
+        { name: props.name, color: next },
+        {
+            preserveScroll: true,
+            // The palette stays open, the way the project tile's does: picking a colour and
+            // changing your mind about it is one errand.
+            preserveState: true,
+            onFinish: () => (working.value = false),
+        },
     );
 }
 
@@ -80,6 +113,21 @@ function remove(): void {
                 <Pencil class="mr-2 size-4 text-muted-foreground" />
                 Rename section
             </DropdownMenuItem>
+
+            <DropdownMenuSub v-if="can.update && sectionId !== null">
+                <DropdownMenuSubTrigger>
+                    <Palette class="mr-2 size-4 text-muted-foreground" />
+                    Colour
+                </DropdownMenuSubTrigger>
+
+                <DropdownMenuSubContent class="w-56 p-3">
+                    <AccentColorGrid
+                        :model-value="color"
+                        :disabled="working"
+                        @update:model-value="recolor"
+                    />
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
 
             <DropdownMenuItem v-if="can.create" :disabled="working" @select="add">
                 <Plus class="mr-2 size-4 text-muted-foreground" />

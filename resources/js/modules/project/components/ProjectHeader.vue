@@ -9,9 +9,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import ProjectAppearancePicker from '@/modules/project/components/ProjectAppearancePicker.vue';
 import ProjectCustomizeSheet from '@/modules/project/components/ProjectCustomizeSheet.vue';
+import ProjectMemberFaces from '@/modules/project/components/ProjectMemberFaces.vue';
+import ProjectShareDialog from '@/modules/project/components/ProjectShareDialog.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
-import type { ProjectCustomize, ProjectHeading } from '@/modules/project/types';
+import type { ProjectCustomize, ProjectHeading, ProjectShare } from '@/modules/project/types';
 import { edit, star, unstar } from '@/routes/projects';
 
 /**
@@ -27,6 +29,8 @@ const props = defineProps<{
     views: string[];
     /** Absent until the *Customize* drawer asks for it — see `ProjectCustomizeSheet`. */
     customize?: ProjectCustomize;
+    /** Absent until the *Share* dialog asks for it, for the same reason. */
+    share?: ProjectShare;
 }>();
 
 /** The same write the sidebar's own menu makes, from the screen the project is open on. */
@@ -90,7 +94,17 @@ function toggleStar(): void {
 
             <!-- Pushed to the trailing edge: this is a control for the project as a whole, not
                  another item in the row of things that name it. -->
-            <div class="ml-auto flex shrink-0 items-center gap-2">
+            <div class="ml-auto flex shrink-0 items-center gap-3">
+                <ProjectMemberFaces :members="project.members" :total="project.memberCount" />
+
+                <ProjectShareDialog
+                    :project-id="project.id"
+                    :project-name="project.name"
+                    :share="props.share"
+                />
+
+                <span class="bg-border h-5 w-px" aria-hidden="true"></span>
+
                 <ProjectCustomizeSheet
                     v-if="project.canCustomize"
                     :project-id="project.id"
