@@ -105,3 +105,49 @@ it('sets the wordmark as outlines rather than as text', function (): void {
 })->with([
     'a wordmark set as live text is a wordmark drawn in a font the reader happens to have',
 ]);
+
+/*
+ * The favicon (TASK-230-005). Two things are asserted here because both were got wrong once: an
+ * SVG whose colour lives only in a stylesheet renders as nothing in a renderer that ignores
+ * stylesheets — which is how this repository's own 48px icon layer came out empty — and a `.ico`
+ * exists precisely to carry the sizes a rasteriser gets wrong.
+ */
+
+it('colours the svg favicon for renderers that read stylesheets and for those that do not', function (): void {
+    $favicon = (string) File::get(public_path('favicon.svg'));
+
+    expect($favicon)
+        // The presentation attribute is the floor: without it, anything that skips the
+        // stylesheet draws an unfilled path.
+        ->toContain('fill="#8C2A87"')
+        // The rule outranks the attribute, so a tab in dark mode gets the light step of the
+        // hue — the same rule `--chrome-primary` follows, because a tab is chrome, not canvas.
+        ->toContain('prefers-color-scheme: dark')
+        ->toContain('#DE84D4');
+})->with([
+    'a favicon whose only colour is in a stylesheet is a favicon some renderers draw as nothing',
+]);
+
+it('carries hinted bitmaps for the sizes a rasteriser gets wrong', function (): void {
+    $ico = (string) File::get(public_path('favicon.ico'));
+
+    // ICONDIR: 2 bytes reserved, 2 bytes type, 2 bytes count; then 16-byte ICONDIRENTRYs
+    // whose first two bytes are width and height, with 0 standing for 256.
+    /** @var array{reserved: int, type: int, count: int} $header */
+    $header = unpack('vreserved/vtype/vcount', $ico);
+
+    expect($header['reserved'])->toBe(0)
+        ->and($header['type'])->toBe(1);
+
+    $sizes = [];
+
+    for ($i = 0; $i < $header['count']; $i++) {
+        $entry = substr($ico, 6 + $i * 16, 16);
+        $sizes[] = ord($entry[0]) === 0 ? 256 : ord($entry[0]);
+    }
+
+    expect($sizes)->toContain(16, 32, 48);
+})->with([
+    'the 24-unit grid puts a 3.2 bar on 2.13 pixels at 16px, so every edge arrives grey unless
+    something is drawn on the pixel grid instead',
+]);
