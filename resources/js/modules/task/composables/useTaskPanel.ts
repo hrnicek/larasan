@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 /**
  * The task detail panel as an address rather than a piece of local state.
@@ -39,6 +39,27 @@ export function useTaskPanel() {
      */
     const openedFromHere = ref(false);
 
+    /*
+     * Whether anything was written since the panel opened.
+     *
+     * Inertia restores a history entry from the props it cached when that entry was made, and the
+     * entry behind the panel was cached before the panel opened. So completing a task in the panel
+     * and then closing it drew the row exactly as it had been, with the change sitting in the
+     * database — the screen behind was a photograph, not a view. It is re-read on the way out, and
+     * only when there is something to re-read: reading a task and closing it costs nothing.
+     */
+    const changed = ref(false);
+
+    onUnmounted(
+        router.on('finish', (event): void => {
+            const visit = event.detail.visit;
+
+            if (visit.completed && visit.method !== 'get') {
+                changed.value = true;
+            }
+        }),
+    );
+
     const addressWithout = (): string => {
         const url = new URL(window.location.href);
 
@@ -49,6 +70,7 @@ export function useTaskPanel() {
 
     const open = (taskId: string): void => {
         openedFromHere.value = true;
+        changed.value = false;
 
         const params = new URLSearchParams(window.location.search);
 
@@ -70,6 +92,15 @@ export function useTaskPanel() {
 
     const close = (): void => {
         if (openedFromHere.value) {
+            if (changed.value) {
+                changed.value = false;
+
+                // After the entry has been restored, not before: until the popstate lands the
+                // address is still the panel's, and a reload would ask for the panel again.
+                // `reload` keeps the scroll and the local state of its own accord.
+                router.once('navigate', () => router.reload());
+            }
+
             window.history.back();
 
             return;
