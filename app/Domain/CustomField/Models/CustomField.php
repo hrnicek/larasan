@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CustomField\Models;
 
+use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Workspace\Models\Workspace;
 use Database\Factories\CustomFieldFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -50,6 +52,17 @@ class CustomField extends Model
     public function options(): HasMany
     {
         return $this->hasMany(CustomFieldOption::class)->orderBy('position');
+    }
+
+    /**
+     * The projects that show this field. The inverse of `Project::customFields()`, and what the
+     * settings screen counts to say what a deletion would take off which boards.
+     *
+     * @return BelongsToMany<Project, $this>
+     */
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_custom_fields');
     }
 
     /** @return HasMany<TaskCustomFieldValue, $this> */
