@@ -25,8 +25,10 @@ namespace App\Domain\Shared\Enums;
 enum UiTheme: string
 {
     case Slate = 'slate';
-    case Paper = 'paper';
-    case Carbon = 'carbon';
+    case Meridian = 'meridian';
+    case Ember = 'ember';
+    case Nocturne = 'nocturne';
+    case Moss = 'moss';
 
     public static function default(): self
     {
@@ -37,17 +39,21 @@ enum UiTheme: string
     {
         return match ($this) {
             self::Slate => 'Slate',
-            self::Paper => 'Paper',
-            self::Carbon => 'Carbon',
+            self::Meridian => 'Meridian',
+            self::Ember => 'Ember',
+            self::Nocturne => 'Nocturne',
+            self::Moss => 'Moss',
         };
     }
 
     public function description(): string
     {
         return match ($this) {
-            self::Slate => 'Cool neutral surfaces and a blue-grey chrome. The original.',
-            self::Paper => 'Warm off-white canvas and a chrome to match. Easier on a long day.',
-            self::Carbon => 'Deeper chrome, crisper rules, more contrast between every surface.',
+            self::Slate => 'Cool neutral surfaces under a graphite rail. The original.',
+            self::Meridian => 'Petrol on cool white. Crisp, and the closest to a drawing board.',
+            self::Ember => 'Burnt umber on ivory. The one to use in a room lit by a lamp.',
+            self::Nocturne => 'Deep indigo, the darkest rail of the five, on a paper with the same blue in it.',
+            self::Moss => 'Forest on a trace of sage. The quietest scheme that still has a colour.',
         };
     }
 

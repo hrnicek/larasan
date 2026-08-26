@@ -19,13 +19,13 @@ test('a new person starts in the default theme', function (): void {
 
 test('the root template paints the html element in the stored theme', function (): void {
     $user = User::factory()->create();
-    $user->ui_theme = UiTheme::Paper;
+    $user->ui_theme = UiTheme::Ember;
     $user->save();
 
     $this->actingAs($user)
         ->get(route('appearance.edit'))
         ->assertOk()
-        ->assertSee('data-theme="paper"', escape: false);
+        ->assertSee('data-theme="ember"', escape: false);
 });
 
 test('a guest gets the default theme', function (): void {
@@ -39,10 +39,10 @@ test('a guest gets the default theme', function (): void {
  * the one place the application forgets what it looks like.
  */
 test('a signed out guest keeps the theme the device remembers', function (): void {
-    $this->withCookie(HandleUiTheme::COOKIE, 'carbon')
+    $this->withCookie(HandleUiTheme::COOKIE, 'nocturne')
         ->get(route('login'))
         ->assertOk()
-        ->assertSee('data-theme="carbon"', escape: false);
+        ->assertSee('data-theme="nocturne"', escape: false);
 });
 
 test('a theme the device no longer knows falls back to the default', function (): void {
@@ -54,24 +54,24 @@ test('a theme the device no longer knows falls back to the default', function ()
 
 test('the stored theme beats the one on the device', function (): void {
     $user = User::factory()->create();
-    $user->ui_theme = UiTheme::Carbon;
+    $user->ui_theme = UiTheme::Nocturne;
     $user->save();
 
     $this->actingAs($user)
-        ->withCookie(HandleUiTheme::COOKIE, 'paper')
+        ->withCookie(HandleUiTheme::COOKIE, 'ember')
         ->get(route('appearance.edit'))
         ->assertOk()
-        ->assertSee('data-theme="carbon"', escape: false)
+        ->assertSee('data-theme="nocturne"', escape: false)
         // ...and the device is corrected on the way out, so signing out here does not hand the
         // sign-in page the theme of another session.
-        ->assertCookie(HandleUiTheme::COOKIE, 'carbon');
+        ->assertCookie(HandleUiTheme::COOKIE, 'nocturne');
 });
 
 test('the device cookie cannot pick a theme for a signed in person', function (): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->withCookie(HandleUiTheme::COOKIE, 'paper')
+        ->withCookie(HandleUiTheme::COOKIE, 'ember')
         ->get(route('appearance.edit'))
         ->assertOk();
 
@@ -103,13 +103,13 @@ test('the theme is one person\'s choice, not everybody\'s', function (): void {
     $mine = User::factory()->create();
     $theirs = User::factory()->create();
 
-    $this->actingAs($mine)->put(route('appearance.update'), ['ui_theme' => 'paper'])->assertRedirect();
+    $this->actingAs($mine)->put(route('appearance.update'), ['ui_theme' => 'ember'])->assertRedirect();
 
-    expect($mine->refresh()->ui_theme)->toBe(UiTheme::Paper)
+    expect($mine->refresh()->ui_theme)->toBe(UiTheme::Ember)
         ->and($theirs->refresh()->ui_theme)->toBe(UiTheme::default());
 });
 
 test('a guest cannot switch anyone\'s theme', function (): void {
-    $this->put(route('appearance.update'), ['ui_theme' => 'paper'])
+    $this->put(route('appearance.update'), ['ui_theme' => 'ember'])
         ->assertRedirect(route('login'));
 });

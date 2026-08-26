@@ -48,20 +48,34 @@ function submit(): void {
                 />
 
                 <!--
-                  The scheme in miniature: chrome, canvas, card. It is drawn inside its own
-                  `data-theme` so the swatch reads the theme's real tokens instead of carrying a
-                  second copy of the palette that would drift the first time one was re-tuned.
+                  The scheme in miniature: rail, canvas, a card and the accent. Drawn inside its
+                  own `data-theme` so the swatch reads the theme's real tokens rather than a second
+                  copy of the palette that would drift the first time one was re-tuned — and the
+                  accent is in it precisely because it is the one thing that does not change.
                 -->
                 <span
                     :data-theme="theme.value"
-                    class="flex h-12 w-20 shrink-0 overflow-hidden rounded-sm border border-border bg-background"
+                    class="flex h-14 w-24 shrink-0 overflow-hidden rounded-sm border border-border bg-background"
                     aria-hidden="true"
                 >
-                    <span class="h-full w-5 bg-chrome" />
-                    <span class="flex flex-1 items-end p-1.5">
+                    <span
+                        class="flex h-full w-6 flex-col items-center gap-1 bg-chrome pt-1.5"
+                    >
                         <span
-                            class="h-4 w-full rounded-xs border border-border bg-card"
+                            class="h-1.5 w-3.5 rounded-xs bg-chrome-primary"
                         />
+                        <span class="h-1 w-3.5 rounded-xs bg-chrome-border" />
+                        <span class="h-1 w-3.5 rounded-xs bg-chrome-border" />
+                    </span>
+                    <span class="flex flex-1 flex-col justify-end gap-1 p-1.5">
+                        <span
+                            class="h-1 w-2/3 rounded-xs bg-muted-foreground/60"
+                        />
+                        <span
+                            class="flex h-4 w-full items-center rounded-xs border border-border bg-card px-1"
+                        >
+                            <span class="h-1.5 w-1.5 rounded-full bg-primary" />
+                        </span>
                     </span>
                 </span>
 

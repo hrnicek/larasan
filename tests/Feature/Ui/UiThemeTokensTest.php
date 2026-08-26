@@ -82,33 +82,39 @@ function surfaceLuminance(string $value): float
  */
 function themeSelectors(): array
 {
-    $selectors = [':root' => 'slate, light', '.dark' => 'slate, dark'];
+    $selectors = [':root' => 'slate, light', ':root.dark' => 'slate, dark'];
 
     foreach (UiTheme::cases() as $theme) {
         if (! $theme->hasTokenBlock()) {
             continue;
         }
 
-        $selectors[":root[data-theme='{$theme->value}']"] = "{$theme->value}, light";
-        $selectors[":root[data-theme='{$theme->value}'].dark"] = "{$theme->value}, dark";
+        $selectors["[data-theme='{$theme->value}']"] = "{$theme->value}, light";
+        $selectors["[data-theme='{$theme->value}'].dark"] = "{$theme->value}, dark";
     }
 
     return $selectors;
 }
 
 /**
- * `.dark` is a class on <html> and scores (0,1,0); `:root[data-theme='paper']` scores (0,1,1) and
- * would win in dark mode. The `.dark` companion block scores (0,2,1) and settles it — which also
- * means a token the dark block omits does not fall back to nothing, it falls back to the theme's
- * own *light* value and sits there looking almost right.
+ * The selectors are not anchored to `:root`, so a swatch on the settings page can be stamped with a
+ * theme and draw itself in it. That makes the specificities load-bearing: the base dark block is
+ * `:root.dark` (0,1,1) so it beats a theme's light block (0,1,0), and a theme's dark block is
+ * (0,2,0) so it beats both. A token the dark block omits does not fall back to nothing — it falls
+ * back to the theme's own *light* value and sits there looking almost right.
  */
 test('every theme declares the whole surface set in both modes', function (): void {
-    $owned = array_keys(themeTokens(':root[data-theme=\'paper\']'));
+    // The default is the one case without a block, so at least one other has to exist for this
+    // test to have a reference set of token names to compare the rest against.
+    $reference = collect(UiTheme::cases())->first(fn (UiTheme $theme): bool => $theme->hasTokenBlock())
+        ?? throw new RuntimeException('no theme carries a token block');
+
+    $owned = array_keys(themeTokens("[data-theme='{$reference->value}']"));
 
     expect($owned)->not->toBeEmpty();
 
     foreach (themeSelectors() as $selector => $label) {
-        if ($selector === ':root' || $selector === '.dark') {
+        if ($selector === ':root' || $selector === ':root.dark') {
             continue;
         }
 
@@ -128,7 +134,7 @@ test('no theme moves the brand', function (): void {
     $forbidden = ['--primary', '--ring', '--destructive', '--chart-'];
 
     foreach (themeSelectors() as $selector => $label) {
-        if ($selector === ':root' || $selector === '.dark') {
+        if ($selector === ':root' || $selector === ':root.dark') {
             continue;
         }
 

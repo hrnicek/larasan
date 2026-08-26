@@ -119,7 +119,7 @@
     --secondary: hsl(0 0% 92.1%);
     --secondary-foreground: hsl(0 0% 9%);
     --muted: hsl(0 0% 96.1%);
-    --muted-foreground: hsl(0 0% 45.1%);
+    --muted-foreground: hsl(0 0% 43.2%);
     --accent: hsl(0 0% 96.1%);
     --accent-foreground: hsl(0 0% 9%);
     --destructive: hsl(0 84.2% 60.2%);
@@ -143,7 +143,7 @@
 
 }
 
-.dark {
+:root.dark {
     --background: oklch(0.205 0 0);
     --foreground: hsl(0 0% 98%);
     /* A card is a surface, so in dark it is lighter than the canvas. The starter kit gave both
@@ -191,116 +191,229 @@
 
 /*
   Surface schemes (ADR-0019). Slate is the default and lives in `:root` and `.dark` above; the
-  others re-declare the same names here.
+  four coloured schemes re-declare the same nineteen names here.
 
-  Two things about these blocks are not stylistic choices.
+  Three things about these blocks are not stylistic choices.
 
-  **Each theme needs a light block AND a dark block.** `.dark` is a class on <html>, so it scores
-  (0,1,0), and `:root[data-theme='paper']` scores (0,1,1) — the theme would win in dark mode and
-  paint the light palette on a dark page. `:root[data-theme='paper'].dark` scores (0,2,1) and
-  settles it. Which also means a token a dark block forgets does not fall back to nothing: it
-  falls back to the theme's *light* value. `UiThemeTokensTest` fails on a block that is short.
+  **The selectors are not anchored to `:root`, on purpose.** `[data-theme='ember']` matches the
+  <html> element the middleware stamps *and* any element stamped further down, which is what lets
+  the settings page draw each swatch in the scheme it is offering rather than in the one currently
+  on. The first attempt anchored them and every swatch came out in the current theme.
+
+  **Each theme needs a light block AND a dark block, and the specificities have to be read.** The
+  base dark block is `:root.dark` (0,1,1) so that it beats a theme's *light* block (0,1,0) when
+  both apply. A theme's dark block is `.dark [data-theme='ember'], [data-theme='ember'].dark`
+  (0,2,0), which beats both — at the root and inside a swatch. None of this depends on source
+  order. A token a dark block forgets does not fall back to nothing: it falls back to the theme's
+  own *light* value. `UiThemeTokensTest` fails on a block that is short.
 
   **A theme owns surfaces and never the brand.** No `--primary`, `--ring`, `--destructive` or
   chart token appears below. ADR-0014 picked plum at hue 330 for its distance from the eight
   colours that label projects, sections and tags; a per-theme accent would land in that gap and
   make a project dot look like the primary action.
 
+  **The colour lives in the chrome, not in the canvas.** The rail is a 250px field that no text is
+  read against, so it can carry real chroma; the paper carries the same hue at a fraction of it,
+  which is what makes the two look like one room. A canvas with the chroma of the rail would be a
+  tinted page nobody can read a task list on, and every ink token would have to be redrawn to
+  chase it.
+
   The chrome stays darker than the canvas in every block, by more in dark than in light, which is
   ADR-0014's rule and what keeps the rail from merging into the page. `UiThemeTokensTest` measures
   it rather than trusting it.
 */
 
-/* Paper: a warm canvas and a chrome mixed from the same brown, for people who find a white
-   screen loud after eight hours of it. */
-:root[data-theme='paper'] {
-    --background: oklch(0.985 0.008 85);
-    --foreground: oklch(0.2 0.012 60);
-    --card: oklch(0.997 0.004 85);
-    --card-foreground: oklch(0.2 0.012 60);
-    --popover: oklch(0.997 0.004 85);
-    --popover-foreground: oklch(0.2 0.012 60);
-    --secondary: oklch(0.925 0.014 85);
-    --secondary-foreground: oklch(0.24 0.012 60);
-    --muted: oklch(0.955 0.012 85);
-    --muted-foreground: oklch(0.5 0.014 60);
-    --accent: oklch(0.945 0.014 85);
-    --accent-foreground: oklch(0.24 0.012 60);
-    --border: oklch(0.915 0.014 85);
-    --input: oklch(0.892 0.016 85);
-    --chrome: oklch(0.235 0.016 60);
-    --chrome-foreground: oklch(0.985 0.004 85);
-    --chrome-muted-foreground: oklch(0.74 0.014 60);
-    --chrome-accent: oklch(0.3 0.016 60);
-    --chrome-border: oklch(0.33 0.016 60);
-}
-
-:root[data-theme='paper'].dark {
-    --background: oklch(0.215 0.01 60);
-    --foreground: oklch(0.97 0.006 85);
-    --card: oklch(0.255 0.01 60);
-    --card-foreground: oklch(0.97 0.006 85);
-    --popover: oklch(0.255 0.01 60);
-    --popover-foreground: oklch(0.97 0.006 85);
-    --secondary: oklch(0.26 0.01 60);
-    --secondary-foreground: oklch(0.97 0.006 85);
-    --muted: oklch(0.285 0.01 60);
-    --muted-foreground: oklch(0.72 0.012 60);
-    --accent: oklch(0.32 0.01 60);
-    --accent-foreground: oklch(0.97 0.006 85);
-    --border: oklch(0.32 0.01 60);
-    --input: oklch(0.34 0.01 60);
-    --chrome: oklch(0.155 0.01 60);
-    --chrome-foreground: oklch(0.985 0.004 85);
-    --chrome-muted-foreground: oklch(0.72 0.012 60);
-    --chrome-accent: oklch(0.23 0.01 60);
-    --chrome-border: oklch(0.26 0.01 60);
-}
-
-/* Carbon: the same neutral family as Slate taken further apart — a deeper rail, a darker muted
-   foreground and a stronger rule, for a screen that is read in a bright room. */
-:root[data-theme='carbon'] {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0.01 265);
+/* Meridian: petrol on a cool white. The rail is the one saturated field in the
+   application and it is a green-blue far enough from plum to sit under it without
+   arguing. The paper carries the same hue at a twentieth of the chroma, which is what
+   stops the white looking like a different sheet of paper next to the rail. */
+[data-theme='meridian'] {
+    --background: oklch(0.985 0.016 200);
+    --foreground: oklch(0.19 0.018 220);
     --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0.01 265);
+    --card-foreground: oklch(0.19 0.018 220);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0.01 265);
-    --secondary: oklch(0.925 0.005 265);
-    --secondary-foreground: oklch(0.18 0.01 265);
-    --muted: oklch(0.965 0.003 265);
-    --muted-foreground: oklch(0.44 0.01 265);
-    --accent: oklch(0.955 0.004 265);
-    --accent-foreground: oklch(0.18 0.01 265);
-    --border: oklch(0.9 0.006 265);
-    --input: oklch(0.875 0.007 265);
-    --chrome: oklch(0.16 0.012 265);
-    --chrome-foreground: oklch(0.99 0.002 265);
-    --chrome-muted-foreground: oklch(0.7 0.012 265);
-    --chrome-accent: oklch(0.23 0.012 265);
-    --chrome-border: oklch(0.26 0.012 265);
+    --popover-foreground: oklch(0.19 0.018 220);
+    --secondary: oklch(0.918 0.03 200);
+    --secondary-foreground: oklch(0.19 0.018 220);
+    --muted: oklch(0.95 0.026 200);
+    --muted-foreground: oklch(0.455 0.02 215);
+    --accent: oklch(0.932 0.034 200);
+    --accent-foreground: oklch(0.19 0.018 220);
+    --border: oklch(0.896 0.032 200);
+    --input: oklch(0.866 0.036 200);
+    --chrome: oklch(0.285 0.085 205);
+    --chrome-foreground: oklch(0.975 0.008 200);
+    --chrome-muted-foreground: oklch(0.76 0.055 200);
+    --chrome-accent: oklch(0.34 0.09 205);
+    --chrome-border: oklch(0.38 0.09 205);
 }
 
-:root[data-theme='carbon'].dark {
-    --background: oklch(0.175 0.008 265);
-    --foreground: oklch(0.985 0.002 265);
-    --card: oklch(0.225 0.008 265);
-    --card-foreground: oklch(0.985 0.002 265);
-    --popover: oklch(0.225 0.008 265);
-    --popover-foreground: oklch(0.985 0.002 265);
-    --secondary: oklch(0.23 0.008 265);
-    --secondary-foreground: oklch(0.985 0.002 265);
-    --muted: oklch(0.25 0.008 265);
-    --muted-foreground: oklch(0.72 0.008 265);
-    --accent: oklch(0.3 0.008 265);
-    --accent-foreground: oklch(0.985 0.002 265);
-    --border: oklch(0.3 0.008 265);
-    --input: oklch(0.32 0.008 265);
-    --chrome: oklch(0.11 0.008 265);
-    --chrome-foreground: oklch(0.99 0.002 265);
-    --chrome-muted-foreground: oklch(0.7 0.01 265);
-    --chrome-accent: oklch(0.18 0.008 265);
-    --chrome-border: oklch(0.21 0.008 265);
+.dark [data-theme='meridian'],
+[data-theme='meridian'].dark {
+    --background: oklch(0.225 0.038 215);
+    --foreground: oklch(0.965 0.008 200);
+    --card: oklch(0.265 0.038 215);
+    --card-foreground: oklch(0.965 0.008 200);
+    --popover: oklch(0.265 0.038 215);
+    --popover-foreground: oklch(0.965 0.008 200);
+    --secondary: oklch(0.272 0.038 215);
+    --secondary-foreground: oklch(0.965 0.008 200);
+    --muted: oklch(0.297 0.04 215);
+    --muted-foreground: oklch(0.75 0.02 210);
+    --accent: oklch(0.335 0.045 215);
+    --accent-foreground: oklch(0.965 0.008 200);
+    --border: oklch(0.335 0.045 215);
+    --input: oklch(0.355 0.045 215);
+    --chrome: oklch(0.175 0.062 205);
+    --chrome-foreground: oklch(0.975 0.008 200);
+    --chrome-muted-foreground: oklch(0.74 0.05 205);
+    --chrome-accent: oklch(0.24 0.062 205);
+    --chrome-border: oklch(0.28 0.062 205);
+}
+
+/* Ember: burnt umber on ivory. The warmest scheme here, and the one to reach for in a
+   room lit by something other than daylight — a white canvas at nine in the evening is
+   the complaint this answers. */
+[data-theme='ember'] {
+    --background: oklch(0.98 0.026 75);
+    --foreground: oklch(0.2 0.018 45);
+    --card: oklch(0.998 0.005 75);
+    --card-foreground: oklch(0.2 0.018 45);
+    --popover: oklch(0.998 0.005 75);
+    --popover-foreground: oklch(0.2 0.018 45);
+    --secondary: oklch(0.912 0.042 72);
+    --secondary-foreground: oklch(0.2 0.018 45);
+    --muted: oklch(0.946 0.036 72);
+    --muted-foreground: oklch(0.46 0.024 50);
+    --accent: oklch(0.928 0.046 70);
+    --accent-foreground: oklch(0.2 0.018 45);
+    --border: oklch(0.89 0.044 70);
+    --input: oklch(0.858 0.05 70);
+    --chrome: oklch(0.27 0.095 45);
+    --chrome-foreground: oklch(0.98 0.01 75);
+    --chrome-muted-foreground: oklch(0.775 0.06 60);
+    --chrome-accent: oklch(0.325 0.1 45);
+    --chrome-border: oklch(0.365 0.1 45);
+}
+
+.dark [data-theme='ember'],
+[data-theme='ember'].dark {
+    --background: oklch(0.222 0.032 50);
+    --foreground: oklch(0.968 0.01 75);
+    --card: oklch(0.262 0.032 50);
+    --card-foreground: oklch(0.968 0.01 75);
+    --popover: oklch(0.262 0.032 50);
+    --popover-foreground: oklch(0.968 0.01 75);
+    --secondary: oklch(0.269 0.032 50);
+    --secondary-foreground: oklch(0.968 0.01 75);
+    --muted: oklch(0.294 0.034 50);
+    --muted-foreground: oklch(0.745 0.022 55);
+    --accent: oklch(0.332 0.04 50);
+    --accent-foreground: oklch(0.968 0.01 75);
+    --border: oklch(0.332 0.04 50);
+    --input: oklch(0.352 0.04 50);
+    --chrome: oklch(0.172 0.058 45);
+    --chrome-foreground: oklch(0.98 0.01 75);
+    --chrome-muted-foreground: oklch(0.76 0.05 55);
+    --chrome-accent: oklch(0.235 0.058 45);
+    --chrome-border: oklch(0.275 0.058 45);
+}
+
+/* Nocturne: deep indigo on a paper with the same blue in it. The rail is the darkest and
+   the most saturated of the five — 55 degrees off plum, which is enough for the Create
+   pill to read as a different colour rather than a lighter one. */
+[data-theme='nocturne'] {
+    --background: oklch(0.982 0.018 275);
+    --foreground: oklch(0.185 0.022 280);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.185 0.022 280);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.185 0.022 280);
+    --secondary: oklch(0.914 0.036 275);
+    --secondary-foreground: oklch(0.185 0.022 280);
+    --muted: oklch(0.948 0.03 275);
+    --muted-foreground: oklch(0.452 0.026 278);
+    --accent: oklch(0.93 0.04 275);
+    --accent-foreground: oklch(0.185 0.022 280);
+    --border: oklch(0.892 0.038 275);
+    --input: oklch(0.86 0.044 275);
+    --chrome: oklch(0.245 0.135 278);
+    --chrome-foreground: oklch(0.975 0.008 275);
+    --chrome-muted-foreground: oklch(0.775 0.07 278);
+    --chrome-accent: oklch(0.3 0.14 278);
+    --chrome-border: oklch(0.345 0.14 278);
+}
+
+.dark [data-theme='nocturne'],
+[data-theme='nocturne'].dark {
+    --background: oklch(0.218 0.045 280);
+    --foreground: oklch(0.965 0.008 275);
+    --card: oklch(0.258 0.045 280);
+    --card-foreground: oklch(0.965 0.008 275);
+    --popover: oklch(0.258 0.045 280);
+    --popover-foreground: oklch(0.965 0.008 275);
+    --secondary: oklch(0.265 0.045 280);
+    --secondary-foreground: oklch(0.965 0.008 275);
+    --muted: oklch(0.29 0.048 280);
+    --muted-foreground: oklch(0.748 0.026 278);
+    --accent: oklch(0.33 0.055 280);
+    --accent-foreground: oklch(0.965 0.008 275);
+    --border: oklch(0.33 0.055 280);
+    --input: oklch(0.35 0.055 280);
+    --chrome: oklch(0.16 0.085 278);
+    --chrome-foreground: oklch(0.975 0.008 275);
+    --chrome-muted-foreground: oklch(0.76 0.06 278);
+    --chrome-accent: oklch(0.215 0.085 278);
+    --chrome-border: oklch(0.255 0.085 278);
+}
+
+/* Moss: forest on a paper with a trace of sage. The quietest of the coloured schemes —
+   the chroma is in the rail and almost nowhere else, so a board full of coloured
+   project dots still has the loudest colour on screen. */
+[data-theme='moss'] {
+    --background: oklch(0.982 0.02 130);
+    --foreground: oklch(0.192 0.018 150);
+    --card: oklch(0.999 0.004 130);
+    --card-foreground: oklch(0.192 0.018 150);
+    --popover: oklch(0.999 0.004 130);
+    --popover-foreground: oklch(0.192 0.018 150);
+    --secondary: oklch(0.915 0.038 133);
+    --secondary-foreground: oklch(0.192 0.018 150);
+    --muted: oklch(0.948 0.032 132);
+    --muted-foreground: oklch(0.458 0.022 150);
+    --accent: oklch(0.931 0.042 132);
+    --accent-foreground: oklch(0.192 0.018 150);
+    --border: oklch(0.894 0.04 132);
+    --input: oklch(0.862 0.046 132);
+    --chrome: oklch(0.29 0.085 152);
+    --chrome-foreground: oklch(0.978 0.008 130);
+    --chrome-muted-foreground: oklch(0.775 0.055 145);
+    --chrome-accent: oklch(0.345 0.09 152);
+    --chrome-border: oklch(0.385 0.09 152);
+}
+
+.dark [data-theme='moss'],
+[data-theme='moss'].dark {
+    --background: oklch(0.222 0.032 152);
+    --foreground: oklch(0.968 0.008 130);
+    --card: oklch(0.262 0.032 152);
+    --card-foreground: oklch(0.968 0.008 130);
+    --popover: oklch(0.262 0.032 152);
+    --popover-foreground: oklch(0.968 0.008 130);
+    --secondary: oklch(0.269 0.032 152);
+    --secondary-foreground: oklch(0.968 0.008 130);
+    --muted: oklch(0.294 0.034 152);
+    --muted-foreground: oklch(0.748 0.022 150);
+    --accent: oklch(0.332 0.04 152);
+    --accent-foreground: oklch(0.968 0.008 130);
+    --border: oklch(0.332 0.04 152);
+    --input: oklch(0.352 0.04 152);
+    --chrome: oklch(0.175 0.055 152);
+    --chrome-foreground: oklch(0.978 0.008 130);
+    --chrome-muted-foreground: oklch(0.76 0.05 150);
+    --chrome-accent: oklch(0.235 0.055 152);
+    --chrome-border: oklch(0.275 0.055 152);
 }
 
 @layer base {
