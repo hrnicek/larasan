@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
-import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
 /**
