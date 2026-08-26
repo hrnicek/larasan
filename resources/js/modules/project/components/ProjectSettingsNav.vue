@@ -89,10 +89,13 @@ function go(id: string): void {
 
 <template>
     <nav
-        class="flex flex-row gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
+        class="flex flex-row gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
         aria-label="Project settings"
     >
-        <div v-for="group in props.groups" :key="group.label" class="flex flex-row gap-1 lg:flex-col lg:gap-0.5">
+        <!-- `shrink-0` on the group, not only on the items inside it. Below `lg` the rail is one
+             scrolling row: a group that may shrink is squeezed narrower than the items it holds,
+             and since those may not shrink, its last one is drawn over the next group's first. -->
+        <div v-for="group in props.groups" :key="group.label" class="flex shrink-0 flex-row gap-1 lg:flex-col lg:gap-0.5">
             <!-- The group names are the column's own headings repeated; below `lg` the rail is a
                  single scrolling row and repeating them there would only cost reading width. -->
             <p class="hidden px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase lg:block">

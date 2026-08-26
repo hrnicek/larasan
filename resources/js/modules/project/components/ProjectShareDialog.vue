@@ -151,13 +151,20 @@ async function copyLink(): Promise<void> {
             </div>
 
             <template v-else>
-                <div v-if="share.canManage" class="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div class="grid flex-1 gap-2">
+                <!--
+                    `min-w-0` twice, and `w-full` on the select. The dialog is a grid, so its single
+                    implicit track is sized to the widest child's *min-content* and overflows the
+                    box rather than being clipped by it — and a `select`'s min-content is its
+                    longest option, which here is somebody's name and their whole email address.
+                    Without this the dialog draws 200px wider than it is.
+                -->
+                <div v-if="share.canManage" class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+                    <div class="grid min-w-0 flex-1 gap-2">
                         <Label for="share-person">Add someone from this workspace</Label>
                         <select
                             id="share-person"
                             v-model="chosen"
-                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                            class="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
                         >
                             <option value="">Choose a person…</option>
                             <option v-for="person in share.candidates" :key="person.id" :value="person.id">
