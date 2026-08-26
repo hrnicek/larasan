@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Queries;
 
+use App\Domain\File\Models\Attachment;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
@@ -14,6 +15,7 @@ use App\Models\User;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection as Grouped;
 use Illuminate\Support\Facades\DB;
 
@@ -53,6 +55,7 @@ final readonly class ProjectBoardQuery
     {
         $counts = $this->counts($project, $tags);
         $cards = $this->cards($project, $expanded, $tags);
+        $covers = $this->covers($project, $cards);
 
         $columns = $project->sections()->get()
             ->map(fn (Section $section): array => $this->column(
@@ -62,6 +65,7 @@ final readonly class ProjectBoardQuery
                 $cards->get($section->id) ?? new Collection,
                 $counts[$section->id] ?? 0,
                 in_array($section->id, $expanded, strict: true),
+                $covers,
             ))
             ->all();
 
@@ -77,6 +81,7 @@ final readonly class ProjectBoardQuery
                 $cards->get(self::UNGROUPED) ?? new Collection,
                 $ungroupedCount,
                 in_array(self::UNGROUPED, $expanded, strict: true),
+                $covers,
             );
         }
 
@@ -204,10 +209,68 @@ final readonly class ProjectBoardQuery
     }
 
     /**
+     * The first image attached to each task on this page, as one read.
+     *
+     * `DISTINCT ON` is PostgreSQL's answer to "the first row of each group" and it is the whole
+     * reason this is one query rather than one per card — the N+1 TASK-070-015 took off this
+     * board is not one to put back for a picture.
+     *
+     * "First" is `position`, which is somebody's decision (TASK-250-003), not the earliest
+     * upload. The dimensions come from the file's metadata so the card can reserve the space
+     * before the bytes arrive; they are absent until the thumbnail has been derived, which is a
+     * fixed-ratio box rather than a broken one.
+     *
+     * @param  Grouped<string, Collection<int, TaskProjectMembership>>  $cards
+     * @return array<string, array{id: string, width: int|null, height: int|null}>
+     */
+    private function covers(Project $project, Grouped $cards): array
+    {
+        $taskIds = $cards->flatten()->pluck('task_id')->unique()->values()->all();
+
+        if ($taskIds === []) {
+            return [];
+        }
+
+        $rows = Attachment::query()
+            ->toBase()
+            ->join('files', function (JoinClause $file) use ($project): void {
+                $file->on('files.id', '=', 'attachments.file_id')
+                    // A removed file takes its cover off the card, and the workspace is asserted
+                    // in the query rather than assumed from the task (`docs/architecture/database.md`).
+                    ->whereNull('files.deleted_at')
+                    ->where('files.workspace_id', '=', $project->workspace_id);
+            })
+            ->where('attachments.attachable_type', (string) Relation::getMorphAlias(Task::class))
+            ->whereIn('attachments.attachable_id', $taskIds)
+            ->where('files.mime_type', 'like', 'image/%')
+            ->orderBy('attachments.attachable_id')
+            ->orderBy('attachments.position')
+            ->select(DB::raw('distinct on (attachments.attachable_id) attachments.attachable_id, attachments.id, files.metadata'))
+            ->get();
+
+        $covers = [];
+
+        foreach ($rows as $row) {
+            $metadata = json_decode((string) $row->metadata, true);
+            $width = is_array($metadata) ? (int) ($metadata['width'] ?? 0) : 0;
+            $height = is_array($metadata) ? (int) ($metadata['height'] ?? 0) : 0;
+
+            $covers[(string) $row->attachable_id] = [
+                'id' => (string) $row->id,
+                'width' => $width > 0 ? $width : null,
+                'height' => $height > 0 ? $height : null,
+            ];
+        }
+
+        return $covers;
+    }
+
+    /**
      * @param  Collection<int, TaskProjectMembership>  $cards
+     * @param  array<string, array{id: string, width: int|null, height: int|null}>  $covers
      * @return array{id: string|null, name: string|null, color: string|null, count: int, hasMore: bool, tasks: list<array<string, mixed>>}
      */
-    private function column(?string $id, ?string $name, ?string $color, Collection $cards, int $count, bool $expanded): array
+    private function column(?string $id, ?string $name, ?string $color, Collection $cards, int $count, bool $expanded, array $covers): array
     {
         return [
             'id' => $id,
@@ -217,14 +280,15 @@ final readonly class ProjectBoardQuery
             // What the column knows it is not showing, so "load more" is a fact rather than a
             // guess the client makes from a page size.
             'hasMore' => ! $expanded && $count > $cards->count(),
-            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
+            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card, $covers))->all()),
         ];
     }
 
     /**
+     * @param  array<string, array{id: string, width: int|null, height: int|null}>  $covers
      * @return array<string, mixed>
      */
-    private function card(TaskProjectMembership $card): array
+    private function card(TaskProjectMembership $card, array $covers): array
     {
         /** @var Task $task */
         $task = $card->task;
@@ -246,6 +310,9 @@ final readonly class ProjectBoardQuery
                 ])
                 ->all()),
             'subtasks' => (int) ($task->children_count ?? 0),
+            // Only the board fills this in. The list, My Tasks and the calendar share
+            // `TaskRowData` and are unchanged, which is why the field is optional there.
+            'cover' => $covers[$task->id] ?? null,
             'assignee' => $assignee === null ? null : [
                 'id' => $assignee->id,
                 'name' => $assignee->name,

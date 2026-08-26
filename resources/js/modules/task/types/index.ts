@@ -33,6 +33,12 @@ export type TaskRowData = {
      * values sideways.
      */
     fields?: Record<string, string | number | boolean>;
+    /**
+     * The first image attached to the task, by the order somebody put its files in
+     * (TASK-250-005). Only the board fills this in; the list, My Tasks and the calendar share
+     * this shape and draw no picture. The dimensions are absent until the thumbnail exists.
+     */
+    cover?: { id: string; width: number | null; height: number | null } | null;
     assignee: TaskAssignee | null;
 };
 

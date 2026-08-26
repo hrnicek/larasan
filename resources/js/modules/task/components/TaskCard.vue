@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { CheckSquare, MessageSquare, MoveRight, TriangleAlert, UserRound } from '@lucide/vue';
 import { computed } from 'vue';
+import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -59,6 +60,19 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
         @pointerdown="editable ? emit('pickup', $event, card) : undefined"
         @keydown.enter="emit('open', card.id)"
     >
+        <!-- The first picture attached to the task, if it has one. The thumbnail rather than the
+             original, at a fixed ratio: a column of cards whose heights depend on what somebody
+             photographed is a column nobody can scan. -->
+        <img
+            v-if="card.cover"
+            :src="AttachmentController.preview.url(card.cover.id, { query: { size: 'thumb' } })"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable="false"
+            class="mb-2 aspect-[16/9] w-full rounded-sm bg-muted object-cover"
+        />
+
         <div v-if="card.tags.length" class="mb-2 flex flex-wrap gap-1">
             <span
                 v-for="tag in card.tags"

@@ -161,7 +161,11 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
     // it is a membership list rather than a list of work, so its size does not follow the
     // workspace's. Everything the *Share* dialog needs beyond it is `Inertia::optional` and
     // costs a visit that never opens it nothing.
-    'the board' => ['board', 22],
+    //
+    // The board gains one more in Phase 250: the first image of each card's task, so a card can
+    // draw a cover. One `DISTINCT ON` for the whole page — the figure is the same at twelve
+    // tasks and at twenty-four, which is what this test is really asserting.
+    'the board' => ['board', 23],
     'the list' => ['list', 21],
     'the project list' => ['projects', 8],
     'my tasks' => ['my-tasks', 8],

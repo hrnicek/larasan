@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Domain\Comment\Models\Comment;
+use App\Domain\File\Actions\MoveAttachment;
+use App\Domain\File\Models\Attachment;
+use App\Domain\File\Models\File;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectBoardQuery;
@@ -172,7 +175,7 @@ it('carries what a card draws, and no more', function (): void {
     $card = boardOf($project, $actor)['columns'][0]['tasks'][0];
 
     expect(array_keys($card))
-        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'tags', 'subtasks', 'assignee'])
+        ->toBe(['placementId', 'id', 'title', 'completedAt', 'dueAt', 'priority', 'comments', 'tags', 'subtasks', 'cover', 'assignee'])
         ->and($card['subtasks'])->toBe(2)
         ->and($card['assignee']['id'])->toBe($assignee->id);
 });
@@ -194,11 +197,14 @@ it('reads a wide board without a query per column or per card', function (): voi
 
     /*
      * Four columns, twenty-four cards: the counts, the paged ids, the placements, the tasks,
-     * the assignees, the sections, and the actor's memberships. A bound rather than an exact
-     * figure, because the membership lookups are memoised per request (TASK-040-020).
+     * the assignees, the sections, the actor's memberships, and the covers. A bound rather than
+     * an exact figure, because the membership lookups are memoised per request (TASK-040-020).
+     *
+     * The bound moved from nine to ten for the covers (TASK-250-005), and only for that: one
+     * `DISTINCT ON` for the whole page, never one per card.
      */
     expect($board['columns'])->toHaveCount(4)
-        ->and(count($queries))->toBeLessThanOrEqual(9);
+        ->and(count($queries))->toBeLessThanOrEqual(10);
 });
 
 it('tells a viewer what they may not do, and still draws the board', function (): void {
@@ -254,5 +260,71 @@ it('counts the comments on a card without a query per card', function (): void {
     // Phase 090 does not move because a column was added to it.
     expect(array_column($board['columns'][0]['tasks'], 'comments'))
         ->toBe([1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
-        ->and(count($queries))->toBeLessThanOrEqual(9);
+        ->and(count($queries))->toBeLessThanOrEqual(10);
+});
+
+it('draws the first image of a task as the card\'s cover', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $column = Section::factory()->in($project)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->inSection($column)->create();
+
+    $document = Attachment::factory()
+        ->attaching(File::factory()->in($workspace)->create(), $task)
+        ->create();
+    $first = Attachment::factory()
+        ->attaching(File::factory()->in($workspace)->image()->create(['metadata' => ['width' => 900, 'height' => 600]]), $task)
+        ->create();
+    Attachment::factory()
+        ->attaching(File::factory()->in($workspace)->image()->create(), $task)
+        ->create();
+
+    $board = boardOf($project, $actor);
+
+    // The document is not a cover, and the second picture is not the first one.
+    expect($board['columns'][0]['tasks'][0]['cover'])->toBe([
+        'id' => $first->id,
+        'width' => 900,
+        'height' => 600,
+    ])->and($document->refresh()->position)->toBeLessThan($first->position);
+});
+
+it('follows the order somebody put the files in', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $column = Section::factory()->in($project)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->inSection($column)->create();
+
+    $first = Attachment::factory()->attaching(File::factory()->in($workspace)->image()->create(), $task)->create();
+    $second = Attachment::factory()->attaching(File::factory()->in($workspace)->image()->create(), $task)->create();
+
+    app(MoveAttachment::class)->handle($second, $actor, null);
+
+    // Which picture a card draws is the same decision the grid makes, not a second one.
+    expect($board = boardOf($project, $actor))
+        ->and($board['columns'][0]['tasks'][0]['cover']['id'])->toBe($second->id)
+        ->and($first->refresh()->position)->toBeGreaterThan($second->refresh()->position);
+});
+
+it('leaves a card without a picture alone', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $column = Section::factory()->in($project)->create();
+    fill($workspace, $project, $column, 1);
+
+    expect(boardOf($project, $actor)['columns'][0]['tasks'][0]['cover'])->toBeNull();
+});
+
+it('takes the cover off the card when the file is removed', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $column = Section::factory()->in($project)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->inSection($column)->create();
+    $file = File::factory()->in($workspace)->image()->create();
+    Attachment::factory()->attaching($file, $task)->create();
+
+    $file->delete();
+
+    // A soft-deleted file has stopped being reachable, which is the point of removing it that
+    // way (TASK-120-007) — the card must not go on drawing it.
+    expect(boardOf($project, $actor)['columns'][0]['tasks'][0]['cover'])->toBeNull();
 });
