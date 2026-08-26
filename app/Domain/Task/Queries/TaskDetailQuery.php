@@ -14,6 +14,7 @@ use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
+use App\Domain\Shared\Enums\FileKind;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -246,6 +247,12 @@ final readonly class TaskDetailQuery
                     'name' => $file->original_name,
                     'size' => $file->size,
                     'mimeType' => $file->mime_type,
+                    /*
+                     * Read here rather than in the template. Whether a row draws as a thumbnail
+                     * or as a filename is the same question the files view asks, and asking it
+                     * twice in two vocabularies is how the two views start disagreeing.
+                     */
+                    'kind' => FileKind::fromMime($file->mime_type, $file->extension)->value,
                     'uploadedAt' => $file->created_at?->toIso8601String(),
                     'uploader' => $this->person($file->uploader),
                     'canDelete' => $file->uploaded_by === $actor->id || $canModerate,

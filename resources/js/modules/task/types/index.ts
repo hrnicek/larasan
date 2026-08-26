@@ -216,6 +216,8 @@ export type TaskAttachment = {
     name: string;
     size: number;
     mimeType: string;
+    /** The server's reading of the MIME type — `image`, `pdf`, `document`… — never re-derived here. */
+    kind: string;
     uploadedAt: string | null;
     uploader: TaskAssignee | null;
     canDelete: boolean;

@@ -17,6 +17,13 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('attachment')
         ->name('attachments.download');
 
+    // Drawing an image is not downloading it, and the two say different things in the one header
+    // a browser acts on. Same authorization, separate route, so `inline` is never a flag somebody
+    // can ask the download endpoint for.
+    Route::get('attachments/{attachment}/preview', [AttachmentController::class, 'preview'])
+        ->whereUuid('attachment')
+        ->name('attachments.preview');
+
     Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])
         ->whereUuid('attachment')
         ->name('attachments.destroy');

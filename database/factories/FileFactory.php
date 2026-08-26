@@ -67,4 +67,18 @@ class FileFactory extends Factory
     {
         return $this->state(fn (): array => ['uploaded_by' => $uploader->id]);
     }
+
+    /**
+     * A file the screens will draw rather than list. The extension is carried on the generated
+     * path too, because some object stores serve by it and the Action writes it that way.
+     */
+    public function image(string $mimeType = 'image/png', string $extension = 'png'): self
+    {
+        return $this->state(fn (): array => [
+            'original_name' => "photo.{$extension}",
+            'mime_type' => $mimeType,
+            'extension' => $extension,
+            'path' => fn (array $attributes): string => "workspaces/{$attributes['workspace_id']}/".Str::uuid7().".{$extension}",
+        ]);
+    }
 }
