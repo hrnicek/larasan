@@ -110,19 +110,36 @@ class AttachmentController extends Controller
             abort(404);
         }
 
-        $etag = '"'.$file->checksum.'"';
-
-        if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
-            return response('', 304, $this->previewHeaders($file->mime_type, $etag));
-        }
-
         $disk = Storage::disk($file->disk);
 
-        if (! $disk->exists($file->path)) {
+        /*
+         * `?size=thumb` is a request for the derivative, and it falls back to the original in
+         * both directions it can fail: the job has not run yet, or the derivative was swept.
+         * A grid drawn while the queue is behind is heavier than it should be, which is a great
+         * deal better than a grid of broken images.
+         */
+        $thumbnail = $request->query('size') === 'thumb' ? $file->thumbnail() : null;
+
+        if ($thumbnail !== null && ! $disk->exists($thumbnail['path'])) {
+            $thumbnail = null;
+        }
+
+        $path = $thumbnail === null ? $file->path : $thumbnail['path'];
+        $mimeType = $thumbnail === null ? $file->mime_type : 'image/webp';
+
+        // The two sizes are two different responses at one address, so they cannot share a
+        // validator: a cached thumbnail must not satisfy a request for the full picture.
+        $etag = '"'.$file->checksum.($thumbnail === null ? '' : '-thumb').'"';
+
+        if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
+            return response('', 304, $this->previewHeaders($mimeType, $etag));
+        }
+
+        if (! $disk->exists($path)) {
             abort(404);
         }
 
-        return $disk->response($file->path, $file->original_name, $this->previewHeaders($file->mime_type, $etag));
+        return $disk->response($path, $file->original_name, $this->previewHeaders($mimeType, $etag));
     }
 
     public function destroy(Request $request, Attachment $attachment, DetachFile $detachFile): RedirectResponse

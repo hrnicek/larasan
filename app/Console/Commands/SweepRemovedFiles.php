@@ -37,7 +37,17 @@ class SweepRemovedFiles extends Command
             ->whereDoesntHave('attachments')
             ->chunkById(100, function ($files) use (&$swept): void {
                 foreach ($files as $file) {
-                    Storage::disk($file->disk)->delete($file->path);
+                    $disk = Storage::disk($file->disk);
+                    $thumbnail = $file->thumbnail();
+
+                    // The derivative goes with what it was derived from. Left behind it would be
+                    // an object nothing points at, which is precisely what this command exists
+                    // to stop accumulating.
+                    if ($thumbnail !== null) {
+                        $disk->delete($thumbnail['path']);
+                    }
+
+                    $disk->delete($file->path);
 
                     $file->forceDelete();
 

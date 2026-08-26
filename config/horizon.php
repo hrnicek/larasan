@@ -229,7 +229,7 @@ return [
     'defaults' => [
         'supervisor-1' => [
             'connection' => 'redis',
-            'queue' => ['broadcasts', 'notifications', 'search', 'default'],
+            'queue' => ['broadcasts', 'notifications', 'search', 'media', 'default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,

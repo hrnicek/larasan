@@ -253,6 +253,12 @@ final readonly class TaskDetailQuery
                      * twice in two vocabularies is how the two views start disagreeing.
                      */
                     'kind' => FileKind::fromMime($file->mime_type, $file->extension)->value,
+                    /*
+                     * What shape the picture is, so a tile reserves its own space before the
+                     * bytes arrive and the block below it does not jump. Null until the
+                     * derivative has been made, which is a square tile rather than a broken one.
+                     */
+                    'image' => $file->imageDimensions(),
                     'uploadedAt' => $file->created_at?->toIso8601String(),
                     'uploader' => $this->person($file->uploader),
                     'canDelete' => $file->uploaded_by === $actor->id || $canModerate,

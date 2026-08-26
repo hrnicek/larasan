@@ -218,6 +218,8 @@ export type TaskAttachment = {
     mimeType: string;
     /** The server's reading of the MIME type — `image`, `pdf`, `document`… — never re-derived here. */
     kind: string;
+    /** The picture's own shape, for the tile to reserve. Null until its thumbnail has been made. */
+    image: { width: number; height: number } | null;
     uploadedAt: string | null;
     uploader: TaskAssignee | null;
     canDelete: boolean;

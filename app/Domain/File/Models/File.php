@@ -49,6 +49,43 @@ class File extends Model
         return $this->hasMany(Attachment::class);
     }
 
+    /**
+     * The derivative drawn in a grid and on a card, once the job that makes it has run.
+     *
+     * Read through a method rather than reached into: `metadata` is a json column, so every
+     * caller would otherwise write its own guard against a shape that is missing on every file
+     * attached before TASK-250-002.
+     *
+     * @return array{path: string, width: int, height: int}|null
+     */
+    public function thumbnail(): ?array
+    {
+        $thumbnail = $this->metadata['thumb'] ?? null;
+
+        if (! is_array($thumbnail) || ! is_string($thumbnail['path'] ?? null)) {
+            return null;
+        }
+
+        return [
+            'path' => $thumbnail['path'],
+            'width' => (int) ($thumbnail['width'] ?? 0),
+            'height' => (int) ($thumbnail['height'] ?? 0),
+        ];
+    }
+
+    /**
+     * What shape the picture is, so a tile can reserve its own space before the bytes arrive.
+     *
+     * @return array{width: int, height: int}|null
+     */
+    public function imageDimensions(): ?array
+    {
+        $width = (int) ($this->metadata['width'] ?? 0);
+        $height = (int) ($this->metadata['height'] ?? 0);
+
+        return $width > 0 && $height > 0 ? ['width' => $width, 'height' => $height] : null;
+    }
+
     /** @return BelongsTo<User, $this> */
     public function uploader(): BelongsTo
     {
