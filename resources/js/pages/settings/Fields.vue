@@ -3,6 +3,7 @@ import { Form, Head, router, useForm } from '@inertiajs/vue3';
 import { Plus, X } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import CustomFieldController from '@/actions/App/Http/Controllers/CustomField/CustomFieldController';
+import CustomFieldOptionController from '@/actions/App/Http/Controllers/CustomField/CustomFieldOptionController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
@@ -130,6 +131,33 @@ function confirmDeletion(): void {
     });
 }
 
+/*
+ * The choices of a field that already exists. The list is edited and sent whole — an entry with an
+ * id is kept, one without is created, an id left out is removed — because that is what the server
+ * reconciles, and because an option list is short enough to be read as one thing.
+ */
+const editingChoices = ref<string | null>(null);
+
+const choices = useForm<{ options: { id: string | null; label: string }[] }>({ options: [] });
+
+function editChoices(field: WorkspaceCustomField): void {
+    editingChoices.value = field.id;
+    choices.clearErrors();
+    choices.options = field.options.map((option) => ({ id: option.id, label: option.label }));
+}
+
+/** Errors on the choices arrive keyed by index, which no typed form object has. */
+function choiceError(index: number): string | undefined {
+    return (choices.errors as Record<string, string | undefined>)[`options.${index}.label`];
+}
+
+function saveChoices(fieldId: string): void {
+    choices.put(CustomFieldOptionController.update.url(fieldId), {
+        preserveScroll: true,
+        onSuccess: () => (editingChoices.value = null),
+    });
+}
+
 function summary(field: WorkspaceCustomField): string {
     if (field.type !== 'select') {
         return typeLabels[field.type];
@@ -225,7 +253,8 @@ function summary(field: WorkspaceCustomField): string {
         </p>
 
         <ul v-else class="divide-y rounded-lg border">
-            <li v-for="field in props.fields" :key="field.id" class="flex flex-wrap items-center gap-3 p-4">
+            <li v-for="field in props.fields" :key="field.id" class="space-y-4 p-4">
+                <div class="flex flex-wrap items-center gap-3">
                 <Form
                     v-if="renaming === field.id"
                     v-bind="CustomFieldController.update.form(field.id)"
@@ -254,10 +283,74 @@ function summary(field: WorkspaceCustomField): string {
                     </span>
 
                     <div v-if="props.can.manage" class="flex shrink-0 items-center gap-0.5">
+                        <Button
+                            v-if="field.type === 'select'"
+                            size="sm"
+                            variant="ghost"
+                            @click="editChoices(field)"
+                        >
+                            Choices
+                        </Button>
                         <Button size="sm" variant="ghost" @click="renaming = field.id">Rename</Button>
                         <Button size="sm" variant="ghost" @click="deleting = field">Delete</Button>
                     </div>
                 </template>
+                </div>
+
+                <!-- Sent whole and reconciled: what is here when Save is pressed is what the field
+                     offers afterwards. -->
+                <div v-if="editingChoices === field.id" class="space-y-2 border-t pt-4">
+                    <div
+                        v-for="(choice, index) in choices.options"
+                        :key="choice.id ?? `new-${index}`"
+                        class="flex items-start gap-2"
+                    >
+                        <div class="flex-1">
+                            <Label :for="`option-${field.id}-${index}`" class="sr-only">Choice {{ index + 1 }}</Label>
+                            <Input
+                                :id="`option-${field.id}-${index}`"
+                                v-model="choices.options[index].label"
+                                :placeholder="`Choice ${index + 1}`"
+                            />
+                            <InputError :message="choiceError(index)" />
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            :aria-label="`Remove choice ${index + 1}`"
+                            @click="choices.options.splice(index, 1)"
+                        >
+                            <X class="size-4" />
+                        </Button>
+                    </div>
+
+                    <InputError :message="choices.errors.options" />
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            @click="choices.options.push({ id: null, label: '' })"
+                        >
+                            <Plus class="size-4" />
+                            Add choice
+                        </Button>
+
+                        <span class="flex-1"></span>
+
+                        <Button size="sm" :disabled="choices.processing" @click="saveChoices(field.id)">
+                            Save choices
+                        </Button>
+                        <Button size="sm" variant="ghost" @click="editingChoices = null">Cancel</Button>
+                    </div>
+
+                    <p class="text-muted-foreground text-xs">
+                        Removing a choice empties the answers that picked it. Renaming one keeps them.
+                    </p>
+                </div>
             </li>
         </ul>
 

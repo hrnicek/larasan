@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\CustomField\CustomFieldController;
+use App\Http\Controllers\CustomField\CustomFieldOptionController;
 use App\Http\Controllers\CustomField\ProjectCustomFieldController;
 use App\Http\Controllers\CustomField\TaskCustomFieldController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::delete('settings/fields/{field}', [CustomFieldController::class, 'destroy'])
         ->whereUuid('field')
         ->name('custom-fields.destroy');
+
+    // The whole list, in the order it should be offered — see the controller.
+    Route::put('settings/fields/{field}/options', [CustomFieldOptionController::class, 'update'])
+        ->whereUuid('field')
+        ->name('custom-fields.options.update');
 
     /*
      * Which of them a project shows. On the project, because adding a column to a board is a

@@ -48,6 +48,15 @@ final class CustomFieldException extends DomainException implements DomainRefusa
         return new self('That choice does not belong to this field.');
     }
 
+    /**
+     * Only a `select` has choices to edit — every other type's answer lives in a column of its
+     * own, and offering a choice list for one would be a control that decides nothing.
+     */
+    public static function fieldIsNotAChoiceField(): self
+    {
+        return new self('That field does not offer choices.');
+    }
+
     public static function selectNeedsOptions(): self
     {
         return new self('A choice field needs at least one choice.');
