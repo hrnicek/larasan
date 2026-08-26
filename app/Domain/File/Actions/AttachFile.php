@@ -10,6 +10,7 @@ use App\Domain\File\Models\Attachable;
 use App\Domain\File\Models\Attachment;
 use App\Domain\File\Models\File;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -76,11 +77,17 @@ final readonly class AttachFile
             $file->metadata = [];
             $file->save();
 
+            $type = (string) Relation::getMorphAlias($subject::class);
+            $id = (string) $subject->getKey();
+
             $attachment = new Attachment;
 
             $attachment->file_id = $file->id;
-            $attachment->attachable_type = (string) Relation::getMorphAlias($subject::class);
-            $attachment->attachable_id = (string) $subject->getKey();
+            $attachment->attachable_type = $type;
+            $attachment->attachable_id = $id;
+            // At the end of what is already there (ADR-0009). The order is somebody's to change
+            // afterwards; arriving in the middle of it is not something an upload gets to decide.
+            $attachment->position = SparsePosition::append($this->lastPosition($type, $id));
             $attachment->save();
 
             $this->events->dispatch(new FileAttached(
@@ -94,6 +101,28 @@ final readonly class AttachFile
 
             return $attachment;
         });
+    }
+
+    /**
+     * The end of the subject's list, read inside the transaction and with the rows locked, so
+     * two uploads landing together queue behind one another instead of computing the same slot.
+     * `UNIQUE(attachable_type, attachable_id, position)` is what would catch them if they did.
+     */
+    private function lastPosition(string $type, string $id): ?int
+    {
+        /*
+         * The last row rather than `max(position)`: PostgreSQL refuses `FOR UPDATE` alongside an
+         * aggregate, and the lock is the point — it is what makes two uploads landing together
+         * queue behind one another instead of computing the same slot.
+         */
+        $last = Attachment::query()
+            ->where('attachable_type', $type)
+            ->where('attachable_id', $id)
+            ->orderByDesc('position')
+            ->lockForUpdate()
+            ->value('position');
+
+        return $last === null ? null : (int) $last;
     }
 
     /**

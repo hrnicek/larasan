@@ -40,6 +40,20 @@ class AttachmentPolicy
     }
 
     /**
+     * Rearranging a task's files is changing the task, so the subject's own `update` answers it.
+     * Deliberately not the uploader's own right: order is a property of the list, not of any one
+     * file in it, and a viewer who may open a task does not get to rearrange what it holds.
+     */
+    public function move(User $user, Attachment $attachment): bool
+    {
+        $subject = $attachment->attachable;
+
+        return $this->canReachSubject($user, $attachment)
+            && $subject instanceof Model
+            && $user->can('update', $subject);
+    }
+
+    /**
      * The workspace is asked here rather than left to the subject: the subject answers for its
      * own workspace, and a file carries a `workspace_id` that has to agree with it before any
      * of this means anything.

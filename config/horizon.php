@@ -128,6 +128,12 @@ return [
         'redis:default' => 60,
         // Indexing that has waited a minute is a palette answering from a stale index.
         'redis:search' => 60,
+        /*
+         * Longer, because a late thumbnail is the only lateness on this list nobody sees: a
+         * preview falls back to the original until the derivative exists, so the page is heavy
+         * rather than wrong. Two minutes is a queue that has stopped, not one that is busy.
+         */
+        'redis:media' => 120,
     ],
 
     /*

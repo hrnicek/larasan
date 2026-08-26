@@ -194,15 +194,17 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * What is attached to this task, oldest first — then by key, because `created_at` is
-     * `timestamp(0)` and two files uploaded in the same second would otherwise come back in
-     * whichever order PostgreSQL chose that day.
+     * What is attached to this task, in the order somebody put it in (TASK-250-003).
+     *
+     * `position` rather than `created_at`, because the board card draws the *first* image of a
+     * task: "first" has to be a decision, not whichever file happened to be uploaded earliest.
+     * The column is unique per subject, so there is no tie left to break.
      *
      * @return MorphMany<Attachment, $this>
      */
     public function attachments(): MorphMany
     {
-        return $this->morphMany(Attachment::class, 'attachable')->oldest('created_at')->orderBy('id');
+        return $this->morphMany(Attachment::class, 'attachable')->orderBy('position');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\QueryException;
@@ -16,11 +17,16 @@ function insertAttachment(string $fileId, Task $task, array $overrides = []): st
 {
     $id = (string) Str::uuid7();
 
+    // At the end of whatever this subject already holds, the way `AttachFile` appends — so a
+    // second row collides on the constraint the test is about rather than on the slot.
+    $slot = (DB::table('attachments')->where('attachable_id', $task->id)->count() + 1) * SparsePosition::GAP;
+
     DB::table('attachments')->insert([
         'id' => $id,
         'file_id' => $fileId,
         'attachable_type' => 'task',
         'attachable_id' => $task->id,
+        'position' => $slot,
         'created_at' => now(),
         'updated_at' => now(),
         ...$overrides,
@@ -42,6 +48,24 @@ it('points one file at one thing only once', function (): void {
      */
     expect(fn (): string => DB::transaction(fn (): string => insertAttachment($file, $task)))
         ->toThrow(QueryException::class);
+});
+
+it('keeps one file in one slot', function (): void {
+    $workspace = Workspace::factory()->create();
+    $task = Task::factory()->in($workspace)->create();
+
+    insertAttachment(insertFile($workspace), $task, ['position' => SparsePosition::GAP]);
+
+    /*
+     * Two files in one slot is an order nobody decided, and the board card draws whichever the
+     * database returned that day. The constraint is also what makes normalisation park its rows
+     * in negative space (ADR-0009).
+     */
+    expect(fn (): string => DB::transaction(fn (): string => insertAttachment(
+        insertFile($workspace),
+        $task,
+        ['position' => SparsePosition::GAP],
+    )))->toThrow(QueryException::class);
 });
 
 it('lets one file hang from two things', function (): void {

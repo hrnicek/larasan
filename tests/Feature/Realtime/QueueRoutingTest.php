@@ -66,9 +66,10 @@ it('keeps the timeout chain in the order that stops a job running twice', functi
 
 it('supervises the queues in the order ADR-0008 states', function (): void {
     expect(config('horizon.defaults.supervisor-1.queue'))
-        ->toBe(['broadcasts', 'notifications', 'search', 'default']);
+        ->toBe(['broadcasts', 'notifications', 'search', 'media', 'default']);
 })->with([
-    'a slow email must never be what delayed a board update, and neither must a reindex',
+    'a slow email must never be what delayed a board update, and neither must a reindex, and
+    neither must a burst of photographs being resized',
 ]);
 
 it('waits for the transaction before a subscriber can read the row', function (): void {

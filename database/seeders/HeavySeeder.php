@@ -1050,6 +1050,8 @@ class HeavySeeder extends Seeder
                 'file_id' => $id,
                 'attachable_type' => 'task',
                 'attachable_id' => $task['id'],
+                // One file per task here, so the first slot is the only slot.
+                'position' => SparsePosition::GAP,
                 'created_at' => $uploaded,
                 'updated_at' => $uploaded,
             ];

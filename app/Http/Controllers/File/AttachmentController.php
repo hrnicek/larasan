@@ -6,9 +6,11 @@ namespace App\Http\Controllers\File;
 
 use App\Domain\File\Actions\AttachFile;
 use App\Domain\File\Actions\DetachFile;
+use App\Domain\File\Actions\MoveAttachment;
 use App\Domain\File\Models\Attachment;
 use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\File\MoveAttachmentRequest;
 use App\Http\Requests\File\StoreAttachmentRequest;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -140,6 +142,23 @@ class AttachmentController extends Controller
         }
 
         return $disk->response($path, $file->original_name, $this->previewHeaders($mimeType, $etag));
+    }
+
+    /**
+     * Reordering, as an anchor rather than a position (ADR-0009). The board card draws the first
+     * image of a task, so which file is first is a decision somebody makes here.
+     */
+    public function move(MoveAttachmentRequest $request, Attachment $attachment, MoveAttachment $moveAttachment): RedirectResponse
+    {
+        $after = $request->string('after')->value();
+
+        $moveAttachment->handle(
+            $attachment,
+            $this->actor($request),
+            $after === '' ? null : Attachment::query()->find($after),
+        );
+
+        return back();
     }
 
     public function destroy(Request $request, Attachment $attachment, DetachFile $detachFile): RedirectResponse

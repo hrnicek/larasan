@@ -36,4 +36,23 @@ final class FileException extends DomainException implements DomainRefusal
     {
         return new self('You do not have permission to remove this attachment.');
     }
+
+    public static function cannotReorderAttachments(): self
+    {
+        return new self('You do not have permission to reorder these files.');
+    }
+
+    /**
+     * The anchor of a move has to hang from the same thing. Ordering is a property of one
+     * subject's list, so an attachment from somewhere else has no slot in it.
+     */
+    public static function attachmentBelongsToAnotherSubject(): self
+    {
+        return new self('That file is attached to something else.');
+    }
+
+    public static function cannotFollowItself(): self
+    {
+        return new self('A file cannot be placed after itself.');
+    }
 }

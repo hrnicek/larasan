@@ -24,6 +24,12 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('attachment')
         ->name('attachments.preview');
 
+    // A move is its own endpoint: it takes an anchor, never a position (ADR-0009).
+    Route::put('attachments/{attachment}/move', [AttachmentController::class, 'move'])
+        ->whereUuid('attachment')
+        ->middleware('throttle:task-moves')
+        ->name('attachments.move');
+
     Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])
         ->whereUuid('attachment')
         ->name('attachments.destroy');
