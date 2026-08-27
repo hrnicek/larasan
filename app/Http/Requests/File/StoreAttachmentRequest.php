@@ -7,6 +7,7 @@ namespace App\Http\Requests\File;
 use App\Domain\File\Models\Attachable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 
 class StoreAttachmentRequest extends FormRequest
 {
@@ -29,13 +30,22 @@ class StoreAttachmentRequest extends FormRequest
     }
 
     /**
+     * Always a list, never a single file: one upload and twenty are the same request with a
+     * different number of members, and a rule set that special-cases the first one only earns
+     * two paths through the same validation.
+     *
      * @return array<string, list<mixed>>
      */
     public function rules(): array
     {
         return [
-            'file' => [
+            'files' => [
                 'required',
+                'array',
+                'min:1',
+                'max:'.config('attachments.max_files'),
+            ],
+            'files.*' => [
                 'file',
                 'max:'.config('attachments.max_kilobytes'),
                 /*
@@ -54,11 +64,35 @@ class StoreAttachmentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'file.max' => __('That file is larger than :size MB.', [
+            'files.required' => __('Choose a file to attach.'),
+            'files.max' => __('No more than :count files at a time.', [
+                'count' => (int) config('attachments.max_files'),
+            ]),
+            'files.*.max' => __(':attribute is larger than :size MB.', [
                 'size' => round(((int) config('attachments.max_kilobytes')) / 1024),
             ]),
-            'file.mimetypes' => __('That kind of file cannot be attached here.'),
+            'files.*.mimetypes' => __(':attribute cannot be attached here.'),
         ];
+    }
+
+    /**
+     * A batch is refused by name rather than by index: *contract.exe cannot be attached here* is
+     * something the person choosing can act on, where *files.3* is a position in a list they
+     * never saw written down.
+     *
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        $names = [];
+
+        foreach (array_values((array) $this->file('files', [])) as $index => $upload) {
+            $names["files.{$index}"] = $upload instanceof UploadedFile
+                ? $upload->getClientOriginalName()
+                : __('That file');
+        }
+
+        return $names;
     }
 
     /**

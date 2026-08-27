@@ -39,7 +39,7 @@ it('attaches a file to a task', function (): void {
     $this->actingAs($actor)
         ->from(route('tasks.show', $task))
         ->post(route('tasks.attachments.store', $task), [
-            'file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')],
         ])
         ->assertRedirect(route('tasks.show', $task));
 
@@ -47,6 +47,70 @@ it('attaches a file to a task', function (): void {
 
     expect($file->original_name)->toBe('plan.pdf');
     Storage::disk($file->disk)->assertExists($file->path);
+});
+
+it('attaches several files chosen at once, in the order they were chosen', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->post(route('tasks.attachments.store', $task), [
+            'files' => [
+                UploadedFile::fake()->create('first.pdf', 12, 'application/pdf'),
+                UploadedFile::fake()->create('second.pdf', 12, 'application/pdf'),
+                UploadedFile::fake()->create('third.pdf', 12, 'application/pdf'),
+            ],
+        ])
+        ->assertRedirect(route('tasks.show', $task));
+
+    // Position, not insertion order in the table: the order somebody chose is the order they see
+    // afterwards, and it is theirs to change from there (ADR-0009).
+    $names = $task->attachments()->with('file')->orderBy('position')->get()
+        ->map(fn (Attachment $attachment): string => $attachment->file->original_name)
+        ->all();
+
+    expect($names)->toBe(['first.pdf', 'second.pdf', 'third.pdf']);
+});
+
+it('attaches nothing at all when one file in the batch is refused', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    // All-or-nothing, and validation is what makes it so: the request never reaches the controller,
+    // so nobody is left with half a folder attached and a message about the rest.
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->post(route('tasks.attachments.store', $task), [
+            'files' => [
+                UploadedFile::fake()->create('fine.pdf', 12, 'application/pdf'),
+                UploadedFile::fake()->create('payload.pdf', 10, 'application/x-msdownload'),
+            ],
+        ])
+        ->assertSessionHasErrors('files.1');
+
+    expect($task->attachments()->count())->toBe(0);
+    expect(File::query()->count())->toBe(0);
+});
+
+it('refuses a batch larger than the configured bound', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    config(['attachments.max_files' => 2]);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->post(route('tasks.attachments.store', $task), [
+            'files' => [
+                UploadedFile::fake()->create('one.pdf', 4, 'application/pdf'),
+                UploadedFile::fake()->create('two.pdf', 4, 'application/pdf'),
+                UploadedFile::fake()->create('three.pdf', 4, 'application/pdf'),
+            ],
+        ])
+        ->assertSessionHasErrors('files');
+
+    expect($task->attachments()->count())->toBe(0);
 });
 
 it('gives the file back under the name people recognise', function (): void {

@@ -20,6 +20,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Files per upload
+    |--------------------------------------------------------------------------
+    |
+    | A batch is one request, so this bound is what keeps a folder dropped onto
+    | the control from becoming a request PHP refuses at post_max_size — where
+    | the failure arrives as an empty body rather than as a message. It also
+    | bounds the work one throttled request can ask for.
+    |
+    */
+
+    'max_files' => (int) env('ATTACHMENTS_MAX_FILES', 10),
+
+    /*
+    |--------------------------------------------------------------------------
     | Accepted types
     |--------------------------------------------------------------------------
     |

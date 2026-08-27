@@ -165,7 +165,7 @@ it('refuses to attach a file to a task in a project the actor may only read', fu
     [$task, $actor] = taskInProjectFor(ProjectAccessLevel::Viewer);
 
     $this->actingAs($actor)
-        ->post(route('tasks.attachments.store', $task), ['file' => UploadedFile::fake()->create('notes.txt', 8)])
+        ->post(route('tasks.attachments.store', $task), ['files' => [UploadedFile::fake()->create('notes.txt', 8)]])
         ->assertForbidden();
 
     expect($task->attachments()->count())->toBe(0);

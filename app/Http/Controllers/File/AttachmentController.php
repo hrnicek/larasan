@@ -47,13 +47,30 @@ class AttachmentController extends Controller
         'image/webp',
     ];
 
+    /**
+     * A batch, always — one file is a batch of one.
+     *
+     * The files are attached in the order they were chosen, so the list they arrive in is the
+     * list somebody sees afterwards (ADR-0009). Validation is what makes the batch all-or-nothing:
+     * a request holding one refused file never reaches this method, so nobody ends up with half a
+     * folder attached and a message about the rest.
+     */
     public function store(StoreAttachmentRequest $request, Task $task, AttachFile $attachFile): RedirectResponse
     {
-        $upload = $request->file('file');
+        $uploads = array_values((array) $request->file('files', []));
 
-        $attachFile->handle($task, $this->actor($request), $upload);
+        $actor = $this->actor($request);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('File attached.')]);
+        foreach ($uploads as $upload) {
+            $attachFile->handle($task, $actor, $upload);
+        }
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => trans_choice('{1} File attached.|[2,*] :count files attached.', count($uploads), [
+                'count' => count($uploads),
+            ]),
+        ]);
 
         return back();
     }

@@ -76,7 +76,7 @@ it('answers uploading the same way for each role and access level', function (
     $response = $this->actingAs($actor)
         ->from(route('tasks.show', $task))
         ->post(route('tasks.attachments.store', $task), [
-            'file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')],
         ]);
 
     match ($outcome) {
@@ -119,7 +119,7 @@ it('refuses an upload to a task in a private project the actor was not given', f
     // the task's existence (TASK-070-017).
     $this->actingAs($actor)
         ->post(route('tasks.attachments.store', $task), [
-            'file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')],
         ])
         ->assertForbidden();
 
@@ -216,7 +216,7 @@ it('hides a file in another workspace behind a 404 for every role', function (Wo
     $this->actingAs($stranger)->get(route('attachments.download', $attachment))->assertNotFound();
     $this->actingAs($stranger)->delete(route('attachments.destroy', $attachment))->assertNotFound();
     $this->actingAs($stranger)
-        ->post(route('tasks.attachments.store', $task), ['file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')])
+        ->post(route('tasks.attachments.store', $task), ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertNotFound();
 })->with([
     'owner' => [WorkspaceRole::Owner],

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Route;
  */
 beforeEach(function (): void {
     Route::middleware('web')->post('attachment-probe/{task}', fn (StoreAttachmentRequest $request, Task $task) => response()->json([
-        'name' => $request->file('file')?->getClientOriginalName(),
+        'names' => collect((array) $request->file('files', []))->map(fn (UploadedFile $upload): string => $upload->getClientOriginalName())->all(),
         'subject' => $request->subject()?->getKey(),
     ]));
 });
@@ -31,9 +31,9 @@ it('accepts a file from somebody who may upload and can reach the task', functio
     $task = Task::factory()->in($workspace)->create();
 
     $this->actingAs($actor)
-        ->postJson("attachment-probe/{$task->id}", ['file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')])
+        ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertOk()
-        ->assertJson(['name' => 'plan.pdf', 'subject' => $task->id]);
+        ->assertJson(['names' => ['plan.pdf'], 'subject' => $task->id]);
 });
 
 it('refuses a file larger than the configured bound', function (): void {
@@ -45,8 +45,8 @@ it('refuses a file larger than the configured bound', function (): void {
     // The bound is configuration rather than a number in a rules array, so the same figure can
     // be shown to the person doing the uploading.
     $this->actingAs($actor)
-        ->postJson("attachment-probe/{$task->id}", ['file' => UploadedFile::fake()->create('big.pdf', 200, 'application/pdf')])
-        ->assertJsonValidationErrorFor('file');
+        ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('big.pdf', 200, 'application/pdf')]])
+        ->assertJsonValidationErrorFor('files.0');
 });
 
 it('refuses a type that is not on the list', function (): void {
@@ -61,10 +61,11 @@ it('refuses a type that is not on the list', function (): void {
         ->postJson("attachment-probe/{$task->id}", [
             // Named like a document and typed like a program: the rule reads the file rather
             // than the extension, so the name buys nothing.
-            'file' => UploadedFile::fake()->create('payload.pdf', 10, 'application/x-msdownload'),
+            'files' => [UploadedFile::fake()->create('payload.pdf', 10, 'application/x-msdownload')],
         ])
-        ->assertJsonValidationErrorFor('file')
-        ->assertJsonFragment(['file' => ['That kind of file cannot be attached here.']]);
+        ->assertJsonValidationErrorFor('files.0')
+        // Named rather than numbered: the message says which of the chosen files was refused.
+        ->assertJsonFragment(['files.0' => ['payload.pdf cannot be attached here.']]);
 });
 
 it('requires a file at all', function (): void {
@@ -73,7 +74,7 @@ it('requires a file at all', function (): void {
 
     $this->actingAs($actor)
         ->postJson("attachment-probe/{$task->id}", [])
-        ->assertJsonValidationErrorFor('file');
+        ->assertJsonValidationErrorFor('files');
 });
 
 it('refuses a guest, who may comment but may not upload', function (): void {
@@ -85,7 +86,7 @@ it('refuses a guest, who may comment but may not upload', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     $this->actingAs($guest)
-        ->postJson("attachment-probe/{$task->id}", ['file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')])
+        ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertForbidden();
 });
 
@@ -99,6 +100,6 @@ it('refuses somebody who cannot reach the task', function (): void {
     // Reach again: the capability alone would let somebody put a document into a project they
     // were never given.
     $this->actingAs($outsider)
-        ->postJson("attachment-probe/{$task->id}", ['file' => UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')])
+        ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertForbidden();
 });

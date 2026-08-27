@@ -58,7 +58,7 @@ it('appends an upload to the end of what is already there', function (): void {
 
     foreach (['one.pdf', 'two.pdf'] as $name) {
         $this->actingAs($actor)->post(route('tasks.attachments.store', $task), [
-            'file' => UploadedFile::fake()->create($name, 12, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create($name, 12, 'application/pdf')],
         ]);
     }
 

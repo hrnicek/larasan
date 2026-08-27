@@ -35,25 +35,30 @@ const documents = computed((): TaskAttachment[] => props.attachments.filter((fil
 /** Which photograph is open, if any. Local state: a lightbox is a way of looking, not a place. */
 const opened = ref<string | null>(null);
 
-const form = useForm<{ file: File | null }>({ file: null });
+/*
+ * A batch, always — one file is a batch of one. The server validates the whole choice before it
+ * stores any of it, so a folder with one refused file in it attaches nothing and says which file
+ * it was, rather than leaving somebody to work out how far it got.
+ */
+const form = useForm<{ files: File[] }>({ files: [] });
 const input = ref<HTMLInputElement | null>(null);
 
 const upload = (event: Event): void => {
-    const chosen = (event.target as HTMLInputElement).files?.[0] ?? null;
+    const chosen = Array.from((event.target as HTMLInputElement).files ?? []);
 
-    if (chosen === null) {
+    if (chosen.length === 0) {
         return;
     }
 
-    form.file = chosen;
+    form.files = chosen;
 
     form.post(AttachmentController.store.url(props.taskId), {
         preserveScroll: true,
         forceFormData: true,
         // Cleared only on success. A refused upload keeps the choice so the message says what
-        // was wrong with *this* file rather than about nothing at all.
+        // was wrong with *these* files rather than about nothing at all.
         onSuccess: () => {
-            form.reset('file');
+            form.reset('files');
 
             if (input.value !== null) {
                 input.value.value = '';
@@ -61,6 +66,19 @@ const upload = (event: Event): void => {
         },
     });
 };
+
+/** Errors arrive per file (`files.0`), so the block draws every one it was given, not the first. */
+const uploadErrors = computed((): string[] =>
+    Object.entries(form.errors as Record<string, string | undefined>)
+        .filter(([key]) => key === 'files' || key.startsWith('files.'))
+        .map(([, message]) => message)
+        .filter((message): message is string => typeof message === 'string'),
+);
+
+/** The percentage is worth saying once a batch is big enough for *Uploading…* to sit there. */
+const uploadLabel = computed((): string =>
+    form.progress === null || form.progress === undefined ? 'Uploading…' : `Uploading ${form.progress.percentage ?? 0}%…`,
+);
 
 /*
  * Removing a file is asked about first (ADR-0013). The bytes survive the request — `files:sweep`
@@ -93,14 +111,15 @@ const remove = (): void => {
                 <label
                     class="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-within:ring-2 focus-within:ring-primary-ring"
                     :class="form.processing ? 'pointer-events-none opacity-60' : ''"
-                    :title="form.processing ? 'Uploading…' : 'Add a file'"
+                    :title="form.processing ? uploadLabel : 'Add files'"
                 >
                     <Plus class="size-4" aria-hidden="true" />
-                    <span class="sr-only">{{ form.processing ? 'Uploading…' : 'Add a file' }}</span>
+                    <span class="sr-only">{{ form.processing ? uploadLabel : 'Add files' }}</span>
 
                     <input
                         ref="input"
                         type="file"
+                        multiple
                         :disabled="form.processing"
                         class="sr-only"
                         @change="upload"
@@ -159,14 +178,14 @@ const remove = (): void => {
             :class="form.processing ? 'pointer-events-none opacity-60' : ''"
         >
             <Plus class="size-4" aria-hidden="true" />
-            {{ form.processing ? 'Uploading…' : 'Add a file' }}
+            {{ form.processing ? uploadLabel : 'Add files' }}
 
-            <input type="file" :disabled="form.processing" class="sr-only" @change="upload" />
+            <input ref="input" type="file" multiple :disabled="form.processing" class="sr-only" @change="upload" />
         </label>
 
         <p v-else class="text-sm text-muted-foreground">No attachments.</p>
 
-        <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
+        <p v-for="message in uploadErrors" :key="message" class="text-xs text-destructive">{{ message }}</p>
         <AttachmentLightbox :images="images" :open-id="opened" @update:open-id="(id) => (opened = id)" />
 
         <ConfirmDialog
