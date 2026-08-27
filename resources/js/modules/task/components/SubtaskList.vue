@@ -108,7 +108,7 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
             >
                 <button
                     type="button"
-                    class="inline-flex size-8 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6"
+                    class="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:cursor-not-allowed md:size-6"
                     :class="
                         subtask.completedAt
                             ? 'text-emerald-600 dark:text-emerald-400'

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, router } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
@@ -12,9 +12,9 @@ import { defaultListColumns, listColumns } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData } from '@/modules/task/types';
 
 /**
- * One task, in a line of cells. Completion posts and waits: it is a domain state change with
- * events behind it, and a checkbox that ticks itself back a second later is worse than one that
- * takes a moment.
+ * One task, in a line of cells. Completion flips optimistically — the rollback on a failed
+ * request is obvious (the tick just reverts), so the row does not make the click wait on the
+ * round trip.
  *
  * From `md` the line is a table row — every field is a cell with a line to its right and a hover
  * of its own, so it is never a guess which control a click is about to land in. The name cell is
@@ -63,20 +63,35 @@ const answerOf = (fieldId: string, type: string | null): string => {
 
 const row = ref<HTMLElement | null>(null);
 
-const completed = () => props.task.completedAt !== null;
+/** Overrides the server state while a toggle is in flight, so the tick moves before the reply does. */
+const optimisticCompletion = ref<boolean | null>(null);
+const pending = ref(false);
+
+const completed = () => optimisticCompletion.value ?? props.task.completedAt !== null;
 
 function toggleCompletion(): void {
-    if (!props.editable) {
+    if (!props.editable || pending.value) {
         return;
     }
 
-    if (completed()) {
-        router.delete(TaskController.reopen.url(props.task.id), { preserveScroll: true });
+    const wasCompleted = completed();
+    optimisticCompletion.value = !wasCompleted;
+    pending.value = true;
+
+    const settle = {
+        onFinish: () => {
+            pending.value = false;
+            optimisticCompletion.value = null;
+        },
+    };
+
+    if (wasCompleted) {
+        router.delete(TaskController.reopen.url(props.task.id), { preserveScroll: true, ...settle });
 
         return;
     }
 
-    router.put(TaskController.complete.url(props.task.id), {}, { preserveScroll: true });
+    router.put(TaskController.complete.url(props.task.id), {}, { preserveScroll: true, ...settle });
 }
 
 defineExpose({ focus: () => row.value?.focus() });
@@ -131,43 +146,39 @@ defineExpose({ focus: () => row.value?.focus() });
             :class="[listColumns.name, listColumns.cell, listColumns.hover]"
             @click.self="emit('open', task.id)"
         >
-            <Form
-                v-if="editable"
-                v-bind="completed() ? TaskController.reopen.form(task.id) : TaskController.complete.form(task.id)"
-                #default="{ processing }"
-            >
-                <!--
-                    The hit area is 44px on a touch width and the drawn circle stays 18px inside
-                    it. A control is drawn at the size it should be read at; what changes with the
-                    pointer is how much room it needs around it.
+            <!--
+                The hit area is 44px on a touch width and the drawn circle stays 18px inside
+                it. A control is drawn at the size it should be read at; what changes with the
+                pointer is how much room it needs around it.
 
-                    The check is present before it is true, at zero opacity, and appears under the
-                    pointer. That is the affordance: a bare circle says "status", a circle with a
-                    tick waiting inside it says "you can finish this".
-                -->
-                <button
-                    type="submit"
-                    :disabled="processing"
-                    :aria-label="completed() ? 'Reopen task' : 'Complete task'"
-                    :aria-pressed="completed()"
-                    class="-m-2 flex size-11 items-center justify-center disabled:opacity-50 md:-m-0.5 md:size-6"
+                The check is present before it is true, at zero opacity, and appears under the
+                pointer. That is the affordance: a bare circle says "status", a circle with a
+                tick waiting inside it says "you can finish this".
+            -->
+            <button
+                v-if="editable"
+                type="button"
+                :disabled="pending"
+                :aria-label="completed() ? 'Reopen task' : 'Complete task'"
+                :aria-pressed="completed()"
+                class="-m-2 flex size-11 cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-50 md:-m-0.5 md:size-6"
+                @click="toggleCompletion"
+            >
+                <span
+                    class="flex size-[18px] items-center justify-center rounded-full border transition-colors"
+                    :class="
+                        completed()
+                            ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+                            : 'border-input text-muted-foreground'
+                    "
+                    aria-hidden="true"
                 >
-                    <span
-                        class="flex size-[18px] items-center justify-center rounded-full border transition-colors"
-                        :class="
-                            completed()
-                                ? 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
-                                : 'border-input text-muted-foreground'
-                        "
-                        aria-hidden="true"
-                    >
-                        <Check
-                            class="size-3 transition-opacity"
-                            :class="completed() ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'"
-                        />
-                    </span>
-                </button>
-            </Form>
+                    <Check
+                        class="size-3 transition-opacity"
+                        :class="completed() ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'"
+                    />
+                </span>
+            </button>
             <span
                 v-else
                 class="flex size-[18px] shrink-0 items-center justify-center rounded-full border border-input"
