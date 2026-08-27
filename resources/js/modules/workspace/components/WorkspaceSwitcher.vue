@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Check, ChevronsUpDown, Plus } from '@lucide/vue';
+import { Check, ChevronsUpDown, List, Plus } from '@lucide/vue';
 import { computed } from 'vue';
 import {
     DropdownMenu,
@@ -13,7 +13,7 @@ import {
 import { useCollapsed } from '@/composables/useShell';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 // Wayfinder exports `switchMethod`: `switch` is a reserved word in JavaScript.
-import { create, switchMethod } from '@/routes/workspaces';
+import { create, index, switchMethod } from '@/routes/workspaces';
 
 const page = usePage();
 const collapsed = useCollapsed();
@@ -66,6 +66,17 @@ function switchTo(workspace: WorkspaceSummary): void {
 
             <DropdownMenuSeparator />
 
+            <!--
+                The way to an invitation for somebody who no longer has the mail: this list is
+                where the ones waiting for them are answered.
+            -->
+            <DropdownMenuItem as-child class="gap-2">
+                <Link :href="index()">
+                    <List class="size-4" />
+                    <span>All workspaces and invitations</span>
+                </Link>
+            </DropdownMenuItem>
+
             <DropdownMenuItem as-child class="gap-2">
                 <Link :href="create()">
                     <Plus class="size-4" />
@@ -75,13 +86,18 @@ function switchTo(workspace: WorkspaceSummary): void {
         </DropdownMenuContent>
     </DropdownMenu>
 
+    <!--
+        Somebody who belongs to no workspace is exactly who may have been invited to one, so this
+        goes to the list — which offers both the invitations waiting for them and the button to
+        make a workspace of their own.
+    -->
     <Link
         v-else
-        :href="create()"
+        :href="index()"
         class="flex h-11 items-center gap-2 rounded-md px-2 text-[13px] font-medium text-chrome-foreground transition-colors hover:bg-chrome-accent focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none"
         :class="collapsed && 'justify-center px-0'"
     >
         <Plus class="size-4 shrink-0" />
-        <span v-if="!collapsed" class="truncate">Create a workspace</span>
+        <span v-if="!collapsed" class="truncate">Find a workspace</span>
     </Link>
 </template>
