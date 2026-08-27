@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspace;
 
+use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Actions\CreateWorkspace;
 use App\Domain\Workspace\Actions\UpdateWorkspace;
 use App\Domain\Workspace\Data\CreateWorkspaceData;
 use App\Domain\Workspace\Data\UpdateWorkspaceData;
 use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Workspace\StoreWorkspaceRequest;
@@ -23,13 +25,34 @@ class WorkspaceController extends Controller
 {
     public function index(Request $request): Response
     {
+        $actor = $request->user();
+
         return Inertia::render('workspaces/Index', [
-            'workspaces' => $request->user()?->workspaces()
+            'workspaces' => $actor?->workspaces()
                 ->get()
                 ->map(fn (Workspace $workspace): array => [
                     'id' => $workspace->id,
                     'name' => $workspace->name,
                     'slug' => $workspace->slug,
+                ])
+                ->all() ?? [],
+            /*
+             * The workspaces somebody has been asked to join belong on the screen that
+             * answers which workspaces they are in — and it is where the invitation mail
+             * lands. Rows already swept to `expired` are left out: there is nothing to
+             * answer, and the answer is to ask for a new invitation.
+             */
+            'invitations' => $actor?->workspaceMemberships()
+                ->with('workspace', 'invitedBy')
+                ->where('status', WorkspaceMembershipStatus::Invited->value)
+                ->get()
+                ->map(fn (WorkspaceMembership $invitation): array => [
+                    'id' => $invitation->id,
+                    'workspace' => $invitation->workspace->name,
+                    'role' => $invitation->role->value,
+                    'invitedBy' => $invitation->invitedBy->name ?? null,
+                    'expiresAt' => $invitation->expires_at?->toIso8601String(),
+                    'hasExpired' => $invitation->hasExpired(),
                 ])
                 ->all() ?? [],
         ]);

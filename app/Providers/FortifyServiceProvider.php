@@ -67,8 +67,14 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/Register', [
+        /*
+         * The address is prefilled when an invitation sent them here: an invitation is only
+         * claimed by the address it was sent to, and registering under another one silently
+         * loses it (TASK-270-003).
+         */
+        Fortify::registerView(fn (Request $request) => Inertia::render('auth/Register', [
             'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'email' => $request->session()->get('invitation_email'),
         ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/TwoFactorChallenge'));

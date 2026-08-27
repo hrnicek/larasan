@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Workspace\WorkspaceController;
+use App\Http\Controllers\Workspace\WorkspaceInvitationController;
 use App\Http\Controllers\Workspace\WorkspaceMemberController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +11,21 @@ use Illuminate\Support\Facades\Route;
  * The {workspace} parameter is a slug. ResolveCurrentWorkspace reads it as one and 404s
  * before the controller runs if it is anything else.
  */
+/*
+ * Signed, and deliberately outside the auth group: following the link in an invitation mail
+ * is how somebody who has no account arrives at all. The signature expires with the
+ * invitation, and the route answers nothing — it establishes who is holding the link.
+ */
+Route::get('invitations/{membership}', [WorkspaceInvitationController::class, 'show'])
+    ->middleware('signed')
+    ->name('workspaces.invitations.show');
+
 Route::middleware(['auth', 'verified'])->group(function (): void {
+    Route::post('invitations/{membership}/accept', [WorkspaceInvitationController::class, 'accept'])
+        ->name('workspaces.invitations.accept');
+    Route::post('invitations/{membership}/decline', [WorkspaceInvitationController::class, 'decline'])
+        ->name('workspaces.invitations.decline');
+
     Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
     Route::get('workspaces/create', [WorkspaceController::class, 'create'])->name('workspaces.create');
     Route::post('workspaces', [WorkspaceController::class, 'store'])

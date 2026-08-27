@@ -157,7 +157,17 @@ it('guards every workspace route with auth and verified', function (): void {
 
     // The count is deliberate: adding a workspace route should make someone confirm it
     // is guarded, rather than inherit the assertion silently.
-    expect($routes)->toHaveCount(10);
+    expect($routes)->toHaveCount(13);
+
+    /*
+     * One route is outside the gate on purpose. Following the link in an invitation mail is
+     * how somebody who has no account arrives at all, so it is guarded by its signature
+     * instead — and it answers nothing, it only establishes who is holding the link.
+     */
+    $open = $routes->pull('workspaces.invitations.show');
+
+    expect($open?->gatherMiddleware())->toContain('signed')
+        ->and($open?->gatherMiddleware())->not->toContain('auth');
 
     $routes->each(function ($route): void {
         expect($route->gatherMiddleware())->toContain('auth')->toContain('verified');

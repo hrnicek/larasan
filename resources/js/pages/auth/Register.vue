@@ -12,6 +12,8 @@ import { store } from '@/routes/register';
 
 defineProps<{
     passwordRules: string;
+    /** The address an invitation was sent to, when one sent the visitor here. */
+    email?: string | null;
 }>();
 
 defineOptions({
@@ -57,6 +59,7 @@ defineOptions({
                     autocomplete="email"
                     name="email"
                     placeholder="email@example.com"
+                    :default-value="email ?? undefined"
                 />
                 <InputError :message="errors.email" />
             </div>

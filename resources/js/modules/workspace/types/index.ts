@@ -24,3 +24,13 @@ export type WorkspaceMember = {
     isYou: boolean;
     isLastOwner: boolean;
 };
+
+export type WorkspaceInvitation = {
+    id: string;
+    /** The workspace's name — an invitee is not a member and gets no more of it than that. */
+    workspace: string;
+    role: string;
+    invitedBy: string | null;
+    expiresAt: string | null;
+    hasExpired: boolean;
+};

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Workspace\Notifications;
 
 use App\Domain\Workspace\Models\WorkspaceMembership;
+use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Queued on the `notifications` queue Horizon already supervises (ADR-0008). The
@@ -45,6 +47,21 @@ class WorkspaceInvitationSent extends Notification implements ShouldQueue
                 'workspace' => $membership->workspace->name,
                 'role' => $membership->role->value,
             ]))
-            ->action(__('View the invitation'), route('workspaces.index'));
+            ->action(__('View the invitation'), $this->link($membership));
+    }
+
+    /**
+     * Signed and expiring with the invitation itself, so the link is neither guessable nor
+     * useful once the deadline it was sent with has passed. It is outside the auth group,
+     * because the address it was sent to may have no account yet — the link is how they
+     * arrive at one.
+     */
+    private function link(WorkspaceMembership $membership): string
+    {
+        return URL::temporarySignedRoute(
+            'workspaces.invitations.show',
+            $membership->expires_at ?? CarbonImmutable::now()->addWeek(),
+            ['membership' => $membership->id],
+        );
     }
 }
