@@ -40,12 +40,36 @@ final readonly class RemoveWorkspaceMember
         }
 
         return DB::transaction(function () use ($workspace, $actor, $membership): WorkspaceMembership {
+            if (! $membership->isClaimed()) {
+                return $this->cancel($workspace, $actor, $membership);
+            }
+
             if ($workspace->isLastOwner($membership, locking: true)) {
                 throw WorkspaceMembershipException::lastOwner();
             }
 
             return $this->revoke($workspace, $actor, $membership);
         });
+    }
+
+    /**
+     * An invitation nobody has claimed is deleted rather than revoked. There is no person
+     * for the row to be a record of, and a revoked unclaimed row would go on occupying the
+     * address in `workspace_memberships_workspace_id_email_unique` — so taking an
+     * invitation back would quietly refuse the next one to the same address.
+     */
+    private function cancel(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
+    {
+        $membership->delete();
+
+        $this->events->dispatch(new WorkspaceMemberRemoved(
+            $membership->id,
+            $workspace->id,
+            null,
+            $actor->id,
+        ));
+
+        return $membership;
     }
 
     private function revoke(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
@@ -92,7 +116,14 @@ final readonly class RemoveWorkspaceMember
      */
     private function releaseTheirWork(Workspace $workspace, User $actor, WorkspaceMembership $membership): void
     {
-        ReleaseRemovedMembersWork::dispatch($workspace->id, $membership->user_id, $actor->id);
+        $removed = $membership->user_id;
+
+        // An invitation nobody ever claimed was never assigned anything.
+        if ($removed === null) {
+            return;
+        }
+
+        ReleaseRemovedMembersWork::dispatch($workspace->id, $removed, $actor->id);
     }
 
     /**

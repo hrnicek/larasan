@@ -19,7 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property string $id
  * @property string $workspace_id
- * @property int $user_id
+ * @property int|null $user_id
+ * @property string|null $email
  * @property WorkspaceRole $role
  * @property WorkspaceMembershipStatus $status
  * @property CarbonImmutable|null $joined_at
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $invited_by
  * @property-read User|null $invitedBy
  * @property-read Workspace $workspace
- * @property-read User $user
+ * @property-read User|null $user
  */
 #[UseFactory(WorkspaceMembershipFactory::class)]
 class WorkspaceMembership extends Model
@@ -35,7 +36,7 @@ class WorkspaceMembership extends Model
     /** @use HasFactory<WorkspaceMembershipFactory> */
     use HasFactory, HasUuids;
 
-    protected $fillable = ['workspace_id', 'user_id', 'role', 'status', 'joined_at', 'expires_at', 'invited_by'];
+    protected $fillable = ['workspace_id', 'user_id', 'email', 'role', 'status', 'joined_at', 'expires_at', 'invited_by'];
 
     /**
      * The single composed authorization question for a workspace. Callers ask this and
@@ -64,6 +65,23 @@ class WorkspaceMembership extends Model
     public function invitedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    /**
+     * Whether an account has taken this row over. An invitation to an address nobody has
+     * registered yet holds no `user_id`, and every authorization path filters by that
+     * column — so an unclaimed row grants nothing to anybody, by construction rather than
+     * by a rule each call site has to remember.
+     */
+    public function isClaimed(): bool
+    {
+        return $this->user_id !== null;
+    }
+
+    /** The address this row answers to: the one invited, or the account's own. */
+    public function address(): ?string
+    {
+        return $this->email ?? $this->user?->email;
     }
 
     /**

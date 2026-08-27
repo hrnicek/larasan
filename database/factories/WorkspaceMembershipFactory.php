@@ -27,6 +27,7 @@ class WorkspaceMembershipFactory extends Factory
         return [
             'workspace_id' => Workspace::factory(),
             'user_id' => User::factory(),
+            'email' => null,
             'role' => WorkspaceRole::Member,
             'status' => WorkspaceMembershipStatus::Active,
             'joined_at' => now(),
@@ -73,6 +74,18 @@ class WorkspaceMembershipFactory extends Factory
             'joined_at' => null,
             'expires_at' => $expiresAt ?? CarbonImmutable::now()->addWeek(),
             'invited_by' => $invitedBy?->id,
+        ]);
+    }
+
+    /**
+     * An invitation to an address nobody has registered under. The row names no user, which
+     * is what every authorization path filters on.
+     */
+    public function unclaimed(string $email): self
+    {
+        return $this->state(fn (): array => [
+            'user_id' => null,
+            'email' => mb_strtolower($email),
         ]);
     }
 

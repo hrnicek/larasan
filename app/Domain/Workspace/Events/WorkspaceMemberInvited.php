@@ -9,7 +9,9 @@ final readonly class WorkspaceMemberInvited
     public function __construct(
         public string $membershipId,
         public string $workspaceId,
-        public int $userId,
+        /** Null while the address has no account: an invitation names a person only once one exists. */
+        public ?int $userId,
+        public string $email,
         public int $invitedById,
     ) {}
 }

@@ -125,7 +125,7 @@ class DevelopmentSeeder extends Seeder
         app(InviteWorkspaceMember::class)->handle(
             $workspace,
             $inviter,
-            new InviteWorkspaceMemberData(userId: $invitee->id, role: $role),
+            new InviteWorkspaceMemberData(email: $invitee->email, role: $role),
         );
     }
 

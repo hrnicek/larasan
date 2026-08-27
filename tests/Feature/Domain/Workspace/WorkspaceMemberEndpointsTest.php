@@ -58,15 +58,19 @@ it('invites an existing account', function (): void {
     expect($workspace->membershipFor($invitee)?->status)->toBe(WorkspaceMembershipStatus::Invited);
 });
 
-it('rejects an invitation to an address with no account', function (): void {
+it('invites an address with no account', function (): void {
+    Notification::fake();
     $workspace = Workspace::factory()->create();
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
         ->post(route('workspaces.members.store'), ['email' => 'nobody@example.com', 'role' => 'member'])
-        ->assertInvalid('email');
+        ->assertRedirect(route('workspaces.members'));
 
-    expect($workspace->memberships()->count())->toBe(1);
+    $invitation = $workspace->memberships()->whereNull('user_id')->sole();
+
+    expect($invitation->email)->toBe('nobody@example.com')
+        ->and($invitation->status)->toBe(WorkspaceMembershipStatus::Invited);
 });
 
 it('turns a domain refusal into a validation error the form can show', function (): void {

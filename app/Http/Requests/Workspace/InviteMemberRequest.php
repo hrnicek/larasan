@@ -28,11 +28,11 @@ class InviteMemberRequest extends FormRequest
     {
         return [
             /*
-             * The address must belong to an account: only an existing user can be
-             * invited (TASK-030-015). `exists` says so in the language the form speaks,
-             * and the Action still refuses an id it cannot use.
+             * No `exists` rule: an invitation is addressed to an email, and whether an
+             * account answers to it is the Action's question rather than the form's
+             * (TASK-270-001). Bounded because the column is a `varchar(255)`.
              */
-            'email' => ['required', 'email', Rule::exists('users', 'email')],
+            'email' => ['required', 'email', 'max:255'],
             'role' => ['required', Rule::enum(WorkspaceRole::class), Rule::notIn([WorkspaceRole::Owner->value])],
         ];
     }
@@ -43,7 +43,6 @@ class InviteMemberRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.exists' => __('Nobody with that address has an account yet.'),
             'role.not_in' => __('Ownership is transferred, not assigned.'),
         ];
     }

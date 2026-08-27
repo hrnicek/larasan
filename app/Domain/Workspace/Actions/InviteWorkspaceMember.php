@@ -15,6 +15,7 @@ use App\Domain\Workspace\Notifications\WorkspaceInvitationSent;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 final readonly class InviteWorkspaceMember
 {
@@ -22,43 +23,89 @@ final readonly class InviteWorkspaceMember
 
     public function handle(Workspace $workspace, User $actor, InviteWorkspaceMemberData $data): WorkspaceMembership
     {
-        $this->guard($workspace, $actor, $data);
+        $invitee = User::query()->where('email', $data->email)->first();
+        $existing = $this->existing($workspace, $data->email, $invitee);
 
-        $membership = DB::transaction(function () use ($workspace, $actor, $data): WorkspaceMembership {
+        $this->guard($workspace, $actor, $data, $existing);
+
+        $membership = DB::transaction(function () use ($workspace, $actor, $data, $invitee, $existing): WorkspaceMembership {
             /*
-             * updateOrCreate rather than create: UNIQUE(workspace_id, user_id) means a
-             * user who declined, was revoked or let an invitation lapse already has a row.
-             * Inviting them again is a new invitation on that row, not a second membership
-             * and not a constraint violation the caller has to interpret.
+             * The row is reused rather than added to. UNIQUE(workspace_id, user_id) means a
+             * user who declined, was revoked or let an invitation lapse already has one, and
+             * an address invited before it had an account has one keyed by the address —
+             * inviting either again is a new invitation on that row, not a second membership.
              */
-            $membership = WorkspaceMembership::query()->updateOrCreate(
-                ['workspace_id' => $workspace->id, 'user_id' => $data->userId],
-                [
-                    'role' => $data->role,
-                    'status' => WorkspaceMembershipStatus::Invited,
-                    'joined_at' => null,
-                    'expires_at' => $data->expiresAt(),
-                    'invited_by' => $actor->id,
-                ],
-            );
+            $membership = $existing ?? new WorkspaceMembership;
+
+            $membership->forceFill([
+                'workspace_id' => $workspace->id,
+                'user_id' => $invitee instanceof User ? $invitee->id : $membership->user_id,
+                'email' => $data->email,
+                'role' => $data->role,
+                'status' => WorkspaceMembershipStatus::Invited,
+                'joined_at' => null,
+                'expires_at' => $data->expiresAt(),
+                'invited_by' => $actor->id,
+            ])->save();
 
             return $membership->refresh();
         });
 
-        $membership->user->notify(new WorkspaceInvitationSent($membership->id));
+        $this->notify($membership, $data->email);
 
         $this->events->dispatch(new WorkspaceMemberInvited(
             $membership->id,
             $workspace->id,
-            $data->userId,
+            $membership->user_id,
+            $membership->email ?? $data->email,
             $actor->id,
         ));
 
         return $membership;
     }
 
-    private function guard(Workspace $workspace, User $actor, InviteWorkspaceMemberData $data): void
+    /**
+     * An invitation lands on the account's own notification routing when there is an
+     * account, and on the address when there is not. The address is all an invitation ever
+     * had to have.
+     */
+    private function notify(WorkspaceMembership $membership, string $address): void
     {
+        $notification = new WorkspaceInvitationSent($membership->id);
+        $invitee = $membership->user;
+
+        if ($invitee instanceof User) {
+            $invitee->notify($notification);
+
+            return;
+        }
+
+        Notification::route('mail', $address)->notify($notification);
+    }
+
+    /**
+     * The row this invitation would land on: the account's, or the one the address holds
+     * while nobody has registered under it.
+     */
+    private function existing(Workspace $workspace, string $email, ?User $invitee): ?WorkspaceMembership
+    {
+        if ($invitee instanceof User) {
+            $claimed = $workspace->membershipFor($invitee);
+
+            if ($claimed instanceof WorkspaceMembership) {
+                return $claimed;
+            }
+        }
+
+        return $workspace->memberships()->whereNull('user_id')->where('email', $email)->first();
+    }
+
+    private function guard(
+        Workspace $workspace,
+        User $actor,
+        InviteWorkspaceMemberData $data,
+        ?WorkspaceMembership $existing,
+    ): void {
         $actorMembership = $workspace->membershipFor($actor);
 
         if (! $actorMembership?->allows(Capability::WorkspaceMembersManage)) {
@@ -69,24 +116,23 @@ final readonly class InviteWorkspaceMember
             throw WorkspaceMembershipException::cannotAssignOwner();
         }
 
-        $existing = $workspace->membershipFor(User::query()->findOrFail($data->userId));
-
         if ($existing?->status->grantsAccess() === true) {
             throw WorkspaceMembershipException::alreadyAMember();
         }
 
         /*
-         * `updateOrCreate` rewrites the row, so inviting a *revoked owner* would demote
-         * them permanently — Owner is never granted again — and strand the `owner_id`
-         * holder. Same rule as removal and demotion: an owner's row takes an owner.
+         * The row is rewritten, so inviting a *revoked owner* would demote them permanently
+         * — Owner is never granted again — and strand the `owner_id` holder. Same rule as
+         * removal and demotion: an owner's row takes an owner.
          */
         if ($existing?->role->isOwner() === true && ! $actorMembership->role->isOwner()) {
             throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
         }
 
         /*
-         * A live invitation is not re-sent. Without this the endpoint mails the same
-         * address on every call — the throttle caps the rate, not the total.
+         * A live invitation is not re-sent by inviting again. Without this the endpoint
+         * mails the same address on every call — the throttle caps the rate, not the total.
+         * Sending it again on purpose is `ResendWorkspaceInvitation`.
          */
         if ($existing?->status === WorkspaceMembershipStatus::Invited && ! $existing->hasExpired()) {
             throw WorkspaceMembershipException::alreadyInvited();

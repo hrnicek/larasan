@@ -18,7 +18,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Workspace\InviteMemberRequest;
 use App\Http\Requests\Workspace\UpdateMemberRoleRequest;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -54,14 +53,18 @@ class WorkspaceMemberController extends Controller
                 ->get()
                 ->map(fn (WorkspaceMembership $membership): array => [
                     'id' => $membership->id,
-                    'name' => $membership->user->name,
+                    /*
+                     * An invitation to an address nobody has registered under has no name
+                     * to show, and the address is the only thing it is.
+                     */
+                    'name' => $membership->user->name ?? $membership->email ?? '',
                     /*
                      * A guest is an outside collaborator (ADR-0006); handing them every
                      * colleague's address is not part of commenting on a task. Managers
                      * need it to tell two people apart and to know who they invited.
                      */
                     'email' => $canManage || $membership->user_id === $request->user()?->id
-                        ? $membership->user->email
+                        ? $membership->address()
                         : null,
                     'role' => $membership->role->value,
                     'status' => $membership->status->value,
@@ -91,13 +94,12 @@ class WorkspaceMemberController extends Controller
     public function store(InviteMemberRequest $request, InviteWorkspaceMember $invite): RedirectResponse
     {
         $workspace = $this->current($request);
-        $invitee = User::query()->where('email', $request->string('email')->toString())->firstOrFail();
 
         $this->translating(fn () => $invite->handle(
             $workspace,
             $this->actor($request),
             new InviteWorkspaceMemberData(
-                userId: $invitee->id,
+                email: $request->string('email')->toString(),
                 role: $request->enum('role', WorkspaceRole::class) ?? WorkspaceRole::Member,
             ),
         ), 'email');

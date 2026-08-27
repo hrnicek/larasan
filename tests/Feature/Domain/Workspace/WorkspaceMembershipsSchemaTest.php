@@ -67,3 +67,51 @@ it('requires a role and a status to be given explicitly', function (): void {
         'updated_at' => now(),
     ]))->toThrow(QueryException::class);
 });
+
+/**
+ * An invitation to an address nobody has registered under, inserted below the model so the
+ * rules it breaks are shown to be the database's.
+ */
+function insertInvitation(Workspace $workspace, ?string $email): void
+{
+    DB::table('workspace_memberships')->insert([
+        'id' => (string) Str::uuid7(),
+        'workspace_id' => $workspace->id,
+        'user_id' => null,
+        'email' => $email,
+        'role' => WorkspaceRole::Member->value,
+        'status' => WorkspaceMembershipStatus::Invited->value,
+        'expires_at' => now()->addWeek(),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+it('rejects a second unclaimed invitation to the same address in one workspace', function (): void {
+    $workspace = Workspace::factory()->create();
+
+    insertInvitation($workspace, 'nobody@example.com');
+
+    expect(fn () => insertInvitation($workspace, 'nobody@example.com'))->toThrow(QueryException::class);
+});
+
+it('allows the same address to be invited to two workspaces', function (): void {
+    insertInvitation(Workspace::factory()->create(), 'nobody@example.com');
+    insertInvitation(Workspace::factory()->create(), 'nobody@example.com');
+
+    expect(DB::table('workspace_memberships')->where('email', 'nobody@example.com')->count())->toBe(2);
+});
+
+it('rejects a membership of nobody', function (): void {
+    expect(fn () => insertInvitation(Workspace::factory()->create(), null))->toThrow(QueryException::class);
+});
+
+it('rejects an address that is not lower case', function (): void {
+    /*
+     * Two cases of one address would be two invitations, and the partial unique index
+     * would allow both — so the case is the database's business, not only the value
+     * object's.
+     */
+    expect(fn () => insertInvitation(Workspace::factory()->create(), 'Nobody@Example.com'))
+        ->toThrow(QueryException::class);
+});

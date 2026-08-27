@@ -6,6 +6,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\InviteWorkspaceMember;
+use App\Domain\Workspace\Actions\RemoveWorkspaceMember;
 use App\Domain\Workspace\Data\InviteWorkspaceMemberData;
 use App\Domain\Workspace\Events\WorkspaceMemberInvited;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
@@ -14,6 +15,7 @@ use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Domain\Workspace\Notifications\WorkspaceInvitationSent;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 
@@ -22,7 +24,7 @@ function invite(Workspace $workspace, User $actor, User $invitee, WorkspaceRole 
     return app(InviteWorkspaceMember::class)->handle(
         $workspace,
         $actor,
-        new InviteWorkspaceMemberData(userId: $invitee->id, role: $role),
+        new InviteWorkspaceMemberData(email: $invitee->email, role: $role),
     );
 }
 
@@ -143,7 +145,7 @@ it('does not let an invitation from one workspace grant anything in another', fu
 
 it('refuses to rewrite a revoked owner through an invitation', function (): void {
     /*
-     * updateOrCreate overwrites the row, so inviting a revoked owner as a member would
+     * The invitation rewrites the row, so inviting a revoked owner as a member would
      * demote them permanently — Owner is never granted again — and strand the owner_id
      * holder, whose account cannot be deleted while they own a workspace.
      */
@@ -189,4 +191,122 @@ it('re-invites once the previous invitation has lapsed', function (): void {
     $membership->forceFill(['expires_at' => CarbonImmutable::now()->subDay()])->save();
 
     expect(invite($workspace, $admin, $invitee)->status)->toBe(WorkspaceMembershipStatus::Invited);
+});
+
+function inviteAddress(
+    Workspace $workspace,
+    User $actor,
+    string $email,
+    WorkspaceRole $role = WorkspaceRole::Member,
+): WorkspaceMembership {
+    return app(InviteWorkspaceMember::class)->handle(
+        $workspace,
+        $actor,
+        new InviteWorkspaceMemberData(email: $email, role: $role),
+    );
+}
+
+it('invites an address that has no account yet', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $membership = inviteAddress($workspace, $admin, 'Nobody@Example.com');
+
+    expect($membership->user_id)->toBeNull()
+        ->and($membership->email)->toBe('nobody@example.com')
+        ->and($membership->isClaimed())->toBeFalse()
+        ->and($membership->status)->toBe(WorkspaceMembershipStatus::Invited)
+        ->and($membership->expires_at)->toBeInstanceOf(CarbonImmutable::class);
+});
+
+it('mails the address when there is no account to notify', function (): void {
+    Notification::fake();
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    inviteAddress($workspace, $admin, 'nobody@example.com');
+
+    Notification::assertSentOnDemand(
+        WorkspaceInvitationSent::class,
+        fn (WorkspaceInvitationSent $notification, array $channels, AnonymousNotifiable $notifiable): bool => $notifiable->routes['mail'] === 'nobody@example.com',
+    );
+});
+
+it('names the address rather than a person in the invitation event', function (): void {
+    Event::fake();
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    inviteAddress($workspace, $admin, 'nobody@example.com');
+
+    Event::assertDispatched(WorkspaceMemberInvited::class, fn (WorkspaceMemberInvited $event): bool => $event->userId === null
+        && $event->email === 'nobody@example.com');
+});
+
+it('grants an unclaimed invitation nothing at all', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    inviteAddress($workspace, $admin, 'nobody@example.com');
+
+    expect($workspace->members()->count())->toBe(1)
+        ->and($workspace->users()->count())->toBe(1);
+});
+
+it('does not invite an address twice while its invitation is waiting', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    inviteAddress($workspace, $admin, 'nobody@example.com');
+
+    expect(fn (): WorkspaceMembership => inviteAddress($workspace, $admin, 'NOBODY@example.com'))
+        ->toThrow(WorkspaceMembershipException::class, 'already has an invitation');
+
+    expect($workspace->memberships()->whereNull('user_id')->count())->toBe(1);
+});
+
+it('re-invites an address whose invitation lapsed, on the row it already has', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $first = inviteAddress($workspace, $admin, 'nobody@example.com');
+    $first->forceFill(['expires_at' => CarbonImmutable::now()->subDay()])->save();
+
+    $second = inviteAddress($workspace, $admin, 'nobody@example.com', WorkspaceRole::Admin);
+
+    expect($second->id)->toBe($first->id)
+        ->and($second->role)->toBe(WorkspaceRole::Admin)
+        ->and($workspace->memberships()->count())->toBe(2);
+});
+
+it('takes over the unclaimed row when the address turns out to have an account', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $unclaimed = WorkspaceMembership::factory()
+        ->invited($admin, CarbonImmutable::now()->subDay())
+        ->unclaimed('late@example.com')
+        ->create(['workspace_id' => $workspace->id]);
+
+    $invitee = User::factory()->create(['email' => 'late@example.com']);
+
+    $membership = inviteAddress($workspace, $admin, 'late@example.com');
+
+    expect($membership->id)->toBe($unclaimed->id)
+        ->and($membership->user_id)->toBe($invitee->id)
+        ->and($workspace->memberships()->count())->toBe(2);
+});
+
+it('deletes an unclaimed invitation when it is cancelled, freeing the address', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $membership = inviteAddress($workspace, $admin, 'nobody@example.com');
+
+    app(RemoveWorkspaceMember::class)->handle($workspace, $admin, $membership);
+
+    expect(WorkspaceMembership::query()->whereKey($membership->id)->exists())->toBeFalse();
+
+    expect(inviteAddress($workspace, $admin, 'nobody@example.com')->status)
+        ->toBe(WorkspaceMembershipStatus::Invited);
 });

@@ -32,17 +32,17 @@ final readonly class AnswerWorkspaceInvitation
             throw WorkspaceMembershipException::inviterNoLongerMayInvite();
         }
 
-        return $this->answer($membership, WorkspaceMembershipStatus::Active);
+        return $this->answer($membership, $actor, WorkspaceMembershipStatus::Active);
     }
 
     public function decline(WorkspaceMembership $membership, User $actor): WorkspaceMembership
     {
         $this->guard($membership, $actor);
 
-        return $this->answer($membership, WorkspaceMembershipStatus::Declined);
+        return $this->answer($membership, $actor, WorkspaceMembershipStatus::Declined);
     }
 
-    private function answer(WorkspaceMembership $membership, WorkspaceMembershipStatus $answer): WorkspaceMembership
+    private function answer(WorkspaceMembership $membership, User $actor, WorkspaceMembershipStatus $answer): WorkspaceMembership
     {
         $membership->forceFill([
             'status' => $answer,
@@ -54,7 +54,8 @@ final readonly class AnswerWorkspaceInvitation
         $this->events->dispatch(new WorkspaceInvitationAnswered(
             $membership->id,
             $membership->workspace_id,
-            $membership->user_id,
+            // The guard has already established that these are the same person.
+            $actor->id,
             $answer,
         ));
 
