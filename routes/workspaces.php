@@ -49,6 +49,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->middleware('throttle:workspace-invitations')
         ->name('workspaces.members.store');
     Route::put('settings/members/{membership}', [WorkspaceMemberController::class, 'update'])->name('workspaces.members.update');
+    // The same limiter as inviting, and for the same reason: this queues mail to an address.
+    Route::post('settings/members/{membership}/resend', [WorkspaceMemberController::class, 'resend'])
+        ->middleware('throttle:workspace-invitations')
+        ->name('workspaces.members.resend');
     Route::delete('settings/members/{membership}', [WorkspaceMemberController::class, 'destroy'])->name('workspaces.members.destroy');
 
     Route::get('settings/workspace', [WorkspaceController::class, 'edit'])->name('workspaces.edit');

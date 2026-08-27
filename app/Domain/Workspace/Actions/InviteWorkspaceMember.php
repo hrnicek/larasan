@@ -15,7 +15,6 @@ use App\Domain\Workspace\Notifications\WorkspaceInvitationSent;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 final readonly class InviteWorkspaceMember
 {
@@ -51,7 +50,7 @@ final readonly class InviteWorkspaceMember
             return $membership->refresh();
         });
 
-        $this->notify($membership, $data->email);
+        $membership->invitee()->notify(new WorkspaceInvitationSent($membership->id));
 
         $this->events->dispatch(new WorkspaceMemberInvited(
             $membership->id,
@@ -62,25 +61,6 @@ final readonly class InviteWorkspaceMember
         ));
 
         return $membership;
-    }
-
-    /**
-     * An invitation lands on the account's own notification routing when there is an
-     * account, and on the address when there is not. The address is all an invitation ever
-     * had to have.
-     */
-    private function notify(WorkspaceMembership $membership, string $address): void
-    {
-        $notification = new WorkspaceInvitationSent($membership->id);
-        $invitee = $membership->user;
-
-        if ($invitee instanceof User) {
-            $invitee->notify($notification);
-
-            return;
-        }
-
-        Notification::route('mail', $address)->notify($notification);
     }
 
     /**

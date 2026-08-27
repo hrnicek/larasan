@@ -157,7 +157,7 @@ it('guards every workspace route with auth and verified', function (): void {
 
     // The count is deliberate: adding a workspace route should make someone confirm it
     // is guarded, rather than inherit the assertion silently.
-    expect($routes)->toHaveCount(13);
+    expect($routes)->toHaveCount(14);
 
     /*
      * One route is outside the gate on purpose. Following the link in an invitation mail is

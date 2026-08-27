@@ -10,6 +10,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
 use App\Domain\Workspace\Actions\InviteWorkspaceMember;
 use App\Domain\Workspace\Actions\RemoveWorkspaceMember;
+use App\Domain\Workspace\Actions\ResendWorkspaceInvitation;
 use App\Domain\Workspace\Data\InviteWorkspaceMemberData;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
 use App\Domain\Workspace\Models\Workspace;
@@ -48,16 +49,14 @@ class WorkspaceMemberController extends Controller
         return Inertia::render('settings/Members', [
             'members' => $workspace->memberships()
                 ->with('user')
-                ->orderBy('status')
+                ->where('status', WorkspaceMembershipStatus::Active->value)
                 ->orderBy('created_at')
                 ->get()
                 ->map(fn (WorkspaceMembership $membership): array => [
                     'id' => $membership->id,
-                    /*
-                     * An invitation to an address nobody has registered under has no name
-                     * to show, and the address is the only thing it is.
-                     */
-                    'name' => $membership->user->name ?? $membership->email ?? '',
+                    // An active row always names an account — an unclaimed one can only be an
+                    // invitation — and the address is what is left if that ever stops being true.
+                    'name' => $membership->user->name ?? $membership->address(),
                     /*
                      * A guest is an outside collaborator (ADR-0006); handing them every
                      * colleague's address is not part of commenting on a task. Managers
@@ -67,14 +66,41 @@ class WorkspaceMemberController extends Controller
                         ? $membership->address()
                         : null,
                     'role' => $membership->role->value,
-                    'status' => $membership->status->value,
                     'joinedAt' => $membership->joined_at?->toIso8601String(),
                     'isYou' => $membership->user_id === $request->user()?->id,
-                    'isLastOwner' => $membership->role->isOwner()
-                        && $membership->status->grantsAccess()
-                        && $activeOwners === 1,
+                    'isLastOwner' => $membership->role->isOwner() && $activeOwners === 1,
                 ])
                 ->all(),
+            /*
+             * Only for somebody who can act on them. An invitation is a management matter, and
+             * it is mostly an address — which this screen deliberately withholds from everybody
+             * else. Declined and revoked rows are absent from both lists: they are history, and
+             * bringing somebody back is the invite form's job rather than a button on a row.
+             */
+            'invitations' => $canManage
+                ? $workspace->memberships()
+                    ->with('user', 'invitedBy')
+                    ->whereIn('status', [
+                        WorkspaceMembershipStatus::Invited->value,
+                        WorkspaceMembershipStatus::Expired->value,
+                    ])
+                    ->orderBy('created_at')
+                    ->get()
+                    ->map(fn (WorkspaceMembership $invitation): array => [
+                        'id' => $invitation->id,
+                        'email' => $invitation->address(),
+                        'name' => $invitation->user->name ?? null,
+                        'role' => $invitation->role->value,
+                        'invitedBy' => $invitation->invitedBy->name ?? null,
+                        'expiresAt' => $invitation->expires_at?->toIso8601String(),
+                        // The sweep runs on a schedule, so a row can be past its deadline and
+                        // still say `invited`. The screen answers for the deadline, not the column.
+                        'hasExpired' => $invitation->hasExpired()
+                            || $invitation->status === WorkspaceMembershipStatus::Expired,
+                        'hasAccount' => $invitation->isClaimed(),
+                    ])
+                    ->all()
+                : [],
             /*
              * Member first, because it is the answer most invitations want and the form
              * offers the first option by default. Owner is absent: it is transferred, not
@@ -125,19 +151,41 @@ class WorkspaceMemberController extends Controller
         return to_route('workspaces.members');
     }
 
+    public function resend(Request $request, string $membership, ResendWorkspaceInvitation $resend): RedirectResponse
+    {
+        $workspace = $this->current($request);
+
+        Gate::authorize(Capability::WorkspaceMembersManage->value, $workspace);
+
+        $this->translating(fn () => $resend->handle(
+            $workspace,
+            $this->actor($request),
+            $this->membership($workspace, $membership),
+        ), 'membership');
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Invitation sent again.')]);
+
+        return to_route('workspaces.members');
+    }
+
     public function destroy(Request $request, string $membership, RemoveWorkspaceMember $remove): RedirectResponse
     {
         $workspace = $this->current($request);
 
         Gate::authorize(Capability::WorkspaceMembersManage->value, $workspace);
 
-        $this->translating(fn () => $remove->handle(
-            $workspace,
-            $this->actor($request),
-            $this->membership($workspace, $membership),
-        ), 'membership');
+        $row = $this->membership($workspace, $membership);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Member removed.')]);
+        // Read before the row is acted on: taking back an invitation and removing somebody who
+        // is here are the same endpoint and not the same sentence.
+        $wasInvitation = ! $row->status->grantsAccess();
+
+        $this->translating(fn () => $remove->handle($workspace, $this->actor($request), $row), 'membership');
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $wasInvitation ? __('Invitation cancelled.') : __('Member removed.'),
+        ]);
 
         return to_route('workspaces.members');
     }

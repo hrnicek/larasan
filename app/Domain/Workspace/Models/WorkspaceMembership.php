@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Notifications\AnonymousNotifiable;
+use Illuminate\Support\Facades\Notification;
+use LogicException;
 
 /**
  * @property string $id
@@ -78,10 +81,26 @@ class WorkspaceMembership extends Model
         return $this->user_id !== null;
     }
 
-    /** The address this row answers to: the one invited, or the account's own. */
-    public function address(): ?string
+    /**
+     * Who an invitation on this row reaches: the account when there is one, and the bare
+     * address when nobody has registered under it yet.
+     */
+    public function invitee(): User|AnonymousNotifiable
     {
-        return $this->email ?? $this->user?->email;
+        $user = $this->user;
+
+        return $user instanceof User ? $user : Notification::route('mail', $this->address());
+    }
+
+    /**
+     * The address this row answers to: the one invited, or the account's own. There is always
+     * one — `workspace_memberships_subject_check` refuses a row that names neither — so
+     * reaching the refusal below means the schema changed without this method.
+     */
+    public function address(): string
+    {
+        return $this->email ?? $this->user->email
+            ?? throw new LogicException('A membership belongs to an account or to an address.');
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia;
@@ -19,6 +20,7 @@ it('lists the workspace members with what the actor may do', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('settings/Members')
             ->has('members', 2)
+            ->has('invitations', 0)
             ->where('can.manageMembers', true)
             ->where('roles', ['member', 'admin', 'guest']));
 });
@@ -236,3 +238,40 @@ it('refuses an admin acting on an owner through the endpoints', function (string
     expect($membership->fresh()?->role)->toBe(WorkspaceRole::Owner)
         ->and($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active);
 })->with(['delete', 'put']);
+
+it('lists the invitations separately from the people', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    WorkspaceMembership::factory()
+        ->invited($admin)
+        ->unclaimed('nobody@example.com')
+        ->create(['workspace_id' => $workspace->id]);
+    memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Declined);
+
+    $this->actingAs($admin)
+        ->get(route('workspaces.members'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            // The declined row is in neither list: it is history, and inviting them again is
+            // the form's job rather than a button on a row.
+            ->has('members', 1)
+            ->has('invitations', 1)
+            ->where('invitations.0.email', 'nobody@example.com')
+            ->where('invitations.0.hasAccount', false)
+            ->where('invitations.0.invitedBy', $admin->name));
+});
+
+it('keeps the invitations from somebody who cannot act on them', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    WorkspaceMembership::factory()
+        ->invited($admin)
+        ->unclaimed('nobody@example.com')
+        ->create(['workspace_id' => $workspace->id]);
+    $member = memberOf($workspace, WorkspaceRole::Member);
+
+    $this->actingAs($member)
+        ->get(route('workspaces.members'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('invitations', 0)
+            ->where('can.manageMembers', false));
+});

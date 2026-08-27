@@ -31,7 +31,7 @@ class WorkspaceInvitationController extends Controller
             return $this->towardsAnAccount($request, $address);
         }
 
-        if ($address !== null && mb_strtolower($actor->email) === mb_strtolower($address)) {
+        if (mb_strtolower($actor->email) === mb_strtolower($address)) {
             /*
              * The row may still be addressed to nobody: an account invited before it existed
              * is claimed on `Registered`, and one that arrived here some other way — an
@@ -45,7 +45,7 @@ class WorkspaceInvitationController extends Controller
         Inertia::flash('toast', [
             'type' => 'error',
             'message' => __('That invitation was sent to :address, and you are signed in as :actor.', [
-                'address' => $address ?? __('somebody else'),
+                'address' => $address,
                 'actor' => $actor->email,
             ]),
         ]);
@@ -104,12 +104,8 @@ class WorkspaceInvitationController extends Controller
      * the two screens depends on whether the address already has one — and `guest()` records
      * the invitation as the intended destination, so both Fortify responses come back here.
      */
-    private function towardsAnAccount(Request $request, ?string $address): RedirectResponse
+    private function towardsAnAccount(Request $request, string $address): RedirectResponse
     {
-        if ($address === null) {
-            return redirect()->guest(route('login'));
-        }
-
         if (User::query()->where('email', $address)->exists()) {
             $request->session()->flash('status', __('Sign in as :address to answer your invitation.', ['address' => $address]));
 
