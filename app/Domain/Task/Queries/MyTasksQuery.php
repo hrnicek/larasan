@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Task\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Queries\ChangeableProjectsForUser;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\MyTasksTab;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
@@ -39,6 +41,7 @@ final readonly class MyTasksQuery
     public function __construct(
         private VisibleProjectsForUser $visibleProjects,
         private ReachableTasks $reachableTasks,
+        private ChangeableProjectsForUser $changeableProjects,
     ) {}
 
     /**
@@ -56,9 +59,12 @@ final readonly class MyTasksQuery
     ): array {
         $tasks = $this->paginate($workspace, $actor, $tab, $page, $perPage);
 
+        // Asked once for the page: the capability is the actor's, not the row's.
+        $workspaceMayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
+
         return [
             'tasks' => array_values($tasks->getCollection()
-                ->map(fn (Task $task): array => $this->row($task))
+                ->map(fn (Task $task): array => $this->row($task, $workspaceMayUpdate))
                 ->all()),
             'meta' => [
                 'tab' => $tab->value,
@@ -84,11 +90,24 @@ final readonly class MyTasksQuery
             ->query($workspace, $actor, includeArchived: true)
             ->select('projects.id');
 
+        $changeable = $this->changeableProjects
+            ->query($workspace, $actor, Capability::TaskUpdate)
+            ->select('projects.id');
+
         $query = Task::query()
             ->where('workspace_id', $workspace->id)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             // The count the row draws, as a subquery rather than a read per row (TASK-110-015).
             ->withCount('comments')
+            /*
+             * Whether this row may be edited, decided per row rather than per screen. My Tasks
+             * draws work from every board at once, and one boolean for the whole list was the
+             * screen promising an edit that the board behind a given row would refuse — two of
+             * them are subqueries here rather than a policy call per line (ADR-0005).
+             */
+            ->withCount('placements')
+            ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
+                ->whereIn('project_id', $changeable)])
             ->with([
                 'assignee:id,name,email',
                 'tags:id,name,color',
@@ -164,14 +183,29 @@ final readonly class MyTasksQuery
     }
 
     /**
+     * Whether this row's task may be changed: the workspace capability, and then a board that
+     * allows it — or no board at all, which is workspace work (TASK-260-001).
+     */
+    private function canUpdate(Task $task, bool $workspaceMayUpdate): bool
+    {
+        if (! $workspaceMayUpdate) {
+            return false;
+        }
+
+        return (int) ($task->placements_count ?? 0) === 0
+            || (bool) ($task->on_a_changeable_board ?? false);
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function row(Task $task): array
+    private function row(Task $task, bool $workspaceMayUpdate): array
     {
         $assignee = $task->assignee;
 
         return [
             'id' => $task->id,
+            'canUpdate' => $this->canUpdate($task, $workspaceMayUpdate),
             'title' => $task->title,
             'dueAt' => $task->due_at?->toIso8601String(),
             'completedAt' => $task->completed_at?->toIso8601String(),

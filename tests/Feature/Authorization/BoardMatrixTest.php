@@ -76,19 +76,24 @@ it('answers each role and access level the same way at the board', function (
     'owner as editor' => [WorkspaceRole::Owner, ProjectAccessLevel::Editor, 'visible', true],
     'owner as commenter' => [WorkspaceRole::Owner, ProjectAccessLevel::Commenter, 'visible', false],
     'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'visible', false],
-    'owner with no project membership' => [WorkspaceRole::Owner, null, 'visible', false],
+    /*
+     * No membership row, on a board the whole workspace can open: the project's
+     * `default_access_level` answers, and it is `editor` (TASK-260-001). A guest is still
+     * refused — they hold projects, never a default.
+     */
+    'owner with no project membership' => [WorkspaceRole::Owner, null, 'visible', true],
 
     'admin as project owner' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'visible', true],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'visible', true],
     'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'visible', false],
     'admin as viewer' => [WorkspaceRole::Admin, ProjectAccessLevel::Viewer, 'visible', false],
-    'admin with no project membership' => [WorkspaceRole::Admin, null, 'visible', false],
+    'admin with no project membership' => [WorkspaceRole::Admin, null, 'visible', true],
 
     'member as project owner' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'visible', true],
     'member as editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, 'visible', true],
     'member as commenter' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, 'visible', false],
     'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'visible', false],
-    'member with no project membership' => [WorkspaceRole::Member, null, 'visible', false],
+    'member with no project membership' => [WorkspaceRole::Member, null, 'visible', true],
 
     // A guest reaches what they were given: given the project they may read the board, and
     // they still cannot move a card, because `task.update` is not theirs (ADR-0006, ADR-0010).

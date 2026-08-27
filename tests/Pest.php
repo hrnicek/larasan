@@ -108,6 +108,22 @@ function projectFor(
 }
 
 /**
+ * A workspace member who was explicitly restricted on this project.
+ *
+ * Wanted wherever a test needs somebody who can see a project and change nothing in it. Since
+ * TASK-260-001 a member with no row of their own inherits the project's `default_access_level`,
+ * so "not allowed here" has to be said with a row rather than by leaving one out.
+ */
+function viewerOf(Project $project, ProjectAccessLevel $access = ProjectAccessLevel::Viewer): User
+{
+    $user = memberOf($project->workspace, WorkspaceRole::Member);
+
+    ProjectMembership::factory()->in($project)->forUser($user)->withAccess($access)->create();
+
+    return $user;
+}
+
+/**
  * Point the application at the broadcast connection production uses and register the
  * channel callbacks on it.
  *

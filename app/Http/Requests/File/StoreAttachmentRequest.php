@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Requests\File;
 
 use App\Domain\File\Models\Attachable;
-use App\Domain\Shared\Enums\Capability;
-use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreAttachmentRequest extends FormRequest
 {
     /**
-     * The same two questions the Action asks, so the answer arrives as a 403 rather than as a
-     * refusal rendered from a thrown exception: `file.upload` in the **subject's** workspace,
-     * and the subject's own policy saying the actor can reach it.
+     * Handed to the subject's own policy, so the answer arrives as a 403 rather than as a
+     * refusal rendered from a thrown exception. `file.upload` is only the workspace half of
+     * it: a project the actor may read but not change is not one they may attach to
+     * (TASK-260-001).
      */
     public function authorize(): bool
     {
@@ -26,10 +25,7 @@ class StoreAttachmentRequest extends FormRequest
             return false;
         }
 
-        $workspace = Workspace::query()->find($subject->workspaceId());
-
-        return $workspace?->membershipFor($user)?->allows(Capability::FileUpload) === true
-            && $user->can('view', $subject);
+        return $user->can('attach', $subject);
     }
 
     /**

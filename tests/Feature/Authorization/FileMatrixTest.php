@@ -88,18 +88,19 @@ it('answers uploading the same way for each role and access level', function (
     expect($task->attachments()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
     /*
-     * `file.upload` is every full member's and no guest's (ADR-0010). Within that, what decides
-     * the answer is reach rather than the project access level: a workspace-visible project is
-     * reachable by any member whatever their access to it.
+     * `file.upload` is every full member's and no guest's (ADR-0010). Within that, the board
+     * still answers: hanging a document on a card is changing the card, so a Viewer and a
+     * Commenter are refused here and can still open what is already attached — which is the
+     * dataset further down, and the difference between reading and writing.
      */
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
-    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'allowed'],
+    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'forbidden'],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'allowed'],
-    'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'allowed'],
+    'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'forbidden'],
     'member as owner' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'allowed'],
     'member as editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, 'allowed'],
-    'member as commenter' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, 'allowed'],
-    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'allowed'],
+    'member as commenter' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, 'forbidden'],
+    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'forbidden'],
     'member with no project membership' => [WorkspaceRole::Member, null, 'allowed'],
 
     // A guest may say things about what they were given; adding documents to it is not theirs.

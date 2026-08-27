@@ -85,17 +85,6 @@ class ProjectPolicy
 
     public function comment(User $user, Project $project): bool
     {
-        return $this->capableAndAllowed($user, $project, Capability::CommentCreate)
-            && $project->memberFor($user)?->access_level->canComment() === true;
-    }
-
-    /**
-     * The workspace half, plus the read check — an actor who cannot see the project cannot
-     * act in it, whatever their access level row says.
-     */
-    private function capableAndAllowed(User $user, Project $project, Capability $capability): bool
-    {
-        return $project->isVisibleTo($user)
-            && $project->workspace->membershipFor($user)?->allows($capability) === true;
+        return $project->allowsCommentsBy($user);
     }
 }

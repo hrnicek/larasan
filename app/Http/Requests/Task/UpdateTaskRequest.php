@@ -6,7 +6,11 @@ namespace App\Http\Requests\Task;
 
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\ReachableTasks;
+use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -44,12 +48,18 @@ class UpdateTaskRequest extends FormRequest
             'due_at' => ['nullable', 'date'],
             'parent_id' => [
                 'nullable', 'uuid',
-                // Scoped to the task's own workspace, and never the task itself. A longer
-                // loop is the Action's to refuse: it needs the chain, not one comparison.
+                /*
+                 * Scoped to the tasks this actor can actually reach, and never the task
+                 * itself. The workspace alone was not enough: a task inside a private project
+                 * is in the same workspace, and naming one as a parent read its title back
+                 * through the panel's breadcrumb. A longer loop is still the Action's to
+                 * refuse — it needs the chain, not one comparison.
+                 */
                 Rule::exists('tasks', 'id')->where(
                     fn (Builder $query): Builder => $query
                         ->where('workspace_id', $task?->workspace_id)
-                        ->whereNull('deleted_at'),
+                        ->whereNull('deleted_at')
+                        ->whereIn('id', $this->reachableTaskIds($task?->workspace)),
                 ),
                 Rule::notIn([$task?->id]),
             ],
@@ -65,6 +75,24 @@ class UpdateTaskRequest extends FormRequest
             'parent_id.exists' => __('That task is not in this workspace.'),
             'parent_id.not_in' => __('A task cannot be a subtask of itself.'),
         ];
+    }
+
+    /**
+     * The ids of the tasks this actor may reach, for a rule that has to check a reference.
+     *
+     * @return EloquentBuilder<Task>
+     */
+    private function reachableTaskIds(?Workspace $workspace): EloquentBuilder
+    {
+        $user = $this->user();
+
+        if (! $workspace instanceof Workspace || ! $user instanceof User) {
+            // Nothing is reachable when there is nobody to reach it, and `authorize()` has
+            // already refused by the time this could matter.
+            return Task::query()->whereRaw('1 = 0')->select('tasks.id');
+        }
+
+        return app(ReachableTasks::class)->idsFor($workspace, $user);
     }
 
     private function task(): ?Task

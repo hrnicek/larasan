@@ -117,11 +117,12 @@ it('answers setting a value by role and project access', function (
 
     expect(TaskCustomFieldValue::query()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
-    // Filling a field in is editing the task, so this is `task.update` and reach — every full
-    // member, whatever their project access, and no guest.
+    // Filling a field in is editing the task, so this is `task.update` — reach, the capability
+    // and the board's own answer. "Whatever their project access" is what it used to be, and it
+    // is what let a Viewer rewrite every answer on a project they were restricted from.
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
-    'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'allowed'],
-    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'allowed'],
+    'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'forbidden'],
+    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'forbidden'],
     'member with no project membership' => [WorkspaceRole::Member, null, 'allowed'],
     'guest given the project' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'forbidden'],
     'guest given nothing' => [WorkspaceRole::Guest, null, 'forbidden'],

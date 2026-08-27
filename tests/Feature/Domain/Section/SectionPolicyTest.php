@@ -53,7 +53,12 @@ it('answers every role and access level the same way the project does', function
     'commenter editing' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, 'update', false],
     'viewer editing' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'update', false],
     'viewer deleting' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'delete', false],
-    'workspace admin with no project access' => [WorkspaceRole::Admin, null, 'update', false],
+    /*
+     * No row of their own, on a workspace-visible project: the project's `default_access_level`
+     * answers, and it is `editor` (TASK-260-001). The private case below is the one where
+     * absence still means nothing.
+     */
+    'workspace admin with no project access' => [WorkspaceRole::Admin, null, 'update', true],
     'guest given the project as an editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'update', false],
     'member reading' => [WorkspaceRole::Member, null, 'view', true],
     'guest reading a workspace-visible project' => [WorkspaceRole::Guest, null, 'view', false],

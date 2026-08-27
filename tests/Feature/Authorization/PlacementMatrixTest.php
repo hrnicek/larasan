@@ -92,9 +92,16 @@ it('answers each role and access level the same way at every placement endpoint'
     'owner as viewer attach' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'attach', 'forbidden'],
     'owner as viewer move' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'move', 'forbidden'],
     'owner as viewer detach' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'detach', 'forbidden'],
-    'owner as no member attach' => [WorkspaceRole::Owner, null, 'attach', 'forbidden'],
-    'owner as no member move' => [WorkspaceRole::Owner, null, 'move', 'forbidden'],
-    'owner as no member detach' => [WorkspaceRole::Owner, null, 'detach', 'forbidden'],
+    /*
+     * No membership row, on a project the whole workspace can open. These were refused until
+     * TASK-260-001: `visibility` had answered only the read half of ADR-0006, so a board
+     * everybody could see was one nobody but its named members could shape — the workspace
+     * owner included. The project's `default_access_level` answers now, and it is `editor`.
+     * A guest is still refused: they hold projects, never a default.
+     */
+    'owner as no member attach' => [WorkspaceRole::Owner, null, 'attach', 'allowed'],
+    'owner as no member move' => [WorkspaceRole::Owner, null, 'move', 'allowed'],
+    'owner as no member detach' => [WorkspaceRole::Owner, null, 'detach', 'allowed'],
     'admin as owner attach' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'attach', 'allowed'],
     'admin as owner move' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'move', 'allowed'],
     'admin as owner detach' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'detach', 'allowed'],
@@ -107,9 +114,9 @@ it('answers each role and access level the same way at every placement endpoint'
     'admin as viewer attach' => [WorkspaceRole::Admin, ProjectAccessLevel::Viewer, 'attach', 'forbidden'],
     'admin as viewer move' => [WorkspaceRole::Admin, ProjectAccessLevel::Viewer, 'move', 'forbidden'],
     'admin as viewer detach' => [WorkspaceRole::Admin, ProjectAccessLevel::Viewer, 'detach', 'forbidden'],
-    'admin as no member attach' => [WorkspaceRole::Admin, null, 'attach', 'forbidden'],
-    'admin as no member move' => [WorkspaceRole::Admin, null, 'move', 'forbidden'],
-    'admin as no member detach' => [WorkspaceRole::Admin, null, 'detach', 'forbidden'],
+    'admin as no member attach' => [WorkspaceRole::Admin, null, 'attach', 'allowed'],
+    'admin as no member move' => [WorkspaceRole::Admin, null, 'move', 'allowed'],
+    'admin as no member detach' => [WorkspaceRole::Admin, null, 'detach', 'allowed'],
     'member as owner attach' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'attach', 'allowed'],
     'member as owner move' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'move', 'allowed'],
     'member as owner detach' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'detach', 'allowed'],
@@ -122,9 +129,9 @@ it('answers each role and access level the same way at every placement endpoint'
     'member as viewer attach' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'attach', 'forbidden'],
     'member as viewer move' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'move', 'forbidden'],
     'member as viewer detach' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'detach', 'forbidden'],
-    'member as no member attach' => [WorkspaceRole::Member, null, 'attach', 'forbidden'],
-    'member as no member move' => [WorkspaceRole::Member, null, 'move', 'forbidden'],
-    'member as no member detach' => [WorkspaceRole::Member, null, 'detach', 'forbidden'],
+    'member as no member attach' => [WorkspaceRole::Member, null, 'attach', 'allowed'],
+    'member as no member move' => [WorkspaceRole::Member, null, 'move', 'allowed'],
+    'member as no member detach' => [WorkspaceRole::Member, null, 'detach', 'allowed'],
     'guest as owner attach' => [WorkspaceRole::Guest, ProjectAccessLevel::Owner, 'attach', 'forbidden'],
     'guest as owner move' => [WorkspaceRole::Guest, ProjectAccessLevel::Owner, 'move', 'forbidden'],
     'guest as owner detach' => [WorkspaceRole::Guest, ProjectAccessLevel::Owner, 'detach', 'forbidden'],

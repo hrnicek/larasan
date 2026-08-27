@@ -171,7 +171,15 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
     'my tasks' => ['my-tasks', 8],
     'the inbox' => ['inbox', 12],
     'search' => ['search', 14],
-    // The most expensive screen in the application, and the one to watch: it renders placements,
-    // followers, subtasks, custom fields, tags and attachments, each a read of its own.
-    'a task detail page' => ['task', 30],
+    /*
+     * The most expensive screen in the application, and the one to watch: it renders placements,
+     * followers, subtasks, custom fields, tags and attachments, each a read of its own.
+     *
+     * 30 → 31 with TASK-260-001. Editing a task now asks the boards it sits on and not only the
+     * workspace, and the panel asks four such permissions; `TaskPolicy` memoises them within the
+     * request, so the four cost one read each for the distinct questions and the page pays one
+     * more than it did. It is a fixed cost — which is what this test asserts, by running the
+     * same screen against twice the data.
+     */
+    'a task detail page' => ['task', 31],
 ]);

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Task;
 
 use App\Concerns\OpensTaskPanel;
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\MyTasksTab;
 use App\Domain\Task\Queries\MyTasksQuery;
 use App\Domain\Task\Queries\TaskDetailQuery;
@@ -41,11 +40,6 @@ class MyTasksController extends Controller
         return Inertia::render('my-tasks/Index', [
             ...$myTasks($workspace, $actor, $tab, $page),
             'tabs' => array_column(MyTasksTab::cases(), 'value'),
-            'can' => [
-                // One answer for the screen: reach is not in question here, since every task on
-                // it is one this person was given.
-                'updateTask' => $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true,
-            ],
             /*
              * A row here opens the same panel the project screen opens, at this screen's own
              * address. Reach is still asked for: being assigned a task is not the same as being

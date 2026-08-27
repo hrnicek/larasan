@@ -7,9 +7,13 @@ namespace App\Http\Requests\Task;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\ResolveCurrentWorkspace;
+use App\Models\User;
 use Illuminate\Contracts\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -49,10 +53,14 @@ class StoreTaskRequest extends FormRequest
              */
             'parent_id' => [
                 'nullable', 'uuid',
+                // Reach, not merely the workspace: a task inside a private project is in the
+                // same workspace, and naming one as a parent read its title back through the
+                // panel's breadcrumb (TASK-260-002).
                 Rule::exists('tasks', 'id')->where(
                     fn (Builder $query): Builder => $query
                         ->where('workspace_id', $workspace?->id)
-                        ->whereNull('deleted_at'),
+                        ->whereNull('deleted_at')
+                        ->whereIn('id', $this->reachableTaskIds($workspace)),
                 ),
             ],
             'assignee_id' => [
@@ -64,6 +72,22 @@ class StoreTaskRequest extends FormRequest
                 ),
             ],
         ];
+    }
+
+    /**
+     * The ids of the tasks this actor may reach, for a rule that has to check a reference.
+     *
+     * @return EloquentBuilder<Task>
+     */
+    private function reachableTaskIds(?Workspace $workspace): EloquentBuilder
+    {
+        $user = $this->user();
+
+        if (! $workspace instanceof Workspace || ! $user instanceof User) {
+            return Task::query()->whereRaw('1 = 0')->select('tasks.id');
+        }
+
+        return app(ReachableTasks::class)->idsFor($workspace, $user);
     }
 
     /**

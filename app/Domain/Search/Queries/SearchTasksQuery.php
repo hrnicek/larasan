@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Queries\ChangeableProjectsForUser;
+use App\Domain\Shared\Enums\Capability;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
@@ -41,7 +43,10 @@ final readonly class SearchTasksQuery
      */
     public const CANDIDATES = 500;
 
-    public function __construct(private ReachableTasks $reachable) {}
+    public function __construct(
+        private ReachableTasks $reachable,
+        private ChangeableProjectsForUser $changeableProjects,
+    ) {}
 
     /**
      * @param  array{project?: string, assignee?: int, completed?: bool}  $filters
@@ -73,9 +78,13 @@ final readonly class SearchTasksQuery
 
         $results = $this->paginate($workspace, $actor, $query, $matches, $filters, $page, $perPage);
 
+        // Asked once for the page rather than per row: the capability is the actor's, and the
+        // boards are a subquery the rows were already counted against.
+        $mayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
+
         return [
             'tasks' => array_values($results->getCollection()
-                ->map(fn (Task $task): array => $this->row($task))
+                ->map(fn (Task $task): array => $this->row($task, $mayUpdate && $this->onAChangeableBoard($task)))
                 ->all()),
             'meta' => [
                 'term' => $term,
@@ -187,6 +196,12 @@ final readonly class SearchTasksQuery
             ->constrain(Task::query(), $workspace, $actor)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             ->withCount('comments')
+            // The two the row's `canUpdate` is decided from, as subqueries (TASK-260-001).
+            ->withCount('placements')
+            ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
+                ->whereIn('project_id', $this->changeableProjects
+                    ->query($workspace, $actor, Capability::TaskUpdate)
+                    ->select('projects.id'))])
             ->with([
                 'assignee:id,name,email',
                 'tags:id,name,color',
@@ -270,16 +285,32 @@ final readonly class SearchTasksQuery
     }
 
     /**
+     * Whether one of this task's boards is open to the actor — or it has none at all, which is
+     * workspace work.
+     */
+    private function onAChangeableBoard(Task $task): bool
+    {
+        return (int) ($task->placements_count ?? 0) === 0
+            || (bool) ($task->on_a_changeable_board ?? false);
+    }
+
+    /**
      * The row the other lists draw, so a result is the same thing here as anywhere else.
      *
      * @return array<string, mixed>
      */
-    private function row(Task $task): array
+    private function row(Task $task, bool $canUpdate): array
     {
         $assignee = $task->assignee;
 
         return [
             'id' => $task->id,
+            /*
+             * The same key My Tasks sends, because both screens draw the same row component and
+             * a shape that differs by screen is the shape one of the two gets wrong. Results are
+             * read here today; the flag is the truth about the row either way.
+             */
+            'canUpdate' => $canUpdate,
             'title' => $task->title,
             'dueAt' => $task->due_at?->toIso8601String(),
             'completedAt' => $task->completed_at?->toIso8601String(),

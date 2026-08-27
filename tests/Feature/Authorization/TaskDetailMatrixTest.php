@@ -96,7 +96,9 @@ it('answers each role and access level the same way at the detail', function (
     'admin deletes' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'delete', 'allowed'],
 
     'member renames' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, 'rename', 'allowed'],
-    'member completes' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'complete', 'allowed'],
+    // A Viewer reads the panel and finishes nothing in it (ADR-0006). Following is still
+    // theirs: it is a subscription to what they may already read.
+    'member completes' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'complete', 'forbidden'],
     'member follows' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'follow', 'allowed'],
     'member with no project membership reads' => [WorkspaceRole::Member, null, 'read', 'allowed'],
 
@@ -169,6 +171,9 @@ it('sends the flags the detail renders from, and they match what the actions ans
 })->with([
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, true, true, true],
     'member as editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, true, true, true],
-    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, true, true, true],
+    // The panel drew every control for a Viewer and the endpoints behind them accepted the
+    // request, which is what TASK-260-001 was about. Commenting goes with them: a Viewer is
+    // the level below Commenter.
+    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, false, false, false],
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, false, false, true],
 ]);

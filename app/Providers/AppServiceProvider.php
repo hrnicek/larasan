@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Notification\Channels\WorkspaceDatabaseChannel;
+use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Policies\TaskPolicy;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Domain\Workspace\Queries\CurrentWorkspace;
@@ -43,6 +45,12 @@ class AppServiceProvider extends ServiceProvider
         // Scoped, not singleton: the memo must not survive the request that filled it.
         $this->app->scoped(MembershipRegistry::class);
         $this->app->scoped(CurrentWorkspace::class);
+        /*
+         * The Gate resolves a policy through the container on every ask, so a policy that
+         * memoises anything has to be scoped or it memoises nothing. `TaskPolicy` is asked four
+         * times about one task by the detail panel alone (TASK-260-001).
+         */
+        $this->app->scoped(TaskPolicy::class);
     }
 
     /**
@@ -139,19 +147,35 @@ class AppServiceProvider extends ServiceProvider
     /**
      * An authorization answer must never outlive the row it came from.
      * `MembershipRegistry` memoises the two membership lookups for the length of one
-     * request; these events are what stop it from answering with a role that has since
-     * changed — including inside an Action that reads a membership again after writing it.
+     * request, and `TaskPolicy` memoises the boards a task sits on; these events are what stop
+     * either from answering with a row that has since changed — including inside an Action that
+     * reads it again after writing it.
      */
     protected function forgetMembershipsWhenTheyChange(): void
     {
-        $flush = function (): void {
+        $flushMemberships = function (): void {
             $this->app->make(MembershipRegistry::class)->flush();
             $this->app->make(CurrentWorkspace::class)->flush();
         };
 
         foreach ([WorkspaceMembership::class, ProjectMembership::class] as $model) {
-            $model::saved($flush);
-            $model::deleted($flush);
+            $model::saved($flushMemberships);
+            $model::deleted($flushMemberships);
+        }
+
+        /*
+         * `TaskPolicy` memoises more than a membership, so it is emptied by more than one.
+         * A placement decides which boards answer for a task; and a project's own row carries
+         * its visibility, its default access level and whether it is archived — all three of
+         * which change who may do what, without a membership anywhere being touched.
+         */
+        $flushTaskAccess = function (): void {
+            $this->app->make(TaskPolicy::class)->flush();
+        };
+
+        foreach ([WorkspaceMembership::class, ProjectMembership::class, TaskProjectMembership::class, Project::class] as $model) {
+            $model::saved($flushTaskAccess);
+            $model::deleted($flushTaskAccess);
         }
     }
 

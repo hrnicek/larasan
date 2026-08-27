@@ -89,12 +89,12 @@ it('answers applying a tag by role and project access', function (
 
     expect($task->tags()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
-    // Putting a word on a piece of work is editing that work, so this is `task.update` and reach
-    // — the same answer every other edit gives.
+    // Putting a word on a piece of work is editing that work, so this is `task.update` — and it
+    // gives the same answer every other edit gives, the board's access level included.
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
-    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'allowed'],
+    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'forbidden'],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'allowed'],
-    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'allowed'],
+    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'forbidden'],
     'member with no project membership' => [WorkspaceRole::Member, null, 'allowed'],
     'guest given the project' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'forbidden'],
     'guest given nothing' => [WorkspaceRole::Guest, null, 'forbidden'],

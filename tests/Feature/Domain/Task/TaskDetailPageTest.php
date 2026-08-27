@@ -87,7 +87,9 @@ it('lets a guest read a task in a project they were given', function (): void {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('can.update', false)
-            ->where('can.comment', true));
+            // Viewer is the level below Commenter: they were given the project to read
+            // (ADR-0006), and the panel offers them neither control.
+            ->where('can.comment', false));
 });
 
 it('sends the lists the detail s own controls need', function (): void {
@@ -302,22 +304,33 @@ it('sends each thread line with the permissions its controls render from', funct
         ->assertJsonPath('props.activity.entries.1.canDelete', true);
 });
 
-it('tells the panel whether a comment form belongs on the screen', function (): void {
+it('tells the panel whether a comment form belongs on the screen', function (
+    ProjectAccessLevel $access,
+    bool $mayComment,
+): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
-    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess($access)->create();
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // A guest may comment on what they were given (ADR-0010), so the form belongs there — the
-    // flag is what the component hides it by, and hiding is right where disabling would be an
-    // affordance that leads nowhere.
+    /*
+     * A guest holds `comment.create` and nothing else (ADR-0010), and the level they were given
+     * decides whether that reaches this project: Commenter is the level that exists for exactly
+     * this — somebody outside the team taking part in one piece of work — and Viewer is the one
+     * below it. The flag is what the component hides the form by, and hiding is right where
+     * disabling would be an affordance leading nowhere.
+     */
     $this->actingAs($guest)
         ->get(route('tasks.show', $task))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.comment', true));
-});
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.comment', $mayComment));
+})->with([
+    'commenter' => [ProjectAccessLevel::Commenter, true],
+    'editor' => [ProjectAccessLevel::Editor, true],
+    'viewer' => [ProjectAccessLevel::Viewer, false],
+]);
 
 it('sends a task s tags and the workspace vocabulary to pick from', function (): void {
     [$workspace, , $actor] = placeableProject();

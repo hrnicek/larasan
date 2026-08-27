@@ -69,24 +69,28 @@ it('answers writing a comment the same way for each role and access level', func
 })->with([
     /*
      * `comment.create` is held by every role, including a guest — it is the *one* capability a
-     * guest's role holds (ADR-0010). What decides the answer here is reach, not the project
-     * access level: a workspace-visible project is reachable by any member whatever their
-     * access to it, and a guest reaches only what they were given.
+     * guest's role holds (ADR-0010). Reach settles who may be here at all, and then the project
+     * access level settles what they may do: a Viewer reads and says nothing, which is the
+     * whole difference between that level and Commenter (ADR-0006).
+     *
+     * Until TASK-260-001 this path asked reach and stopped, so a Viewer could comment on every
+     * task in a project they were explicitly restricted from — while `ProjectPolicy::comment()`
+     * had been refusing the same person on the project itself all along.
      */
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
-    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'allowed'],
+    'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'forbidden'],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'allowed'],
     'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'allowed'],
     'member as owner' => [WorkspaceRole::Member, ProjectAccessLevel::Owner, 'allowed'],
     'member as editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, 'allowed'],
     'member as commenter' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, 'allowed'],
-    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'allowed'],
+    'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'forbidden'],
     'member with no project membership' => [WorkspaceRole::Member, null, 'allowed'],
 
     'guest as owner' => [WorkspaceRole::Guest, ProjectAccessLevel::Owner, 'allowed'],
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'allowed'],
     'guest as commenter' => [WorkspaceRole::Guest, ProjectAccessLevel::Commenter, 'allowed'],
-    'guest as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'allowed'],
+    'guest as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'forbidden'],
     // Nobody gave them the project, so there is nothing here they can reach.
     'guest with no project membership' => [WorkspaceRole::Guest, null, 'forbidden'],
 ]);

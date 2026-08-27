@@ -52,6 +52,21 @@ final readonly class ReachableTasks
     }
 
     /**
+     * The keys of the tasks this actor may reach, as a subquery.
+     *
+     * Wanted where a *referenced* task has to be checked rather than a listed one: naming a
+     * parent is naming a task, and `parent_id` was scoped to the workspace and nothing more —
+     * so a task inside a private project could be made somebody's parent, and its title read
+     * back off the panel that draws the breadcrumb (TASK-260-002).
+     *
+     * @return Builder<Task>
+     */
+    public function idsFor(Workspace $workspace, User $actor): Builder
+    {
+        return $this->constrain(Task::query(), $workspace, $actor)->select('tasks.id');
+    }
+
+    /**
      * The keys of the projects this actor may open, as a subquery.
      *
      * Callers need it a second time to constrain what they *show*: a task's project chips are

@@ -34,6 +34,8 @@ use Illuminate\Database\Eloquent\Relations\Relation;
  */
 final readonly class TaskDetailQuery
 {
+    public function __construct(private ReachableTasks $reachable) {}
+
     /**
      * @return array{
      *     task: array<string, mixed>,
@@ -55,8 +57,24 @@ final readonly class TaskDetailQuery
         $task->loadMissing([
             'assignee:id,name,email',
             'creator:id,name,email',
-            'parent:id,title',
-            'children' => fn (Relation $subtasks) => $subtasks->select(['id', 'parent_id', 'title', 'completed_at']),
+            /*
+             * Constrained rather than checked afterwards, the same way the subtasks below are:
+             * a parent inside a project the reader was never given is a title they were never
+             * given either, and asking the gate about it after loading it is two more queries
+             * for an answer the eager load can carry (TASK-260-002).
+             */
+            'parent' => fn (Relation $parent) => $parent
+                ->whereIn('tasks.id', $this->reachable->idsFor($task->workspace, $actor))
+                ->select(['tasks.id', 'tasks.title']),
+            /*
+             * Constrained the way the placements below are, and for the same reason. A subtask
+             * is a task: one filed in a project the reader was never given is work they may
+             * not see, and naming it under a task they *may* see is the leak the placement
+             * list was already written to avoid (TASK-260-002).
+             */
+            'children' => fn (Relation $subtasks) => $subtasks
+                ->whereIn('tasks.id', $this->reachable->idsFor($task->workspace, $actor))
+                ->select(['tasks.id', 'tasks.parent_id', 'tasks.title', 'tasks.completed_at']),
             'followers:id,name,email',
             // The file behind each attachment and the person who uploaded it: a list of
             // documents is one query, not one per row.
@@ -75,7 +93,10 @@ final readonly class TaskDetailQuery
                 // `workspace` because visibility is answered by the project against the
                 // workspace membership, and `workspace_id` because a select that omits a
                 // relation's key breaks the relation rather than the query.
-                'project:id,workspace_id,name,color,visibility,archived_at',
+                // `visibility`, `default_access_level` and `archived_at` are not drawn — they
+                // are what `Project::allowsChangesBy()` reads for the per-placement `canChange`
+                // below, and strict Eloquent throws on an attribute a select left out.
+                'project:id,workspace_id,name,color,visibility,default_access_level,archived_at',
                 'project.workspace',
                 // The columns each project offers, so the panel can move the task between them
                 // without a second request per project.
@@ -92,6 +113,8 @@ final readonly class TaskDetailQuery
                 'priority' => $task->priority->value,
                 'dueAt' => $task->due_at?->toIso8601String(),
                 'completedAt' => $task->completed_at?->toIso8601String(),
+                // Null where the eager load above left it out, which is where the reader may
+                // not open it.
                 'parent' => $task->parent === null ? null : [
                     'id' => $task->parent->id,
                     'title' => $task->parent->title,
@@ -145,11 +168,14 @@ final readonly class TaskDetailQuery
             'can' => [
                 'update' => $actor->can('update', $task),
                 'delete' => $actor->can('delete', $task),
-                // Commenting is Phase 110's operation; the flag is here because the screen
-                // that hides the form is built now, and a flag added later is a form somebody
-                // forgets to hide.
-                'comment' => $task->workspace->membershipFor($actor)?->allows(Capability::CommentCreate) === true,
-                'attach' => $task->workspace->membershipFor($actor)?->allows(Capability::FileUpload) === true,
+                /*
+                 * Asked of the policy, not of the capability. The capability is one third of
+                 * the answer — reach and the board's own access level are the rest — and a
+                 * flag that renders a form the endpoint behind it refuses is worse than no
+                 * flag at all (TASK-260-001).
+                 */
+                'comment' => $actor->can('comment', $task),
+                'attach' => $actor->can('attach', $task),
             ],
         ];
     }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectColor;
-use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Http\Requests\Section\MoveSectionRequest;
 use App\Http\Requests\Section\StoreSectionRequest;
 use App\Http\Requests\Section\UpdateSectionRequest;
@@ -42,7 +41,9 @@ it('accepts a section a project editor asked for', function (): void {
 
 it('refuses creation to someone who may not shape the project', function (): void {
     [$project, $editor] = projectEditableBy();
-    $stranger = memberOf($project->workspace, WorkspaceRole::Member);
+    // Restricted on purpose. A workspace member without a row of their own is an editor by the
+    // project's default now, so "may not shape the project" has to be said explicitly.
+    $stranger = viewerOf($project);
     expect($editor->id)->not->toBe($stranger->id);
 
     $this->actingAs($stranger)
@@ -70,9 +71,9 @@ it('accepts a rename from an editor and refuses one from a viewer', function ():
         ->assertOk()
         ->assertJson(['name' => 'Up next']);
 
-    $stranger = memberOf($project->workspace, WorkspaceRole::Member);
+    $viewer = viewerOf($project);
 
-    $this->actingAs($stranger)
+    $this->actingAs($viewer)
         ->putJson("section-probe/{$section->id}", ['name' => 'Up next'])
         ->assertForbidden();
 });

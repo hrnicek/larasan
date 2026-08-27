@@ -174,10 +174,17 @@ it('reads a task with several subtasks and placements without a query per row', 
      * page, which is the point — the panel moves a task between columns without asking again.
      * It went 20 → 21 with TASK-200-042: whether this reader starred the task is a row nothing
      * else on the panel already reads, and it is the reader's own rather than the task's.
+     *
+     * It went 21 → 23 with TASK-260-001, and this is the one to understand. The panel asks four
+     * permissions of one task, and each now asks the boards it sits on as well as the workspace.
+     * `TaskPolicy` memoises within the request, so what is left is the smallest set of distinct
+     * questions there are: the boards themselves, then whether any is readable, whether any is
+     * editable and whether any is commentable. Four reads, whatever the task is on and however
+     * many subtasks hang under it — which is what this test is really guarding.
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(21);
+        ->and(count($queries))->toBeLessThanOrEqual(23);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -270,9 +277,11 @@ it('reads a task s attachments without a query per file', function (): void {
     $detail = detailOf($task, $actor);
 
     // Six files by six different people cost the same three reads one would: the attachments,
-    // their files, and the uploaders. The bound went 19 → 20 with the star (TASK-200-042).
+    // their files, and the uploaders. The bound went 19 → 20 with the star (TASK-200-042), and
+    // 20 → 22 with TASK-260-001, where each of the panel's four permissions began asking the
+    // task's boards as well as the workspace — a fixed cost, not one that grows with the files.
     expect($detail['attachments'])->toHaveCount(6)
-        ->and(count($queries))->toBeLessThanOrEqual(20);
+        ->and(count($queries))->toBeLessThanOrEqual(22);
 });
 
 it('offers each placement the columns of its own project, in order', function (): void {

@@ -9,6 +9,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
@@ -44,6 +45,7 @@ use Laravel\Scout\Searchable;
  * @property int|null $created_by
  * @property ProjectDefaultView $default_view
  * @property ProjectVisibility $visibility
+ * @property ProjectAccessLevel $default_access_level
  * @property CarbonImmutable|null $start_date
  * @property CarbonImmutable|null $due_date
  * @property CarbonImmutable|null $archived_at
@@ -139,7 +141,48 @@ class Project extends Model
         return ! $this->isArchived()
             && $this->isVisibleTo($user)
             && $this->workspace->membershipFor($user)?->allows($capability) === true
-            && $this->memberFor($user)?->access_level->canEdit() === true;
+            && $this->accessLevelFor($user)?->canEdit() === true;
+    }
+
+    /**
+     * Whether the actor may take part in this project's conversation. The comment half of
+     * `allowsChangesBy()`, and archived for the same reason: a closed board is read.
+     */
+    public function allowsCommentsBy(User $user): bool
+    {
+        return ! $this->isArchived()
+            && $this->isVisibleTo($user)
+            && $this->workspace->membershipFor($user)?->allows(Capability::CommentCreate) === true
+            && $this->accessLevelFor($user)?->canComment() === true;
+    }
+
+    /**
+     * The actor's access to this project, whether or not they were named on it.
+     *
+     * A membership row is the answer whenever there is one, in both directions: a Viewer row on
+     * a project the whole workspace may edit is a deliberate restriction, not an oversight to
+     * be topped up. Without a row, a workspace-visible project answers with its own
+     * `default_access_level`, and a private one answers with nothing — that is the whole of
+     * what visibility means for writing (ADR-0006, amended).
+     *
+     * A guest is never covered by the default. They reach what they were explicitly given and
+     * nothing else, which is the same sentence `isVisibleTo()` writes for reading.
+     */
+    public function accessLevelFor(User $user): ?ProjectAccessLevel
+    {
+        $membership = $this->memberFor($user);
+
+        if ($membership instanceof ProjectMembership) {
+            return $membership->access_level;
+        }
+
+        if ($this->visibility !== ProjectVisibility::Workspace) {
+            return null;
+        }
+
+        return $this->workspace->membershipFor($user)?->role->isGuest() === false
+            ? $this->default_access_level
+            : null;
     }
 
     /**
@@ -286,6 +329,7 @@ class Project extends Model
             'icon' => ProjectIcon::class,
             'default_view' => ProjectDefaultView::class,
             'visibility' => ProjectVisibility::class,
+            'default_access_level' => ProjectAccessLevel::class,
             'start_date' => 'immutable_date',
             'due_date' => 'immutable_date',
             'archived_at' => 'immutable_datetime',

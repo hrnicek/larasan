@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
@@ -85,20 +90,52 @@ it('shows the workspace the actor is standing in, and not the other one', functi
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.title', 'There'));
 });
 
-it('tells the screen whether the reader may tick anything off', function (): void {
+it('tells each row whether the reader may tick it off', function (): void {
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace, WorkspaceRole::Member);
     $guest = memberOf($workspace, WorkspaceRole::Guest);
 
+    foreach ([$member, $guest] as $actor) {
+        Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
+    }
+
     $this->actingAs($member)
         ->get(route('my-tasks.index'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.updateTask', true));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.canUpdate', true));
 
     // A guest can be given work and cannot change it: the checkbox is inert rather than absent,
     // so the row still reads the same (TASK-080-005).
     $this->actingAs($guest)
         ->get(route('my-tasks.index'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.updateTask', false));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.canUpdate', false));
+});
+
+it('answers per row rather than per screen when the boards disagree', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Member);
+
+    $open = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
+    $restricted = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
+    ProjectMembership::factory()->in($restricted)->forUser($actor)->withAccess(ProjectAccessLevel::Viewer)->create();
+
+    $editable = Task::factory()->in($workspace)->create(['title' => 'On the open board', 'assignee_id' => $actor->id, 'due_at' => now()]);
+    $readOnly = Task::factory()->in($workspace)->create(['title' => 'On the restricted board', 'assignee_id' => $actor->id, 'due_at' => now()]);
+    TaskProjectMembership::factory()->placing($editable, $open)->create();
+    TaskProjectMembership::factory()->placing($readOnly, $restricted)->create();
+
+    /*
+     * The reason this is a row's answer and not the screen's: My Tasks gathers work from every
+     * board at once, and one of these two is a board this reader was explicitly restricted from.
+     */
+    $this->actingAs($actor)
+        ->get(route('my-tasks.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('tasks', 2)
+            ->where('tasks.0.canUpdate', true)
+            ->where('tasks.0.title', 'On the open board')
+            ->where('tasks.1.canUpdate', false)
+            ->where('tasks.1.title', 'On the restricted board'));
 });
 
 it('answers a tab switch with the list region alone', function (): void {

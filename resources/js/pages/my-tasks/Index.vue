@@ -30,7 +30,6 @@ const props = defineProps<{
     tasks: MyTaskRow[];
     tabs: string[];
     meta: { tab: string; page: number; perPage: number; total: number; hasMore: boolean };
-    can: { updateTask: boolean };
     /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
     taskDetail?: TaskDetail | null;
     /** Deferred with the panel: absent until the follow-up request lands. */
@@ -170,7 +169,7 @@ const { open, close: closeTask } = useTaskPanel();
                     :task="task"
                     :members="members"
                     :priorities="priorities"
-                    :editable="can.updateTask"
+                    :editable="task.canUpdate"
                     @open="open"
                 />
 

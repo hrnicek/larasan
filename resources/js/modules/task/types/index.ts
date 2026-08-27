@@ -97,6 +97,12 @@ export type BoardCardData = TaskRowData & {
  */
 export type MyTaskRow = TaskRowData & {
     projects: { id: string; name: string; color: string | null }[];
+    /**
+     * Whether this row may be edited, answered per row rather than per screen. My Tasks and
+     * search draw work from every board at once, so one flag for the list would promise an edit
+     * the board behind a given row refuses (TASK-260-001).
+     */
+    canUpdate: boolean;
 };
 
 /**
