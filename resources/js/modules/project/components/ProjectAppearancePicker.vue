@@ -33,7 +33,7 @@ const open = ref(false);
             />
         </PopoverTrigger>
 
-        <PopoverContent class="w-72 p-3" align="start">
+        <PopoverContent class="w-80 p-3" align="start">
             <ProjectAppearanceFields :project="props.project" />
         </PopoverContent>
     </Popover>

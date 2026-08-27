@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Actions\CreateTag;
 use App\Domain\Tag\Actions\DeleteTag;
 use App\Domain\Tag\Actions\UpdateTag;
@@ -14,7 +15,7 @@ use App\Domain\Workspace\Models\Workspace;
 it('adds a word to the workspace vocabulary', function (): void {
     [$workspace, , $actor] = placeableProject();
 
-    $tag = app(CreateTag::class)->handle($workspace, $actor, '  Bug  ', ProjectColor::Rose);
+    $tag = app(CreateTag::class)->handle($workspace, $actor, '  Bug  ', AccentColor::palette(ProjectColor::Rose));
 
     expect($tag->name)->toBe('Bug')
         ->and($tag->workspace_id)->toBe($workspace->id);
@@ -63,9 +64,9 @@ it('changes a name without touching a colour, and the other way round', function
     $tag = Tag::factory()->in($workspace)->named('Buug')->create(['color' => ProjectColor::Amber]);
 
     app(UpdateTag::class)->handle($tag, $actor, name: 'Bug');
-    expect($tag->fresh()?->color)->toBe(ProjectColor::Amber);
+    expect($tag->fresh()?->color?->paletteColor())->toBe(ProjectColor::Amber);
 
-    app(UpdateTag::class)->handle($tag, $actor, color: ProjectColor::Teal);
+    app(UpdateTag::class)->handle($tag, $actor, color: AccentColor::palette(ProjectColor::Teal));
     expect($tag->fresh()?->name)->toBe('Bug');
 
     // Clearing is its own instruction, because a null argument cannot say "leave it alone" and

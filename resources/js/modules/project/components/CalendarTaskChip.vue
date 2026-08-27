@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import UserAvatar from '@/components/UserAvatar.vue';
-import { accentDotClass } from '@/lib/accentColor';
+import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { CalendarCardData } from '@/modules/task/types';
 
 /**
@@ -89,6 +89,7 @@ const activate = (event: MouseEvent): void => {
             v-if="card.tags.length"
             class="size-1.5 shrink-0 rounded-full"
             :class="accentDotClass(card.tags[0].color)"
+            :style="accentVars(card.tags[0].color)"
             :title="card.tags.map((tag) => tag.name).join(', ')"
         />
 

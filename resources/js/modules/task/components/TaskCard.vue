@@ -9,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/UserAvatar.vue';
-import { accentChipClass } from '@/lib/accentColor';
+import { accentChipClass, accentVars } from '@/lib/accentColor';
 import { dayOf, formatDay, isOverdue } from '@/lib/dueDate';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
@@ -119,6 +119,7 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
                 :key="tag.id"
                 class="rounded px-1.5 py-0.5 text-[11px] font-medium"
                 :class="accentChipClass(tag.color)"
+                :style="accentVars(tag.color)"
             >
                 {{ tag.name }}
             </span>

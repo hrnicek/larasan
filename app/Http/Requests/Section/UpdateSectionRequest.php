@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Section;
 
 use App\Domain\Section\Models\Section;
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Rules\IsAccentColor;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateSectionRequest extends FormRequest
 {
@@ -26,7 +25,7 @@ class UpdateSectionRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'color' => ['nullable', Rule::enum(ProjectColor::class)],
+            'color' => ['nullable', new IsAccentColor],
         ];
     }
 }

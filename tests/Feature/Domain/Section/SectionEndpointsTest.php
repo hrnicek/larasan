@@ -27,7 +27,7 @@ it('adds a section to a project', function (): void {
         ->assertRedirect(route('projects.edit', $project));
 
     expect($project->sections()->pluck('name')->all())->toBe(['Backlog'])
-        ->and($project->sections()->first()?->color)->toBe(ProjectColor::Teal);
+        ->and($project->sections()->first()?->color?->paletteColor())->toBe(ProjectColor::Teal);
 });
 
 it('renames a section', function (): void {
@@ -54,7 +54,7 @@ it('replaces the colour rather than patching it', function (): void {
         ->put(route('sections.update', $section), ['name' => 'Up next', 'color' => ProjectColor::Violet->value])
         ->assertRedirect();
 
-    expect($section->fresh()?->color)->toBe(ProjectColor::Violet);
+    expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Violet);
 
     $this->actingAs($actor)->put(route('sections.update', $section), ['name' => 'Up next'])->assertRedirect();
 

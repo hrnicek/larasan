@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Tag;
 
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Rules\IsAccentColor;
 use App\Domain\Task\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Put a tag on a task, naming either one that exists or one that does not yet.
@@ -35,7 +34,7 @@ class StoreTaskTagRequest extends FormRequest
             // the vocabulary matched what somebody typed.
             'tag' => ['required_without:name', 'uuid'],
             'name' => ['required_without:tag', 'string', 'max:40'],
-            'color' => ['nullable', Rule::enum(ProjectColor::class)],
+            'color' => ['nullable', new IsAccentColor],
         ];
     }
 }

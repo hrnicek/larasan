@@ -6,8 +6,9 @@ namespace App\Domain\Section\Models;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Casts\AsAccentColor;
 use App\Domain\Shared\Ordering\SparsePosition;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use Database\Factories\SectionFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $id
  * @property string $project_id
  * @property string $name
- * @property ProjectColor|null $color
+ * @property AccentColor|null $color
  * @property int $position
  * @property-read Project $project
  */
@@ -71,7 +72,7 @@ class Section extends Model
     protected function casts(): array
     {
         return [
-            'color' => ProjectColor::class,
+            'color' => AsAccentColor::class,
             'position' => 'integer',
         ];
     }

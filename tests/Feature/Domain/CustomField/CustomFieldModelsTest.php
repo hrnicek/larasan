@@ -81,7 +81,7 @@ it('keeps a factory field, option and value in one workspace', function (): void
 it('carries an option colour from the shared palette', function (): void {
     $option = CustomFieldOption::factory()->create(['color' => ProjectColor::Sky]);
 
-    expect($option->fresh()?->color)->toBe(ProjectColor::Sky);
+    expect($option->fresh()?->color?->paletteColor())->toBe(ProjectColor::Sky);
 });
 
 it('hangs a field from its workspace and its values from the field', function (): void {

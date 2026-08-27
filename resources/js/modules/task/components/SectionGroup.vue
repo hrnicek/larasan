@@ -4,7 +4,7 @@ import { ChevronDown, Plus } from '@lucide/vue';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
-import { accentBandClass, accentDotClass } from '@/lib/accentColor';
+import { accentBandClass, accentDotClass, accentVars } from '@/lib/accentColor';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
@@ -97,7 +97,7 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
 
 <template>
     <section class="border-b border-border" data-task-section>
-        <div class="group/section flex items-center gap-1 px-4 pr-2" :class="accentBandClass(section.color)">
+        <div class="group/section flex items-center gap-1 px-4 pr-2" :class="accentBandClass(section.color)" :style="accentVars(section.color)">
             <button
                 type="button"
                 class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
@@ -130,7 +130,7 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 <!-- The colour, on the one element in the row that is always there. The band behind
                      the header says it at a glance; the dot is what survives a colour too pale to
                      read as a background. -->
-                <span class="size-2 shrink-0 rounded-full" :class="accentDotClass(section.color)" aria-hidden="true" />
+                <span class="size-2 shrink-0 rounded-full" :class="accentDotClass(section.color)" :style="accentVars(section.color)" aria-hidden="true" />
                 <span class="truncate">{{ section.name ?? 'No section' }}</span>
             </button>
 

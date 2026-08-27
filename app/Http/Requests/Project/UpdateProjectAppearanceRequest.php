@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Project;
 
 use App\Domain\Project\Models\Project;
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectIcon;
+use App\Domain\Shared\Rules\IsAccentColor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -34,7 +34,7 @@ class UpdateProjectAppearanceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'color' => ['nullable', Rule::enum(ProjectColor::class)],
+            'color' => ['nullable', new IsAccentColor],
             'icon' => ['nullable', Rule::enum(ProjectIcon::class)],
         ];
     }

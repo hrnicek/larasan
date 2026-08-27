@@ -8,7 +8,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { accentChipClass } from '@/lib/accentColor';
+import { accentChipClass, accentVars } from '@/lib/accentColor';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import type { WorkspaceTag } from '@/modules/tag/types';
 
@@ -145,6 +145,7 @@ function confirmDeletion(): void {
                     <span
                         class="shrink-0 rounded-md px-2 py-0.5 text-xs font-medium"
                         :class="accentChipClass(tag.color)"
+                        :style="accentVars(tag.color)"
                     >
                         {{ tag.name }}
                     </span>

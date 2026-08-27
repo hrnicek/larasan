@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Project;
 
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Rules\IsAccentColor;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use Illuminate\Contracts\Database\Query\Builder;
@@ -51,7 +51,7 @@ class StoreProjectRequest extends FormRequest
                 ),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
-            'color' => ['nullable', Rule::enum(ProjectColor::class)],
+            'color' => ['nullable', new IsAccentColor],
             'icon' => ['nullable', Rule::enum(ProjectIcon::class)],
             'default_view' => ['nullable', Rule::enum(ProjectDefaultView::class)],
             'visibility' => ['nullable', Rule::enum(ProjectVisibility::class)],

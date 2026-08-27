@@ -8,13 +8,14 @@ use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Access\MembershipRegistry;
+use App\Domain\Shared\Casts\AsAccentColor;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Html\RichText;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -39,7 +40,7 @@ use Laravel\Scout\Searchable;
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property ProjectColor|null $color
+ * @property AccentColor|null $color
  * @property ProjectIcon|null $icon
  * @property int|null $owner_id
  * @property int|null $created_by
@@ -325,7 +326,7 @@ class Project extends Model
     protected function casts(): array
     {
         return [
-            'color' => ProjectColor::class,
+            'color' => AsAccentColor::class,
             'icon' => ProjectIcon::class,
             'default_view' => ProjectDefaultView::class,
             'visibility' => ProjectVisibility::class,

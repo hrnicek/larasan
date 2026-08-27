@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\CustomField\Models;
 
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Casts\AsAccentColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use Database\Factories\CustomFieldOptionFactory;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $id
  * @property string $custom_field_id
  * @property string $label
- * @property ProjectColor|null $color
+ * @property AccentColor|null $color
  * @property int $position
  * @property-read CustomField $field
  */
@@ -41,7 +42,7 @@ class CustomFieldOption extends Model
     protected function casts(): array
     {
         return [
-            'color' => ProjectColor::class,
+            'color' => AsAccentColor::class,
             'position' => 'integer',
         ];
     }

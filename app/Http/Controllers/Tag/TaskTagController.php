@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Tag;
 
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Actions\AttachTagToTask;
 use App\Domain\Tag\Actions\CreateTag;
 use App\Domain\Tag\Actions\DetachTagFromTask;
@@ -74,7 +74,7 @@ class TaskTagController extends Controller
             $task->workspace,
             $this->actor($request),
             $name,
-            $request->enum('color', ProjectColor::class),
+            AccentColor::tryFrom($request->string('color')->value()),
         );
     }
 }

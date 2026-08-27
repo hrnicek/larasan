@@ -17,8 +17,41 @@ const accentTextClasses = {
 
 export type AccentColor = keyof typeof accentTextClasses;
 
+/**
+ * A colour somebody chose rather than one of the eight names (ADR-0021).
+ *
+ * A chosen colour cannot be a class, because the scanner has to see every class written out and
+ * a hex is not known until somebody picks it. It is a custom property instead, read by the
+ * `accent-*` rules in `app.css`, which derive the same two steps the records below are tuned for
+ * by mixing the hue with the theme's own foreground.
+ */
+export function isCustomAccent(color: string | null): color is string {
+    return typeof color === 'string' && color.startsWith('#');
+}
+
+/**
+ * What a chosen colour needs bound to the element that draws it. Undefined for the eight, so a
+ * named colour carries no inline style at all.
+ */
+export function accentVars(color: string | null): Record<string, string> | undefined {
+    return isCustomAccent(color) ? { '--custom-accent': color } : undefined;
+}
+
+/**
+ * A record entry by name, or the fallback where the name is not one of the eight — including
+ * where there is no name at all. Written once because the alternative is the same cast repeated
+ * in six places, each of which the compiler is right to complain about.
+ */
+function named(record: Record<AccentColor, string>, color: string | null, fallback: string): string {
+    return record[color as AccentColor] ?? fallback;
+}
+
 export function accentTextClass(color: string | null): string {
-    return accentTextClasses[color as AccentColor] ?? accentTextClasses.slate;
+    if (isCustomAccent(color)) {
+        return 'accent-text';
+    }
+
+    return named(accentTextClasses, color, accentTextClasses.slate);
 }
 
 /**
@@ -41,7 +74,11 @@ const accentDotClasses = {
 } as const;
 
 export function accentDotClass(color: string | null): string {
-    return accentDotClasses[color as AccentColor] ?? accentDotClasses.slate;
+    if (isCustomAccent(color)) {
+        return 'accent-dot';
+    }
+
+    return named(accentDotClasses, color, accentDotClasses.slate);
 }
 
 /**
@@ -64,7 +101,11 @@ const accentBandClasses = {
 } as const;
 
 export function accentBandClass(color: string | null): string {
-    return accentBandClasses[color as AccentColor] ?? '';
+    if (isCustomAccent(color)) {
+        return 'accent-band';
+    }
+
+    return named(accentBandClasses, color, '');
 }
 
 /**
@@ -95,7 +136,11 @@ const accentTileClasses = {
 } as const;
 
 export function accentTileClass(color: string | null): string {
-    return accentTileClasses[color as AccentColor] ?? accentTileClasses.slate;
+    if (isCustomAccent(color)) {
+        return 'accent-tile';
+    }
+
+    return named(accentTileClasses, color, accentTileClasses.slate);
 }
 
 /**
@@ -119,7 +164,11 @@ const accentContentTileClasses = {
 } as const;
 
 export function accentContentTileClass(color: string | null): string {
-    return accentContentTileClasses[color as AccentColor] ?? accentContentTileClasses.slate;
+    if (isCustomAccent(color)) {
+        return 'accent-content-tile';
+    }
+
+    return named(accentContentTileClasses, color, accentContentTileClasses.slate);
 }
 
 /**
@@ -140,5 +189,9 @@ const accentChipClasses = {
 } as const;
 
 export function accentChipClass(color: string | null): string {
-    return accentChipClasses[color as AccentColor] ?? accentChipClasses.slate;
+    if (isCustomAccent(color)) {
+        return 'accent-chip';
+    }
+
+    return named(accentChipClasses, color, accentChipClasses.slate);
 }

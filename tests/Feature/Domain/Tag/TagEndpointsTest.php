@@ -68,7 +68,7 @@ it('creates a tag', function (): void {
 
     // Trimmed by the Action: the endpoint is a transport and nothing more.
     expect($tag->name)->toBe('Bug')
-        ->and($tag->color)->toBe(ProjectColor::Rose)
+        ->and($tag->color?->paletteColor())->toBe(ProjectColor::Rose)
         ->and($tag->workspace_id)->toBe($workspace->id);
 });
 
@@ -105,15 +105,43 @@ it('renames and recolours a tag', function (): void {
 
     $this->actingAs($actor)->put(route('tags.update', $tag), ['name' => 'Bug'])->assertRedirect();
     expect($tag->fresh()?->name)->toBe('Bug')
-        ->and($tag->fresh()?->color)->toBe(ProjectColor::Amber);
+        ->and($tag->fresh()?->color?->paletteColor())->toBe(ProjectColor::Amber);
 
     $this->actingAs($actor)->put(route('tags.update', $tag), ['color' => ProjectColor::Teal->value])->assertRedirect();
-    expect($tag->fresh()?->color)->toBe(ProjectColor::Teal)
+    expect($tag->fresh()?->color?->paletteColor())->toBe(ProjectColor::Teal)
         ->and($tag->fresh()?->name)->toBe('Bug');
 
     // An explicit null clears it; an absent key leaves it alone.
     $this->actingAs($actor)->put(route('tags.update', $tag), ['color' => null])->assertRedirect();
     expect($tag->fresh()?->color)->toBeNull();
+});
+
+it('takes a colour the palette does not have, and refuses one that is neither', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $tag = Tag::factory()->in($workspace)->named('Bug')->create();
+
+    $this->actingAs($actor)->put(route('tags.update', $tag), ['color' => '#3F7D5A'])->assertRedirect();
+
+    // Lower-cased on the way in, so `#3F7D5A` and `#3f7d5a` are one colour (ADR-0021).
+    expect($tag->fresh()?->color?->value)->toBe('#3f7d5a');
+
+    $this->actingAs($actor)
+        ->from(route('tags.index'))
+        ->put(route('tags.update', $tag), ['color' => 'burgundy'])
+        ->assertSessionHasErrors('color');
+
+    expect($tag->fresh()?->color?->value)->toBe('#3f7d5a');
+});
+
+it('invents a tag with a chosen colour from the task it is for', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->post(route('tasks.tags.store', $task), ['name' => 'Chosen', 'color' => '#aabbcc'])
+        ->assertRedirect();
+
+    expect(Tag::query()->sole()->color?->value)->toBe('#aabbcc');
 });
 
 it('deletes a tag without deleting the work it was on', function (): void {
@@ -166,7 +194,7 @@ it('invents a tag and puts it on the task in one request', function (): void {
     $tag = Tag::query()->sole();
 
     expect($tag->name)->toBe('Bug')
-        ->and($tag->color)->toBe(ProjectColor::Rose)
+        ->and($tag->color?->paletteColor())->toBe(ProjectColor::Rose)
         ->and($tag->workspace_id)->toBe($workspace->id)
         ->and($task->tags()->count())->toBe(1);
 });

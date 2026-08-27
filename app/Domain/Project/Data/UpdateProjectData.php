@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Project\Data;
 
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use Carbon\CarbonImmutable;
 
@@ -22,7 +22,7 @@ final readonly class UpdateProjectData
         public string $name,
         public ?string $slug = null,
         public ?string $description = null,
-        public ?ProjectColor $color = null,
+        public ?AccentColor $color = null,
         public ?ProjectIcon $icon = null,
         public ?ProjectDefaultView $defaultView = null,
         public ?ProjectVisibility $visibility = null,
@@ -36,7 +36,7 @@ final readonly class UpdateProjectData
             name: $request->string('name')->toString(),
             slug: $request->string('slug')->value() ?: null,
             description: $request->string('description')->value() ?: null,
-            color: $request->enum('color', ProjectColor::class),
+            color: AccentColor::tryFrom($request->string('color')->value()),
             icon: $request->enum('icon', ProjectIcon::class),
             defaultView: $request->enum('default_view', ProjectDefaultView::class),
             visibility: $request->enum('visibility', ProjectVisibility::class),

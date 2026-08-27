@@ -11,6 +11,7 @@ use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 
@@ -34,8 +35,8 @@ it('sets and clears the colour', function (): void {
     [$project, $actor] = projectEditableBy();
     $section = addSection($project, $actor);
 
-    renameSection($section, $actor, new UpdateSectionData(name: $section->name, color: ProjectColor::Amber));
-    expect($section->fresh()?->color)->toBe(ProjectColor::Amber);
+    renameSection($section, $actor, new UpdateSectionData(name: $section->name, color: AccentColor::palette(ProjectColor::Amber)));
+    expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Amber);
 
     // Null clears a nullable column rather than meaning "unchanged" — the rule Phase 040's
     // review settled after the same bug made project fields write-once.

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Tag\Models;
 
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\Casts\AsAccentColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Database\Factories\TagFactory;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $id
  * @property string $workspace_id
  * @property string $name
- * @property ProjectColor|null $color
+ * @property AccentColor|null $color
  * @property-read Workspace $workspace
  */
 #[UseFactory(TagFactory::class)]
@@ -51,7 +52,7 @@ class Tag extends Model
     protected function casts(): array
     {
         return [
-            'color' => ProjectColor::class,
+            'color' => AsAccentColor::class,
         ];
     }
 }

@@ -11,7 +11,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { accentDotClass } from '@/lib/accentColor';
+import { accentDotClass, accentVars } from '@/lib/accentColor';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
@@ -140,6 +140,7 @@ const detach = (): void => {
                 <span
                     class="size-2.5 shrink-0 rounded-sm"
                     :class="accentDotClass(placement.project.color)"
+                    :style="accentVars(placement.project.color)"
                     aria-hidden="true"
                 />
 

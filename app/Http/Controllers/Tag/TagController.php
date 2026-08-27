@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Tag;
 
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Actions\CreateTag;
 use App\Domain\Tag\Actions\DeleteTag;
 use App\Domain\Tag\Actions\UpdateTag;
@@ -101,11 +101,9 @@ class TagController extends Controller
         return back();
     }
 
-    private function color(Request $request): ?ProjectColor
+    private function color(Request $request): ?AccentColor
     {
-        $color = $request->input('color');
-
-        return is_string($color) ? ProjectColor::tryFrom($color) : null;
+        return AccentColor::tryFrom($request->string('color')->value());
     }
 
     private function current(Request $request): Workspace

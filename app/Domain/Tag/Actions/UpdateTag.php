@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tag\Actions;
 
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Exceptions\TagException;
 use App\Domain\Tag\Models\Tag;
 use App\Models\User;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class UpdateTag
 {
-    public function handle(Tag $tag, User $actor, ?string $name = null, ?ProjectColor $color = null, bool $clearColor = false): Tag
+    public function handle(Tag $tag, User $actor, ?string $name = null, ?AccentColor $color = null, bool $clearColor = false): Tag
     {
         if (! $tag->workspace->membershipFor($actor)?->allows(Capability::TagManage)) {
             throw TagException::cannotManageTags();

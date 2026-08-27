@@ -11,7 +11,7 @@ it('stores the colour by name and reads it back as the enum', function (): void 
     $section = Section::factory()->create(['color' => ProjectColor::Rose]);
 
     expect(DB::table('sections')->where('id', $section->id)->value('color'))->toBe('rose')
-        ->and($section->fresh()?->color)->toBe(ProjectColor::Rose);
+        ->and($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Rose);
 });
 
 it('belongs to its project', function (): void {

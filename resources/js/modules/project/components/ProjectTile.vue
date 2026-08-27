@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { accentContentTileClass, accentTileClass } from '@/lib/accentColor';
+import { accentContentTileClass, accentTileClass, accentVars } from '@/lib/accentColor';
 import { projectIconComponent } from '@/lib/projectIcon';
 
 /**
@@ -36,12 +36,16 @@ const glyph = computed(() => projectIconComponent(props.icon));
 const tint = computed(() =>
     props.surface === 'chrome' ? accentTileClass(props.color) : accentContentTileClass(props.color),
 );
+
+/** A chosen colour is a custom property rather than a class; the eight carry nothing (ADR-0021). */
+const tintVars = computed(() => accentVars(props.color));
 </script>
 
 <template>
     <span
         class="flex shrink-0 items-center justify-center"
         :class="[sizes[props.size].box, tint]"
+        :style="tintVars"
         aria-hidden="true"
     >
         <component :is="glyph" v-if="glyph" :class="sizes[props.size].glyph" />

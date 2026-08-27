@@ -11,6 +11,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ it('sets the colour and the icon from the project header', function (): void {
         ])
         ->assertRedirect(route('projects.show', $project));
 
-    expect($project->fresh()?->color)->toBe(ProjectColor::Violet)
+    expect($project->fresh()?->color?->paletteColor())->toBe(ProjectColor::Violet)
         ->and($project->fresh()?->icon)->toBe(ProjectIcon::Rocket);
 });
 
@@ -113,7 +114,7 @@ it('announces the change once, naming the columns that moved', function (): void
     Event::fake([ProjectUpdated::class]);
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
 
-    app(UpdateProjectAppearance::class)->handle($project, $actor, ProjectColor::Sky, null);
+    app(UpdateProjectAppearance::class)->handle($project, $actor, AccentColor::palette(ProjectColor::Sky), null);
 
     Event::assertDispatched(ProjectUpdated::class, fn (ProjectUpdated $event): bool => $event->projectId === $project->id
         && $event->changed === ['color']);
@@ -124,7 +125,7 @@ it('says nothing when the pick is the colour the project already had', function 
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
     $project->forceFill(['color' => ProjectColor::Sky->value])->save();
 
-    app(UpdateProjectAppearance::class)->handle($project, $actor, ProjectColor::Sky, null);
+    app(UpdateProjectAppearance::class)->handle($project, $actor, AccentColor::palette(ProjectColor::Sky), null);
 
     Event::assertNotDispatched(ProjectUpdated::class);
 });
@@ -134,7 +135,7 @@ it('refuses every caller who cannot manage the project, not only the HTTP one', 
     $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Admin);
 
     expect(fn (): Project => app(UpdateProjectAppearance::class)
-        ->handle($project, $outsider, ProjectColor::Red, null))
+        ->handle($project, $outsider, AccentColor::palette(ProjectColor::Red), null))
         ->toThrow(ProjectException::class);
 });
 

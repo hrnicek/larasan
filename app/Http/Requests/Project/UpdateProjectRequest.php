@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Project;
 
 use App\Domain\Project\Models\Project;
-use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectIcon;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Rules\IsAccentColor;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -46,7 +46,7 @@ class UpdateProjectRequest extends FormRequest
                     ->ignore($project?->id),
             ],
             'description' => ['nullable', 'string', 'max:2000'],
-            'color' => ['nullable', Rule::enum(ProjectColor::class)],
+            'color' => ['nullable', new IsAccentColor],
             'icon' => ['nullable', Rule::enum(ProjectIcon::class)],
             'default_view' => ['nullable', Rule::enum(ProjectDefaultView::class)],
             'visibility' => ['nullable', Rule::enum(ProjectVisibility::class)],

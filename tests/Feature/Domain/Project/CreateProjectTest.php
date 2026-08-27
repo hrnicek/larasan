@@ -16,6 +16,7 @@ use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -44,10 +45,10 @@ it('stores the accent colour by name and reads it back as the enum', function ()
     $workspace = Workspace::factory()->create();
     $creator = memberOf($workspace, WorkspaceRole::Member);
 
-    $project = createProject($workspace, $creator, new CreateProjectData(name: 'Web Redesign', color: ProjectColor::Violet));
+    $project = createProject($workspace, $creator, new CreateProjectData(name: 'Web Redesign', color: AccentColor::palette(ProjectColor::Violet)));
 
     expect(DB::table('projects')->where('id', $project->id)->value('color'))->toBe('violet')
-        ->and($project->fresh()?->color)->toBe(ProjectColor::Violet);
+        ->and($project->fresh()?->color?->paletteColor())->toBe(ProjectColor::Violet);
 });
 
 it('opens the project with one placeholder column', function (): void {
@@ -62,7 +63,7 @@ it('opens the project with one placeholder column', function (): void {
         ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)))
         // Slate, the same colour a column added by hand starts with — the project's first column
         // is not a different kind of column.
-        ->and($project->sections()->first()?->color)->toBe(CreateSectionData::DEFAULT_COLOR);
+        ->and($project->sections()->first()?->color?->paletteColor())->toBe(CreateSectionData::DEFAULT_COLOR);
 });
 
 it('rolls the default sections back with the project', function (): void {

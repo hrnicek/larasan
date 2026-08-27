@@ -93,11 +93,18 @@ it('refuses a tag with no workspace or no name', function (): void {
     }
 });
 
-it('reads its colour back as the palette entry it is', function (): void {
+it('reads its colour back as the accent it is, palette or chosen', function (): void {
     $workspace = Workspace::factory()->create();
     $tag = Tag::factory()->in($workspace)->create(['color' => ProjectColor::Teal]);
 
-    expect($tag->fresh()?->color)->toBe(ProjectColor::Teal);
+    // A palette case can be written straight in; what comes back is the value object either way.
+    expect($tag->fresh()?->color?->paletteColor())->toBe(ProjectColor::Teal)
+        ->and($tag->fresh()?->color?->isCustom())->toBeFalse();
+
+    $tag->update(['color' => '#3F7D5A']);
+
+    expect($tag->fresh()?->color?->value)->toBe('#3f7d5a')
+        ->and($tag->fresh()?->color?->isCustom())->toBeTrue();
 });
 
 it('refuses to have its workspace mass assigned', function (): void {
@@ -105,4 +112,20 @@ it('refuses to have its workspace mass assigned', function (): void {
     // never by a payload.
     expect(fn (): Tag => (new Tag)->fill(['name' => 'Bug', 'workspace_id' => 'anything']))
         ->toThrow(MassAssignmentException::class);
+});
+
+it('stores a hex colour and refuses anything the palette and the pattern both reject', function (): void {
+    $workspace = Workspace::factory()->create();
+
+    insertTag($workspace, 'Chosen', ['color' => '#3f7d5a']);
+
+    expect(DB::table('tags')->where('name', 'Chosen')->value('color'))->toBe('#3f7d5a');
+
+    // Upper case is refused on purpose: the application lower-cases on the way in, so a row that
+    // skipped `AccentColor` cannot make two colours out of one (ADR-0021).
+    expect(fn () => insertTag($workspace, 'Shouty', ['color' => '#3F7D5A']))
+        ->toThrow(QueryException::class);
+
+    expect(fn () => insertTag($workspace, 'Nonsense', ['color' => 'burgundy']))
+        ->toThrow(QueryException::class);
 });

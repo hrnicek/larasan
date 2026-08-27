@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { accentDotClass } from '@/lib/accentColor';
+import { accentDotClass, accentVars } from '@/lib/accentColor';
 
 /**
  * Adding a task from somewhere that is not a row in a list.
@@ -81,7 +81,7 @@ function submit(): void {
                     <SelectContent>
                         <SelectItem v-for="option in targetProjects" :key="option.id" :value="option.id">
                             <span class="flex items-center gap-2">
-                                <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(option.color)" />
+                                <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(option.color)" :style="accentVars(option.color)" />
                                 {{ option.name }}
                             </span>
                         </SelectItem>

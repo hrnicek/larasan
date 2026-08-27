@@ -3,7 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
-import { accentBandClass, accentDotClass } from '@/lib/accentColor';
+import { accentBandClass, accentDotClass, accentVars } from '@/lib/accentColor';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
@@ -81,6 +81,7 @@ const emit = defineEmits<{
         <header
             class="group/section flex items-center gap-1 rounded-t-lg px-3 py-2.5 text-[13px] font-semibold"
             :class="accentBandClass(column.color)"
+            :style="accentVars(column.color)"
         >
             <input
                 v-if="renaming"
@@ -99,6 +100,7 @@ const emit = defineEmits<{
                 v-else
                 class="size-2 shrink-0 rounded-full"
                 :class="accentDotClass(column.color)"
+                :style="accentVars(column.color)"
                 aria-hidden="true"
             />
             <span v-if="!renaming" class="flex-1 truncate">{{ column.name ?? 'No section' }}</span>

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tag\Actions;
 
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Exceptions\TagException;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Workspace\Models\Workspace;
@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 final readonly class CreateTag
 {
-    public function handle(Workspace $workspace, User $actor, string $name, ?ProjectColor $color = null): Tag
+    public function handle(Workspace $workspace, User $actor, string $name, ?AccentColor $color = null): Tag
     {
         if (! $workspace->membershipFor($actor)?->allows(Capability::TagManage)) {
             throw TagException::cannotManageTags();

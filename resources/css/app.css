@@ -92,6 +92,42 @@
     }
 }
 
+/*
+ * A colour somebody chose rather than one of the eight names (ADR-0021).
+ *
+ * The eight are static class records, tuned twice — a darker step for light and a lighter one for
+ * dark. A hex cannot be, because the scanner has to see every class written out and nobody knows
+ * the hex until it is picked. These rules derive the same two steps from one custom property:
+ * mixing the hue with `--foreground`, which is near-black in light and near-white in dark, darkens
+ * or lightens it in exactly the direction the theme needs.
+ */
+@layer components {
+    .accent-text {
+        color: color-mix(in oklab, var(--custom-accent, currentColor) 78%, var(--foreground));
+    }
+
+    .accent-dot {
+        background-color: var(--custom-accent, var(--muted-foreground));
+    }
+
+    .accent-band {
+        background-color: color-mix(in oklab, var(--custom-accent, transparent) 12%, transparent);
+    }
+
+    .accent-chip,
+    .accent-content-tile {
+        background-color: color-mix(in oklab, var(--custom-accent, transparent) 16%, transparent);
+        color: color-mix(in oklab, var(--custom-accent, currentColor) 72%, var(--foreground));
+    }
+
+    /* The rail stays dark in both themes (ADR-0014), so its tile mixes towards the chrome's own
+       foreground rather than the page's. */
+    .accent-tile {
+        background-color: color-mix(in oklab, var(--custom-accent, transparent) 22%, transparent);
+        color: color-mix(in oklab, var(--custom-accent, currentColor) 45%, var(--chrome-foreground));
+    }
+}
+
 @layer utilities {
     body,
     html {

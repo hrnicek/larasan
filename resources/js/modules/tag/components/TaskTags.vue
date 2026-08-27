@@ -4,7 +4,7 @@ import { Plus, X } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import TaskTagController from '@/actions/App/Http/Controllers/Tag/TaskTagController';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { accentChipClass } from '@/lib/accentColor';
+import { accentChipClass, accentVars } from '@/lib/accentColor';
 import type { TaskTag } from '@/modules/task/types';
 
 /**
@@ -95,6 +95,7 @@ const remove = (tag: TaskTag): void => {
             :key="tag.id"
             class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
             :class="accentChipClass(tag.color)"
+            :style="accentVars(tag.color)"
         >
             {{ tag.name }}
 
@@ -145,6 +146,7 @@ const remove = (tag: TaskTag): void => {
                             <span
                                 class="rounded-md px-2 py-0.5 text-xs font-medium"
                                 :class="accentChipClass(tag.color)"
+            :style="accentVars(tag.color)"
                             >
                                 {{ tag.name }}
                             </span>

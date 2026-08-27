@@ -9,7 +9,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { accentDotClass } from '@/lib/accentColor';
+import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { TaskTag } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
@@ -71,7 +71,7 @@ const cleared = computed<string>(() => show(props.projectId, { query: { view: pr
 
                 <DropdownMenuItem v-for="tag in available" :key="tag.id" as-child class="gap-2">
                     <Link :href="toggled(tag)" :aria-pressed="active.includes(tag.id)" class="cursor-pointer">
-                        <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(tag.color)" />
+                        <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(tag.color)" :style="accentVars(tag.color)" />
                         <span class="flex-1 truncate">{{ tag.name }}</span>
                         <Check v-if="active.includes(tag.id)" class="size-4 shrink-0 text-primary" />
                     </Link>

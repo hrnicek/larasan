@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Section\Data;
 
 use App\Domain\Shared\Enums\ProjectColor;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Http\Requests\Section\StoreSectionRequest;
 
 final readonly class CreateSectionData
@@ -18,7 +19,7 @@ final readonly class CreateSectionData
 
     public function __construct(
         public string $name,
-        public ?ProjectColor $color = self::DEFAULT_COLOR,
+        public ?AccentColor $color = new AccentColor(self::DEFAULT_COLOR->value),
     ) {}
 
     public static function fromRequest(StoreSectionRequest $request): self
@@ -27,7 +28,7 @@ final readonly class CreateSectionData
             name: $request->string('name')->toString(),
             // An absent colour is a column being added without an opinion about one, which is
             // every column added from the board's own menu.
-            color: $request->enum('color', ProjectColor::class) ?? self::DEFAULT_COLOR,
+            color: AccentColor::tryFrom($request->string('color')->value()) ?? AccentColor::palette(self::DEFAULT_COLOR),
         );
     }
 }

@@ -4,7 +4,7 @@ import { ArrowRight, Bell, CheckSquare, Plus } from '@lucide/vue';
 import { computed } from 'vue';
 import InboxController from '@/actions/App/Http/Controllers/Notification/InboxController';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
-import { accentDotClass } from '@/lib/accentColor';
+import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { SidebarProject } from '@/modules/project/types';
 import { create, show } from '@/routes/projects';
 
@@ -69,7 +69,7 @@ const greeting = computed<string>(() => {
                         :href="show(project.id).url"
                         class="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:border-primary/40 hover:bg-primary-subtle focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     >
-                        <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(project.color)" />
+                        <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(project.color)" :style="accentVars(project.color)" />
                         <span class="truncate">{{ project.name }}</span>
                     </Link>
                 </li>

@@ -14,6 +14,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
+use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
@@ -88,7 +89,7 @@ it('starts a column slate rather than colourless', function (): void {
      * than a neutral one — and beside a coloured column it looks like a bug. The palette can
      * still clear it afterwards.
      */
-    expect($section->fresh()?->color)->toBe(ProjectColor::Slate);
+    expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Slate);
 });
 
 it('stores a palette colour', function (): void {
@@ -97,10 +98,10 @@ it('stores a palette colour', function (): void {
     $section = app(CreateSection::class)->handle(
         $project,
         $actor,
-        new CreateSectionData(name: 'Blocked', color: ProjectColor::Red),
+        new CreateSectionData(name: 'Blocked', color: AccentColor::palette(ProjectColor::Red)),
     );
 
-    expect($section->fresh()?->color)->toBe(ProjectColor::Red);
+    expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Red);
 });
 
 it('takes the name as content and reads nothing into it', function (): void {
