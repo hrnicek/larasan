@@ -200,7 +200,7 @@ export type TaskDetail = {
     /** The workspace's whole vocabulary, small enough to send whole. */
     availableTags: TaskTag[];
     attachments: TaskAttachment[];
-    can: { update: boolean; delete: boolean; comment: boolean; attach: boolean };
+    can: { update: boolean; delete: boolean; comment: boolean; attach: boolean; manageTags: boolean };
 };
 
 /**

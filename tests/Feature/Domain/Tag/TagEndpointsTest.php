@@ -7,6 +7,55 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use Inertia\Testing\AssertableInertia;
+
+it('renders the workspace vocabulary with what each tag would cost to delete', function (): void {
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    $bug = Tag::factory()->in($workspace)->named('Bug')->create(['color' => ProjectColor::Rose]);
+    Tag::factory()->in($workspace)->named('Chore')->create();
+
+    $task = Task::factory()->in($workspace)->create();
+    tagTask($task, $bug, $owner);
+
+    $this->actingAs($owner)
+        ->get(route('tags.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/Tags')
+            // Ordered by name, so the screen is read rather than searched.
+            ->where('tags.0.name', 'Bug')
+            ->where('tags.0.color', ProjectColor::Rose->value)
+            ->where('tags.0.taskCount', 1)
+            ->where('tags.1.name', 'Chore')
+            ->where('tags.1.taskCount', 0)
+            ->where('can.manage', true),
+        );
+});
+
+it('shows somebody without tag.manage the list and none of the controls', function (): void {
+    $workspace = Workspace::factory()->create();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    Tag::factory()->in($workspace)->named('Bug')->create();
+
+    $this->actingAs($guest)
+        ->get(route('tags.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('tags.0.name', 'Bug')
+            ->where('can.manage', false),
+        );
+});
+
+it('never shows another workspace its tags', function (): void {
+    [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
+    Tag::factory()->in($workspace)->named('Mine')->create();
+    Tag::factory()->named('Theirs')->create();
+
+    $this->actingAs($owner)
+        ->get(route('tags.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('tags', 1)
+            ->where('tags.0.name', 'Mine'),
+        );
+});
 
 it('creates a tag', function (): void {
     [$workspace, , $actor] = placeableProject();
@@ -32,7 +81,8 @@ it('refuses a second tag with the same name in any case', function (): void {
     $this->actingAs($actor)
         ->from(route('dashboard'))
         ->post(route('tags.store'), ['name' => 'bug'])
-        ->assertSessionHas('errors');
+        // On the name box rather than as a toast: it is the box somebody can act on.
+        ->assertSessionHasErrors('name');
 
     expect(Tag::query()->count())->toBe(1);
 });
@@ -101,6 +151,66 @@ it('puts a tag on a task and takes it off', function (): void {
     $this->actingAs($actor)
         ->delete(route('tasks.tags.destroy', [$task, $tag]))
         ->assertRedirect();
+
+    expect($task->tags()->count())->toBe(0);
+});
+
+it('invents a tag and puts it on the task in one request', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->post(route('tasks.tags.store', $task), ['name' => '  Bug  ', 'color' => ProjectColor::Rose->value])
+        ->assertRedirect();
+
+    $tag = Tag::query()->sole();
+
+    expect($tag->name)->toBe('Bug')
+        ->and($tag->color)->toBe(ProjectColor::Rose)
+        ->and($tag->workspace_id)->toBe($workspace->id)
+        ->and($task->tags()->count())->toBe(1);
+});
+
+it('attaches the tag a name already belongs to rather than refusing it as a duplicate', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $bug = Tag::factory()->in($workspace)->named('Bug')->create();
+
+    // Somebody typing a word that exists means that word. The match is case-insensitive because
+    // the unique index is.
+    $this->actingAs($actor)
+        ->post(route('tasks.tags.store', $task), ['name' => 'bug'])
+        ->assertRedirect();
+
+    expect(Tag::query()->count())->toBe(1)
+        ->and($task->tags()->sole()->id)->toBe($bug->id);
+});
+
+it('turns a guest away before a name can reach the vocabulary', function (): void {
+    $workspace = Workspace::factory()->create();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $task = Task::factory()->in($workspace)->create();
+
+    /*
+     * The transport asks `update` on the task and `CreateTag` asks `tag.manage`, which are two
+     * questions — but no role currently holds the first without the second, so this is the only
+     * refusal that can be demonstrated through HTTP. `ManageTagsTest` covers the Action's own.
+     */
+    $this->actingAs($guest)
+        ->post(route('tasks.tags.store', $task), ['name' => 'Bug'])
+        ->assertForbidden();
+
+    expect(Tag::query()->count())->toBe(0);
+});
+
+it('needs either a tag or a name', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->from(route('dashboard'))
+        ->post(route('tasks.tags.store', $task), [])
+        ->assertSessionHasErrors('tag');
 
     expect($task->tags()->count())->toBe(0);
 });

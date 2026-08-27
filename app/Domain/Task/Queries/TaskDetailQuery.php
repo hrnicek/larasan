@@ -49,7 +49,7 @@ final readonly class TaskDetailQuery
      *     followers: list<array<string, mixed>>,
      *     following: bool,
      *     starred: bool,
-     *     can: array{update: bool, delete: bool, comment: bool, attach: bool},
+     *     can: array{update: bool, delete: bool, comment: bool, attach: bool, manageTags: bool},
      * }
      */
     public function __invoke(Task $task, User $actor): array
@@ -176,6 +176,12 @@ final readonly class TaskDetailQuery
                  */
                 'comment' => $actor->can('comment', $task),
                 'attach' => $actor->can('attach', $task),
+                /*
+                 * A capability rather than a policy, because inventing a word is a decision
+                 * about the workspace and not about this task: whoever may edit the task may
+                 * label it, and only this says whether the picker may offer to make one.
+                 */
+                'manageTags' => $actor->can(Capability::TagManage->value, $task->workspace),
             ],
         ];
     }

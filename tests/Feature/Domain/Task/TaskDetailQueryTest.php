@@ -128,7 +128,7 @@ it('answers the permissions once, for the task', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     expect(detailOf($task, $actor)['can'])
-        ->toBe(['update' => true, 'delete' => true, 'comment' => true, 'attach' => true]);
+        ->toBe(['update' => true, 'delete' => true, 'comment' => true, 'attach' => true, 'manageTags' => true]);
 });
 
 it('tells a guest what they may not do', function (): void {
@@ -140,9 +140,10 @@ it('tells a guest what they may not do', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     // A guest given the project reads the task and edits nothing; commenting is the one thing
-    // their role does carry (ADR-0010), and adding documents is not part of it.
+    // their role does carry (ADR-0010), and adding documents or words to the vocabulary is not
+    // part of it.
     expect(detailOf($task, $guest)['can'])
-        ->toBe(['update' => false, 'delete' => false, 'comment' => true, 'attach' => false]);
+        ->toBe(['update' => false, 'delete' => false, 'comment' => true, 'attach' => false, 'manageTags' => false]);
 });
 
 it('reads a task with several subtasks and placements without a query per row', function (): void {

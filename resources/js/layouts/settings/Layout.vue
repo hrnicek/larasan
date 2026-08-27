@@ -9,6 +9,7 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { index as fields } from '@/routes/custom-fields';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
+import { index as tags } from '@/routes/tags';
 import { edit as editWorkspace, members } from '@/routes/workspaces';
 import type { NavItem } from '@/types';
 
@@ -28,6 +29,10 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Fields',
         href: fields(),
+    },
+    {
+        title: 'Tags',
+        href: tags(),
     },
     {
         title: 'Security',

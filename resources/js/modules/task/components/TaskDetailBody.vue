@@ -116,6 +116,7 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                         :tags="detail.tags"
                         :available="detail.availableTags"
                         :editable="fieldsEditable"
+                        :can-create="detail.can.manageTags"
                     />
                 </dd>
 
