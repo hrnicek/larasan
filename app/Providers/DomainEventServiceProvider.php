@@ -41,6 +41,8 @@ use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Listeners\BroadcastTaskChange;
 use App\Domain\Task\Listeners\FollowAssignedTask;
 use App\Domain\Task\Listeners\FollowCommentedTask;
+use App\Domain\Workspace\Listeners\ClaimInvitationsForNewAccount;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 /**
@@ -112,6 +114,10 @@ class DomainEventServiceProvider extends ServiceProvider
             NotifyWatchersOfComment::class,
             BroadcastCommentChange::class,
         ],
+
+        // The one framework event in this map: an invitation sent to an address before it had
+        // an account is waiting for the moment it does.
+        Registered::class => [ClaimInvitationsForNewAccount::class],
     ];
 
     /**
