@@ -2,7 +2,6 @@ import type { SidebarProject } from '@/modules/project/types';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 import type { Auth } from '@/types/auth';
 
-// Extend ImportMeta interface for Vite...
 declare module 'vite/client' {
     interface ImportMetaEnv {
         readonly VITE_REVERB_APP_KEY: string;

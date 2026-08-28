@@ -15,10 +15,7 @@ class ResolveCurrentWorkspace
 {
     public const ATTRIBUTE = 'current_workspace';
 
-    public function __construct(private readonly CurrentWorkspace $workspaces)
-    {
-        //
-    }
+    public function __construct(private readonly CurrentWorkspace $workspaces) {}
 
     /**
      * The `workspace` route parameter is a **slug**, not an id. Routes that key a

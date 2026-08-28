@@ -37,9 +37,6 @@ use Inertia\ResponseFactory;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         // Scoped, not singleton: the memo must not survive the request that filled it.
@@ -53,9 +50,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(TaskPolicy::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         $this->configureDefaults();
@@ -263,9 +257,6 @@ class AppServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Configure default behaviors for production-ready applications.
-     */
     protected function configureDefaults(): void
     {
         Date::use(CarbonImmutable::class);
