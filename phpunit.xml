@@ -31,7 +31,12 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="pgsql"/>
-        <env name="DB_HOST" value="127.0.0.1"/>
+        <!--
+            DB_HOST is deliberately absent: the suite runs on the host, where the environment
+            file says 127.0.0.1, and inside the Docker stack, where it says pgsql. Pinning it
+            here would send the containers at a database that is not theirs. DB_DATABASE stays
+            pinned, so neither runtime can touch its development data.
+        -->
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="pm_testing"/>
         <env name="DB_URL" value=""/>

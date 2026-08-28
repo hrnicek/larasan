@@ -8,29 +8,55 @@ contradicts one of them is a conversation about the decision first and a diff se
 
 ## Running it locally
 
+Two ways, and neither is the "real" one. They differ in one file: `.env.example` reaches
+PostgreSQL, Redis, Meilisearch and mail at `127.0.0.1`, and `.env.docker.example` reaches them at
+the names `compose.yaml` gives those containers. Copy the one for the way you are working.
+
+The hostnames are not set in `compose.yaml`, and that is deliberate: `php artisan serve` passes
+only a fixed list of variables through to a request, so anything set there would reach an artisan
+command and never the served application. `EnvExampleTest` fails if the two files stop declaring
+the same keys.
+
+### With Docker
+
+Nothing but Docker required.
+
+```bash
+cp .env.docker.example .env
+docker compose run --rm laravel.test composer setup
+docker compose up -d
+docker compose exec laravel.test php artisan db:seed --class=DevelopmentSeeder
+docker compose exec laravel.test npm run dev
+```
+
+| | |
+| --- | --- |
+| http://localhost:8000 | the application |
+| http://localhost:8025 | Mailpit — every message the application sends |
+| http://localhost:8000/horizon | the queue |
+
+`./vendor/bin/sail` wraps all of it: `sail up -d`, `sail artisan …`, `sail test`, `sail npm run
+dev`. `compose.yaml` runs Horizon and Reverb as their own containers, so queued work and realtime
+behave as they do in production. Meilisearch is search only — stop that container and the
+application still serves, which is the point of ADR-0016.
+
+### On the host
+
 You need PHP 8.4, Node 20+, PostgreSQL, Redis and Meilisearch.
 
 ```bash
+cp .env.example .env
 composer setup
-```
-
-That installs both dependency trees, copies `.env`, generates a key, migrates and builds. Create
-the database it expects (`pm`), then:
-
-```bash
+createdb -U pm pm && createdb -U pm pm_testing
 php artisan db:seed --class=DevelopmentSeeder
 composer dev
 ```
 
-`composer dev` runs the server, the queue worker, Reverb and Vite together. The seeder prints the
-credentials it created.
+`composer dev` runs the server, the queue worker, Reverb and Vite together.
 
-The test suite runs against a **separate** database, `pm_testing`, on PostgreSQL rather than
-SQLite — engine differences are caught here rather than in production. Create it once:
-
-```bash
-createdb -U pm pm_testing
-```
+The suite runs against a **separate** database, `pm_testing`, on PostgreSQL rather than SQLite —
+engine differences are caught here rather than in production. The Docker image creates it on first
+boot; on the host, `createdb` above does.
 
 ## Before you open a pull request
 
@@ -39,7 +65,8 @@ composer ci:check
 ```
 
 That is the whole gate: Pint, ESLint, PHPStan, `vue-tsc` and the suite. CI runs the same thing, so
-a green local run is a green pull request. Individually:
+a green local run is a green pull request. Under Docker it is
+`docker compose exec laravel.test composer ci:check`, or `sail composer ci:check`. Individually:
 
 | | |
 | --- | --- |

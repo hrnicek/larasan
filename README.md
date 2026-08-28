@@ -69,25 +69,41 @@ every permission the UI renders.
 
 ## Running it locally
 
-You will need PHP 8.4, Node 20+, PostgreSQL, Redis and Meilisearch.
+With Docker, nothing else is needed:
 
 ```bash
 git clone https://github.com/jakubhrncir/larasan.git
 cd larasan
-composer setup
+cp .env.docker.example .env
+
+# Installs both dependency trees, generates a key and migrates. The database, Redis and
+# Meilisearch start first and are waited for; the application container is not needed yet.
+docker compose run --rm laravel.test composer setup
+
+docker compose up -d
+docker compose exec laravel.test php artisan db:seed --class=DevelopmentSeeder
+docker compose exec laravel.test npm run dev
 ```
 
-`composer setup` installs both dependency trees, copies `.env`, generates a key, migrates and
-builds. Then create the database it expects (`pm`), seed something to look at, and start
-everything:
+The application is at http://localhost:8000, and the mail it sends — invitations, password
+resets — at http://localhost:8025. The seeder prints the credentials it created.
+
+After `alias sail='./vendor/bin/sail'` those become `sail up -d`, `sail artisan db:seed …` and
+`sail npm run dev`. `compose.yaml` also runs Horizon and Reverb, so queued work and realtime
+behave as they do in production.
+
+Without Docker you will need PHP 8.4, Node 20+, PostgreSQL, Redis and Meilisearch on the host:
 
 ```bash
+composer setup
+createdb -U pm pm && createdb -U pm pm_testing
 php artisan db:seed --class=DevelopmentSeeder
 composer dev
 ```
 
-`composer dev` runs the server, the queue worker, Reverb and Vite together. The seeder prints the
-credentials it created.
+`composer dev` runs the server, the queue worker, Reverb and Vite together. One `.env` serves
+both ways: the container sets the hostnames it needs as environment variables, and Laravel's
+dotenv loading leaves a real environment variable alone.
 
 ## Tests
 
