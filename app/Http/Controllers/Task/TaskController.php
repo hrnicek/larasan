@@ -11,6 +11,7 @@ use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\CompleteTask;
 use App\Domain\Task\Actions\CreateTask;
@@ -69,12 +70,7 @@ class TaskController extends Controller
              * be the one that goes stale.
              */
             'members' => $task->workspace->members()->orderBy('name')->get()
-                ->map(fn (User $member): array => [
-                    'id' => $member->id,
-                    'name' => $member->name,
-                    'email' => $member->email,
-                    'avatar' => null,
-                ])
+                ->map(PersonSummary::from(...))
                 ->values()
                 ->all(),
             'priorities' => array_column(TaskPriority::cases(), 'value'),

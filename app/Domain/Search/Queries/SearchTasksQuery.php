@@ -7,6 +7,7 @@ namespace App\Domain\Search\Queries;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Queries\ChangeableProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
@@ -316,12 +317,7 @@ final readonly class SearchTasksQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
-            'assignee' => $assignee === null ? null : [
-                'id' => $assignee->id,
-                'name' => $assignee->name,
-                'email' => $assignee->email,
-                'avatar' => null,
-            ],
+            'assignee' => PersonSummary::fromNullable($assignee),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,

@@ -1,0 +1,49 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Domain\Shared\Payloads\PersonSummary;
+use App\Models\User;
+
+it('draws a person the way every screen draws one', function (): void {
+    $person = User::factory()->create(['name' => 'Ada Lovelace', 'email' => 'ada@example.test']);
+
+    expect(PersonSummary::from($person))->toBe([
+        'id' => $person->id,
+        'name' => 'Ada Lovelace',
+        'email' => 'ada@example.test',
+        'avatar' => null,
+    ]);
+});
+
+it('answers nobody for a field that is allowed to be empty', function (): void {
+    expect(PersonSummary::fromNullable(null))->toBeNull()
+        ->and(PersonSummary::fromNullable(User::factory()->create()))->toHaveKeys(['id', 'name', 'email', 'avatar']);
+});
+
+it('withholds the address from a face', function (): void {
+    $person = User::factory()->create(['name' => 'Ada Lovelace']);
+
+    expect(PersonSummary::face($person))->toBe([
+        'id' => $person->id,
+        'name' => 'Ada Lovelace',
+        'avatar' => null,
+    ]);
+});
+
+/*
+ * The narrow select the project header reads with. Strict Eloquent throws on an attribute the
+ * model never retrieved, so a `face()` that reached for the address would fail here rather than
+ * on the screen.
+ */
+it('reads only the columns a header list selects', function (): void {
+    $person = User::factory()->create();
+
+    $narrow = User::query()->whereKey($person->id)->get(['users.id', 'users.name'])->sole();
+
+    expect(PersonSummary::face($narrow))->toBe([
+        'id' => $person->id,
+        'name' => $person->name,
+        'avatar' => null,
+    ]);
+});

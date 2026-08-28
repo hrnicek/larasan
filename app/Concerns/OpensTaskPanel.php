@@ -6,6 +6,7 @@ namespace App\Concerns;
 
 use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Shared\Enums\TaskPriority;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
@@ -82,12 +83,7 @@ trait OpensTaskPanel
                 : Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor)),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
             'members' => $workspace->members()->orderBy('name')->get()
-                ->map(fn (User $member): array => [
-                    'id' => $member->id,
-                    'name' => $member->name,
-                    'email' => $member->email,
-                    'avatar' => null,
-                ])
+                ->map(PersonSummary::from(...))
                 ->values()
                 ->all(),
         ];

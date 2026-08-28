@@ -12,6 +12,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -324,12 +325,7 @@ final class ProjectListQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            'assignee' => $assignee === null ? null : [
-                'id' => $assignee->id,
-                'name' => $assignee->name,
-                'email' => $assignee->email,
-                'avatar' => null,
-            ],
+            'assignee' => PersonSummary::fromNullable($assignee),
         ];
     }
 }

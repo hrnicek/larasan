@@ -9,6 +9,7 @@ use App\Domain\Project\Queries\ChangeableProjectsForUser;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\MyTasksTab;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
@@ -215,12 +216,7 @@ final readonly class MyTasksQuery
              * Always the reader, and sent anyway: the row is the list view's component, and a
              * shape that differs by screen is the shape one of the two screens gets wrong.
              */
-            'assignee' => $assignee === null ? null : [
-                'id' => $assignee->id,
-                'name' => $assignee->name,
-                'email' => $assignee->email,
-                'avatar' => null,
-            ],
+            'assignee' => PersonSummary::fromNullable($assignee),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,

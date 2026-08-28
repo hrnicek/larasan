@@ -15,6 +15,7 @@ use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\FileKind;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -119,8 +120,8 @@ final readonly class TaskDetailQuery
                     'id' => $task->parent->id,
                     'title' => $task->parent->title,
                 ],
-                'assignee' => $this->person($task->assignee),
-                'creator' => $this->person($task->creator),
+                'assignee' => PersonSummary::fromNullable($task->assignee),
+                'creator' => PersonSummary::fromNullable($task->creator),
             ],
             'customFields' => $this->customFields($task, $actor),
             'tags' => array_values($task->tags
@@ -155,7 +156,7 @@ final readonly class TaskDetailQuery
                 ])
                 ->all()),
             'followers' => array_values($task->followers
-                ->map(fn (User $follower): array => $this->person($follower) ?? [])
+                ->map(PersonSummary::from(...))
                 ->all()),
             // Whether the actor is one of them, so the control knows which way it points
             // without the client comparing ids the server already compared.
@@ -292,7 +293,7 @@ final readonly class TaskDetailQuery
                      */
                     'image' => $file->imageDimensions(),
                     'uploadedAt' => $file->created_at?->toIso8601String(),
-                    'uploader' => $this->person($file->uploader),
+                    'uploader' => PersonSummary::fromNullable($file->uploader),
                     'canDelete' => $file->uploaded_by === $actor->id || $canModerate,
                 ];
             })
@@ -363,18 +364,5 @@ final readonly class TaskDetailQuery
             ->all();
 
         return array_values($rows);
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    private function person(?User $user): ?array
-    {
-        return $user === null ? null : [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'avatar' => null,
-        ];
     }
 }

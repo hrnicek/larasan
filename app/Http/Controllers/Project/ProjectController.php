@@ -26,6 +26,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use App\Domain\Shared\Enums\ProjectDefaultView;
 use App\Domain\Shared\Enums\ProjectView;
 use App\Domain\Shared\Enums\ProjectVisibility;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
@@ -170,13 +171,7 @@ class ProjectController extends Controller
                  */
                 'members' => array_values($people
                     ->take(5)
-                    ->map(fn (User $member): array => [
-                        'id' => $member->id,
-                        'name' => $member->name,
-                        // No uploaded faces yet: `UserAvatar` draws initials, and every other
-                        // payload in this application sends the same null.
-                        'avatar' => null,
-                    ])
+                    ->map(PersonSummary::face(...))
                     ->all()),
                 'memberCount' => $people->count(),
             ],
@@ -210,11 +205,6 @@ class ProjectController extends Controller
                 )],
             },
             /*
-             * The filter, echoed back, and the workspace's vocabulary to pick from. The screen
-             * renders what the server understood rather than what the client thinks it asked
-             * for — a stale tag id in a link matches nothing and is quietly dropped here.
-             */
-            /*
              * What the server understood of the ordering, echoed back so the screen renders the
              * view it actually got rather than the one the client asked for.
              */
@@ -223,6 +213,11 @@ class ProjectController extends Controller
                 'direction' => $request->sort($project->customFields)?->direction() ?? 'asc',
                 'filters' => (object) $request->fieldFilters(),
             ],
+            /*
+             * The filter, echoed back, and the workspace's vocabulary to pick from. The screen
+             * renders what the server understood rather than what the client thinks it asked
+             * for — a stale tag id in a link matches nothing and is quietly dropped here.
+             */
             'tags' => [
                 'active' => $request->tags(),
                 'available' => $project->workspace->tags()
@@ -237,16 +232,16 @@ class ProjectController extends Controller
             ],
             'views' => array_column(ProjectView::cases(), 'value'),
             /*
-             * What the *Customize* drawer holds, asked for when it is opened rather than sent to
-             * everybody who opens a project: it is a control most visits never touch, and
-             * `available` is a query of its own. `Inertia::optional` is v3's name for it.
-             */
-            /*
              * What the *Share* dialog holds, asked for when it is opened. The faces above are on
              * every visit because the header draws them; the list, the levels and everybody who
              * could be added are not.
              */
             'share' => Inertia::optional(fn (): array => $this->share($project, $actor)),
+            /*
+             * What the *Customize* drawer holds, asked for when it is opened rather than sent to
+             * everybody who opens a project: it is a control most visits never touch, and
+             * `available` is a query of its own. `Inertia::optional` is v3's name for it.
+             */
             'customize' => Inertia::optional(fn (): array => [
                 'fields' => [
                     'attached' => $this->fields($project->customFields),
@@ -417,10 +412,7 @@ class ProjectController extends Controller
                 ->sortBy(fn (ProjectMembership $membership): string => $membership->user->name)
                 ->map(fn (ProjectMembership $membership): array => [
                     'membershipId' => $membership->id,
-                    'id' => $membership->user_id,
-                    'name' => $membership->user->name,
-                    'email' => $membership->user->email,
-                    'avatar' => null,
+                    ...PersonSummary::from($membership->user),
                     'accessLevel' => $membership->access_level->value,
                     'isYou' => $membership->user_id === $actor->id,
                     'isLastOwner' => $membership->access_level->canManageProject() && $owners === 1,
@@ -437,12 +429,7 @@ class ProjectController extends Controller
                     ->whereNotIn('users.id', $memberships->pluck('user_id')->all())
                     ->orderBy('name')
                     ->get(['users.id', 'users.name', 'users.email'])
-                    ->map(fn (User $user): array => [
-                        'id' => $user->id,
-                        'name' => $user->name,
-                        'email' => $user->email,
-                        'avatar' => null,
-                    ])
+                    ->map(PersonSummary::from(...))
                     ->all())
                 : [],
         ];

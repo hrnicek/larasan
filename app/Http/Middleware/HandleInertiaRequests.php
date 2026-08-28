@@ -7,6 +7,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,11 +58,8 @@ class HandleInertiaRequests extends Middleware
                  * API by accident and `#[Hidden]` is the only thing in the way.
                  */
                 'user' => $request->user() === null ? null : [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
+                    ...PersonSummary::from($request->user()),
                     'email_verified_at' => $request->user()->email_verified_at?->toIso8601String(),
-                    'avatar' => null,
                 ],
                 /*
                  * What the actor may do in the workspace this request resolved, as the
