@@ -1,0 +1,36 @@
+name: Feature request
+description: Something the product should do and does not.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The README lists what is deliberately out of scope for now — billing, native apps,
+        portfolios, goals, workload planning, an automation builder, AI features, Gantt editing,
+        dashboard builders, multi-assignee tasks and offline sync. A request for one of those is
+        still welcome; it will just be a longer conversation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What a person is trying to do, and where the application stops them. Not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: How you would expect it to work. Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: The workaround you are using today, if there is one.
+  - type: checkboxes
+    id: decisions
+    attributes:
+      label: Decisions
+      options:
+        - label: I have checked `docs/adr/` for a decision this would reverse.

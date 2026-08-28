@@ -62,7 +62,7 @@ offline sync.
 | Data | PostgreSQL, Redis, Meilisearch via Laravel Scout |
 | Realtime | Laravel Reverb, queues supervised by Horizon |
 | Auth | Laravel Fortify, with TOTP and passkeys |
-| Tests | Pest 5, PHPStan level 7 through Larastan, Pint |
+| Tests | Pest 5, PHPStan level 8 through Larastan, Pint |
 
 Route URLs reach the frontend through Wayfinder rather than as strings, and the server decides
 every permission the UI renders.

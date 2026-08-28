@@ -7,6 +7,7 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
+use Illuminate\Database\Events\QueryExecuted;
 use Inertia\Testing\AssertableInertia;
 
 it('draws the project as its pages when the URL asks for them', function (): void {
@@ -72,7 +73,7 @@ it('reads one tree in one query, whatever its depth', function (): void {
     }
 
     $queries = 0;
-    DB::listen(function (Illuminate\Database\Events\QueryExecuted $query) use (&$queries): void {
+    DB::listen(function (QueryExecuted $query) use (&$queries): void {
         if (str_contains($query->sql, 'from "pages"')) {
             $queries++;
         }

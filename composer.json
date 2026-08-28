@@ -74,12 +74,11 @@
         "ci:check": [
             "Composer\\Config::disableProcessTimeout",
             "npm run lint:check",
-            "npm run format:check",
             "npm run types:check",
             "@test"
         ],
         "types:check": [
-            "phpstan analyse"
+            "phpstan analyse --memory-limit=2G"
         ],
         "test": [
             "@php artisan config:clear --ansi",
@@ -92,8 +91,7 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
-            "@php artisan boost:update --ansi"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

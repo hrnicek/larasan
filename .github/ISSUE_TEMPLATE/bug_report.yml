@@ -1,0 +1,49 @@
+name: Bug report
+description: Something behaves differently from what the documentation or the UI promises.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this is a security issue, please do not file it here — see
+        [SECURITY.md](../../SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence that shows it. A failing test is the best possible version of this.
+      placeholder: |
+        1. Seed with DevelopmentSeeder
+        2. Open a project's board
+        3. Drag a card to another column
+        4. …
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: The SHA you are on (`git rev-parse --short HEAD`).
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: PHP and Node versions, PostgreSQL version, browser if it is a UI issue.
+      placeholder: PHP 8.4.3, Node 22.11, PostgreSQL 17, Firefox 134
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Stack trace, failing assertion or console error. Redact anything private.
+      render: text
