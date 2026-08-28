@@ -80,7 +80,7 @@ final readonly class PageDocument
     /** Anything else is a way to make a link do something other than go somewhere. */
     private const ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 
-    /** Headings go as far as the design system draws them, and no further (`DESIGN.md`). */
+    /** Headings go as far as the design system draws them, and no further (`docs/ui/design-system.md`). */
     private const MAX_HEADING_LEVEL = 3;
 
     /**

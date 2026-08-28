@@ -27,3 +27,25 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Local tooling: editor, agent and assistant configuration. Kept out of the
+# repository so a clone is the application and its documentation, nothing else.
+/.agents
+/.ai
+/.claude
+/.codex
+/.cursor
+/.factory
+/.impeccable
+/.mcp.json
+/AGENTS.md
+/CLAUDE.md
+/boost.json
+/opencode.json
+/resume.txt
+/docs/agent
+/scripts
+/DESIGN.md
+
+# Debugbar writes here in local development.
+/storage/debugbar
