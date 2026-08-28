@@ -18,7 +18,7 @@ return new class extends Migration
              * A page belongs to a project and proves its workspace by joining to one, the way
              * a section does. No denormalised `workspace_id`: there is a single owning
              * aggregate here, and a second copy of the tenant is a second thing that can be
-             * wrong (`.ai/rules/app.md`).
+             * wrong (`docs/conventions/security.md`).
              */
             $table->foreignUuid('project_id')->constrained()->cascadeOnDelete();
 

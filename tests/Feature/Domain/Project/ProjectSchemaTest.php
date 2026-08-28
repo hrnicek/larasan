@@ -44,7 +44,7 @@ it('scopes slug uniqueness to the workspace, not the installation', function ():
     insertProject($theirs);
 
     // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (.ai/rules/tests.md).
+    // RefreshDatabase already holds one (docs/conventions/testing.md).
     expect(fn (): string => DB::transaction(fn (): string => insertProject($mine)))
         ->toThrow(QueryException::class);
 

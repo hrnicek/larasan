@@ -43,7 +43,7 @@ it('refuses two root pages in the same slot of one project', function (): void {
     insertPage($project);
 
     // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (.ai/rules/tests.md). The NULL parent is the point —
+    // RefreshDatabase already holds one (docs/conventions/testing.md). The NULL parent is the point —
     // without NULLS NOT DISTINCT the constraint would not see these two rows as siblings.
     expect(fn (): string => DB::transaction(fn (): string => insertPage($project, ['title' => 'Notes'])))
         ->toThrow(QueryException::class);

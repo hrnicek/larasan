@@ -37,7 +37,7 @@ it('refuses two sections in the same slot of one project', function (): void {
     insertSection($project);
 
     // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (.ai/rules/tests.md).
+    // RefreshDatabase already holds one (docs/conventions/testing.md).
     expect(fn (): string => DB::transaction(fn (): string => insertSection($project, ['name' => 'In progress'])))
         ->toThrow(QueryException::class);
 

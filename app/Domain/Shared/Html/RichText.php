@@ -19,7 +19,7 @@ use DOMXPath;
  *
  * Done here rather than in a FormRequest because it has to hold for every caller — console,
  * queue and any future API — and a rule enforced at the edge is a rule the next entry point does
- * not have (`.ai/security`).
+ * not have (`docs/conventions/security.md`).
  *
  * An allowlist, never a denylist: the tags below are the whole vocabulary, and everything else
  * loses its tag and keeps its words. `<script>` is the exception that loses both, because its

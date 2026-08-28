@@ -20,7 +20,7 @@ use App\Domain\Page\Exceptions\PageException;
  * cannot draw loses the mark and keeps the words.
  *
  * Done here rather than in a FormRequest because it has to hold for every caller — console,
- * queue and any future API (`.ai/security`).
+ * queue and any future API (`docs/conventions/security.md`).
  */
 final readonly class PageDocument
 {

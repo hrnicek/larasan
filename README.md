@@ -101,11 +101,13 @@ suite.
 
 ## Contributing
 
-Issues and pull requests are welcome. Two things worth knowing before you open one:
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). Two things worth knowing before you open anything:
 
-- **The repository documents its own decisions.** `docs/adr/` holds the architectural decision
-  records, `docs/architecture/` the shape of the system, and `docs/ui/design-system.md` the visual
-  rules. If a change contradicts one of those, the ADR is the thing to argue with first.
+- **The repository documents its own decisions.** [`docs/adr/`](docs/adr/) holds the architectural
+  decision records, [`docs/architecture/`](docs/architecture/) the shape of the system,
+  [`docs/conventions/`](docs/conventions/) how code is written here, and
+  [`docs/ui/design-system.md`](docs/ui/design-system.md) the visual rules. If a change contradicts
+  one of those, the ADR is the thing to argue with first.
 - **No new dependency without a conversation.** The stack is fixed on purpose, and most additions
   turn out to be something the framework already does.
 

@@ -46,7 +46,7 @@ class PageController extends Controller
                 'version' => $page->version,
                 'updatedAt' => $page->updated_at?->toIso8601String(),
                 // The name only. Sharing the model would ship whatever columns `users` has
-                // (`.ai/rules/js.md`), and a page needs to say who wrote in it, not who they are.
+                // (`docs/conventions/frontend.md`), and a page needs to say who wrote in it, not who they are.
                 'updatedBy' => $page->editor?->name,
             ],
             'project' => [
