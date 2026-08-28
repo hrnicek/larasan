@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Workspace;
 
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
 use App\Domain\Workspace\Actions\InviteWorkspaceMember;
@@ -15,6 +14,7 @@ use App\Domain\Workspace\Data\InviteWorkspaceMemberData;
 use App\Domain\Workspace\Exceptions\WorkspaceMembershipException;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
+use App\Domain\Workspace\Queries\WorkspaceMembersQuery;
 use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Workspace\InviteMemberRequest;
@@ -28,79 +28,14 @@ use Inertia\Response;
 
 class WorkspaceMemberController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, WorkspaceMembersQuery $members): Response
     {
         $workspace = $this->current($request);
 
         Gate::authorize('view', $workspace);
 
-        $canManage = $request->user()?->can(Capability::WorkspaceMembersManage->value, $workspace) ?? false;
-
-        /*
-         * Counted once rather than per row: `isLastOwner()` is a query, and the screen is
-         * open to every member. It is also the only reason the list needs to know about
-         * owners at all.
-         */
-        $activeOwners = $workspace->memberships()
-            ->where('role', WorkspaceRole::Owner->value)
-            ->where('status', WorkspaceMembershipStatus::Active->value)
-            ->count();
-
         return Inertia::render('settings/Members', [
-            'members' => $workspace->memberships()
-                ->with('user')
-                ->where('status', WorkspaceMembershipStatus::Active->value)
-                ->orderBy('created_at')
-                ->get()
-                ->map(fn (WorkspaceMembership $membership): array => [
-                    'id' => $membership->id,
-                    // An active row always names an account — an unclaimed one can only be an
-                    // invitation — and the address is what is left if that ever stops being true.
-                    'name' => $membership->user->name ?? $membership->address(),
-                    /*
-                     * A guest is an outside collaborator (ADR-0006); handing them every
-                     * colleague's address is not part of commenting on a task. Managers
-                     * need it to tell two people apart and to know who they invited.
-                     */
-                    'email' => $canManage || $membership->user_id === $request->user()?->id
-                        ? $membership->address()
-                        : null,
-                    'role' => $membership->role->value,
-                    'joinedAt' => $membership->joined_at?->toIso8601String(),
-                    'isYou' => $membership->user_id === $request->user()?->id,
-                    'isLastOwner' => $membership->role->isOwner() && $activeOwners === 1,
-                ])
-                ->all(),
-            /*
-             * Only for somebody who can act on them. An invitation is a management matter, and
-             * it is mostly an address — which this screen deliberately withholds from everybody
-             * else. Declined and revoked rows are absent from both lists: they are history, and
-             * bringing somebody back is the invite form's job rather than a button on a row.
-             */
-            'invitations' => $canManage
-                ? $workspace->memberships()
-                    ->with('user', 'invitedBy')
-                    ->whereIn('status', [
-                        WorkspaceMembershipStatus::Invited->value,
-                        WorkspaceMembershipStatus::Expired->value,
-                    ])
-                    ->orderBy('created_at')
-                    ->get()
-                    ->map(fn (WorkspaceMembership $invitation): array => [
-                        'id' => $invitation->id,
-                        'email' => $invitation->address(),
-                        'name' => $invitation->user->name ?? null,
-                        'role' => $invitation->role->value,
-                        'invitedBy' => $invitation->invitedBy->name ?? null,
-                        'expiresAt' => $invitation->expires_at?->toIso8601String(),
-                        // The sweep runs on a schedule, so a row can be past its deadline and
-                        // still say `invited`. The screen answers for the deadline, not the column.
-                        'hasExpired' => $invitation->hasExpired()
-                            || $invitation->status === WorkspaceMembershipStatus::Expired,
-                        'hasAccount' => $invitation->isClaimed(),
-                    ])
-                    ->all()
-                : [],
+            ...$members($workspace, $this->actor($request)),
             /*
              * Member first, because it is the answer most invitations want and the form
              * offers the first option by default. Owner is absent: it is transferred, not
@@ -110,9 +45,6 @@ class WorkspaceMemberController extends Controller
                 WorkspaceRole::Member->value,
                 WorkspaceRole::Admin->value,
                 WorkspaceRole::Guest->value,
-            ],
-            'can' => [
-                'manageMembers' => $canManage,
             ],
         ]);
     }
