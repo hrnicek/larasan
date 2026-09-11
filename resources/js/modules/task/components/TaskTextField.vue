@@ -85,11 +85,15 @@ const save = (): void => {
             these widths answer to, because a project's field columns decide how much of the window
             the name ever sees. An input cannot draw an ellipsis, so what it had to cut is in the
             tooltip.
+
+            The twin carries the input's transparent border as well as its padding: without it the
+            input's text box is 2px narrower than the text it was measured from, and every title
+            loses the edge of its last letter.
         -->
         <div class="grid min-w-0 max-w-full">
             <span
                 v-if="size === 'row'"
-                class="invisible col-start-1 row-start-1 min-w-8 truncate px-1 text-sm whitespace-pre"
+                class="invisible col-start-1 row-start-1 min-w-8 truncate border border-transparent px-1 text-sm whitespace-pre"
                 aria-hidden="true"
             >
                 {{ draft || placeholder || ' ' }}
