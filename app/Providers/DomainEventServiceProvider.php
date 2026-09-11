@@ -18,6 +18,7 @@ use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Comment\Listeners\BroadcastCommentChange;
 use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Listeners\NotifyMentionedPeople;
+use App\Domain\Notification\Listeners\NotifyNewCollaborator;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Page\Events\PageCreated;
 use App\Domain\Page\Events\PageDeleted;
@@ -91,6 +92,7 @@ class DomainEventServiceProvider extends ServiceProvider
         ],
         TaskCollaboratorAdded::class => [
             RecordTaskCollaboratorAdded::class,
+            NotifyNewCollaborator::class,
             FollowCollaboratedTask::class,
             BroadcastTaskChange::class,
         ],

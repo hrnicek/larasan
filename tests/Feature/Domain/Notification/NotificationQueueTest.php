@@ -7,9 +7,11 @@ use App\Domain\Comment\Events\CommentCreated;
 use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Listeners\NotifyMentionedPeople;
+use App\Domain\Notification\Listeners\NotifyNewCollaborator;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Events\TaskAssigned;
+use App\Domain\Task\Events\TaskCollaboratorAdded;
 use App\Domain\Task\Models\Task;
 use Illuminate\Events\CallQueuedListener;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +38,14 @@ it('sends notification work to the notifications queue', function (): void {
     // Below `broadcasts` in Horizon's order (ADR-0008): a slow inbox must never delay a board
     // update, and no request should wait on somebody else's notification.
     assertQueued(NotifyAssignee::class, 'notifications');
+});
+
+it('queues the notice to a new collaborator beside it', function (): void {
+    Queue::fake();
+
+    event(new TaskCollaboratorAdded((string) Str::uuid7(), (string) Str::uuid7(), 2, 1));
+
+    assertQueued(NotifyNewCollaborator::class, 'notifications');
 });
 
 it('queues the comment notifications too', function (): void {

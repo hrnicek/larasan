@@ -11,6 +11,7 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Actions\AddTaskCollaborator;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Models\Task;
@@ -39,6 +40,21 @@ function assignTo(Workspace $workspace, User $actor, User $assignee, string $tit
 
     return $task;
 }
+
+it('reads being put on a task beside its assignee, and who did it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    $reader = memberOf($workspace);
+    $task = Task::factory()->in($workspace)->create(['title' => 'Ship it']);
+
+    app(AddTaskCollaborator::class)->handle($task, $actor, $reader);
+
+    $row = inbox($workspace, $reader)['notifications'][0];
+
+    expect($row['type'])->toBe('task.collaborator_added')
+        ->and($row['actor']['id'])->toBe($actor->id)
+        ->and($row['subject']['id'])->toBe($task->id);
+});
 
 it('reads what is waiting for one person here', function (): void {
     $workspace = Workspace::factory()->create();

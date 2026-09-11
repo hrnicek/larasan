@@ -13,7 +13,7 @@ export type InboxProject = {
  */
 export type InboxNotification = {
     id: string;
-    type: 'task.assigned' | 'comment.posted' | 'comment.mentioned' | 'unknown';
+    type: 'task.assigned' | 'task.collaborator_added' | 'comment.posted' | 'comment.mentioned' | 'unknown';
     createdAt: string | null;
     readAt: string | null;
     read: boolean;

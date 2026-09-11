@@ -31,6 +31,7 @@ const emit = defineEmits<{
 
 const kinds: Record<InboxNotification['type'], { verb: string; icon: Component }> = {
     'task.assigned': { verb: 'assigned you', icon: UserPlus },
+    'task.collaborator_added': { verb: 'added you as a collaborator on', icon: UserPlus },
     'comment.posted': { verb: 'commented on', icon: MessageSquare },
     'comment.mentioned': { verb: 'mentioned you on', icon: AtSign },
     unknown: { verb: 'did something about', icon: Bell },

@@ -9,6 +9,7 @@ use App\Domain\Comment\Support\Mentions;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\MentionedInCommentNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
+use App\Domain\Notification\Notifications\TaskCollaboratorAddedNotification;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Payloads\PersonSummary;
@@ -290,6 +291,7 @@ final readonly class InboxQuery
     {
         return match ($notification->type) {
             TaskAssignedNotification::class => 'task.assigned',
+            TaskCollaboratorAddedNotification::class => 'task.collaborator_added',
             CommentPostedNotification::class => 'comment.posted',
             MentionedInCommentNotification::class => 'comment.mentioned',
             // A class name is not something to show anybody, and a notification this query does
@@ -303,7 +305,7 @@ final readonly class InboxQuery
         /** @var array<string, mixed> $data */
         $data = $notification->data;
 
-        $id = $data['assigned_by_id'] ?? $data['author_id'] ?? null;
+        $id = $data['assigned_by_id'] ?? $data['added_by_id'] ?? $data['author_id'] ?? null;
 
         return is_int($id) ? $id : null;
     }
