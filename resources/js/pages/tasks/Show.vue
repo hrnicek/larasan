@@ -40,12 +40,12 @@ useRealtime({
  * project it lives in is the one place that lists it; a task in none of them is only ever
  * reachable from My Tasks, so that is where it points instead.
  */
-const back = (): { url: string; label: string } => {
+const back = (): { url: string; label: string; component: string } => {
     const placement = props.placements[0];
 
     return placement === undefined
-        ? { url: myTasks().url, label: 'My Tasks' }
-        : { url: showProject(placement.project.id).url, label: placement.project.name };
+        ? { url: myTasks().url, label: 'My Tasks', component: 'my-tasks/Index' }
+        : { url: showProject(placement.project.id).url, label: placement.project.name, component: 'projects/Show' };
 };
 
 const detail = (): TaskDetail => ({
@@ -66,10 +66,10 @@ const detail = (): TaskDetail => ({
 });
 
 /** A deleted task has no page left to stand on, so the page leaves for wherever it came from. */
-const leave = (): void => router.visit(back().url);
+const leave = (): void => router.visit(back().url, { component: back().component });
 
 /** A subtask is a task, and on a page the way to open one is to go to it. */
-const openTask = (taskId: string): void => router.visit(showTask(taskId).url);
+const openTask = (taskId: string): void => router.visit(showTask(taskId).url, { component: 'tasks/Show' });
 </script>
 
 <template>
@@ -83,6 +83,8 @@ const openTask = (taskId: string): void => router.visit(showTask(taskId).url);
         <div class="px-4 pt-6 pb-3 md:px-6">
             <Link
                 :href="back().url"
+                :component="back().component"
+                prefetch="click"
                 class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             >
                 <ArrowLeft class="size-4" aria-hidden="true" />

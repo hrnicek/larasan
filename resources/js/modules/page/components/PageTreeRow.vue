@@ -96,6 +96,8 @@ const canMove = computed<boolean>(
 
             <Link
                 :href="pageRoutes.show(page.id).url"
+                :component="isCurrent ? undefined : 'pages/Show'"
+                :prefetch="isCurrent ? false : 'click'"
                 class="flex min-w-0 flex-1 items-center gap-2 py-1.5 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             >
                 <FileText

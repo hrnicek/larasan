@@ -128,7 +128,7 @@ function archiveProject(): void {
             </ContextMenuItem>
 
             <ContextMenuItem as-child>
-                <Link :href="edit(props.project.id).url" class="w-full cursor-default">
+                <Link :href="edit(props.project.id).url" component="projects/Settings" class="w-full cursor-default">
                     <Settings class="mr-2 size-4" />
                     Project settings
                 </Link>

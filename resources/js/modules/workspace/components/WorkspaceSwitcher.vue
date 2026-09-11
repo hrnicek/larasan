@@ -71,7 +71,7 @@ function switchTo(workspace: WorkspaceSummary): void {
                 where the ones waiting for them are answered.
             -->
             <DropdownMenuItem as-child class="gap-2">
-                <Link :href="index()">
+                <Link :href="index()" component="workspaces/Index">
                     <List class="size-4" />
                     <span>All workspaces and invitations</span>
                 </Link>

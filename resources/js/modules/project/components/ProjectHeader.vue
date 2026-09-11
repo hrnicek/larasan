@@ -84,7 +84,7 @@ function toggleStar(): void {
                     </DropdownMenuItem>
 
                     <DropdownMenuItem as-child>
-                        <Link :href="edit(project.id).url" class="block w-full cursor-pointer">
+                        <Link :href="edit(project.id).url" component="projects/Settings" class="block w-full cursor-pointer">
                             <Settings class="mr-2 size-4 text-muted-foreground" />
                             Project settings
                         </Link>

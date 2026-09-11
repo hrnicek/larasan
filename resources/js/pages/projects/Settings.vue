@@ -210,6 +210,8 @@ function discard(reset: () => void): void {
 
                 <Link
                     :href="show(props.project.id).url"
+                    component="projects/Show"
+                    prefetch="click"
                     class="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] font-medium transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
                     <ArrowLeft class="size-4" />

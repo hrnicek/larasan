@@ -84,6 +84,8 @@ const empty = (): boolean => {
             <div class="px-3 pb-2">
                 <Link
                     :href="showProject(project.id, { query: { view: 'pages' } }).url"
+                    component="projects/Show"
+                    prefetch="click"
                     class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
                     <ArrowLeft class="size-4" aria-hidden="true" />

@@ -88,21 +88,22 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                     class="relative min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-xl md:border-t md:border-l md:border-border"
                     @animationend="settled"
                 >
+                    <!-- Above whichever layout is waiting: a settings screen waits inside its own. -->
+                    <div
+                        v-if="failed"
+                        class="mx-4 mt-4 flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
+                        role="alert"
+                    >
+                        <span>This page did not load.</span>
+                        <button type="button" class="font-medium underline" @click="retry">Try again</button>
+                    </div>
+
                     <!--
                         A screen opened instantly is drawn as its skeleton until its own props
                         land (`usePendingScreen`).
                     -->
                     <div v-if="skeleton" data-screen-pending class="flex flex-col" aria-busy="true">
                         <p class="sr-only" role="status">Loading…</p>
-
-                        <div
-                            v-if="failed"
-                            class="mx-4 mt-4 flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
-                            role="alert"
-                        >
-                            <span>This page did not load.</span>
-                            <button type="button" class="font-medium underline" @click="retry">Try again</button>
-                        </div>
 
                         <component :is="skeleton" />
                     </div>

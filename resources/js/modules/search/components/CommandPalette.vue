@@ -187,17 +187,20 @@ function openSaved(search: SavedSearch): void {
                 completed: search.filters.completed,
             },
         }),
+        { component: 'search/Index' },
     );
 }
 
 function openRecent(item: RecentItem): void {
     hide();
 
-    router.visit(
-        item.kind === 'tasks'
-            ? TaskController.show.url({ task: item.id })
-            : ProjectController.show.url({ project: item.id }),
-    );
+    if (item.kind === 'tasks') {
+        router.visit(TaskController.show.url({ task: item.id }), { component: 'tasks/Show' });
+
+        return;
+    }
+
+    router.visit(ProjectController.show.url({ project: item.id }), { component: 'projects/Show' });
 }
 
 function forget(search: SavedSearch): void {

@@ -65,6 +65,8 @@ defineProps<{
 
                 <Link
                     :href="edit(project.id).url"
+                    component="projects/Settings"
+                    prefetch="click"
                     class="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-8 md:opacity-0 md:group-hover/row:opacity-100"
                     :aria-label="`Settings for ${project.name}`"
                 >

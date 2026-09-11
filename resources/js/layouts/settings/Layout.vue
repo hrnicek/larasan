@@ -4,6 +4,7 @@ import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
+import { usePendingSkeleton } from '@/composables/usePendingScreen';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as fields } from '@/routes/custom-fields';
@@ -17,34 +18,47 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'Profile',
         href: editProfile(),
+        component: 'settings/Profile',
     },
     {
         title: 'Workspace',
         href: editWorkspace(),
+        component: 'settings/Workspace',
     },
     {
         title: 'Members',
         href: members(),
+        component: 'settings/Members',
     },
     {
         title: 'Fields',
         href: fields(),
+        component: 'settings/Fields',
     },
     {
         title: 'Tags',
         href: tags(),
+        component: 'settings/Tags',
     },
     {
         title: 'Security',
         href: editSecurity(),
+        component: 'settings/Security',
     },
     {
         title: 'Appearance',
         href: editAppearance(),
+        component: 'settings/Appearance',
     },
 ];
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
+
+/*
+ * The layout outlives the screens inside it, so moving between them keeps the navigation where it
+ * is and draws only the column the next screen fills.
+ */
+const skeleton = usePendingSkeleton('settings');
 </script>
 
 <template>
@@ -71,7 +85,11 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
                         ]"
                         as-child
                     >
-                        <Link :href="item.href">
+                        <Link
+                            :href="item.href"
+                            :component="isCurrentOrParentUrl(item.href) ? undefined : item.component"
+                            :prefetch="isCurrentOrParentUrl(item.href) ? false : 'click'"
+                        >
                             <component :is="item.icon" class="h-4 w-4" />
                             {{ item.title }}
                         </Link>
@@ -83,7 +101,13 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 
             <div class="flex-1 md:max-w-2xl">
                 <section class="max-w-xl space-y-12">
-                    <slot />
+                    <div v-if="skeleton" data-screen-pending aria-busy="true">
+                        <p class="sr-only" role="status">Loading…</p>
+
+                        <component :is="skeleton" />
+                    </div>
+
+                    <slot v-else />
                 </section>
             </div>
         </div>

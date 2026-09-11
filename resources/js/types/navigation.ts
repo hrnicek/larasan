@@ -11,4 +11,6 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon;
     isActive?: boolean;
+    /** The page component the link opens, for an instant visit (`usePendingScreen`). */
+    component?: string;
 };

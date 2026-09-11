@@ -49,6 +49,8 @@ const ancestors = computed<PageNode[]>(() => {
             <li class="min-w-0 shrink-0">
                 <Link
                     :href="showProject(project.id, { query: { view: 'pages' } }).url"
+                    component="projects/Show"
+                    prefetch="click"
                     class="truncate transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >{{ project.name }}</Link>
             </li>
@@ -58,6 +60,8 @@ const ancestors = computed<PageNode[]>(() => {
 
                 <Link
                     :href="pageRoutes.show(ancestor.id).url"
+                    component="pages/Show"
+                    prefetch="click"
                     class="truncate transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >{{ ancestor.title }}</Link>
             </li>

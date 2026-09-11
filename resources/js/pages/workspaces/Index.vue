@@ -108,7 +108,7 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                         as-child
                         variant="outline"
                     >
-                        <Link :href="edit()">Settings</Link>
+                        <Link :href="edit()" component="settings/Workspace" prefetch="click">Settings</Link>
                     </Button>
                     <Button v-else variant="ghost" @click="open(workspace)">
                         Open
