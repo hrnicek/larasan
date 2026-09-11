@@ -173,6 +173,7 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
             :feed="activity"
             :can-comment="detail.can.comment"
             :viewer="viewer"
+            :people="members"
         />
     </div>
 </template>

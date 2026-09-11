@@ -7,7 +7,7 @@ import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import CommentForm from '@/modules/comment/components/CommentForm.vue';
 import CommentLine from '@/modules/comment/components/CommentLine.vue';
-import type { TaskFeed, TaskFeedEntry } from '@/modules/task/types';
+import type { TaskAssignee, TaskFeed, TaskFeedEntry } from '@/modules/task/types';
 
 /**
  * What has happened to this task, and what people have said about it.
@@ -27,6 +27,8 @@ const props = defineProps<{
     canComment: boolean;
     /** The composer's own face, so the reply box says who is about to speak. */
     viewer: { name: string; avatar: string | null } | null;
+    /** Who a comment can name with `@`. */
+    people: TaskAssignee[];
 }>();
 
 /**
@@ -122,7 +124,7 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
 
                 <ul v-if="lines.length" class="flex flex-col gap-4">
                     <template v-for="entry in lines" :key="entry.id">
-                        <CommentLine v-if="entry.kind === 'comment'" :entry="entry" />
+                        <CommentLine v-if="entry.kind === 'comment'" :entry="entry" :people="people" />
 
                         <li v-else class="flex items-center gap-2 text-sm text-muted-foreground">
                             <UserAvatar
@@ -155,7 +157,7 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
             v-if="canComment"
             class="sticky bottom-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:px-6"
         >
-            <CommentForm :task-id="taskId" :viewer="viewer" />
+            <CommentForm :task-id="taskId" :viewer="viewer" :people="people" />
         </div>
     </section>
 </template>

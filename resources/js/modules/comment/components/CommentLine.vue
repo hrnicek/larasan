@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import CommentController from '@/actions/App/Http/Controllers/Comment/CommentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
-import type { TaskFeedEntry } from '@/modules/task/types';
+import MentionTextarea from '@/modules/comment/components/MentionTextarea.vue';
+import { segmentsOf, toDisplay, toStorage } from '@/modules/comment/mentions';
+import type { NamedPerson } from '@/modules/comment/mentions';
+import type { TaskAssignee, TaskFeedEntry } from '@/modules/task/types';
 
 /**
  * One thing somebody said.
@@ -13,21 +16,34 @@ import type { TaskFeedEntry } from '@/modules/task/types';
  * A removed comment keeps its place and loses its words: closing the gap would change what the
  * conversation appears to say, and an edited one says so — a thread that silently presents
  * different words leaves everybody who replied answering something nobody can see.
+ *
+ * A mention is drawn from the body's runs of text, never as markup, and one naming the reader is
+ * drawn stronger so they can find where they were asked.
  */
-const props = defineProps<{ entry: TaskFeedEntry }>();
+const props = defineProps<{ entry: TaskFeedEntry; people: TaskAssignee[] }>();
+
+const viewerId = computed<number | null>(() => usePage().props.auth.user?.id ?? null);
+const segments = computed(() => segmentsOf(props.entry.body ?? ''));
 
 const editing = ref(false);
-const form = useForm({ body: props.entry.body ?? '' });
+const draft = ref('');
+const named = ref<NamedPerson[]>([]);
+const form = useForm({ body: '' });
 
 const startEditing = (): void => {
-    form.body = props.entry.body ?? '';
+    const shown = toDisplay(props.entry.body ?? '');
+
+    draft.value = shown.text;
+    named.value = shown.named;
     editing.value = true;
 };
 
 const save = (): void => {
-    if (form.processing || form.body.trim() === '') {
+    if (form.processing || draft.value.trim() === '') {
         return;
     }
+
+    form.body = toStorage(draft.value, named.value);
 
     form.put(CommentController.update.url(props.entry.id), {
         preserveScroll: true,
@@ -68,15 +84,18 @@ const remove = (): void => {
         <p v-if="entry.deleted" class="text-muted-foreground italic">Comment removed.</p>
 
         <template v-else-if="editing">
-            <textarea
-                v-model="form.body"
+            <MentionTextarea
+                v-model="draft"
+                v-model:named="named"
+                :people="people"
                 rows="3"
                 :disabled="form.processing"
                 class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-70"
-                @keydown.enter.meta.prevent="save"
-                @keydown.enter.ctrl.prevent="save"
-                @keydown.esc.prevent="editing = false"
+                @submit="save"
+                @cancel="editing = false"
             />
+
+            <p v-if="form.errors.body" class="text-xs text-destructive">{{ form.errors.body }}</p>
 
             <div class="flex gap-2 text-xs">
                 <button
@@ -94,7 +113,7 @@ const remove = (): void => {
         </template>
 
         <template v-else>
-            <p class="whitespace-pre-line">{{ entry.body }}</p>
+            <p class="break-words whitespace-pre-line"><template v-for="(segment, index) in segments" :key="index"><span v-if="segment.kind === 'mention'" class="rounded px-0.5 font-medium text-primary" :class="segment.id === viewerId ? 'bg-primary/15' : 'bg-primary/5'">@{{ segment.name }}</span><template v-else>{{ segment.text }}</template></template></p>
 
             <div
                 v-if="entry.canEdit || entry.canDelete"
