@@ -40,6 +40,8 @@ const greeting = computed<string>(() => {
         <div class="mb-8 grid gap-3 sm:grid-cols-2">
             <Link
                 :href="MyTasksController.index.url()"
+                component="my-tasks/Index"
+                prefetch="click"
                 class="group flex items-center gap-3 rounded-md border border-border p-4 transition-colors hover:border-primary/40 hover:bg-primary-subtle focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             >
                 <CheckSquare class="size-5 shrink-0 text-primary" />
@@ -49,6 +51,8 @@ const greeting = computed<string>(() => {
 
             <Link
                 :href="InboxController.index.url()"
+                component="inbox/Index"
+                prefetch="click"
                 class="group flex items-center gap-3 rounded-md border border-border p-4 transition-colors hover:border-primary/40 hover:bg-primary-subtle focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             >
                 <Bell class="size-5 shrink-0 text-primary" />
@@ -67,6 +71,8 @@ const greeting = computed<string>(() => {
                 <li v-for="project in projects" :key="project.id">
                     <Link
                         :href="show(project.id).url"
+                        component="projects/Show"
+                        prefetch="click"
                         class="flex items-center gap-2.5 rounded-md border border-border px-3 py-2.5 text-sm transition-colors hover:border-primary/40 hover:bg-primary-subtle focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     >
                         <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(project.color)" :style="accentVars(project.color)" />

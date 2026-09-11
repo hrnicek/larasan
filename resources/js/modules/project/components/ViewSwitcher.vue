@@ -36,6 +36,25 @@ const icons: Record<string, Component> = {
 const planned: { label: string; icon: Component }[] = [{ label: 'Dashboard', icon: LayoutDashboard }];
 
 const isCurrent = (view: string): boolean => view === props.current;
+
+/*
+ * The switch is instant (Inertia v3): the screen stays, the tab moves at once, and only the region
+ * the new view draws waits for the server — `projects/Show` draws that region's skeleton while it
+ * holds no view payload. An open panel goes with the old view, as the address it lived on does.
+ */
+const switchingTo =
+    (view: string) =>
+    (current: Record<string, unknown>): Record<string, unknown> => ({
+        ...current,
+        view,
+        list: undefined,
+        board: undefined,
+        calendar: undefined,
+        files: undefined,
+        pages: undefined,
+        taskDetail: null,
+        activity: undefined,
+    });
 </script>
 
 <template>
@@ -44,6 +63,9 @@ const isCurrent = (view: string): boolean => view === props.current;
             v-for="view in views"
             :key="view"
             :href="show(projectId, { query: { view } }).url"
+            :component="isCurrent(view) ? undefined : 'projects/Show'"
+            :page-props="isCurrent(view) ? undefined : switchingTo(view)"
+            :prefetch="isCurrent(view) ? false : 'click'"
             :aria-current="isCurrent(view) ? 'page' : undefined"
             class="inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 pt-1 pb-2.5 text-sm font-medium capitalize transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             :class="

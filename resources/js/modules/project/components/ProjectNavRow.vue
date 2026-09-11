@@ -22,6 +22,7 @@ const { isCurrentUrl } = useCurrentUrl();
         <ChromeNavItem
             :href="show(props.project.id).url"
             :label="props.project.name"
+            component="projects/Show"
             :active="isCurrentUrl(show(props.project.id).url)"
         >
             <template #icon>

@@ -128,6 +128,30 @@
     }
 }
 
+/*
+ * A screen fades in when it arrives, and a skeleton only once the wait is long enough to notice
+ * (`AppShell`). Opacity alone: a transform, even an identity one, would make the page the
+ * containing block of everything fixed inside it for as long as the animation runs. A skeleton
+ * spends its first 120ms invisible, so a response inside that time replaces it before anybody
+ * sees a flash of grey.
+ */
+@keyframes screen-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [data-screen-canvas][data-entering] > * {
+        animation: screen-in 160ms ease-out;
+    }
+
+    [data-screen-pending],
+    [data-screen-canvas] > [data-screen-pending] {
+        animation: screen-in 200ms ease-out 120ms both;
+    }
+}
+
 @layer utilities {
     body,
     html {

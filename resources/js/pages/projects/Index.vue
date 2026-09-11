@@ -45,6 +45,8 @@ defineProps<{
             >
                 <Link
                     :href="show(project.id).url"
+                    component="projects/Show"
+                    prefetch="click"
                     class="flex min-h-11 min-w-0 flex-1 items-center gap-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
                     <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" />

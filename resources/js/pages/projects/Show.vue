@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -13,6 +13,8 @@ import FieldSortControl from '@/modules/custom-field/components/FieldSortControl
 import type { ProjectPages } from '@/modules/page/types';
 import InlineSectionCreate from '@/modules/project/components/InlineSectionCreate.vue';
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
+import ProjectViewSkeleton from '@/modules/project/components/ProjectViewSkeleton.vue';
+import { rememberLandingView } from '@/modules/project/landingView';
 import type { ProjectCustomize, ProjectFiles, ProjectHeading, ProjectShare } from '@/modules/project/types';
 import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable, PagesTree } from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
@@ -101,6 +103,24 @@ const drawing = computed<string>(() =>
             : props.pages
               ? 'pages'
               : 'list',
+);
+
+const page = usePage();
+
+/*
+ * An address without `?view=` draws the project's default view, which only the server knows. It
+ * is written down so the next instant visit to this address draws a skeleton of that shape.
+ */
+watch(
+    () => props.view,
+    (view) => {
+        const address = new URL(page.url, window.location.origin);
+
+        if (!address.searchParams.has('view')) {
+            rememberLandingView(address.pathname, view);
+        }
+    },
+    { immediate: true },
 );
 
 /*
@@ -273,7 +293,7 @@ onUnmounted(() => {
                 a tag filter over a list of documents would answer a question about something the
                 reader is not looking at.
             -->
-            <div v-if="!files && !pages" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+            <div v-if="view !== 'files' && view !== 'pages'" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
                 <Link
                     v-if="creatable()"
                     :href="createTask({ query: { project: project.id } })"
@@ -463,6 +483,9 @@ onUnmounted(() => {
 
         <!-- The fifth: what was written beside the work rather than inside a task. -->
         <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
+
+        <!-- No payload yet: the view switcher has swapped to the new view before its answer. -->
+        <ProjectViewSkeleton v-else data-screen-pending :view="view" />
             </div>
 
             <!-- The panel teleports itself over the page; it is placed here so it is torn down

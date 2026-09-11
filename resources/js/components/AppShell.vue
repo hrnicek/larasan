@@ -1,14 +1,40 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppTopbar from '@/components/AppTopbar.vue';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { usePendingScreen } from '@/composables/usePendingScreen';
 import { provideShell } from '@/composables/useShell';
 import CommandPalette from '@/modules/search/components/CommandPalette.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 
 const { mobileOpen } = provideShell();
+
+const page = usePage();
+const { skeleton, failed, retry } = usePendingScreen();
+
+/*
+ * A screen fades in when it is a different screen, or when it replaces its own skeleton — never
+ * when the same screen is drawn again after a write, which would read as the page blinking. The
+ * flag is raised before the render that inserts the new page, so the animation in `app.css` is on
+ * the element from its first frame, and lowered when that animation ends.
+ */
+const screen = computed<string>(() => `${page.component} ${new URL(page.url, window.location.origin).pathname}`);
+const entering = ref(false);
+
+watch([screen, skeleton], ([current, pending], [previous, wasPending]) => {
+    if (current !== previous || (wasPending !== null && pending === null)) {
+        entering.value = true;
+    }
+});
+
+const settled = (event: AnimationEvent): void => {
+    if (event.animationName === 'screen-in') {
+        entering.value = false;
+    }
+};
 
 /*
  * The palette is drawn once, here: it opens over any screen, and one listener on the document is
@@ -50,11 +76,38 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                     shell's own height and lets the whole application scroll out of the window.
                     Positioning the canvas keeps every absolute descendant inside the box that
                     scrolls and clips.
+
+                    `scroll-region` hands the canvas to Inertia: a new screen starts at its top,
+                    and back or forward returns to where the reader was. The window never scrolls
+                    in this shell, so without it every screen opened at the last one's depth.
                 -->
                 <div
+                    scroll-region
+                    data-screen-canvas
+                    :data-entering="entering ? '' : undefined"
                     class="relative min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-xl md:border-t md:border-l md:border-border"
+                    @animationend="settled"
                 >
-                    <slot />
+                    <!--
+                        A screen opened instantly is drawn as its skeleton until its own props
+                        land (`usePendingScreen`).
+                    -->
+                    <div v-if="skeleton" data-screen-pending class="flex flex-col" aria-busy="true">
+                        <p class="sr-only" role="status">Loading…</p>
+
+                        <div
+                            v-if="failed"
+                            class="mx-4 mt-4 flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
+                            role="alert"
+                        >
+                            <span>This page did not load.</span>
+                            <button type="button" class="font-medium underline" @click="retry">Try again</button>
+                        </div>
+
+                        <component :is="skeleton" />
+                    </div>
+
+                    <slot v-else />
                 </div>
             </div>
 

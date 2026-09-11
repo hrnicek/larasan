@@ -40,11 +40,12 @@ const unread = computed<number>(() => page.props.unreadNotifications);
  */
 useInboxRealtime();
 
+/* Each names the page it opens, so the visit is instant (`ChromeNavItem`). */
 const primary = computed(() => [
-    { label: 'Home', href: dashboard().url, icon: Home },
-    { label: 'My Tasks', href: MyTasksController.index.url(), icon: CheckSquare },
-    { label: 'Inbox', href: InboxController.index.url(), icon: Bell, badge: unread.value },
-    { label: 'Projects', href: projectIndex().url, icon: FolderKanban },
+    { label: 'Home', href: dashboard().url, icon: Home, component: 'Dashboard' },
+    { label: 'My Tasks', href: MyTasksController.index.url(), icon: CheckSquare, component: 'my-tasks/Index' },
+    { label: 'Inbox', href: InboxController.index.url(), icon: Bell, badge: unread.value, component: 'inbox/Index' },
+    { label: 'Projects', href: projectIndex().url, icon: FolderKanban, component: 'projects/Index' },
 ]);
 </script>
 
@@ -63,6 +64,7 @@ const primary = computed(() => [
                     :label="item.label"
                     :icon="item.icon"
                     :badge="item.badge"
+                    :component="item.component"
                     :active="isCurrentUrl(item.href)"
                     class="w-full"
                 />
