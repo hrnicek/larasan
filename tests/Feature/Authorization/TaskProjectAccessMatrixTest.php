@@ -56,6 +56,7 @@ function projectAccessOperation(string $operation, Task $task): array
         'update' => ['put', route('tasks.update', $task), ['title' => 'Renamed']],
         'complete' => ['put', route('tasks.complete', $task), []],
         'assign' => ['put', route('tasks.assign', $task), []],
+        'collaborate' => ['post', route('tasks.collaborators.store', $task), ['user_id' => memberOf($task->workspace)->id]],
         'delete' => ['delete', route('tasks.destroy', $task), []],
         'comment' => ['post', route('tasks.comments.store', $task), ['body' => 'Said something']],
         default => throw new InvalidArgumentException("Unknown operation [{$operation}]."),
@@ -82,18 +83,21 @@ it('answers each project access level the same way at every task endpoint', func
     if ($outcome !== 'allowed') {
         expect($task->fresh()?->title)->toBe('Untouched')
             ->and($task->fresh()?->isCompleted())->toBeFalse()
-            ->and($task->fresh()?->comments()->count())->toBe(0);
+            ->and($task->fresh()?->comments()->count())->toBe(0)
+            ->and($task->collaborations()->count())->toBe(0);
     }
 })->with([
     'owner update' => [ProjectAccessLevel::Owner, 'update', 'allowed'],
     'owner complete' => [ProjectAccessLevel::Owner, 'complete', 'allowed'],
     'owner assign' => [ProjectAccessLevel::Owner, 'assign', 'allowed'],
+    'owner collaborate' => [ProjectAccessLevel::Owner, 'collaborate', 'allowed'],
     'owner delete' => [ProjectAccessLevel::Owner, 'delete', 'allowed'],
     'owner comment' => [ProjectAccessLevel::Owner, 'comment', 'allowed'],
 
     'editor update' => [ProjectAccessLevel::Editor, 'update', 'allowed'],
     'editor complete' => [ProjectAccessLevel::Editor, 'complete', 'allowed'],
     'editor assign' => [ProjectAccessLevel::Editor, 'assign', 'allowed'],
+    'editor collaborate' => [ProjectAccessLevel::Editor, 'collaborate', 'allowed'],
     'editor delete' => [ProjectAccessLevel::Editor, 'delete', 'allowed'],
     'editor comment' => [ProjectAccessLevel::Editor, 'comment', 'allowed'],
 
@@ -101,12 +105,14 @@ it('answers each project access level the same way at every task endpoint', func
     'commenter update' => [ProjectAccessLevel::Commenter, 'update', 'forbidden'],
     'commenter complete' => [ProjectAccessLevel::Commenter, 'complete', 'forbidden'],
     'commenter assign' => [ProjectAccessLevel::Commenter, 'assign', 'forbidden'],
+    'commenter collaborate' => [ProjectAccessLevel::Commenter, 'collaborate', 'forbidden'],
     'commenter delete' => [ProjectAccessLevel::Commenter, 'delete', 'forbidden'],
     'commenter comment' => [ProjectAccessLevel::Commenter, 'comment', 'allowed'],
 
     'viewer update' => [ProjectAccessLevel::Viewer, 'update', 'forbidden'],
     'viewer complete' => [ProjectAccessLevel::Viewer, 'complete', 'forbidden'],
     'viewer assign' => [ProjectAccessLevel::Viewer, 'assign', 'forbidden'],
+    'viewer collaborate' => [ProjectAccessLevel::Viewer, 'collaborate', 'forbidden'],
     'viewer delete' => [ProjectAccessLevel::Viewer, 'delete', 'forbidden'],
     'viewer comment' => [ProjectAccessLevel::Viewer, 'comment', 'forbidden'],
 
@@ -133,7 +139,7 @@ it('refuses every change to a task whose only board is archived', function (stri
 
     expect($task->fresh()?->title)->toBe('Untouched')
         ->and($task->fresh()?->isCompleted())->toBeFalse();
-})->with(['update', 'complete', 'assign', 'delete', 'comment']);
+})->with(['update', 'complete', 'assign', 'collaborate', 'delete', 'comment']);
 
 it('lets a task on a live board be changed while it is also on an archived one', function (): void {
     [$task, $actor, $archived] = taskInProjectFor(ProjectAccessLevel::Owner, archived: true);

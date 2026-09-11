@@ -38,6 +38,7 @@ function matrixTaskOperation(string $operation, Task $task): array
         'update' => ['put', route('tasks.update', $task), ['title' => 'Renamed']],
         'complete' => ['put', route('tasks.complete', $task), []],
         'assign' => ['put', route('tasks.assign', $task), []],
+        'collaborate' => ['post', route('tasks.collaborators.store', $task), ['user_id' => memberOf($task->workspace)->id]],
         'delete' => ['delete', route('tasks.destroy', $task), []],
         default => throw new InvalidArgumentException("Unknown matrix operation [{$operation}]."),
     };
@@ -63,28 +64,33 @@ it('answers each role the same way at every task endpoint', function (
 
     if ($outcome !== 'allowed') {
         expect($task->fresh()?->title)->toBe('Untouched')
-            ->and($task->fresh()?->isCompleted())->toBeFalse();
+            ->and($task->fresh()?->isCompleted())->toBeFalse()
+            ->and($task->collaborations()->count())->toBe(0);
     }
 })->with([
     'owner create' => [WorkspaceRole::Owner, 'create', 'allowed'],
     'owner update' => [WorkspaceRole::Owner, 'update', 'allowed'],
     'owner complete' => [WorkspaceRole::Owner, 'complete', 'allowed'],
     'owner assign' => [WorkspaceRole::Owner, 'assign', 'allowed'],
+    'owner collaborate' => [WorkspaceRole::Owner, 'collaborate', 'allowed'],
     'owner delete' => [WorkspaceRole::Owner, 'delete', 'allowed'],
     'admin create' => [WorkspaceRole::Admin, 'create', 'allowed'],
     'admin update' => [WorkspaceRole::Admin, 'update', 'allowed'],
     'admin complete' => [WorkspaceRole::Admin, 'complete', 'allowed'],
     'admin assign' => [WorkspaceRole::Admin, 'assign', 'allowed'],
+    'admin collaborate' => [WorkspaceRole::Admin, 'collaborate', 'allowed'],
     'admin delete' => [WorkspaceRole::Admin, 'delete', 'allowed'],
     'member create' => [WorkspaceRole::Member, 'create', 'allowed'],
     'member update' => [WorkspaceRole::Member, 'update', 'allowed'],
     'member complete' => [WorkspaceRole::Member, 'complete', 'allowed'],
     'member assign' => [WorkspaceRole::Member, 'assign', 'allowed'],
+    'member collaborate' => [WorkspaceRole::Member, 'collaborate', 'allowed'],
     'member delete' => [WorkspaceRole::Member, 'delete', 'allowed'],
     'guest create' => [WorkspaceRole::Guest, 'create', 'forbidden'],
     'guest update' => [WorkspaceRole::Guest, 'update', 'forbidden'],
     'guest complete' => [WorkspaceRole::Guest, 'complete', 'forbidden'],
     'guest assign' => [WorkspaceRole::Guest, 'assign', 'forbidden'],
+    'guest collaborate' => [WorkspaceRole::Guest, 'collaborate', 'forbidden'],
     'guest delete' => [WorkspaceRole::Guest, 'delete', 'forbidden'],
 ]);
 
@@ -112,7 +118,7 @@ it('refuses every operation while the membership is not active', function (
     'declined' => WorkspaceMembershipStatus::Declined,
     'revoked' => WorkspaceMembershipStatus::Revoked,
     'expired' => WorkspaceMembershipStatus::Expired,
-])->with(['create', 'update', 'complete', 'assign', 'delete']);
+])->with(['create', 'update', 'complete', 'assign', 'collaborate', 'delete']);
 
 it('hides another workspace s task at every endpoint that names one', function (string $operation): void {
     [$task] = matrixTask(WorkspaceRole::Owner);
@@ -123,7 +129,7 @@ it('hides another workspace s task at every endpoint that names one', function (
     $this->actingAs($outsider)->{$method}($url, $payload)->assertNotFound();
 
     expect($task->fresh()?->title)->toBe('Untouched');
-})->with(['update', 'complete', 'assign', 'delete']);
+})->with(['update', 'complete', 'assign', 'collaborate', 'delete']);
 
 it('redirects an unauthenticated visitor from every task endpoint', function (string $operation): void {
     [$task] = matrixTask(WorkspaceRole::Owner);

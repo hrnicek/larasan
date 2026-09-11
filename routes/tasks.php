@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Task\Models\Task;
+use App\Http\Controllers\Task\TaskCollaboratorController;
 use App\Http\Controllers\Task\TaskController;
 use App\Http\Controllers\Task\TaskFollowerController;
 use App\Http\Controllers\Task\TaskStarController;
@@ -29,6 +30,13 @@ Route::middleware(['auth', 'verified'])->whereUuid('task')->group(function (): v
     Route::delete('tasks/{task}/completion', [TaskController::class, 'reopen'])->name('tasks.reopen');
 
     Route::put('tasks/{task}/assignee', [TaskController::class, 'assign'])->name('tasks.assign');
+
+    // The people beside the assignee. Adding is assigning; stepping off yourself asks nothing,
+    // the way unfollowing does. The collaborator is an id, never a bound user (TASK-310-003).
+    Route::post('tasks/{task}/collaborators', [TaskCollaboratorController::class, 'store'])->name('tasks.collaborators.store');
+    Route::delete('tasks/{task}/collaborators/{collaborator}', [TaskCollaboratorController::class, 'destroy'])
+        ->whereNumber('collaborator')
+        ->name('tasks.collaborators.destroy');
 
     // Watching is a state with two directions, like completion: POST starts, DELETE stops.
     /*
