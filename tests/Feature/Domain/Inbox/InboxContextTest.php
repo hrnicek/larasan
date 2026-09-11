@@ -75,15 +75,15 @@ it('never names a project the reader cannot open', function (): void {
     expect(array_column($projects, 'name'))->toBe(['Launch']);
 });
 
-it('quotes what a comment said, on one line', function (): void {
+it('quotes what a comment said, with the people it names as names', function (): void {
     [$workspace, , $author] = placeableProject();
     $reader = memberOf($workspace);
     $task = Task::factory()->in($workspace)->create();
 
-    commentFollowedBy($reader, $task, $author, "Over to  Jana\nfor the copy");
+    commentFollowedBy($reader, $task, $author, "Over to  @[{$reader->name}](user:{$reader->id})\nfor the copy");
 
     expect(inbox($workspace, $reader)['notifications'][0]['excerpt'])
-        ->toBe('Over to Jana for the copy');
+        ->toBe("Over to @{$reader->name} for the copy");
 });
 
 it('shortens a long comment rather than carrying all of it', function (): void {

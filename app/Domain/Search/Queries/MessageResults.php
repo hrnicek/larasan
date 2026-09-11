@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Html\RichText;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
@@ -74,7 +75,7 @@ final readonly class MessageResults
 
         return [
             'id' => $comment->id,
-            'excerpt' => Str::limit(RichText::toPlainText($comment->body), self::EXCERPT),
+            'excerpt' => Str::limit(RichText::toPlainText(Mentions::toPlainText($comment->body)), self::EXCERPT),
             'createdAt' => $comment->created_at?->toIso8601String(),
             'edited' => $comment->isEdited(),
             'author' => $author === null ? null : [

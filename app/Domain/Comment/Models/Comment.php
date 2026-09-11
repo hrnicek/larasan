@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Comment\Models;
 
+use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Html\RichText;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -62,7 +63,8 @@ class Comment extends Model
             'id' => (string) $this->id,
             'workspace_id' => (string) $this->workspace_id,
             'commentable_type' => (string) $this->commentable_type,
-            'body' => RichText::toPlainText($this->body),
+            // `@Jana Nováková` rather than the token, so a name finds the comments that mention it.
+            'body' => RichText::toPlainText(Mentions::toPlainText($this->body)),
         ];
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Notification\Queries;
 
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Comment\Support\Mentions;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\MentionedInCommentNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
@@ -210,7 +211,7 @@ final readonly class InboxQuery
             ->whereIn('id', $ids)
             ->get(['id', 'body'])
             ->mapWithKeys(fn (Comment $comment): array => [
-                (string) $comment->id => Str::limit(Str::squish($comment->body), self::EXCERPT_LENGTH),
+                (string) $comment->id => Str::limit(Str::squish(Mentions::toPlainText($comment->body)), self::EXCERPT_LENGTH),
             ]);
     }
 

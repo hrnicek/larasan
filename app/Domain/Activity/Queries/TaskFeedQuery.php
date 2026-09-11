@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Activity\Queries;
 
+use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -56,6 +57,7 @@ final readonly class TaskFeedQuery
         $rows = array_values($lines->items());
 
         $actors = $this->actors($rows);
+        $names = $this->mentionedNames($task, $rows);
 
         /*
          * Asked once for the page rather than per line. Reach is already settled — somebody
@@ -66,7 +68,7 @@ final readonly class TaskFeedQuery
         $canModerate = $task->workspace->membershipFor($viewer)?->allows(Capability::CommentDelete) === true;
 
         return [
-            'entries' => array_map(fn (object $line): array => $this->entry($line, $actors, $viewer, $canModerate), $rows),
+            'entries' => array_map(fn (object $line): array => $this->entry($line, $actors, $names, $viewer, $canModerate), $rows),
             'meta' => [
                 'page' => $lines->currentPage(),
                 'perPage' => $lines->perPage(),
@@ -151,11 +153,39 @@ final readonly class TaskFeedQuery
     }
 
     /**
+     * The name each person mentioned on this page goes by now, in one read.
+     *
+     * Only live members of this workspace are looked up. A token is text a request wrote, and
+     * resolving its id against every account would let a crafted one read a stranger's name — so
+     * a token naming anybody else keeps the name it was written with.
+     *
+     * @param  list<FeedLine>  $lines
+     * @return array<int, string>
+     */
+    private function mentionedNames(Task $task, array $lines): array
+    {
+        $ids = array_values(array_unique(array_merge(...array_map(
+            fn (object $line): array => $line->body === null || $line->deleted_at !== null ? [] : Mentions::idsIn($line->body),
+            $lines,
+        ))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        /** @var array<int, string> $names */
+        $names = $task->workspace->members()->whereKey($ids)->pluck('users.name', 'users.id')->all();
+
+        return $names;
+    }
+
+    /**
      * @param  FeedLine  $line
      * @param  Collection<int, User>  $actors
+     * @param  array<int, string>  $names
      * @return array<string, mixed>
      */
-    private function entry(object $line, Collection $actors, User $viewer, bool $canModerate): array
+    private function entry(object $line, Collection $actors, array $names, User $viewer, bool $canModerate): array
     {
         $actor = $actors->get($line->actor_id);
         $deleted = $line->deleted_at !== null;
@@ -182,8 +212,8 @@ final readonly class TaskFeedQuery
                 'email' => $actor->email,
             ],
             // The words of a removed comment are not readable through the feed that reports it
-            // as removed.
-            'body' => $deleted ? null : $line->body,
+            // as removed. A mention reads with the name the person has today.
+            'body' => $deleted || $line->body === null ? null : Mentions::withNames($line->body, $names),
             'edited' => $line->edited_at !== null,
             'deleted' => $deleted,
             'type' => $line->type,
