@@ -256,10 +256,7 @@ const remove = (): void => {
                                 v-if="file.uploader"
                                 class="flex items-center gap-2"
                             >
-                                <UserAvatar
-                                    :user="{ name: file.uploader.name }"
-                                    size="xs"
-                                />
+                                <UserAvatar :user="file.uploader" size="xs" />
                                 <span class="truncate">{{
                                     file.uploader.name
                                 }}</span>

@@ -10,6 +10,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\FileKind;
 use App\Domain\Shared\Enums\ProjectFileSort;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -121,7 +122,7 @@ final readonly class ProjectFilesQuery
                 ->visible()
                 ->where('project_id', $project->id)
                 ->select('task_id'))
-            ->with('file.uploader:id,name,email')
+            ->with(PersonSummary::eager('file.uploader'))
             // The column comes from the enum, never from the request: a client-supplied string
             // has no business reaching an `order by`.
             ->orderBy($sort->column(), $descending ? 'desc' : 'asc')
@@ -174,11 +175,7 @@ final readonly class ProjectFilesQuery
              * inbox nulls its actor: a file outlives the person who uploaded it, and the column
              * says so.
              */
-            'uploader' => $uploader === null ? null : [
-                'id' => $uploader->id,
-                'name' => $uploader->name,
-                'email' => $uploader->email,
-            ],
+            'uploader' => PersonSummary::fromNullable($uploader),
             /*
              * What it hangs from. Only ever a task today, and named as one, so the screen can
              * open the panel rather than guess what kind of thing this is.

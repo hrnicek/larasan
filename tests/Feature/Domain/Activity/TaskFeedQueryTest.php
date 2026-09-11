@@ -78,7 +78,7 @@ it('carries the actor of each line', function (): void {
 
     $entry = feedOf($task)['entries'][0];
 
-    expect($entry['actor'])->toBe(['id' => $author->id, 'name' => $author->name, 'email' => $author->email]);
+    expect($entry['actor'])->toBe(['id' => $author->id, 'name' => $author->name, 'email' => $author->email, 'avatar' => null]);
 });
 
 it('reads every actor on a page in one query', function (): void {
@@ -225,4 +225,19 @@ it('offers nothing to change on an activity or on a removed comment', function (
 
     expect(array_column($entries, 'canEdit'))->toBe([false, false])
         ->and(array_column($entries, 'canDelete'))->toBe([false, false]);
+});
+
+it('draws each line with its author\'s face, not only their initials', function (): void {
+    $workspace = Workspace::factory()->create();
+    $task = Task::factory()->in($workspace)->create();
+    $author = memberOf($workspace, user: User::factory()->withAvatarPreset(6)->create());
+
+    Comment::factory()->on($task)->create(['author_id' => $author->id]);
+
+    expect(feedOf($task)['entries'][0]['actor'])->toBe([
+        'id' => $author->id,
+        'name' => $author->name,
+        'email' => $author->email,
+        'avatar' => asset('img/avatars/6.svg'),
+    ]);
 });

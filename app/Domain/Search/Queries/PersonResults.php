@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -48,14 +49,12 @@ final readonly class PersonResults
                     ->where('status', WorkspaceMembershipStatus::Active->value))
                 ->with(['workspaceMemberships' => fn ($memberships) => $memberships
                     ->where('workspace_id', $workspace->id)])
-                ->select(['id', 'name', 'email']))
+                ->select(PersonSummary::columns()))
             ->take($limit * self::CANDIDATES_PER_RESULT)
             ->get()
             ->take($limit)
             ->map(fn (User $person): array => [
-                'id' => $person->id,
-                'name' => $person->name,
-                'email' => $person->email,
+                ...PersonSummary::from($person),
                 'role' => $person->workspaceMemberships->first()?->role->value,
             ]);
 

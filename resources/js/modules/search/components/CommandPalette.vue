@@ -53,7 +53,7 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 type Row =
     | { kind: 'tasks'; id: string; title: string; url: string; projects: { id: string; name: string; color: string | null; icon: string | null }[]; done: boolean }
     | { kind: 'projects'; id: string; title: string; url: string; color: string | null; icon: string | null; archived: boolean }
-    | { kind: 'people'; id: string; title: string; url: string; email: string; role: string | null }
+    | { kind: 'people'; id: string; title: string; url: string; email: string; avatar: string | null; role: string | null }
     | { kind: 'messages'; id: string; title: string; url: string; task: string | null; author: string | null };
 
 /**
@@ -89,6 +89,7 @@ const rows = computed<Row[]>(() => {
             // is their work, which is a search the assignee filter already answers.
             url: searchIndex.url({ query: { assignee: person.id } }),
             email: person.email,
+            avatar: person.avatar,
             role: person.role,
         })),
         ...(results.messages ?? []).map((message): Row => ({
@@ -376,7 +377,7 @@ watch(open, (isOpen) => {
                         </template>
 
                         <template v-else-if="row.kind === 'people'">
-                            <UserAvatar :user="{ name: row.title }" size="sm" />
+                            <UserAvatar :user="{ name: row.title, avatar: row.avatar }" size="sm" />
                             <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
                             <span class="shrink-0 text-xs text-muted-foreground">{{ row.email }}</span>
                         </template>

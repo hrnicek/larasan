@@ -160,7 +160,12 @@ export type ProjectFile = {
     size: number;
     extension: string;
     kind: string;
-    uploader: { id: number; name: string; email: string } | null;
+    uploader: {
+        id: number;
+        name: string;
+        email: string;
+        avatar: string | null;
+    } | null;
     task: { id: string; title: string } | null;
     attachedAt: string | null;
     canDelete: boolean;

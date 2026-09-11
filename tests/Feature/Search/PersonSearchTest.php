@@ -114,7 +114,7 @@ it('ships no more of a user row than a result draws', function (): void {
     $actor = pinnedMemberOf($workspace, 'Jana Nováková');
 
     expect(array_keys(personResults($workspace, $actor, 'Jana')[0]))
-        ->toEqualCanonicalizing(['id', 'name', 'email', 'role']);
+        ->toEqualCanonicalizing(['id', 'name', 'email', 'avatar', 'role']);
 })->with([
     'a user row carries a password hash, two-factor secrets and recovery codes',
 ]);
@@ -138,3 +138,17 @@ it('does not queue an indexing job when only the current workspace changed', fun
     'a person moving between two workspaces would otherwise queue a job per move, for a document
     whose two fields did not change',
 ]);
+
+it('finds a colleague with their face, not only their initials', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = pinnedMemberOf($workspace, 'Actor Zero');
+    memberOf($workspace, user: User::factory()->withAvatarPreset(11)->create([
+        'name' => 'Jana Nováková',
+        'email' => 'jana-novakova@pinned.test',
+    ]));
+
+    $results = personResults($workspace, $actor, 'Jana');
+
+    expect($results)->toHaveCount(1)
+        ->and($results[0]['avatar'])->toBe(asset('img/avatars/11.svg'));
+});

@@ -297,3 +297,22 @@ it('keeps the ordering across the pages it cuts', function (): void {
     expect(drawn($first))->toBe(['a.pdf', 'b.pdf'])
         ->and(drawn($second))->toBe(['c.pdf', 'd.pdf']);
 });
+
+it('draws the uploader with their face, not only their initials', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+    $uploader = memberOf($workspace, user: User::factory()->withAvatarPreset(8)->create());
+
+    hanging($workspace, $task, $uploader);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows[0]['uploader'])->toBe([
+        'id' => $uploader->id,
+        'name' => $uploader->name,
+        'email' => $uploader->email,
+        'avatar' => asset('img/avatars/8.svg'),
+    ]);
+});

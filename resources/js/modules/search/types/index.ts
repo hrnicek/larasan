@@ -39,6 +39,7 @@ export type SearchProjectResult = {
 };
 
 export type SearchPersonResult = SearchPerson & {
+    avatar: string | null;
     role: string | null;
 };
 

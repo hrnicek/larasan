@@ -6,6 +6,7 @@ namespace App\Domain\Activity\Queries;
 
 use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -149,7 +150,7 @@ final readonly class TaskFeedQuery
             return collect();
         }
 
-        return User::query()->whereIn('id', $ids)->get(['id', 'name', 'email'])->keyBy('id');
+        return User::query()->whereIn('id', $ids)->get(PersonSummary::columns())->keyBy('id');
     }
 
     /**
@@ -206,11 +207,7 @@ final readonly class TaskFeedQuery
              * its author on purpose, and inventing "Deleted user" here would put a name in the
              * feed that nobody can look up.
              */
-            'actor' => $actor === null ? null : [
-                'id' => $actor->id,
-                'name' => $actor->name,
-                'email' => $actor->email,
-            ],
+            'actor' => PersonSummary::fromNullable($actor),
             // The words of a removed comment are not readable through the feed that reports it
             // as removed. A mention reads with the name the person has today.
             'body' => $deleted || $line->body === null ? null : Mentions::withNames($line->body, $names),

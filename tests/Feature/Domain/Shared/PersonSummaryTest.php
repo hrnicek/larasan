@@ -33,17 +33,25 @@ it('withholds the address from a face', function (): void {
 
 /*
  * The narrow select the project header reads with. Strict Eloquent throws on an attribute the
- * model never retrieved, so a `face()` that reached for the address would fail here rather than
- * on the screen.
+ * model never retrieved, so a `face()` that reached for the address — or a select that forgot the
+ * avatar — would fail here rather than on the screen.
  */
 it('reads only the columns a header list selects', function (): void {
-    $person = User::factory()->create();
+    $person = User::factory()->withAvatarPreset(12)->create();
 
-    $narrow = User::query()->whereKey($person->id)->get(['users.id', 'users.name'])->sole();
+    $narrow = User::query()->whereKey($person->id)->get(PersonSummary::faceColumns('users'))->sole();
 
     expect(PersonSummary::face($narrow))->toBe([
         'id' => $person->id,
         'name' => $person->name,
-        'avatar' => null,
+        'avatar' => asset('img/avatars/12.svg'),
     ]);
+});
+
+it('reads only the columns a list of people selects', function (): void {
+    $person = User::factory()->withAvatarPreset(12)->create();
+
+    $narrow = User::query()->whereKey($person->id)->get(PersonSummary::columns())->sole();
+
+    expect(PersonSummary::from($narrow)['avatar'])->toBe(asset('img/avatars/12.svg'));
 });
