@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia;
+use InertiaUI\Modal\Modal;
 
 it('requires authentication', function (): void {
     $this->get(route('workspaces.index'))->assertRedirect(route('login'));
@@ -174,10 +175,27 @@ it('guards every workspace route with auth and verified', function (): void {
     });
 });
 
-it('renders the create form', function (): void {
+it('renders the create form as a modal over the workspace list', function (): void {
     $this->actingAs(User::factory()->create())
         ->get(route('workspaces.create'))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->component('workspaces/Create'));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('workspaces/Index')
+            ->where('_inertiaui_modal.component', 'workspaces/Create')
+            ->where('_inertiaui_modal.baseUrl', route('workspaces.index'))
+            ->etc());
+});
+
+it('offers exactly the time zones the store request accepts', function (): void {
+    $this->actingAs(User::factory()->create())
+        ->withHeader(Modal::HEADER_MODAL, 'modal-1')
+        ->get(route('workspaces.create'))
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->component('workspaces/Create')
+            ->where('options.timezones', DateTimeZone::listIdentifiers()));
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('workspaces.store'), ['name' => 'Legacy', 'timezone' => 'Asia/Calcutta'])
+        ->assertInvalid('timezone');
 });
 
 it('renders an empty listing for someone who belongs to no workspace', function (): void {

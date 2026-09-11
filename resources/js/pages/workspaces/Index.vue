@@ -36,7 +36,7 @@ function invitedBy(invitation: WorkspaceInvitation): string {
 </script>
 
 <template>
-    <div class="flex flex-col space-y-6">
+    <div class="flex max-w-3xl flex-col space-y-6 p-4 md:p-6">
         <Head title="Workspaces" />
 
         <Heading

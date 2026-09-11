@@ -15,11 +15,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use App\Http\Requests\Workspace\StoreWorkspaceRequest;
 use App\Http\Requests\Workspace\UpdateWorkspaceRequest;
+use DateTimeZone;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use InertiaUI\Modal\Modal;
 
 class WorkspaceController extends Controller
 {
@@ -58,9 +60,18 @@ class WorkspaceController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(): Modal
     {
-        return Inertia::render('workspaces/Create');
+        return Inertia::modal('workspaces/Create', [
+            /*
+             * The list the `timezone` rule checks against, so the picker cannot offer a zone
+             * the store request would refuse — and a browser's own list would, because it
+             * still reports legacy aliases such as `Asia/Calcutta`.
+             */
+            'options' => [
+                'timezones' => DateTimeZone::listIdentifiers(),
+            ],
+        ])->baseRoute('workspaces.index');
     }
 
     public function store(StoreWorkspaceRequest $request, CreateWorkspace $createWorkspace): RedirectResponse
