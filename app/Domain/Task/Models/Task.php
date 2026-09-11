@@ -244,6 +244,25 @@ class Task extends Model implements Attachable, Commentable
         return $this->belongsTo(User::class, 'assignee_id');
     }
 
+    /**
+     * The rows that say who works on this task beside its assignee. `collaborators()` is the
+     * people themselves, the way `followers()` sits beside `follows()`.
+     *
+     * @return HasMany<TaskCollaborator, $this>
+     */
+    public function collaborations(): HasMany
+    {
+        return $this->hasMany(TaskCollaborator::class);
+    }
+
+    /** @return BelongsToMany<User, $this> */
+    public function collaborators(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_collaborators')
+            ->withPivot('id')
+            ->orderBy('users.name');
+    }
+
     /** @return BelongsTo<User, $this> */
     public function creator(): BelongsTo
     {
