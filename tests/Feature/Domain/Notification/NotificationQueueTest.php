@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Domain\Activity\Listeners\RecordTaskAssigned;
 use App\Domain\Comment\Events\CommentCreated;
+use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Notification\Listeners\NotifyAssignee;
+use App\Domain\Notification\Listeners\NotifyMentionedPeople;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Events\TaskAssigned;
@@ -42,6 +44,16 @@ it('queues the comment notifications too', function (): void {
     event(new CommentCreated((string) Str::uuid7(), (string) Str::uuid7(), 'task', (string) Str::uuid7(), 1));
 
     assertQueued(NotifyWatchersOfComment::class, 'notifications');
+});
+
+it('queues the mention notifications, on a write and on an edit', function (): void {
+    Queue::fake();
+    event(new CommentCreated((string) Str::uuid7(), (string) Str::uuid7(), 'task', (string) Str::uuid7(), 1, [2]));
+    assertQueued(NotifyMentionedPeople::class, 'notifications');
+
+    Queue::fake();
+    event(new CommentEdited((string) Str::uuid7(), (string) Str::uuid7(), 'task', (string) Str::uuid7(), 1, [2]));
+    assertQueued(NotifyMentionedPeople::class, 'notifications');
 });
 
 it('keeps recording history on the request that caused it', function (): void {

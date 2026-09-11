@@ -191,3 +191,12 @@ function textNode(string $text, array $marks = []): array
         ? ['type' => 'text', 'text' => $text]
         : ['type' => 'text', 'text' => $text, 'marks' => $marks];
 }
+
+/**
+ * How a comment names somebody. The name is whatever a composer sent; the Action replaces it with
+ * the account's own.
+ */
+function mentionOf(User $user, ?string $name = null): string
+{
+    return '@['.($name ?? $user->name).'](user:'.$user->id.')';
+}

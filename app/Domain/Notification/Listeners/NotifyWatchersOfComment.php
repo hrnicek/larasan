@@ -67,6 +67,8 @@ final readonly class NotifyWatchersOfComment implements ShouldQueue
             // Never the author. Being told about your own comment is the fastest way to teach
             // somebody to ignore the inbox entirely.
             ->reject(fn (User $watcher): bool => $watcher->id === $event->authorId)
+            // Somebody the comment names hears about it once, as the mention.
+            ->reject(fn (User $watcher): bool => in_array($watcher->id, $event->mentionedIds, true))
             ->filter(fn (User $watcher): bool => $watcher->can('view', $task));
 
         if ($recipients->isEmpty()) {

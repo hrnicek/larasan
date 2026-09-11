@@ -6,6 +6,7 @@ namespace App\Domain\Notification\Queries;
 
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
+use App\Domain\Notification\Notifications\MentionedInCommentNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
@@ -289,6 +290,7 @@ final readonly class InboxQuery
         return match ($notification->type) {
             TaskAssignedNotification::class => 'task.assigned',
             CommentPostedNotification::class => 'comment.posted',
+            MentionedInCommentNotification::class => 'comment.mentioned',
             // A class name is not something to show anybody, and a notification this query does
             // not know is still a line in somebody's inbox.
             default => 'unknown',

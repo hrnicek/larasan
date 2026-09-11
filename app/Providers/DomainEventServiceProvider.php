@@ -12,8 +12,10 @@ use App\Domain\Activity\Listeners\RecordTaskDetachedFromProject;
 use App\Domain\Activity\Listeners\RecordTaskReopened;
 use App\Domain\Activity\Listeners\RecordTaskUpdated;
 use App\Domain\Comment\Events\CommentCreated;
+use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Comment\Listeners\BroadcastCommentChange;
 use App\Domain\Notification\Listeners\NotifyAssignee;
+use App\Domain\Notification\Listeners\NotifyMentionedPeople;
 use App\Domain\Notification\Listeners\NotifyWatchersOfComment;
 use App\Domain\Page\Events\PageCreated;
 use App\Domain\Page\Events\PageDeleted;
@@ -112,8 +114,12 @@ class DomainEventServiceProvider extends ServiceProvider
             // already refuses.
             FollowCommentedTask::class,
             NotifyWatchersOfComment::class,
+            NotifyMentionedPeople::class,
             BroadcastCommentChange::class,
         ],
+
+        // A name added by an edit is somebody pulled into the thread all the same.
+        CommentEdited::class => [NotifyMentionedPeople::class],
 
         // The one framework event in this map: an invitation sent to an address before it had
         // an account is waiting for the moment it does.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Comment\Exceptions;
 
+use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
@@ -41,5 +42,19 @@ final class CommentException extends DomainException implements DomainRefusal
     public static function cannotDeleteComment(): self
     {
         return new self('You do not have permission to delete this comment.');
+    }
+
+    /**
+     * One sentence for a colleague who cannot read the task and for an account in another
+     * workspace entirely: a message that told the two apart would confirm the account exists.
+     */
+    public static function cannotMention(): self
+    {
+        return new self('Only people who can see this task can be mentioned on it.');
+    }
+
+    public static function tooManyMentions(): self
+    {
+        return new self(sprintf('A comment can mention at most %d people.', Mentions::LIMIT));
     }
 }

@@ -28,7 +28,10 @@ use Illuminate\Database\Eloquent\Relations\Relation;
  */
 final readonly class CreateComment
 {
-    public function __construct(private Dispatcher $events) {}
+    public function __construct(
+        private Dispatcher $events,
+        private ResolveMentions $mentions,
+    ) {}
 
     public function handle(Model&Commentable $subject, User $actor, CreateCommentData $data): Comment
     {
@@ -50,7 +53,9 @@ final readonly class CreateComment
             throw CommentException::bodyIsEmpty();
         }
 
-        $comment = new Comment(['body' => $body]);
+        $mentioned = $this->mentions->handle($subject, $body);
+
+        $comment = new Comment(['body' => $mentioned->body]);
 
         /*
          * The **subject's** workspace, not the request's. A comment scoped to whichever
@@ -69,6 +74,7 @@ final readonly class CreateComment
             $comment->commentable_type,
             $comment->commentable_id,
             $actor->id,
+            $mentioned->mentionedIds,
         ));
 
         return $comment;

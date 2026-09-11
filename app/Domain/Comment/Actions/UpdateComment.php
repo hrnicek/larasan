@@ -8,6 +8,7 @@ use App\Domain\Comment\Data\UpdateCommentData;
 use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Comment\Exceptions\CommentException;
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Comment\Models\Commentable;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
@@ -20,7 +21,10 @@ use Illuminate\Contracts\Events\Dispatcher;
  */
 final readonly class UpdateComment
 {
-    public function __construct(private Dispatcher $events) {}
+    public function __construct(
+        private Dispatcher $events,
+        private ResolveMentions $mentions,
+    ) {}
 
     public function handle(Comment $comment, User $actor, UpdateCommentData $data): Comment
     {
@@ -40,7 +44,21 @@ final readonly class UpdateComment
             return $comment;
         }
 
-        $comment->body = $body;
+        $subject = $comment->commentable;
+
+        if (! $subject instanceof Commentable) {
+            throw CommentException::cannotReachSubject();
+        }
+
+        $mentioned = $this->mentions->handle($subject, $body);
+
+        // Compared again once the names are the current ones: a composer that still held an old
+        // name for somebody has not changed the words either.
+        if ($mentioned->body === $comment->body) {
+            return $comment;
+        }
+
+        $comment->body = $mentioned->body;
         $comment->edited_at = now()->toImmutable();
         $comment->save();
 
@@ -50,6 +68,7 @@ final readonly class UpdateComment
             $comment->commentable_type,
             $comment->commentable_id,
             $actor->id,
+            $mentioned->mentionedIds,
         ));
 
         return $comment;
