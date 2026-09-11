@@ -10,6 +10,7 @@ use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Assignment is its own operation because it has its own capability: `task.assign` is not
@@ -51,7 +52,15 @@ final readonly class AssignTask
             return $task;
         }
 
-        $task->forceFill(['assignee_id' => $assignee?->id])->save();
+        DB::transaction(function () use ($task, $assignee): void {
+            $task->forceFill(['assignee_id' => $assignee?->id])->save();
+
+            // A collaborator handed the task becomes its owner and stops being one of the people
+            // beside it: the two never name the same person (TASK-310-002).
+            if ($assignee !== null) {
+                $task->collaborations()->where('user_id', $assignee->id)->delete();
+            }
+        });
 
         $this->events->dispatch(new TaskAssigned($task->id, $task->workspace_id, $assignee?->id, $actor->id));
 

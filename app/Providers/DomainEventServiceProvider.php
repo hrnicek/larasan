@@ -6,6 +6,8 @@ namespace App\Providers;
 
 use App\Domain\Activity\Listeners\RecordTaskAssigned;
 use App\Domain\Activity\Listeners\RecordTaskAttachedToProject;
+use App\Domain\Activity\Listeners\RecordTaskCollaboratorAdded;
+use App\Domain\Activity\Listeners\RecordTaskCollaboratorRemoved;
 use App\Domain\Activity\Listeners\RecordTaskCompleted;
 use App\Domain\Activity\Listeners\RecordTaskCreated;
 use App\Domain\Activity\Listeners\RecordTaskDetachedFromProject;
@@ -35,6 +37,8 @@ use App\Domain\Section\Events\SectionMoved;
 use App\Domain\Section\Events\SectionUpdated;
 use App\Domain\Section\Listeners\BroadcastSectionChange;
 use App\Domain\Task\Events\TaskAssigned;
+use App\Domain\Task\Events\TaskCollaboratorAdded;
+use App\Domain\Task\Events\TaskCollaboratorRemoved;
 use App\Domain\Task\Events\TaskCompleted;
 use App\Domain\Task\Events\TaskCreated;
 use App\Domain\Task\Events\TaskDeleted;
@@ -42,6 +46,7 @@ use App\Domain\Task\Events\TaskReopened;
 use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Listeners\BroadcastTaskChange;
 use App\Domain\Task\Listeners\FollowAssignedTask;
+use App\Domain\Task\Listeners\FollowCollaboratedTask;
 use App\Domain\Task\Listeners\FollowCommentedTask;
 use App\Domain\Workspace\Listeners\ClaimInvitationsForNewAccount;
 use Illuminate\Auth\Events\Registered;
@@ -84,6 +89,12 @@ class DomainEventServiceProvider extends ServiceProvider
             FollowAssignedTask::class,
             BroadcastTaskChange::class,
         ],
+        TaskCollaboratorAdded::class => [
+            RecordTaskCollaboratorAdded::class,
+            FollowCollaboratedTask::class,
+            BroadcastTaskChange::class,
+        ],
+        TaskCollaboratorRemoved::class => [RecordTaskCollaboratorRemoved::class, BroadcastTaskChange::class],
 
         // No activity for a deleted task — its history has nobody left to read it — but the
         // boards showing the card have to lose it.

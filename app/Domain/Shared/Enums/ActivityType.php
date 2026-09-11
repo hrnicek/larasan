@@ -18,6 +18,8 @@ enum ActivityType: string
     case TaskCompleted = 'task.completed';
     case TaskReopened = 'task.reopened';
     case TaskAssigned = 'task.assigned';
+    case TaskCollaboratorAdded = 'task.collaborator_added';
+    case TaskCollaboratorRemoved = 'task.collaborator_removed';
     case TaskAttachedToProject = 'task.attached_to_project';
     case TaskDetachedFromProject = 'task.detached_from_project';
 }

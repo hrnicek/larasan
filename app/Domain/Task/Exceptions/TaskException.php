@@ -86,4 +86,20 @@ final class TaskException extends DomainException implements DomainRefusal
     {
         return new self('A task can only be assigned to an active member of its workspace.');
     }
+
+    public static function collaboratorIsNotAMember(): self
+    {
+        return new self('A collaborator has to be an active member of the task\'s workspace.');
+    }
+
+    /** The rule an assignee is held to, for the people beside them. */
+    public static function collaboratorCannotReachTask(): self
+    {
+        return new self('That person cannot reach this task.');
+    }
+
+    public static function collaboratorIsTheAssignee(): self
+    {
+        return new self('That person is already assigned to this task.');
+    }
 }

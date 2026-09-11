@@ -6,15 +6,18 @@ namespace App\Domain\Workspace\Jobs;
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Task\Actions\AssignTask;
+use App\Domain\Task\Actions\RemoveTaskCollaborator;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Work assigned to somebody who has been removed goes back to the project.
+ * Work assigned to somebody who has been removed goes back to the project, and the tasks they
+ * were collaborating on let them go.
  *
  * Queued rather than done in the request (TASK-180-019). Each task is unassigned through
  * `AssignTask` so it produces the same `TaskAssigned` event any other unassignment does and the
@@ -51,7 +54,7 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
         return 'default';
     }
 
-    public function handle(AssignTask $assign): void
+    public function handle(AssignTask $assign, RemoveTaskCollaborator $removeCollaborator): void
     {
         $workspace = Workspace::query()->find($this->workspaceId);
         $actor = User::query()->find($this->actorId);
@@ -84,6 +87,19 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
             ->chunkById(self::CHUNK, function (Collection $tasks) use ($assign, $actor): void {
                 foreach ($tasks as $task) {
                     $assign->handle($task, $actor, null);
+                }
+            });
+
+        // The tasks they were helping with let them go the same way, each through the Action so
+        // the history says who was taken off.
+        Task::query()
+            ->where('workspace_id', $workspace->id)
+            ->whereHas('collaborations', fn (Builder $collaborations): Builder => $collaborations
+                ->where('user_id', $this->removedUserId))
+            ->with('workspace')
+            ->chunkById(self::CHUNK, function (Collection $tasks) use ($removeCollaborator, $actor): void {
+                foreach ($tasks as $task) {
+                    $removeCollaborator->handle($task, $actor, $this->removedUserId);
                 }
             });
     }
