@@ -175,7 +175,7 @@ final readonly class ProjectBoardQuery
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
                     ->withCount(['children', 'comments'])
                     // The chips a card draws: one read for the page's tags, not one per card.
-                    ->with(['assignee:id,name,email', 'tags:id,name,color']);
+                    ->with([PersonSummary::eager('assignee'), 'tags:id,name,color']);
             }])
             ->orderBy('position')
             ->get()

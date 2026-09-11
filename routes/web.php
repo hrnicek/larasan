@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\UserAvatarController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Pwa\ManifestController;
 use Illuminate\Support\Facades\Route;
@@ -15,6 +16,10 @@ Route::get('manifest.webmanifest', ManifestController::class)->name('manifest');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
 });
+
+Route::get('users/{user}/avatar', UserAvatarController::class)
+    ->middleware('auth')
+    ->name('users.avatar');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/workspaces.php';

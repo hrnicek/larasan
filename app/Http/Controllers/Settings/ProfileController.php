@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Domain\Account\Actions\RemoveAvatar;
+use App\Domain\Account\Support\AvatarFiles;
+use App\Domain\Account\Support\AvatarPresets;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -16,9 +19,20 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): Response
     {
+        $user = $this->actor($request);
+
         return Inertia::render('settings/Profile', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'avatar' => [
+                'preset' => $user->avatar_preset,
+                'uploaded' => $user->avatar_path !== null,
+            ],
+            'avatarPresets' => array_map(
+                fn (int $preset): array => ['id' => $preset, 'url' => AvatarPresets::url($preset)],
+                AvatarPresets::all(),
+            ),
+            'avatarMaxKilobytes' => AvatarFiles::MAX_KILOBYTES,
         ]);
     }
 
@@ -39,11 +53,14 @@ class ProfileController extends Controller
         return to_route('profile.edit');
     }
 
-    public function destroy(ProfileDeleteRequest $request): RedirectResponse
+    public function destroy(ProfileDeleteRequest $request, RemoveAvatar $removeAvatar): RedirectResponse
     {
         $user = $this->actor($request);
 
         Auth::logout();
+
+        // A deleted account's picture is personal data with nobody left to show it to.
+        $removeAvatar->handle($user);
 
         $user->delete();
 

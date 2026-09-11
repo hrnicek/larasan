@@ -56,8 +56,8 @@ final readonly class TaskDetailQuery
     public function __invoke(Task $task, User $actor): array
     {
         $task->loadMissing([
-            'assignee:id,name,email',
-            'creator:id,name,email',
+            PersonSummary::eager('assignee'),
+            PersonSummary::eager('creator'),
             /*
              * Constrained rather than checked afterwards, the same way the subtasks below are:
              * a parent inside a project the reader was never given is a title they were never
@@ -76,10 +76,10 @@ final readonly class TaskDetailQuery
             'children' => fn (Relation $subtasks) => $subtasks
                 ->whereIn('tasks.id', $this->reachable->idsFor($task->workspace, $actor))
                 ->select(['tasks.id', 'tasks.parent_id', 'tasks.title', 'tasks.completed_at']),
-            'followers:id,name,email',
+            PersonSummary::eager('followers'),
             // The file behind each attachment and the person who uploaded it: a list of
             // documents is one query, not one per row.
-            'attachments.file.uploader:id,name,email',
+            PersonSummary::eager('attachments.file.uploader'),
             'tags:id,name,color',
             'customFieldValues',
             // The fields this task's projects show, with their choices: one read for the page

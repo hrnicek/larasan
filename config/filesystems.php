@@ -41,6 +41,13 @@ return [
 
     'attachments' => env('FILESYSTEM_ATTACHMENTS_DISK', 'attachments'),
 
+    /*
+    | Uploaded profile pictures, resolved the same way. The shipped illustrations
+    | are static files in public/img/avatars and are not on any disk.
+    */
+
+    'avatars' => env('FILESYSTEM_AVATARS_DISK', 'avatars'),
+
     'disks' => [
 
         'local' => [
@@ -61,6 +68,15 @@ return [
         'attachments' => [
             'driver' => 'local',
             'root' => storage_path('app/attachments'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // No route either, for the same reason: `UserAvatarController` is the only way in.
+        'avatars' => [
+            'driver' => 'local',
+            'root' => storage_path('app/avatars'),
             'serve' => false,
             'throw' => false,
             'report' => false,

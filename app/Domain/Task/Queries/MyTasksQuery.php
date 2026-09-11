@@ -110,7 +110,7 @@ final readonly class MyTasksQuery
             ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
                 ->whereIn('project_id', $changeable)])
             ->with([
-                'assignee:id,name,email',
+                PersonSummary::eager('assignee'),
                 'tags:id,name,color',
                 // Only the placements whose project the reader can open, and the project itself
                 // — one query for the page rather than one per row.

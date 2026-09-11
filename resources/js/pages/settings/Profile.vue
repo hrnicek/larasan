@@ -9,7 +9,15 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import AvatarPicker from '@/modules/account/components/AvatarPicker.vue';
+import type { AvatarChoice, AvatarPreset } from '@/modules/account/types';
 import { send } from '@/routes/verification';
+
+const props = defineProps<{
+    avatar: AvatarChoice;
+    avatarPresets: AvatarPreset[];
+    avatarMaxKilobytes: number;
+}>();
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -21,6 +29,19 @@ const user = computed(() => page.props.auth.user);
     <h1 class="sr-only">Profile settings</h1>
 
     <div v-if="user" class="flex flex-col space-y-6">
+        <Heading
+            variant="small"
+            title="Profile picture"
+            description="Pick an illustration or upload a picture of your own"
+        />
+
+        <AvatarPicker
+            :user="user"
+            :current="props.avatar"
+            :presets="props.avatarPresets"
+            :max-kilobytes="props.avatarMaxKilobytes"
+        />
+
         <Heading
             variant="small"
             title="Profile"

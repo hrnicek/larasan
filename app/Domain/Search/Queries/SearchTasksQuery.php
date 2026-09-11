@@ -204,7 +204,7 @@ final readonly class SearchTasksQuery
                     ->query($workspace, $actor, Capability::TaskUpdate)
                     ->select('projects.id'))])
             ->with([
-                'assignee:id,name,email',
+                PersonSummary::eager('assignee'),
                 'tags:id,name,color',
                 'placements' => fn (Relation $placements) => $placements
                     ->whereIn('project_id', $visible)

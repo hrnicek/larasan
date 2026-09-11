@@ -158,7 +158,7 @@ final class ProjectListQuery
                     ->withCount('comments')
                     // The answers for the whole page in one read: a column of values is worth
                     // nothing if drawing it costs a query per row.
-                    ->with(['assignee:id,name,email', 'tags:id,name,color', 'customFieldValues']);
+                    ->with([PersonSummary::eager('assignee'), 'tags:id,name,color', 'customFieldValues']);
             }])
             ->orderBy('position');
 

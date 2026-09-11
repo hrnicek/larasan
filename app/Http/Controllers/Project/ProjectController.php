@@ -141,7 +141,7 @@ class ProjectController extends Controller
          * are, and a project's membership list is the people rather than the work, so reading it
          * whole costs one query instead of two.
          */
-        $people = $project->members()->orderBy('name')->get(['users.id', 'users.name']);
+        $people = $project->members()->orderBy('name')->get(PersonSummary::faceColumns('users'));
 
         return Inertia::render('projects/Show', [
             'project' => [
@@ -428,7 +428,7 @@ class ProjectController extends Controller
                 ? array_values($project->workspace->members()
                     ->whereNotIn('users.id', $memberships->pluck('user_id')->all())
                     ->orderBy('name')
-                    ->get(['users.id', 'users.name', 'users.email'])
+                    ->get(PersonSummary::columns('users'))
                     ->map(PersonSummary::from(...))
                     ->all())
                 : [],

@@ -259,7 +259,7 @@ final readonly class ProjectCalendarQuery
         return $query->with(['task' => function (Relation $tasks): void {
             $tasks
                 ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
-                ->with(['assignee:id,name,email', 'tags:id,name,color']);
+                ->with([PersonSummary::eager('assignee'), 'tags:id,name,color']);
         }]);
     }
 

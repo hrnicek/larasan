@@ -35,7 +35,16 @@ class UserFactory extends Factory
              * column hands every test a model that fails on first read.
              */
             'current_workspace_id' => null,
+            'avatar_preset' => null,
+            'avatar_path' => null,
         ];
+    }
+
+    public function withAvatarPreset(int $preset = 1): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'avatar_preset' => $preset,
+        ]);
     }
 
     public function unverified(): static

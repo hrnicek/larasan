@@ -125,7 +125,7 @@ final readonly class InboxQuery
             return collect();
         }
 
-        return User::query()->whereIn('id', $ids)->get(['id', 'name', 'email'])->keyBy('id');
+        return User::query()->whereIn('id', $ids)->get(PersonSummary::columns())->keyBy('id');
     }
 
     /**
