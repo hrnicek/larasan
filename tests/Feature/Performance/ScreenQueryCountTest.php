@@ -169,8 +169,16 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
     // The inbox gains one in Phase 290: each line names the projects its task lives in, the
     // ones the reader can open, in one read for the page. A comment's excerpt would be one more,
     // but this workspace's notifications are all assignments.
-    'the board' => ['board', 23],
-    'the list' => ['list', 21],
+    //
+    // The board and the list gain one in TASK-320-003, and it is a trade. The shell's props are
+    // closures now, so a partial reload — a panel opening, a realtime refresh — no longer reads
+    // the sidebar, the switcher and the badge only to throw them away. The sidebar used to run
+    // before the screen, and its batched membership read happened to answer the screen's own
+    // permission check; resolved after the screen, that check reads the project's membership
+    // itself. One indexed row on a full visit, against the whole board on every panel opened
+    // over it (`PartialReloadTest`).
+    'the board' => ['board', 24],
+    'the list' => ['list', 22],
     'the project list' => ['projects', 8],
     'my tasks' => ['my-tasks', 8],
     'the inbox' => ['inbox', 13],
@@ -187,6 +195,10 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
      *
      * 31 → 32 with TASK-310-004: the people working beside the assignee are one read of their
      * own, however many there are.
+     *
+     * 32 → 34 with TASK-320-003, for the reason the board gains one: the sidebar's membership
+     * read no longer runs before the page, so the page's permission checks read the memberships
+     * they need themselves — two rows for this workspace, the same at either size.
      */
-    'a task detail page' => ['task', 32],
+    'a task detail page' => ['task', 34],
 ]);

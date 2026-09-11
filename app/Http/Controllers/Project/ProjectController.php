@@ -137,66 +137,34 @@ class ProjectController extends Controller
         $this->rememberOpening($project->workspace, $actor, $project);
 
         /*
-         * The project's people, read once: the header draws five faces and says how many there
-         * are, and a project's membership list is the people rather than the work, so reading it
-         * whole costs one query instead of two.
+         * Everything below that costs a read is a closure. A partial reload names what it wants —
+         * the panel opening, a realtime refresh of the board — and Inertia resolves only those;
+         * opening a task used to read the whole board again only to throw it away.
          */
-        $people = $project->members()->orderBy('name')->get(PersonSummary::faceColumns('users'));
-
         return Inertia::render('projects/Show', [
-            'project' => [
-                'id' => $project->id,
-                'name' => $project->name,
-                'slug' => $project->slug,
-                'color' => $project->color?->value,
-                'icon' => $project->icon?->value,
-                'archived' => $project->isArchived(),
-                // What the header's appearance picker renders itself on: a control nobody
-                // may use is a control that should not be drawn. The endpoint authorizes
-                // regardless of what the header decided to show.
-                'canUpdate' => $actor->can('update', $project),
-                // This reader's own shortcut, not a property of the project: the header's menu
-                // draws either *Add to starred* or *Remove from starred* from it.
-                'starred' => $project->stars()->where('user_id', $actor->id)->exists(),
-                /*
-                 * Whether the header draws *Customize* at all. A drawer that can only be read is
-                 * a control that promises something, so it is not offered to somebody who cannot
-                 * change what the project records (ADR-0010).
-                 */
-                'canCustomize' => $actor->can(Capability::CustomFieldManage->value, $project->workspace),
-                /*
-                 * The faces in the header. Five and a number rather than everybody: past that a
-                 * stack stops being a glance and becomes a queue, and the dialog behind it is
-                 * where the whole list belongs.
-                 */
-                'members' => array_values($people
-                    ->take(5)
-                    ->map(PersonSummary::face(...))
-                    ->all()),
-                'memberCount' => $people->count(),
-            ],
+            'project' => fn (): array => $this->heading($project, $actor),
             'view' => $view->value,
             /*
              * One screen, five views, and only the payload the view asked for. Sending more
              * than one would read the same placements twice for a reader who can see one of them.
              */
             ...match ($view) {
-                ProjectView::Board => ['board' => $board($project, $actor, $request->expandedColumns(), $request->tags())],
+                ProjectView::Board => ['board' => fn (): array => $board($project, $actor, $request->expandedColumns(), $request->tags())],
                 // The files table is the one view with no tags in it: a tag is a property of a
                 // task, and narrowing a list of documents by one would answer a question about
                 // the tasks rather than about the files.
-                ProjectView::Files => ['files' => $files($project, $actor, $request->page(), ...$request->fileSort())],
+                ProjectView::Files => ['files' => fn (): array => $files($project, $actor, $request->page(), ...$request->fileSort())],
                 // The pages tree carries no tags and no sort either: a document is not a task,
                 // and narrowing a list of documents by a tag would answer a different question.
-                ProjectView::Pages => ['pages' => $pages($project, $actor)],
-                ProjectView::Calendar => ['calendar' => $calendar(
+                ProjectView::Pages => ['pages' => fn (): array => $pages($project, $actor)],
+                ProjectView::Calendar => ['calendar' => fn (): array => $calendar(
                     $project,
                     $actor,
                     $request->month(),
                     $request->tags(),
                     $request->expandedDays(),
                 )],
-                ProjectView::List => ['list' => $list(
+                ProjectView::List => ['list' => fn (): array => $list(
                     $project,
                     $actor,
                     $request->tags(),
@@ -208,7 +176,7 @@ class ProjectController extends Controller
              * What the server understood of the ordering, echoed back so the screen renders the
              * view it actually got rather than the one the client asked for.
              */
-            'sort' => [
+            'sort' => fn (): array => [
                 'field' => $request->sort($project->customFields)?->field->id,
                 'direction' => $request->sort($project->customFields)?->direction() ?? 'asc',
                 'filters' => (object) $request->fieldFilters(),
@@ -218,7 +186,7 @@ class ProjectController extends Controller
              * renders what the server understood rather than what the client thinks it asked
              * for — a stale tag id in a link matches nothing and is quietly dropped here.
              */
-            'tags' => [
+            'tags' => fn (): array => [
                 'active' => $request->tags(),
                 'available' => $project->workspace->tags()
                     ->orderBy('name')
@@ -356,6 +324,53 @@ class ProjectController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Project restored.')]);
 
         return to_route('projects.edit', $project);
+    }
+
+    /**
+     * The project's header: what it is, and what this reader may do to it from there.
+     *
+     * @return array<string, mixed>
+     */
+    private function heading(Project $project, User $actor): array
+    {
+        /*
+         * The project's people, read once: the header draws five faces and says how many there
+         * are, and a project's membership list is the people rather than the work, so reading it
+         * whole costs one query instead of two.
+         */
+        $people = $project->members()->orderBy('name')->get(PersonSummary::faceColumns('users'));
+
+        return [
+            'id' => $project->id,
+            'name' => $project->name,
+            'slug' => $project->slug,
+            'color' => $project->color?->value,
+            'icon' => $project->icon?->value,
+            'archived' => $project->isArchived(),
+            // What the header's appearance picker renders itself on: a control nobody may use is
+            // a control that should not be drawn. The endpoint authorizes regardless of what the
+            // header decided to show.
+            'canUpdate' => $actor->can('update', $project),
+            // This reader's own shortcut, not a property of the project: the header's menu draws
+            // either *Add to starred* or *Remove from starred* from it.
+            'starred' => $project->stars()->where('user_id', $actor->id)->exists(),
+            /*
+             * Whether the header draws *Customize* at all. A drawer that can only be read is a
+             * control that promises something, so it is not offered to somebody who cannot change
+             * what the project records (ADR-0010).
+             */
+            'canCustomize' => $actor->can(Capability::CustomFieldManage->value, $project->workspace),
+            /*
+             * The faces in the header. Five and a number rather than everybody: past that a stack
+             * stops being a glance and becomes a queue, and the dialog behind it is where the whole
+             * list belongs.
+             */
+            'members' => array_values($people
+                ->take(5)
+                ->map(PersonSummary::face(...))
+                ->all()),
+            'memberCount' => $people->count(),
+        ];
     }
 
     /**

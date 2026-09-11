@@ -72,7 +72,12 @@ trait OpensTaskPanel
         $task = $this->openTaskPanel($request, $workspace, $actor);
 
         return [
-            'taskDetail' => $task === null ? null : $detail($task, $actor),
+            /*
+             * Read only for a response that carries it: a board refreshing under an open panel
+             * asks for the board alone. Reach is settled above either way — `openTaskPanel` runs
+             * on every request that names a task, asked for or not.
+             */
+            'taskDetail' => $task === null ? null : fn (): array => $detail($task, $actor),
             /*
              * The task's history and its conversation, deferred — the same region the task's own
              * page defers, answered by the same query. It was a stub returning `[]`, so a panel
@@ -82,7 +87,8 @@ trait OpensTaskPanel
                 ? null
                 : Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor)),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
-            'members' => $workspace->members()->orderBy('name')->get()
+            // Who a card can be handed to, for the pickers — a closure for the same reason.
+            'members' => fn (): array => $workspace->members()->orderBy('name')->get(PersonSummary::columns('users'))
                 ->map(PersonSummary::from(...))
                 ->values()
                 ->all(),

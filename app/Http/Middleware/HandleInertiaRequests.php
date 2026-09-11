@@ -40,6 +40,10 @@ class HandleInertiaRequests extends Middleware
     }
 
     /**
+     * Every prop here that costs a read is a closure. Inertia resolves a closure only for a
+     * response that carries it, and a partial reload — a panel opening, a board refreshing —
+     * carries none of the shell's, so each was read on every such request and thrown away.
+     *
      * @see https://inertiajs.com/shared-data
      *
      * @return array<string, mixed>
@@ -85,7 +89,7 @@ class HandleInertiaRequests extends Middleware
              * per page. Three columns, active memberships only — the query is the same
              * one the resolution middleware already proved the actor against.
              */
-            'workspaces' => $request->user() === null ? [] : $request->user()
+            'workspaces' => fn (): array => $request->user() === null ? [] : $request->user()
                 ->workspaces()
                 ->orderBy('name')
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.slug'])
@@ -100,7 +104,7 @@ class HandleInertiaRequests extends Middleware
              * projects the actor may see in this workspace, archived ones excluded. Asking
              * the model per row here would be an N+1 on every request in the application.
              */
-            'projects' => $workspace === null || $request->user() === null
+            'projects' => fn (): array => $workspace === null || $request->user() === null
                 ? []
                 : $this->sidebarProjects($workspace, $request->user()),
             /*
@@ -108,7 +112,7 @@ class HandleInertiaRequests extends Middleware
              * count, on the index TASK-110-014 built for it — and none at all when nobody is
              * signed in, because a query to answer "zero" is a query nobody needed.
              */
-            'unreadNotifications' => $workspace === null || $request->user() === null
+            'unreadNotifications' => fn (): int => $workspace === null || $request->user() === null
                 ? 0
                 : app(InboxQuery::class)->unreadCount($workspace, $request->user()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',

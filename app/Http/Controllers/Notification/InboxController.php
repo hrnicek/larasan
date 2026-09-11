@@ -39,8 +39,15 @@ class InboxController extends Controller
         $page = max(1, (int) $request->query('page', '1'));
         $actor = $this->actor($request);
 
+        $inboxPage = $this->memoized(fn (): array => $inbox($workspace, $actor, $page));
+
         return Inertia::render('inbox/Index', [
-            ...$inbox($workspace, $actor, $page),
+            /*
+             * Two keys of one read, each a closure: the panel opening reads no notifications at
+             * all, and a reload that asks for both reads them once.
+             */
+            'notifications' => fn (): array => $inboxPage()['notifications'],
+            'meta' => fn (): array => $inboxPage()['meta'],
             /*
              * A line that leads to a task opens it here rather than sending somebody away from
              * the list they are working through — which is the whole reason the panel has an

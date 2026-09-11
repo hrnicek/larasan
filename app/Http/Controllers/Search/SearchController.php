@@ -34,8 +34,19 @@ class SearchController extends Controller
 
         $actor = $this->actor($request);
 
+        $results = $this->memoized(fn (): array => $search(
+            $workspace,
+            $actor,
+            $request->term(),
+            max(1, (int) $request->integer('page', 1)),
+            $request->filters(),
+        ));
+
         return Inertia::render('search/Index', [
-            ...$search($workspace, $actor, $request->term(), max(1, (int) $request->integer('page', 1)), $request->filters()),
+            // Two keys of one read — an engine round trip — resolved only when a response
+            // carries them: opening a result's panel does not search again.
+            'tasks' => fn (): array => $results()['tasks'],
+            'meta' => fn (): array => $results()['meta'],
             'filters' => (object) $request->filters(),
             /*
              * The projects to narrow by: the ones this actor can open, so the filter cannot name
@@ -43,7 +54,7 @@ class SearchController extends Controller
              * `projects` prop the sidebar reads — a page prop of the same name replaces it, and
              * the sidebar would quietly render this shorter, colourless list instead.
              */
-            'filterProjects' => $projects($workspace, $actor)
+            'filterProjects' => fn (): array => $projects($workspace, $actor)
                 ->map(fn (Project $project): array => [
                     'id' => $project->id,
                     'name' => $project->name,
