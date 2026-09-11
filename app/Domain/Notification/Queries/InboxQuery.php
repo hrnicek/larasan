@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace App\Domain\Notification\Queries;
 
+use App\Domain\Comment\Models\Comment;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
+use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 /**
  * What is waiting for one person, here.
@@ -32,6 +37,9 @@ final readonly class InboxQuery
 {
     public const PER_PAGE = 25;
 
+    /** Enough to recognise the comment by; the rest is one click away. */
+    private const EXCERPT_LENGTH = 160;
+
     public function __construct(private VisibleProjectsForUser $visibleProjects) {}
 
     /**
@@ -49,10 +57,11 @@ final readonly class InboxQuery
 
         $actors = $this->actors($rows);
         $subjects = $this->subjects($rows, $workspace, $reader);
+        $excerpts = $this->excerpts($rows, $subjects, $workspace, $reader);
 
         return [
             'notifications' => array_values($rows
-                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects, $workspace, $reader))
+                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects, $excerpts, $workspace, $reader))
                 ->all()),
             'meta' => [
                 'page' => $notifications->currentPage(),
@@ -155,21 +164,68 @@ final readonly class InboxQuery
                 'placements',
                 'placements as reachable_placements_count' => fn (Builder $placements) => $placements->whereIn('project_id', $visible),
             ])
+            ->with([
+                // Only the projects this reader can open: a task can live in one they were never
+                // given, and naming it on their inbox would leak it through the task.
+                'projects' => fn (Relation $projects) => $projects
+                    ->whereIn('projects.id', $visible)
+                    ->select(['projects.id', 'projects.name', 'projects.color']),
+            ])
             ->get(['id', 'workspace_id', 'title'])
             ->keyBy('id');
     }
 
     /**
+     * What each comment on this page said, in one read — the line under the sentence, so a
+     * comment can be triaged without opening its task.
+     *
+     * Only for tasks this reader can still reach: the words are the task's, and somebody who
+     * lost the project lost them too.
+     *
+     * @param  Collection<int, DatabaseNotification>  $rows
+     * @param  Collection<string, Task>  $subjects
+     * @return Collection<string, string>
+     */
+    private function excerpts(Collection $rows, Collection $subjects, Workspace $workspace, User $reader): Collection
+    {
+        $ids = $rows
+            ->filter(function (DatabaseNotification $notification) use ($subjects, $workspace, $reader): bool {
+                $taskId = $this->taskId($notification);
+                $task = $taskId === null ? null : $subjects->get($taskId);
+
+                return $task !== null && $this->reaches($task, $workspace, $reader);
+            })
+            ->map(fn (DatabaseNotification $notification): ?string => $this->commentId($notification))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return Comment::query()
+            ->where('workspace_id', $workspace->id)
+            ->whereIn('id', $ids)
+            ->get(['id', 'body'])
+            ->mapWithKeys(fn (Comment $comment): array => [
+                (string) $comment->id => Str::limit(Str::squish($comment->body), self::EXCERPT_LENGTH),
+            ]);
+    }
+
+    /**
      * @param  Collection<int, User>  $actors
      * @param  Collection<string, Task>  $subjects
+     * @param  Collection<string, string>  $excerpts
      * @return array<string, mixed>
      */
-    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects, Workspace $workspace, User $reader): array
+    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects, Collection $excerpts, Workspace $workspace, User $reader): array
     {
         $actorId = $this->actorId($notification);
         $actor = $actorId === null ? null : $actors->get($actorId);
         $taskId = $this->taskId($notification);
         $task = $taskId === null ? null : $subjects->get($taskId);
+        $commentId = $this->commentId($notification);
 
         return [
             'id' => $notification->id,
@@ -182,11 +238,10 @@ final readonly class InboxQuery
              * outlives nothing here — it is deleted with its reader — but the person who caused
              * it may well have left.
              */
-            'actor' => $actor === null ? null : [
-                'id' => $actor->id,
-                'name' => $actor->name,
-                'email' => $actor->email,
-            ],
+            'actor' => PersonSummary::fromNullable($actor),
+            // What was said, as it reads now. Null for a line that is not a comment, a comment
+            // since deleted, or a task this reader can no longer reach.
+            'excerpt' => $commentId === null ? null : $excerpts->get($commentId),
             /*
              * Resolved now, so the line says what the task is called today. Null when the task
              * has since been deleted — a notification outlives what it points at, and the screen
@@ -202,6 +257,13 @@ final readonly class InboxQuery
                  * follow is worse than a sentence they can still read.
                  */
                 'url' => $this->reaches($task, $workspace, $reader) ? route('tasks.show', $task->id) : null,
+                'projects' => array_values($task->projects
+                    ->map(fn (Project $project): array => [
+                        'id' => $project->id,
+                        'name' => $project->name,
+                        'color' => $project->color?->value,
+                    ])
+                    ->all()),
             ],
         ];
     }
@@ -249,6 +311,16 @@ final readonly class InboxQuery
         $data = $notification->data;
 
         $id = $data['task_id'] ?? null;
+
+        return is_string($id) ? $id : null;
+    }
+
+    private function commentId(DatabaseNotification $notification): ?string
+    {
+        /** @var array<string, mixed> $data */
+        $data = $notification->data;
+
+        $id = $data['comment_id'] ?? null;
 
         return is_string($id) ? $id : null;
     }

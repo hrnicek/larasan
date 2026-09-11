@@ -57,6 +57,7 @@ it('reads what is waiting for one person here', function (): void {
             'id' => $task->id,
             'title' => 'Fix login',
             'url' => route('tasks.show', $task->id),
+            'projects' => [],
         ]);
 });
 
@@ -226,11 +227,11 @@ it('reads a page of notifications from many people about many tasks in a fixed n
 
     /*
      * Ten notifications from ten people about ten tasks: the count, the page, the actors, the
-     * subjects, and the unread count. A relation per row is at its worst here, where each line
-     * points somewhere different.
+     * subjects, the projects they live in, and the unread count. A relation per row is at its
+     * worst here, where each line points somewhere different.
      */
     expect($result['notifications'])->toHaveCount(10)
-        ->and(count($queries))->toBeLessThanOrEqual(5);
+        ->and(count($queries))->toBeLessThanOrEqual(6);
 });
 
 it('has nothing to say when nothing has happened', function (): void {

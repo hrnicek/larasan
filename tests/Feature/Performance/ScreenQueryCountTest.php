@@ -165,11 +165,15 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
     // The board gains one more in Phase 250: the first image of each card's task, so a card can
     // draw a cover. One `DISTINCT ON` for the whole page — the figure is the same at twelve
     // tasks and at twenty-four, which is what this test is really asserting.
+    //
+    // The inbox gains one in Phase 290: each line names the projects its task lives in, the
+    // ones the reader can open, in one read for the page. A comment's excerpt would be one more,
+    // but this workspace's notifications are all assignments.
     'the board' => ['board', 23],
     'the list' => ['list', 21],
     'the project list' => ['projects', 8],
     'my tasks' => ['my-tasks', 8],
-    'the inbox' => ['inbox', 12],
+    'the inbox' => ['inbox', 13],
     'search' => ['search', 14],
     /*
      * The most expensive screen in the application, and the one to watch: it renders placements,
