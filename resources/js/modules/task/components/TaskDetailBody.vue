@@ -7,6 +7,7 @@ import AttachmentList from '@/modules/file/components/AttachmentList.vue';
 import TaskTags from '@/modules/tag/components/TaskTags.vue';
 import ActivityFeed from '@/modules/task/components/ActivityFeed.vue';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
+import CollaboratorPicker from '@/modules/task/components/CollaboratorPicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
 import SubtaskList from '@/modules/task/components/SubtaskList.vue';
@@ -83,8 +84,20 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                         :task-id="detail.task.id"
                         :assignee="detail.task.assignee"
                         :members="members"
-                        :editable="fieldsEditable"
+                        :editable="detail.can.assign"
                         variant="field"
+                    />
+                </dd>
+
+                <dt class="text-[13px] text-muted-foreground">Collaborators</dt>
+                <dd class="flex min-h-9 min-w-0 items-center">
+                    <CollaboratorPicker
+                        :task-id="detail.task.id"
+                        :collaborators="detail.collaborators"
+                        :assignee-id="detail.task.assignee?.id ?? null"
+                        :members="members"
+                        :editable="detail.can.assign"
+                        :collaborating="detail.collaborating"
                     />
                 </dd>
 

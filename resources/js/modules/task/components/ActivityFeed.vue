@@ -53,8 +53,12 @@ const lines = computed<TaskFeedEntry[]>(() => {
  * An activity says what happened, in words, from the ids the row kept — never from a snapshot of
  * names that have since changed.
  */
+/** A colleague's name as it is today, or nothing for somebody who has left — never an id on screen. */
+const nameOf = (id: unknown): string | null => props.people.find((person) => person.id === id)?.name ?? null;
+
 const describe = (entry: TaskFeedEntry): string => {
     const changed = entry.properties?.changed;
+    const collaboratorId = entry.properties?.collaborator_id;
 
     switch (entry.type) {
         case 'task.created':
@@ -65,6 +69,20 @@ const describe = (entry: TaskFeedEntry): string => {
             return 'reopened this task';
         case 'task.assigned':
             return entry.properties?.assignee_id === null ? 'unassigned this task' : 'assigned this task';
+        case 'task.collaborator_added': {
+            const name = nameOf(collaboratorId);
+
+            return name === null ? 'added a collaborator' : `added ${name} as a collaborator`;
+        }
+        case 'task.collaborator_removed': {
+            if (entry.actor?.id === collaboratorId) {
+                return 'left this task';
+            }
+
+            const name = nameOf(collaboratorId);
+
+            return name === null ? 'removed a collaborator' : `took ${name} off this task`;
+        }
         case 'task.attached_to_project':
             return 'added this task to a project';
         case 'task.detached_from_project':

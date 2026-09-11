@@ -184,6 +184,9 @@ it('costs the same whether a workspace holds twelve tasks or twice that', functi
      * request, so the four cost one read each for the distinct questions and the page pays one
      * more than it did. It is a fixed cost — which is what this test asserts, by running the
      * same screen against twice the data.
+     *
+     * 31 → 32 with TASK-310-004: the people working beside the assignee are one read of their
+     * own, however many there are.
      */
-    'a task detail page' => ['task', 31],
+    'a task detail page' => ['task', 32],
 ]);

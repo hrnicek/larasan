@@ -177,6 +177,10 @@ export type TaskDetailPlacement = {
 
 export type TaskDetail = {
     availableProjects: { id: string; name: string }[];
+    /** The people working on the task beside its assignee (TASK-310-004). */
+    collaborators: TaskAssignee[];
+    /** Whether this reader is one of them — the server's answer, like `following`. */
+    collaborating: boolean;
     followers: TaskAssignee[];
     following: boolean;
     /** This reader's own star, not a fact about the task: two people get two answers. */
@@ -200,7 +204,7 @@ export type TaskDetail = {
     /** The workspace's whole vocabulary, small enough to send whole. */
     availableTags: TaskTag[];
     attachments: TaskAttachment[];
-    can: { update: boolean; delete: boolean; comment: boolean; attach: boolean; manageTags: boolean };
+    can: { update: boolean; assign: boolean; delete: boolean; comment: boolean; attach: boolean; manageTags: boolean };
 };
 
 /**

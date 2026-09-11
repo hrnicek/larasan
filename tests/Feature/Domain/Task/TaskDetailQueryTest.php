@@ -13,6 +13,7 @@ use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Models\TaskCollaborator;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -128,7 +129,7 @@ it('answers the permissions once, for the task', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     expect(detailOf($task, $actor)['can'])
-        ->toBe(['update' => true, 'delete' => true, 'comment' => true, 'attach' => true, 'manageTags' => true]);
+        ->toBe(['update' => true, 'assign' => true, 'delete' => true, 'comment' => true, 'attach' => true, 'manageTags' => true]);
 });
 
 it('tells a guest what they may not do', function (): void {
@@ -143,7 +144,7 @@ it('tells a guest what they may not do', function (): void {
     // their role does carry (ADR-0010), and adding documents or words to the vocabulary is not
     // part of it.
     expect(detailOf($task, $guest)['can'])
-        ->toBe(['update' => false, 'delete' => false, 'comment' => true, 'attach' => false, 'manageTags' => false]);
+        ->toBe(['update' => false, 'assign' => false, 'delete' => false, 'comment' => true, 'attach' => false, 'manageTags' => false]);
 });
 
 it('reads a task with several subtasks and placements without a query per row', function (): void {
@@ -182,10 +183,12 @@ it('reads a task with several subtasks and placements without a query per row', 
      * questions there are: the boards themselves, then whether any is readable, whether any is
      * editable and whether any is commentable. Four reads, whatever the task is on and however
      * many subtasks hang under it — which is what this test is really guarding.
+     *
+     * 23 → 24 with TASK-310-004: the task's collaborators, one read however many there are.
      */
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
-        ->and(count($queries))->toBeLessThanOrEqual(23);
+        ->and(count($queries))->toBeLessThanOrEqual(24);
 });
 
 it('carries nothing it cannot yet know about', function (): void {
@@ -206,11 +209,30 @@ it('carries nothing it cannot yet know about', function (): void {
             'placements',
             'availableProjects',
             'subtasks',
+            'collaborators',
+            'collaborating',
             'followers',
             'following',
             'starred',
             'can',
         ]);
+});
+
+it('names the people beside the assignee, and says whether the reader is one of them', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+    $colleague = memberOf($workspace);
+    $bystander = memberOf($workspace);
+    TaskCollaborator::factory()->on($task, $colleague)->create();
+    TaskCollaborator::factory()->on($task, $actor)->create();
+
+    $detail = detailOf($task, $actor);
+
+    expect(array_column($detail['collaborators'], 'id'))->toEqualCanonicalizing([$colleague->id, $actor->id])
+        ->and(array_keys($detail['collaborators'][0]))->toBe(['id', 'name', 'email', 'avatar'])
+        ->and($detail['collaborating'])->toBeTrue()
+        ->and(detailOf($task->fresh() ?? $task, $bystander)['collaborating'])->toBeFalse();
 });
 
 it('offers only the projects the actor may add the task to', function (): void {

@@ -47,10 +47,12 @@ final readonly class TaskDetailQuery
      *     availableTags: list<array<string, mixed>>,
      *     attachments: list<array<string, mixed>>,
      *     subtasks: list<array<string, mixed>>,
+     *     collaborators: list<array<string, mixed>>,
+     *     collaborating: bool,
      *     followers: list<array<string, mixed>>,
      *     following: bool,
      *     starred: bool,
-     *     can: array{update: bool, delete: bool, comment: bool, attach: bool, manageTags: bool},
+     *     can: array{update: bool, assign: bool, delete: bool, comment: bool, attach: bool, manageTags: bool},
      * }
      */
     public function __invoke(Task $task, User $actor): array
@@ -76,6 +78,7 @@ final readonly class TaskDetailQuery
             'children' => fn (Relation $subtasks) => $subtasks
                 ->whereIn('tasks.id', $this->reachable->idsFor($task->workspace, $actor))
                 ->select(['tasks.id', 'tasks.parent_id', 'tasks.title', 'tasks.completed_at']),
+            PersonSummary::eager('collaborators'),
             PersonSummary::eager('followers'),
             // The file behind each attachment and the person who uploaded it: a list of
             // documents is one query, not one per row.
@@ -155,6 +158,12 @@ final readonly class TaskDetailQuery
                     'completedAt' => $subtask->completed_at?->toIso8601String(),
                 ])
                 ->all()),
+            'collaborators' => array_values($task->collaborators
+                ->map(PersonSummary::from(...))
+                ->all()),
+            // Whether the reader is one of them, so somebody who may not assign can still be
+            // offered the way off.
+            'collaborating' => $task->collaborators->contains('id', $actor->id),
             'followers' => array_values($task->followers
                 ->map(PersonSummary::from(...))
                 ->all()),
@@ -168,6 +177,9 @@ final readonly class TaskDetailQuery
             'starred' => $task->stars()->where('user_id', $actor->id)->exists(),
             'can' => [
                 'update' => $actor->can('update', $task),
+                // Who is on the task — assignee and collaborators — is `task.assign`, which a
+                // role may hold without `task.update`.
+                'assign' => $actor->can('assign', $task),
                 'delete' => $actor->can('delete', $task),
                 /*
                  * Asked of the policy, not of the capability. The capability is one third of
