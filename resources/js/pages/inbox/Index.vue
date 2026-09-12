@@ -6,6 +6,7 @@ import InboxController from '@/actions/App/Http/Controllers/Notification/InboxCo
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { usePagedRows } from '@/composables/usePagedRows';
 import InboxRow from '@/modules/notification/components/InboxRow.vue';
 import type { InboxNotification } from '@/modules/notification/types';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -28,42 +29,26 @@ const page = usePage();
 const unread = computed<number>(() => props.meta.unread);
 const workspaceName = computed<string>(() => page.props.workspace?.name ?? 'this workspace');
 
-// Merged by id, because every mark-read re-renders the page it was sent from: page one prepends, later pages append.
-const rows = ref<InboxNotification[]>([...props.notifications]);
-
 // The New group is drawn from unread-on-arrival rather than `read`, so a row read here stays in place.
 const arrivedUnread = ref(new Set(props.notifications.filter((row) => !row.read).map((row) => row.id)));
 const justArrived = ref(new Set<string>());
 
-// Not meta.page: a mark-read re-renders page one after Load more has fetched later pages.
-const loadedPage = ref(props.meta.page);
-const hasMore = ref(props.meta.hasMore);
-const loading = ref(false);
-const loadFailed = ref(false);
+const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
+    rows: () => props.notifications,
+    meta: () => props.meta,
+    url: (number) => InboxController.index.url({ query: { page: number } }),
+    only: ['notifications', 'meta'],
+    placement: 'stable',
+    onAdded: (added, number) => {
+        added.filter((row) => !row.read).forEach((row) => arrivedUnread.value.add(row.id));
 
-watch(() => props.notifications, (incoming) => {
-    const fresh = new Map(incoming.map((row) => [row.id, row]));
-    const known = new Set(rows.value.map((row) => row.id));
-    const kept = rows.value.map((row) => fresh.get(row.id) ?? row);
-    const added = incoming.filter((row) => !known.has(row.id));
+        if (number > 1) {
+            return;
+        }
 
-    added.filter((row) => !row.read).forEach((row) => arrivedUnread.value.add(row.id));
-
-    if (props.meta.page >= loadedPage.value) {
-        loadedPage.value = props.meta.page;
-        hasMore.value = props.meta.hasMore;
-    }
-
-    if (props.meta.page > 1) {
-        rows.value = [...kept, ...added];
-
-        return;
-    }
-
-    rows.value = [...added, ...kept];
-
-    added.forEach((row) => justArrived.value.add(row.id));
-    window.setTimeout(() => added.forEach((row) => justArrived.value.delete(row.id)), 2_400);
+        added.forEach((row) => justArrived.value.add(row.id));
+        window.setTimeout(() => added.forEach((row) => justArrived.value.delete(row.id)), 2_400);
+    },
 });
 
 // The shell's realtime listener refreshes the badge; a higher count than the list's means new rows arrived.
@@ -168,38 +153,6 @@ const openNotification = (notification: InboxNotification): void => {
 
 const markAllRead = (): void => {
     router.put(InboxController.readAll.url(), {}, { preserveScroll: true });
-};
-
-const loadMore = (): void => {
-    if (!hasMore.value || loading.value) {
-        return;
-    }
-
-    loading.value = true;
-    loadFailed.value = false;
-
-    router.get(
-        InboxController.index.url({ query: { page: loadedPage.value + 1 } }),
-        {},
-        {
-            only: ['notifications', 'meta'],
-            preserveScroll: true,
-            preserveState: true,
-            // A mark-read re-renders the page named in the URL, so the URL must stay on page one.
-            preserveUrl: true,
-            onHttpException: () => {
-                loadFailed.value = true;
-
-                return false;
-            },
-            onNetworkError: () => {
-                loadFailed.value = true;
-            },
-            onFinish: () => {
-                loading.value = false;
-            },
-        },
-    );
 };
 
 const list = ref<HTMLElement | null>(null);

@@ -137,23 +137,23 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
         <!-- The drag handler reads `data-column-key` from the element under the pointer. -->
         <div v-else-if="!collapsed" class="border-t border-border">
             <div class="divide-y divide-border" :data-column-key="section.id ?? 'ungrouped'">
-            <template v-for="(task, position) in section.tasks" :key="task.placementId ?? task.id">
-                <div v-if="isDropSlot(task.placementId)" class="relative h-0">
-                    <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />
-                </div>
+                <template v-for="(task, position) in section.tasks" :key="task.placementId ?? task.id">
+                    <div v-if="isDropSlot(task.placementId)" class="relative h-0">
+                        <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                    </div>
 
-                <TaskRow
-                    :task="task"
-                    :index="position + 1"
-                    :dragging="draggingId !== null && draggingId === task.placementId"
-                    :members="members"
-                    :priorities="priorities"
-                    :editable="editable"
-                    :columns="columns"
-                    @open="(taskId) => emit('open', taskId)"
-                    @pickup="(event, dragged) => emit('pickup', event, dragged)"
-                />
-            </template>
+                    <TaskRow
+                        :task="task"
+                        :index="position + 1"
+                        :dragging="draggingId !== null && draggingId === task.placementId"
+                        :members="members"
+                        :priorities="priorities"
+                        :editable="editable"
+                        :columns="columns"
+                        @open="(taskId) => emit('open', taskId)"
+                        @pickup="(event, dragged) => emit('pickup', event, dragged)"
+                    />
+                </template>
 
                 <div v-if="isDropSlot(null)" class="relative h-0">
                     <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />

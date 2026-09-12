@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CheckCheck, Plus } from '@lucide/vue';
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
 import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import { usePagedRows } from '@/composables/usePagedRows';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -50,29 +51,16 @@ const emptyMessages: Record<string, string> = {
     starred: 'Nothing starred.',
 };
 
-const rows = ref<MyTaskRow[]>([...props.tasks]);
-const loading = ref(false);
-
-watch(() => props.tasks, (tasks) => {
-    rows.value = props.meta.page === 1 ? [...tasks] : [...rows.value, ...tasks];
+const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
+    rows: () => props.tasks,
+    meta: () => props.meta,
+    url: (page) => MyTasksController.index.url({ query: { tab: props.meta.tab, page } }),
+    only: ['tasks', 'meta'],
+    placement: 'server',
+    scope: () => props.meta.tab,
 });
 
-const reloadList = (tab: string, page: number): void => {
-    loading.value = true;
-
-    router.get(
-        MyTasksController.index.url({ query: { tab, page } }),
-        {},
-        {
-            only: ['tasks', 'meta'],
-            preserveScroll: true,
-            preserveState: true,
-            onFinish: () => {
-                loading.value = false;
-            },
-        },
-    );
-};
+const switching = ref(false);
 
 const show = (tab: string): void => {
     if (tab === props.meta.tab) {
@@ -80,15 +68,20 @@ const show = (tab: string): void => {
     }
 
     rows.value = [];
-    reloadList(tab, 1);
-};
+    switching.value = true;
 
-const loadMore = (): void => {
-    if (!props.meta.hasMore || loading.value) {
-        return;
-    }
-
-    reloadList(props.meta.tab, props.meta.page + 1);
+    router.get(
+        MyTasksController.index.url({ query: { tab, page: 1 } }),
+        {},
+        {
+            only: ['tasks', 'meta'],
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                switching.value = false;
+            },
+        },
+    );
 };
 
 const { open, close: closeTask } = useTaskPanel();
@@ -125,61 +118,71 @@ const { open, close: closeTask } = useTaskPanel();
         </div>
 
         <div class="flex flex-1 flex-col gap-4 pb-4">
+            <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-b border-border">
+                <li v-for="task in rows" :key="task.id" class="flex flex-col">
+                    <TaskRow
+                        :task="task"
+                        :members="members"
+                        :priorities="priorities"
+                        :editable="task.canUpdate"
+                        @open="open"
+                    />
 
-        <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-b border-border">
-            <li v-for="task in rows" :key="task.id" class="flex flex-col">
-                <TaskRow
-                    :task="task"
-                    :members="members"
-                    :priorities="priorities"
-                    :editable="task.canUpdate"
-                    @open="open"
-                />
+                    <p v-if="task.projects.length" class="pb-1 pl-7 text-xs text-muted-foreground md:pl-11">
+                        <span v-for="project in task.projects" :key="project.id" class="mr-2">{{ project.name }}</span>
+                    </p>
+                </li>
+            </ul>
 
-                <p v-if="task.projects.length" class="pb-1 pl-7 text-xs text-muted-foreground md:pl-11">
-                    <span v-for="project in task.projects" :key="project.id" class="mr-2">{{ project.name }}</span>
-                </p>
-            </li>
-        </ul>
+            <EmptyState
+                v-else-if="!switching"
+                class="mx-4 mt-4 md:mx-6"
+                :title="emptyMessages[meta.tab] ?? 'Nothing here.'"
+                :description="emptyDescriptions[meta.tab]"
+                :icon="CheckCheck"
+            >
+                <template v-if="meta.tab !== 'completed'" #action>
+                    <Link
+                        :href="createTask()"
+                        class="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                    >
+                        <Plus class="size-4" />
+                        Add a task
+                    </Link>
+                </template>
+            </EmptyState>
 
-        <EmptyState
-            v-else-if="!loading"
-            class="mx-4 mt-4 md:mx-6"
-            :title="emptyMessages[meta.tab] ?? 'Nothing here.'"
-            :description="emptyDescriptions[meta.tab]"
-            :icon="CheckCheck"
-        >
-            <template v-if="meta.tab !== 'completed'" #action>
-                <Link
-                    :href="createTask()"
-                    class="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+            <p v-if="loadFailed" class="mx-4 flex items-center gap-2 text-sm text-muted-foreground md:mx-6" role="status">
+                More tasks did not load.
+                <button
+                    type="button"
+                    class="font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @click="loadMore"
                 >
-                    <Plus class="size-4" />
-                    Add a task
-                </Link>
-            </template>
-        </EmptyState>
+                    Try again
+                </button>
+            </p>
 
-        <button
-            v-if="meta.hasMore"
-            type="button"
-            class="mx-4 self-start rounded border border-input px-2 py-1 text-xs md:mx-6"
-            :disabled="loading"
-            @click="loadMore"
-        >
-            {{ loading ? 'Loading…' : 'Load more' }}
-        </button>
+            <button
+                v-else-if="hasMore"
+                type="button"
+                class="mx-4 self-start rounded border border-input px-2 py-1 text-xs md:mx-6"
+                :disabled="loading || switching"
+                @click="loadMore"
+            >
+                {{ loading || switching ? 'Loading…' : 'Load more' }}
+            </button>
 
-        <TaskDetailPanel
-            v-if="taskDetail"
-            :key="taskDetail.task.id"
-            :detail="taskDetail"
-            :members="members"
-            :priorities="priorities"
-            :activity="activity"
-            @open="open"
-            @close="closeTask"
-        />
+            <TaskDetailPanel
+                v-if="taskDetail"
+                :key="taskDetail.task.id"
+                :detail="taskDetail"
+                :members="members"
+                :priorities="priorities"
+                :activity="activity"
+                @open="open"
+                @close="closeTask"
+            />
         </div>
     </div>
 </template>

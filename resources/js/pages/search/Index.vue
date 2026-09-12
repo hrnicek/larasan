@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Bookmark, Check, ChevronRight, Search as SearchIcon } from '@lucide/vue';
-import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, ref, watch } from 'vue';
 import SearchController from '@/actions/App/Http/Controllers/Search/SearchController';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import { usePagedRows } from '@/composables/usePagedRows';
 import SaveSearchDialog from '@/modules/search/components/SaveSearchDialog.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -35,11 +36,6 @@ const props = defineProps<{
 }>();
 
 const term = ref(props.meta.term);
-const rows = ref<MyTaskRow[]>([...props.tasks]);
-
-watch(() => props.tasks, (tasks) => {
-    rows.value = props.meta.page === 1 ? [...tasks] : [...rows.value, ...tasks];
-});
 
 watch(() => props.meta.term, (value) => {
     if (value !== term.value) {
@@ -48,6 +44,15 @@ watch(() => props.meta.term, (value) => {
 });
 
 let pending: ReturnType<typeof setTimeout> | null = null;
+
+const cancelPending = (): void => {
+    if (pending !== null) {
+        clearTimeout(pending);
+        pending = null;
+    }
+};
+
+onBeforeUnmount(cancelPending);
 
 const query = (page = 1): Record<string, string | number | boolean> => {
     const params: Record<string, string | number | boolean> = { q: term.value };
@@ -71,8 +76,19 @@ const query = (page = 1): Record<string, string | number | boolean> => {
     return params;
 };
 
-const run = (page = 1): void => {
-    router.get(SearchController.index.url({ query: query(page) }), {}, {
+const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
+    rows: () => props.tasks,
+    meta: () => props.meta,
+    url: (page) => SearchController.index.url({ query: { ...query(page), q: props.meta.term } }),
+    only: ['tasks', 'meta', 'filters'],
+    placement: 'server',
+    scope: () => props.meta.term,
+});
+
+const run = (): void => {
+    cancelPending();
+
+    router.get(SearchController.index.url({ query: query() }), {}, {
         only: ['tasks', 'meta', 'filters'],
         preserveState: true,
         preserveScroll: true,
@@ -81,11 +97,9 @@ const run = (page = 1): void => {
 };
 
 const onTyping = (): void => {
-    if (pending !== null) {
-        clearTimeout(pending);
-    }
+    cancelPending();
 
-    pending = setTimeout(() => run(), 250);
+    pending = setTimeout(run, 250);
 };
 
 const filterBy = (key: 'project' | 'assignee' | 'completed', value: string): void => {
@@ -221,27 +235,39 @@ const keeping = ref(false);
                 "
             />
 
+            <p v-if="loadFailed" class="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+                More results did not load.
+                <button
+                    type="button"
+                    class="font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    @click="loadMore"
+                >
+                    Try again
+                </button>
+            </p>
+
             <button
-                v-if="meta.hasMore"
+                v-else-if="hasMore"
                 type="button"
                 class="self-start rounded-md border border-input px-2.5 py-1.5 text-xs transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                @click="run(meta.page + 1)"
+                :disabled="loading"
+                @click="loadMore"
             >
-                Load more
+                {{ loading ? 'Loading…' : 'Load more' }}
             </button>
 
-        <SaveSearchDialog v-model:open="keeping" :term="meta.term" :filters="filters" />
+            <SaveSearchDialog v-model:open="keeping" :term="meta.term" :filters="filters" />
 
-        <TaskDetailPanel
-            v-if="taskDetail"
-            :key="taskDetail.task.id"
-            :detail="taskDetail"
-            :members="members"
-            :priorities="priorities"
-            :activity="activity"
-            @open="open"
-            @close="closeTask"
-        />
+            <TaskDetailPanel
+                v-if="taskDetail"
+                :key="taskDetail.task.id"
+                :detail="taskDetail"
+                :members="members"
+                :priorities="priorities"
+                :activity="activity"
+                @open="open"
+                @close="closeTask"
+            />
         </div>
     </div>
 </template>

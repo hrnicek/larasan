@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type { ReloadOptions } from '@inertiajs/core';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
@@ -135,61 +136,50 @@ const activeColumn = ref(0);
 const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
+// Only reloads asked for on this screen draw the loading state; a realtime refetch swaps rows in place.
+const reloading = ref(false);
+const failed = ref(false);
+
+const reloadView = (options: ReloadOptions): void => {
+    router.reload({
+        ...options,
+        onStart: () => {
+            reloading.value = true;
+            failed.value = false;
+        },
+        onHttpException: () => {
+            failed.value = true;
+
+            return false;
+        },
+        onNetworkError: () => {
+            failed.value = true;
+        },
+        onFinish: () => {
+            reloading.value = false;
+        },
+    });
+};
+
 // Board columns and calendar days share the `expand` parameter; a URL only ever names one view.
 const expand = (group: string | null): void => {
     const key = group ?? 'ungrouped';
     const current = new URLSearchParams(window.location.search).getAll('expand[]');
 
-    router.reload({
+    reloadView({
         only: [props.calendar ? 'calendar' : 'board'],
         data: { expand: [...current, key] },
     });
+};
+
+const retry = (): void => {
+    reloadView({ only: [drawing.value] });
 };
 
 const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
 
 const listElement = ref<HTMLElement | null>(null);
 const { onKeydown } = useTaskListKeyboard(() => listElement.value);
-
-const reloading = ref(false);
-const failed = ref(false);
-const listening = (event: { detail: { visit: { only: string[] } } }) =>
-    ['list', 'board', 'calendar', 'files', 'pages'].some((key) => event.detail.visit.only.includes(key));
-
-const started = (event: { detail: { visit: { only: string[] } } }) => {
-    if (listening(event)) {
-        reloading.value = true;
-        failed.value = false;
-    }
-};
-
-const finished = () => {
-    reloading.value = false;
-};
-
-const errored = () => {
-    failed.value = true;
-    reloading.value = false;
-};
-
-const retry = () => {
-    router.reload({ only: [drawing.value] });
-};
-
-const stops: Array<() => void> = [];
-
-onMounted(() => {
-    stops.push(
-        router.on('start', started),
-        router.on('finish', finished),
-        router.on('httpException', errored),
-        router.on('networkError', errored),
-    );
-});
-
-onUnmounted(() => {
-    stops.forEach((stop) => stop());
-});
 </script>
 
 <template>
@@ -249,145 +239,145 @@ onUnmounted(() => {
 
         <div class="flex flex-col pb-6">
             <div class="flex flex-1 flex-col">
-        <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
+                <div
+                    v-if="failed"
+                    class="mx-4 mt-4 flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
+                    role="alert"
+                >
+                    <span>Something went wrong loading this project.</span>
+                    <button type="button" class="underline" @click="retry">Try again</button>
+                </div>
 
-        <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6" aria-label="Columns">
-            <button
-                v-for="(column, index) in columns"
-                :key="column.id ?? 'ungrouped'"
-                type="button"
-                class="rounded border px-3 py-1 text-xs"
-                :class="index === activeColumn ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'"
-                :aria-current="index === activeColumn ? 'true' : undefined"
-                @click="activeColumn = index"
-            >
-                {{ column.name ?? 'No section' }} ({{ column.count }})
-            </button>
-        </nav>
+                <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
-        <div
-            v-if="board"
-            class="flex gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
-            @keydown="keyboard.onKeydown"
-        >
-            <BoardColumn
-                v-for="(column, index) in columns"
-                :key="column.id ?? 'ungrouped'"
-                :column="column"
-                :project-id="project.id"
-                :editable="editable()"
-                :creatable="creatable()"
-                :can-section="board ? {
-                    create: board.can.createSection,
-                    update: board.can.updateSection,
-                    delete: board.can.deleteSection,
-                } : undefined"
-                :loading="reloading"
-                :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
-                :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
-                :drop-target="drag.dropTarget.value"
-                :columns="columns"
-                class="w-full md:w-72"
-                :class="columnVisibility(index)"
-                @expand="expand"
-                @pickup="drag.pickUp"
-                @moveto="drag.moveTo"
-                @open="openTask"
-            />
+                <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6" aria-label="Columns">
+                    <button
+                        v-for="(column, index) in columns"
+                        :key="column.id ?? 'ungrouped'"
+                        type="button"
+                        class="rounded border px-3 py-1 text-xs"
+                        :class="index === activeColumn ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'"
+                        :aria-current="index === activeColumn ? 'true' : undefined"
+                        @click="activeColumn = index"
+                    >
+                        {{ column.name ?? 'No section' }} ({{ column.count }})
+                    </button>
+                </nav>
 
-            <InlineSectionCreate
-                v-if="board.can.createSection"
-                :project-id="project.id"
-                variant="board"
-            />
-        </div>
+                <div
+                    v-if="board"
+                    class="flex gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+                    @keydown="keyboard.onKeydown"
+                >
+                    <BoardColumn
+                        v-for="(column, index) in columns"
+                        :key="column.id ?? 'ungrouped'"
+                        :column="column"
+                        :project-id="project.id"
+                        :editable="editable()"
+                        :creatable="creatable()"
+                        :can-section="board ? {
+                            create: board.can.createSection,
+                            update: board.can.updateSection,
+                            delete: board.can.deleteSection,
+                        } : undefined"
+                        :loading="reloading"
+                        :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
+                        :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
+                        :drop-target="drag.dropTarget.value"
+                        :columns="columns"
+                        class="w-full md:w-72"
+                        :class="columnVisibility(index)"
+                        @expand="expand"
+                        @pickup="drag.pickUp"
+                        @moveto="drag.moveTo"
+                        @open="openTask"
+                    />
 
-        <template v-else-if="list">
-            <div
-                v-if="failed"
-                class="mx-4 mt-4 flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
-                role="alert"
-            >
-                <span>Something went wrong loading this project.</span>
-                <button type="button" class="underline" @click="retry">Try again</button>
-            </div>
+                    <InlineSectionCreate
+                        v-if="board.can.createSection"
+                        :project-id="project.id"
+                        variant="board"
+                    />
+                </div>
 
-            <div
-                v-if="list.sections.length"
-                ref="listElement"
-                class="flex flex-col"
-                @keydown="onKeydown"
-            >
-                <SectionGroup
-                    v-for="section in sections"
-                    :key="section.id ?? 'ungrouped'"
-                    :section="section"
-                    :members="members"
-                    :priorities="priorities"
+                <template v-else-if="list">
+                    <div
+                        v-if="list.sections.length"
+                        ref="listElement"
+                        class="flex flex-col"
+                        @keydown="onKeydown"
+                    >
+                        <SectionGroup
+                            v-for="section in sections"
+                            :key="section.id ?? 'ungrouped'"
+                            :section="section"
+                            :members="members"
+                            :priorities="priorities"
+                            :editable="editable()"
+                            :creatable="creatable()"
+                            :project-id="project.id"
+                            :columns="list?.columns"
+                            :siblings="sections.map((group) => group.id)"
+                            :can-section="list ? {
+                                create: list.can.createSection,
+                                update: list.can.updateSection,
+                                delete: list.can.deleteSection,
+                            } : undefined"
+                            :dragging-id="listDrag.draggingId.value"
+                            :drop-target="listDrag.dropTarget.value"
+                            :collapsed="isCollapsed(section.id)"
+                            :loading="reloading"
+                            @toggle="toggle"
+                            @open="openTask"
+                            @pickup="(event, task) => listDrag.pickUp(event, task)"
+                        />
+
+                        <InlineSectionCreate
+                            v-if="list.can.createSection"
+                            :project-id="project.id"
+                            variant="list"
+                        />
+                    </div>
+
+                    <EmptyState
+                        v-else
+                        class="mx-4 mt-4 md:mx-6"
+                        :icon="ListTodo"
+                        title="This project is empty"
+                        :description="
+                            creatable()
+                                ? 'Add the first task, or give it a section to group them under.'
+                                : 'Nothing has been put in it yet.'
+                        "
+                    >
+                        <template v-if="creatable()" #action>
+                            <InlineTaskCreate :project-id="project.id" :section-id="null" />
+                        </template>
+                    </EmptyState>
+                </template>
+
+                <CalendarGrid
+                    v-else-if="calendar"
+                    :calendar="{ ...calendar, days, undated }"
+                    :project-id="project.id"
                     :editable="editable()"
                     :creatable="creatable()"
-                    :project-id="project.id"
-                    :columns="list?.columns"
-                    :siblings="sections.map((group) => group.id)"
-                :can-section="list ? {
-                    create: list.can.createSection,
-                    update: list.can.updateSection,
-                    delete: list.can.deleteSection,
-                } : undefined"
-                :dragging-id="listDrag.draggingId.value"
-                :drop-target="listDrag.dropTarget.value"
-                :collapsed="isCollapsed(section.id)"
+                    :dragging-id="calendarDrag.draggingId.value"
+                    :over-day="calendarDrag.overDay.value"
                     :loading="reloading"
-                    @toggle="toggle"
+                    class="mt-4"
                     @open="openTask"
-                @pickup="(event, task) => listDrag.pickUp(event, task)"
+                    @expand="expand"
+                    @pickup="calendarDrag.pickUp"
                 />
 
-                <InlineSectionCreate
-                    v-if="list.can.createSection"
-                    :project-id="project.id"
-                    variant="list"
-                />
-            </div>
+                <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
 
-            <EmptyState
-                v-else
-                class="mx-4 mt-4 md:mx-6"
-                :icon="ListTodo"
-                title="This project is empty"
-                :description="
-                    creatable()
-                        ? 'Add the first task, or give it a section to group them under.'
-                        : 'Nothing has been put in it yet.'
-                "
-            >
-                <template v-if="creatable()" #action>
-                    <InlineTaskCreate :project-id="project.id" :section-id="null" />
-                </template>
-            </EmptyState>
-            </template>
+                <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
 
-        <CalendarGrid
-            v-else-if="calendar"
-            :calendar="{ ...calendar, days, undated }"
-            :project-id="project.id"
-            :editable="editable()"
-            :creatable="creatable()"
-            :dragging-id="calendarDrag.draggingId.value"
-            :over-day="calendarDrag.overDay.value"
-            :loading="reloading"
-            class="mt-4"
-            @open="openTask"
-            @expand="expand"
-            @pickup="calendarDrag.pickUp"
-        />
-
-        <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
-
-        <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
-
-        <!-- The view has switched but its payload has not arrived yet. -->
-        <ProjectViewSkeleton v-else data-screen-pending :view="view" />
+                <!-- The view has switched but its payload has not arrived yet. -->
+                <ProjectViewSkeleton v-else data-screen-pending :view="view" />
             </div>
 
             <TaskDetailPanel
