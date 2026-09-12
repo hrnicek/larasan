@@ -9,8 +9,9 @@ contradicts one of them is a conversation about the decision first and a diff se
 ## Running it locally
 
 Two ways, and neither is the "real" one. They differ in one file: `.env.example` reaches
-PostgreSQL, Redis, Meilisearch and mail at `127.0.0.1`, and `.env.docker.example` reaches them at
-the names `compose.yaml` gives those containers. Copy the one for the way you are working.
+PostgreSQL, Redis and Meilisearch at `127.0.0.1` and writes mail to the log, and
+`.env.docker.example` reaches them, and Mailpit, at the names `compose.yaml` gives those
+containers. Copy the one for the way you are working.
 
 The hostnames are not set in `compose.yaml`, and that is deliberate: `php artisan serve` passes
 only a fixed list of variables through to a request, so anything set there would reach an artisan
@@ -42,17 +43,17 @@ application still serves, which is the point of ADR-0016.
 
 ### On the host
 
-You need PHP 8.4, Node 20+, PostgreSQL, Redis and Meilisearch.
+You need PHP 8.4, Node 20.19+ or 22.12+, PostgreSQL, Redis and Meilisearch.
 
 ```bash
 cp .env.example .env
-composer setup
 createdb -U pm pm && createdb -U pm pm_testing
+composer setup
 php artisan db:seed --class=DevelopmentSeeder
 composer dev
 ```
 
-`composer dev` runs the server, the queue worker, Reverb and Vite together.
+`composer dev` runs the server, Horizon, Reverb, a log tail and Vite together.
 
 The suite runs against a **separate** database, `pm_testing`, on PostgreSQL rather than SQLite —
 engine differences are caught here rather than in production. The Docker image creates it on first
@@ -92,8 +93,9 @@ Format only what you edited: `npx prettier --write <files>`.
 - **No new dependency without a conversation.** The stack is fixed on purpose, and most additions
   turn out to be something the framework already does.
 - **No `dd()`, `dump()`, `ray()` or stray `console.log`.** No commented-out code.
-- **Comments carry what the code cannot** — an invariant, a vendor limitation, a security
-  rationale. Not narration of the line below.
+- **Comments are rare.** PHPDoc only for types native declarations cannot express; an inline
+  comment only for a non-obvious why, in one short sentence. Never narration of the line below —
+  see [`docs/conventions/code-style.md`](docs/conventions/code-style.md).
 
 The rest is in [`docs/conventions/`](docs/conventions/). It is short, and reading it will save you
 a review round.

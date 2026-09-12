@@ -1,6 +1,6 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "jakubhrncir/larasan",
+    "name": "hrnicek/larasan",
     "type": "project",
     "description": "An open-source project manager that keeps a team in tune.",
     "keywords": [

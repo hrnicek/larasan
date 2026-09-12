@@ -9,7 +9,7 @@ Larasan has no tagged release yet. Only the `main` branch is supported, and fixe
 **Please do not open a public issue.**
 
 Report privately through GitHub's
-[private vulnerability reporting](https://github.com/jakubhrncir/larasan/security/advisories/new).
+[private vulnerability reporting](https://github.com/hrnicek/larasan/security/advisories/new).
 It goes to the maintainer and to nobody else.
 
 Useful in a report: what an attacker can do, the smallest reproduction you have, the commit you

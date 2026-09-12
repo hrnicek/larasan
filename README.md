@@ -37,17 +37,17 @@ Two positions follow from it:
 
 - **Sections are groupings you name, not a status enum in disguise.** A column called *Waiting on
   legal* is a real answer, and no code branches on it.
-- **Realtime is a transport, never the source of truth.** A dropped websocket degrades presence.
-  It never degrades data.
+- **Realtime is a transport, never the source of truth.** A dropped websocket degrades live
+  updates. It never degrades data.
 
 ## What is in it
 
 Workspaces and memberships · projects with per-project access levels · sections · tasks with
-subtasks, dependencies, followers, comments, attachments, tags and custom fields · a list view and
-a board view that agree · a personal queue across every project · pages, as documents that hang
-from a project · an inbox of what changed · search across five kinds of thing behind `⌘K` ·
-authentication with two-factor and passkeys · an installable PWA · light, dark and system
-appearance, persisted per person.
+subtasks, collaborators, followers, comments, attachments, tags and custom fields · a list view,
+a board and a calendar that agree · a personal queue across every project · pages, as documents
+that hang from a project · an inbox of what changed · search across tasks, projects, people and
+messages behind `⌘K` · authentication with two-factor and passkeys · an installable PWA · light,
+dark and system appearance on each device, and five colour themes that follow the person.
 
 Deliberately out of scope for now: billing, native apps, portfolios, goals, workload planning, an
 automation builder, AI features, Gantt editing, dashboard builders, multi-assignee tasks and
@@ -72,7 +72,7 @@ every permission the UI renders.
 With Docker, nothing else is needed:
 
 ```bash
-git clone https://github.com/jakubhrncir/larasan.git
+git clone https://github.com/hrnicek/larasan.git
 cd larasan
 cp .env.docker.example .env
 
@@ -92,18 +92,20 @@ After `alias sail='./vendor/bin/sail'` those become `sail up -d`, `sail artisan 
 `sail npm run dev`. `compose.yaml` also runs Horizon and Reverb, so queued work and realtime
 behave as they do in production.
 
-Without Docker you will need PHP 8.4, Node 20+, PostgreSQL, Redis and Meilisearch on the host:
+Without Docker you will need PHP 8.4, Node 20.19+ or 22.12+, PostgreSQL, Redis and Meilisearch on
+the host:
 
 ```bash
-composer setup
+cp .env.example .env
 createdb -U pm pm && createdb -U pm pm_testing
+composer setup
 php artisan db:seed --class=DevelopmentSeeder
 composer dev
 ```
 
-`composer dev` runs the server, the queue worker, Reverb and Vite together. One `.env` serves
-both ways: the container sets the hostnames it needs as environment variables, and Laravel's
-dotenv loading leaves a real environment variable alone.
+`composer dev` runs the server, Horizon, Reverb, a log tail and Vite together. The two example
+files differ only in the hostnames the services are reached at: `.env.example` uses `127.0.0.1`,
+`.env.docker.example` the container names in `compose.yaml`.
 
 ## Tests
 
