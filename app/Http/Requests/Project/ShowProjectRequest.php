@@ -16,10 +16,6 @@ use Illuminate\Validation\Rule;
 
 class ShowProjectRequest extends FormRequest
 {
-    /**
-     * Reading is the policy's answer, asked in the controller where the project is bound.
-     * A request that authorized here would have to resolve the project a second time.
-     */
     public function authorize(): bool
     {
         return true;
@@ -31,92 +27,39 @@ class ShowProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Not `nullable`: an absent parameter means "the project's own view", and an
-            // empty one is a client that built a URL wrong.
             'view' => ['sometimes', Rule::enum(ProjectView::class)],
 
-            /*
-             * Which page of the files table this is. The only view that pages: the other three
-             * bound themselves by column, by day and by section, where a page number would cut
-             * a group in half.
-             */
             'page' => ['sometimes', 'integer', 'min:1'],
 
-            /*
-             * Which columns the reader has asked to see in full. A list of ids rather than a
-             * page number: a board is not a sequence of pages, and "this column, all of it"
-             * is the only thing a client can honestly ask for while cards are moving.
-             */
             'expand' => ['sometimes', 'array', 'max:20'],
             'expand.*' => ['string', 'max:64'],
 
-            /*
-             * The task whose panel is open over this screen. It lives in the URL because a
-             * panel is a context plus a task: a link that carried only the task could not say
-             * which board it was opened from, and reopening it would lose the context.
-             */
             'task' => ['sometimes', 'uuid'],
 
-            /*
-             * The tags a card must carry, all of them. In the URL because a filtered view is a
-             * link somebody sends — "the bugs in this project" is a thing people share, not a
-             * setting they describe over chat.
-             */
             'tags' => ['sometimes', 'array', 'max:20'],
             'tags.*' => ['uuid'],
 
-            /*
-             * Ordering and narrowing by a field's answer, both in the URL for the reason the tag
-             * filter is: this is a view somebody sends, not a preference they describe.
-             *
-             * `sort` means two things, one per view, the way `expand` does — a URL names one view,
-             * so the two meanings can never be in the same address. On the files table it is one
-             * of a fixed vocabulary, and a value outside it is a validation error rather than a
-             * quiet fallback: there are no stale ids to be kind about, only URLs built wrong.
-             */
             'sort' => $this->showsFiles()
                 ? ['sometimes', Rule::enum(ProjectFileSort::class)]
                 : ['sometimes', 'uuid'],
             'direction' => ['sometimes', 'in:asc,desc'],
             'field' => ['sometimes', 'array', 'max:10'],
 
-            /*
-             * Which month the calendar is showing. A month rather than a date: the view draws
-             * whole weeks around one month, so a day would be a more precise way of saying the
-             * same thing and a worse thing to read in a link somebody sent.
-             *
-             * A value that is not a month is a validation error rather than a quiet fallback to
-             * this one, for the reason `view` is: a URL that silently renders something else
-             * looks like the control is broken.
-             */
             'month' => ['sometimes', 'date_format:Y-m'],
         ];
     }
 
-    /**
-     * What this request asked to see: the parameter when it is there, the project's default
-     * when it is not.
-     */
     public function view(Project $project): ProjectView
     {
         return $this->enum('view', ProjectView::class) ?? ProjectView::fromDefault($project->default_view);
     }
 
-    /**
-     * The page of the files table, which is the first one unless a URL says otherwise.
-     */
     public function page(): int
     {
         return max(1, $this->integer('page', 1));
     }
 
     /**
-     * How the files table is ordered, and which way round.
-     *
-     * The direction is left null where the URL did not say one, so the enum decides: newest first
-     * for a moment, A to Z for a name. Answering "ascending" for all three would open the table on
-     * the oldest file somebody attached.
-     *
      * @return array{ProjectFileSort, bool|null}
      */
     public function fileSort(): array
@@ -130,20 +73,13 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
-     * Whether this request is asking for the files table, answered from the parameter alone: a
-     * project cannot default to it (`ProjectView` is a superset of `ProjectDefaultView`), so
-     * there is no case where the project would have to be resolved to know.
+     * A project cannot default to the files view, so the query parameter alone decides.
      */
     private function showsFiles(): bool
     {
         return $this->query('view') === ProjectView::Files->value;
     }
 
-    /**
-     * The month the calendar is showing: the parameter when it is there, this month when it is
-     * not. Always the first of it, so a caller cannot accidentally carry a day into a value
-     * that means a month.
-     */
     public function month(): CarbonImmutable
     {
         $month = $this->string('month')->value();
@@ -159,9 +95,6 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
-     * The field this view is ordered by, when the project still shows it. A stale id orders by
-     * nothing rather than 404ing, the way a stale tag filters nothing.
-     *
      * @param  Collection<int, CustomField>  $available
      */
     public function sort(Collection $available): ?FieldSort
@@ -180,8 +113,6 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
-     * The answers a row must carry, keyed by field id.
-     *
      * @return array<string, string>
      */
     public function fieldFilters(): array
@@ -192,8 +123,6 @@ class ShowProjectRequest extends FormRequest
         $answers = [];
 
         foreach ($filters as $fieldId => $answer) {
-            // Both halves have to be readable: a key that is not an id and a value that is not
-            // a scalar are a URL somebody built by hand, and neither filters anything.
             if (is_string($fieldId) && (is_string($answer) || is_numeric($answer)) && (string) $answer !== '') {
                 $answers[$fieldId] = (string) $answer;
             }
@@ -203,10 +132,6 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
-     * The tags this view is filtered by. Ids the workspace does not have simply match nothing,
-     * which is the honest answer to a stale link — a 404 for a deleted tag would throw away a
-     * board somebody can still read.
-     *
      * @return list<string>
      */
     public function tags(): array
@@ -221,9 +146,7 @@ class ShowProjectRequest extends FormRequest
     }
 
     /**
-     * The days the reader has asked to see in full — the calendar's half of `expand`, which the
-     * board spends on columns. One parameter rather than two: a URL names one view, so the two
-     * meanings can never be in the same address.
+     * The calendar reuses the board's `expand` parameter for days.
      *
      * @return list<string>
      */

@@ -9,37 +9,17 @@ import CommentForm from '@/modules/comment/components/CommentForm.vue';
 import CommentLine from '@/modules/comment/components/CommentLine.vue';
 import type { TaskAssignee, TaskFeed, TaskFeedEntry } from '@/modules/task/types';
 
-/**
- * What has happened to this task, and what people have said about it.
- *
- * On its own surface at the foot of the panel, because it is a conversation rather than another
- * field: the fields above are what the task *is*, and this is what has been said about it. The
- * composer stays in view while the thread scrolls under it — a reply control you have to scroll
- * to find is one people stop using.
- *
- * The **only** deferred region in the application, and the reason the list view in Phase 080
- * deliberately was not one: activity and comments are secondary, they can be slow, and the fields
- * above them are worth reading before they arrive.
- */
 const props = defineProps<{
     taskId: string;
     feed?: TaskFeed;
     canComment: boolean;
-    /** The composer's own face, so the reply box says who is about to speak. */
     viewer: { name: string; avatar: string | null } | null;
-    /** Who a comment can name with `@`. */
     people: TaskAssignee[];
 }>();
 
-/**
- * Two readings of the same thread. Most of the time somebody wants what was *said*; the whole
- * record is a second question, and answering both in one list makes the first one hard to read.
- */
 const tab = ref<'comments' | 'activity'>('comments');
 
-/** The server sends the newest first, because that is the page a long thread needs. A thread is
- *  read downwards, so the order is decided here — in the component that draws it, rather than in
- *  the query that has to paginate it. */
+/** The server pages newest first; the order for reading is decided here. */
 const oldestFirst = ref(true);
 
 const lines = computed<TaskFeedEntry[]>(() => {
@@ -49,11 +29,6 @@ const lines = computed<TaskFeedEntry[]>(() => {
     return oldestFirst.value ? [...shown].reverse() : [...shown];
 });
 
-/**
- * An activity says what happened, in words, from the ids the row kept — never from a snapshot of
- * names that have since changed.
- */
-/** A colleague's name as it is today, or nothing for somebody who has left — never an id on screen. */
 const nameOf = (id: unknown): string | null => props.people.find((person) => person.id === id)?.name ?? null;
 
 const describe = (entry: TaskFeedEntry): string => {
@@ -167,10 +142,6 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
             </Deferred>
         </div>
 
-        <!--
-            Pinned to the foot of whatever is scrolling — the panel's body or the page itself —
-            rather than sitting at the end of a thread somebody has to reach first.
-        -->
         <div
             v-if="canComment"
             class="sticky bottom-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:px-6"

@@ -12,12 +12,6 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Rename or recolour a tag.
- *
- * Renaming changes what the word means everywhere it is already applied, which is why it asks
- * `tag.manage` rather than the permission that puts one on a task.
- */
 final readonly class UpdateTag
 {
     public function handle(Tag $tag, User $actor, ?string $name = null, ?AccentColor $color = null, bool $clearColor = false): Tag
@@ -36,18 +30,12 @@ final readonly class UpdateTag
             $tag->name = $name;
         }
 
-        // A colour can be set or removed; "not mentioned" is neither, which is why the caller
-        // has to say which of the two a null means.
         if ($color !== null || $clearColor) {
             $tag->color = $clearColor ? null : $color;
         }
 
         try {
-            /*
-             * Inside its own transaction so the failure is a rolled-back savepoint rather than
-             * a poisoned connection: PostgreSQL refuses every later statement on a transaction
-             * that has seen an error, and this Action is often called inside one.
-             */
+            // A savepoint keeps a unique violation from aborting an enclosing PostgreSQL transaction.
             DB::transaction(fn () => $tag->save());
         } catch (QueryException $exception) {
             throw TagException::nameIsTaken();

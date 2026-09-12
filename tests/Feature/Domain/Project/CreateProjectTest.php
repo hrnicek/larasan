@@ -61,8 +61,6 @@ it('opens the project with one placeholder column', function (): void {
         ->and(Section::DEFAULT_NAMES)->toBe(['Untitled section'])
         ->and($project->sections()->pluck('position')->all())
         ->toBe(SparsePosition::spread(count(Section::DEFAULT_NAMES)))
-        // Slate, the same colour a column added by hand starts with — the project's first column
-        // is not a different kind of column.
         ->and($project->sections()->first()?->color?->paletteColor())->toBe(CreateSectionData::DEFAULT_COLOR);
 });
 

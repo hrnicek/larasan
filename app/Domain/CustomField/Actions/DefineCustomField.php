@@ -14,16 +14,6 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Decide that a workspace records something new about its work.
- *
- * `custom_field.manage` rather than `task.update`: a field is a column on everybody's screens,
- * and ADR-0010 gives that to owners and admins. Filling one in is a different question, asked by
- * `SetTaskCustomFieldValue`.
- *
- * A `select` field is created with its choices in one transaction, because a choice field with
- * no choices is a control nobody can use and a state nothing else in this phase expects.
- */
 final readonly class DefineCustomField
 {
     /**
@@ -57,11 +47,7 @@ final readonly class DefineCustomField
         $field->type = $type;
 
         try {
-            /*
-             * Its own transaction, so a duplicate name is a rolled-back savepoint rather than a
-             * poisoned connection — the same reason `CreateTag` has one. The unique index is
-             * what answers, because two people can define "Estimate" in the same second.
-             */
+            // A savepoint, so a duplicate-name violation does not abort an enclosing Postgres transaction.
             DB::transaction(function () use ($field, $labels): void {
                 $field->save();
 

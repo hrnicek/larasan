@@ -20,10 +20,6 @@ function detach(Task $task, Project $project, User $actor): void
     app(DetachTaskFromProject::class)->handle($task, $project, $actor);
 }
 
-/**
- * A placement made without going through the Action, for the cases where the actor under
- * test is not allowed to create one.
- */
 function attachDirectly(Task $task, Project $project): TaskProjectMembership
 {
     return TaskProjectMembership::factory()->placing($task, $project)->create();
@@ -36,7 +32,6 @@ it('removes the card and keeps the task', function (): void {
 
     detach($task, $project, $actor);
 
-    // The task belongs to the workspace, not to the project it was shown in (ADR-0003).
     expect($project->placements()->count())->toBe(0)
         ->and($task->fresh())->not->toBeNull()
         ->and($task->fresh()?->workspace_id)->toBe($workspace->id);
@@ -67,7 +62,6 @@ it('leaves the other cards in the project alone', function (): void {
     detach($going, $project, $actor);
 
     expect($project->placements()->pluck('id')->all())->toBe([$kept->id])
-        // The survivors keep their slots: detaching is not a reordering.
         ->and($kept->fresh()?->position)->toBe($kept->position);
 });
 
@@ -80,8 +74,6 @@ it('forgets which column the task was in', function (): void {
 
     detach($task, $project, $actor);
 
-    // No soft delete: a hidden row would still hold the slot and the unique pair, so
-    // re-attaching the task would collide with its own tombstone.
     expect($section->placements()->count())->toBe(0)
         ->and($project->placements()->count())->toBe(0);
 });
@@ -105,7 +97,6 @@ it('does nothing when the task is not in the project', function (): void {
     Event::fake();
     detach($task, $project, $actor);
 
-    // A repeated request, or a board that was already stale when the user clicked.
     Event::assertNotDispatched(TaskDetachedFromProject::class);
     expect($task->fresh())->not->toBeNull();
 });

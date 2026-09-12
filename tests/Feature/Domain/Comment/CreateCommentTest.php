@@ -39,11 +39,6 @@ it('takes the workspace from the subject rather than from the request', function
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    /*
-     * The actor is a member of two workspaces and happens to be "in" the other one. A comment
-     * scoped to whichever workspace the actor was in would leak across tenants the first time
-     * somebody followed a link from somewhere else.
-     */
     $elsewhere = Workspace::factory()->create();
     memberOf($elsewhere, WorkspaceRole::Member, user: $actor);
     $actor->forceFill(['current_workspace_id' => $elsewhere->id])->save();
@@ -57,8 +52,6 @@ it('trims the body and refuses one with nothing in it', function (): void {
 
     expect(comment($task, $actor, "  Spaced out  \n")->body)->toBe('Spaced out');
 
-    // Whitespace is not a comment, and the Action says so rather than leaving it to a request
-    // a console command never passes.
     expect(fn (): Comment => comment($task, $actor, "   \n  "))
         ->toThrow(CommentException::class, 'A comment needs something in it.');
 
@@ -87,8 +80,7 @@ it('lets a guest comment on what they were given', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // `comment.create` is the one capability a guest's role holds (ADR-0010), and they were
-    // given the project the task is in.
+    // comment.create is the only capability the guest role holds. See ADR-0010.
     expect(comment($task, $guest)->exists)->toBeTrue();
 });
 
@@ -99,10 +91,6 @@ it('refuses somebody who cannot reach the subject', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    /*
-     * The capability alone is not enough. Commenting into a project somebody was never given
-     * is talking to people who cannot hear you — and reading what they say back.
-     */
     expect(fn (): Comment => comment($task, $outsider))
         ->toThrow(CommentException::class, 'You cannot comment on something you cannot reach.');
 

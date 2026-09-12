@@ -14,11 +14,6 @@ use App\Http\Requests\File\StoreAttachmentRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The endpoints arrive with TASK-120-006. A probe route asserts the request for what it is —
- * validation and authorization — before a controller exists to confuse a failure with a routing
- * one.
- */
 beforeEach(function (): void {
     Route::middleware('web')->post('attachment-probe/{task}', fn (StoreAttachmentRequest $request, Task $task) => response()->json([
         'names' => collect((array) $request->file('files', []))->map(fn (UploadedFile $upload): string => $upload->getClientOriginalName())->all(),
@@ -42,8 +37,6 @@ it('refuses a file larger than the configured bound', function (): void {
 
     config(['attachments.max_kilobytes' => 100]);
 
-    // The bound is configuration rather than a number in a rules array, so the same figure can
-    // be shown to the person doing the uploading.
     $this->actingAs($actor)
         ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('big.pdf', 200, 'application/pdf')]])
         ->assertJsonValidationErrorFor('files.0');
@@ -53,18 +46,12 @@ it('refuses a type that is not on the list', function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    /*
-     * An allow-list, and `mimetypes` rather than `mimes`: the rule reads the file instead of
-     * believing the extension, so a script that calls itself a PDF is still a script.
-     */
+    // mimetypes, not mimes: the rule inspects the content rather than trusting the extension.
     $this->actingAs($actor)
         ->postJson("attachment-probe/{$task->id}", [
-            // Named like a document and typed like a program: the rule reads the file rather
-            // than the extension, so the name buys nothing.
             'files' => [UploadedFile::fake()->create('payload.pdf', 10, 'application/x-msdownload')],
         ])
         ->assertJsonValidationErrorFor('files.0')
-        // Named rather than numbered: the message says which of the chosen files was refused.
         ->assertJsonFragment(['files.0' => ['payload.pdf cannot be attached here.']]);
 });
 
@@ -97,8 +84,6 @@ it('refuses somebody who cannot reach the task', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    // Reach again: the capability alone would let somebody put a document into a project they
-    // were never given.
     $this->actingAs($outsider)
         ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertForbidden();

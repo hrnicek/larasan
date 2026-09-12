@@ -16,16 +16,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-/**
- * Say something about a task.
- *
- * Two questions, both required: the workspace capability says the actor may comment at all,
- * and the subject's own policy says they may reach the thing they are commenting on
- * (TASK-070-017's rule, applied to writing rather than reading). Neither alone is enough — a
- * capability without reach would let somebody comment into a private project they were never
- * given, which is a way of talking to people who cannot hear you and reading what they say
- * back.
- */
 final readonly class CreateComment
 {
     public function __construct(
@@ -47,8 +37,6 @@ final readonly class CreateComment
 
         $body = trim($data->body);
 
-        // Whitespace is not a comment. Refused here rather than only in the request, because a
-        // console command and a queued job never pass one.
         if ($body === '') {
             throw CommentException::bodyIsEmpty();
         }
@@ -57,11 +45,7 @@ final readonly class CreateComment
 
         $comment = new Comment(['body' => $mentioned->body]);
 
-        /*
-         * The **subject's** workspace, not the request's. A comment scoped to whichever
-         * workspace the actor happened to be in would be a row that leaks across tenants the
-         * first time somebody follows a link from somewhere else.
-         */
+        // The subject's workspace, never the request's, so the row cannot leak across tenants.
         $comment->workspace_id = $subject->workspaceId();
         $comment->commentable_type = (string) Relation::getMorphAlias($subject::class);
         $comment->commentable_id = (string) $subject->getKey();

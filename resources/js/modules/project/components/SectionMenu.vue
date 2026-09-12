@@ -16,29 +16,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 
-/**
- * What can be done to a column, from the column.
- *
- * These actions existed only on the project's settings screen, which is the wrong place for
- * them: a column is renamed while looking at what is in it, not after navigating away from it.
- * Every one of them is an endpoint that already exists — this is a second door, not a new room.
- */
 const props = defineProps<{
     projectId: string;
-    /** `null` is the ungrouped bucket, which is a place but not a section: it cannot be edited. */
+    /** `null` is the ungrouped bucket, which cannot be edited. */
     sectionId: string | null;
     name: string | null;
-    /** The column's own colour, so the palette opens on the one it already has. */
     color: string | null;
-    /**
-     * Every column this project draws, in the order it draws them — the ungrouped bucket
-     * included, since it is one of them on the screen even though it is not a section.
-     *
-     * Needed because a move is an anchor rather than a position (ADR-0009): "one place earlier"
-     * can only be expressed as "after the one two places above", which needs the neighbours.
-     */
+    /** All column ids in display order, ungrouped as `null`; moves are anchor-based. See ADR-0009. */
     siblings: (string | null)[];
-    /** Columns move sideways on the board and up and down in the list. The verb follows. */
     variant: 'board' | 'list';
     can: { create: boolean; update: boolean; delete: boolean };
 }>();
@@ -48,7 +33,6 @@ const emit = defineEmits<{ rename: [] }>();
 const deleting = ref(false);
 const working = ref(false);
 
-/** The real sections, in order. The ungrouped bucket has no id and cannot be moved. */
 const order = computed((): string[] => props.siblings.filter((id): id is string => id !== null));
 
 const index = computed((): number => (props.sectionId === null ? -1 : order.value.indexOf(props.sectionId)));
@@ -56,14 +40,7 @@ const index = computed((): number => (props.sectionId === null ? -1 : order.valu
 const canMoveEarlier = computed((): boolean => index.value > 0);
 const canMoveLater = computed((): boolean => index.value >= 0 && index.value < order.value.length - 1);
 
-/**
- * Moving is the endpoint `SectionManager` used one screen away, brought to the column itself —
- * which is where somebody looking at a board wants it, and is why the settings screen no longer
- * carries a copy of these controls.
- *
- * `after` is the section this one lands behind: two places above for a step earlier, because the
- * one directly above is the one being passed; `null` is the front.
- */
+/** `after` is the section this one lands behind; `null` moves it to the front. */
 function move(after: string | null): void {
     if (props.sectionId === null) {
         return;
@@ -78,13 +55,6 @@ function move(after: string | null): void {
     );
 }
 
-/**
- * A new column, at the end.
- *
- * Not "below this one": `CreateSection` appends and `StoreSectionRequest` takes no anchor, so an
- * item promising a position would be lying about where the column lands. Reordering is a
- * separate endpoint and belongs to a separate gesture.
- */
 function add(): void {
     working.value = true;
 
@@ -95,13 +65,7 @@ function add(): void {
     );
 }
 
-/**
- * Recolouring, which is the same endpoint as renaming.
- *
- * `PUT /sections/{section}` replaces both columns, so the name goes with every pick — the server
- * reads an absent colour as "clear it", deliberately, and a request carrying only the colour would
- * blank the name for the same reason.
- */
+/** The update replaces name and colour together, so the name is sent with every pick. */
 function recolor(next: string | null): void {
     if (props.sectionId === null || props.name === null) {
         return;
@@ -114,8 +78,7 @@ function recolor(next: string | null): void {
         { name: props.name, color: next },
         {
             preserveScroll: true,
-            // The palette stays open, the way the project tile's does: picking a colour and
-            // changing your mind about it is one errand.
+            // Keeps the colour submenu open between picks.
             preserveState: true,
             onFinish: () => (working.value = false),
         },

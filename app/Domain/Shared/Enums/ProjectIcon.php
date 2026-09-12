@@ -5,14 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Shared\Enums;
 
 /**
- * The glyph a project may wear beside its name, as a fixed library rather than free text.
- *
- * The column stores the *name*, and the name is a Lucide icon id — the icon set the
- * application already ships, so a project's icon costs no new dependency and no upload.
- * A closed set is what lets the picker be a grid and the server reject anything else: a
- * free string reaches the client as a component lookup that silently renders nothing.
- * The name → component mapping is a static record in `resources/js/lib/projectIcon.ts`,
- * because a dynamic import per name would defeat the bundler.
+ * Lucide icon ids; each case needs a static entry in resources/js/lib/projectIcon.ts.
  */
 enum ProjectIcon: string
 {

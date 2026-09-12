@@ -12,14 +12,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-/**
- * Watching a task, and stopping.
- *
- * The actor follows on their own behalf and nobody else's: subscribing somebody else is a
- * different operation with a different question to answer, and it does not exist yet. Both
- * methods answer with a redirect back, because a follow changes a control rather than a
- * screen.
- */
 class TaskFollowerController extends Controller
 {
     public function store(Request $request, Task $task, FollowTask $followTask): RedirectResponse
@@ -32,8 +24,7 @@ class TaskFollowerController extends Controller
     }
 
     /**
-     * No `view` check here: somebody who has lost access must still be able to stop being
-     * notified, which is the Action's rule and the route's binding is enough to reach it.
+     * No `view` check: someone who has lost access must still be able to unfollow.
      */
     public function destroy(Request $request, Task $task, UnfollowTask $unfollowTask): RedirectResponse
     {

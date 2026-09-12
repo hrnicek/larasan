@@ -15,13 +15,7 @@ type Shell = {
 
 const ShellKey: InjectionKey<Shell> = Symbol('shell');
 
-/**
- * Whether *this* part of the tree draws itself collapsed.
- *
- * Separate from the shell's own state because collapsing is a property of the rail, not of the
- * application: the same sidebar rendered inside the mobile drawer has 288px to work with and must
- * always be expanded, whatever the rail on a desktop was left as.
- */
+// Separate from the shell state: the same sidebar inside the mobile drawer is always expanded.
 const CollapsedKey: InjectionKey<ComputedRef<boolean>> = Symbol('shell-collapsed');
 
 export function provideCollapsed(collapsed: ComputedRef<boolean>): void {
@@ -38,21 +32,8 @@ export function useCollapsed(): ComputedRef<boolean> {
     return collapsed;
 }
 
-/**
- * The shell's own state: whether the sidebar is collapsed to icons, and whether the mobile
- * drawer is open.
- *
- * Provided once by `AppShell` and injected by everything under it, **not** held at module scope.
- * The state is seeded from a request-scoped prop, and module scope outlives the request: under
- * the server-side rendering this application used to run, the first render decided the collapsed
- * state for every visitor afterwards and the browser corrected it into a hydration mismatch. That
- * is not a theoretical risk — it is what the first version of this file did. Server rendering is
- * off now, but request-seeded state still does not belong to the module.
- *
- * The collapsed state is a cookie rather than local storage, so the server can read it and ship
- * `sidebarOpen`, and the sidebar renders in the right shape before any JavaScript runs.
- * `bootstrap/app.php` leaves this cookie unencrypted for that reason.
- */
+// Provided rather than held at module scope because it is seeded from a request-scoped prop. The
+// cookie is read by the server and left unencrypted in `bootstrap/app.php`.
 export function provideShell(): Shell {
     const page = usePage();
 

@@ -10,20 +10,6 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder;
 
-/**
- * Remember that somebody opened something.
- *
- * Two statements, and the count is the point: this runs on every screen that opens a task or a
- * project, so it is written as an upsert and a single delete rather than a read-then-write and a
- * read-then-delete. `ScreenQueryCountTest` is what holds that number honest.
- *
- * Idempotent by design: the unique index makes opening the same task twice one row moved rather
- * than two rows kept.
- *
- * The trim is here rather than in a scheduled command because the list has an owner and a size a
- * person can hold in their head — keeping the last twenty per workspace means the table cannot
- * grow into something that needs sweeping.
- */
 final readonly class RecordRecentlyOpened
 {
     public const KEPT = 20;
@@ -34,8 +20,6 @@ final readonly class RecordRecentlyOpened
             [[
                 'id' => (new RecentItem)->newUniqueId(),
                 'user_id' => $actor->id,
-                // A task moves between workspaces in no version of this application, but the
-                // column is written on every open so a row cannot outlive its own truth.
                 'workspace_id' => $workspace->id,
                 'subject_type' => $subject->getMorphClass(),
                 'subject_id' => $subject->getKey(),
@@ -49,10 +33,7 @@ final readonly class RecordRecentlyOpened
     }
 
     /**
-     * Everything past the twentieth, in one statement.
-     *
-     * `opened_at` is a second-resolution timestamp, so two rows opened in the same second need a
-     * second key or the trim would drop whichever one PostgreSQL felt like.
+     * `opened_at` has second precision, so `id` breaks ties.
      */
     private function trim(Workspace $workspace, User $actor): void
     {

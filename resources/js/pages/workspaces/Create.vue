@@ -17,17 +17,6 @@ import { Label } from '@/components/ui/label';
 import UserAvatar from '@/components/UserAvatar.vue';
 import TimezonePicker from '@/modules/workspace/components/TimezonePicker.vue';
 
-/**
- * The screen that makes a workspace, with the workspace beside it — the same arrangement as the
- * screen that makes a project.
- *
- * Two answers are asked for: what the workspace is called and whose clock it keeps. Its address
- * is derived from the name and can be changed in settings, and its people are invited once it
- * exists, because an invitation needs a workspace to be addressed from.
- *
- * The panel on the right is the sidebar as it will read after the redirect, and the local time
- * in the zone being chosen. It is decorative and marked as such.
- */
 const props = defineProps<{
     options: { timezones: string[] };
 }>();
@@ -36,11 +25,7 @@ const user = computed(() => usePage().props.auth.user);
 
 const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-/*
- * The browser's zone when the server recognises it. A browser can report a legacy alias
- * (`Asia/Calcutta`) that the `timezone` rule refuses, and preselecting a value the form would
- * then reject is worse than preselecting UTC.
- */
+// Browsers may report legacy aliases (`Asia/Calcutta`) that the server's `timezone` rule rejects.
 const detected = props.options.timezones.includes(browserTimezone)
     ? browserTimezone
     : null;
@@ -50,10 +35,7 @@ const timezone = ref(detected ?? 'UTC');
 
 const previewName = computed(() => name.value.trim() || 'Untitled workspace');
 
-/*
- * An approximation of `Str::slug` for the preview only. The server derives the real address and
- * suffixes it when it is taken, so this line can differ from the result by a `-2`.
- */
+// Approximates `Str::slug` for the preview only; the server may append a suffix such as `-2`.
 const previewSlug = computed(
     () =>
         name.value
@@ -183,8 +165,6 @@ const navigation = [
                     </div>
                 </div>
 
-                <!-- Decorative: every line of it is drawn again for real once the workspace exists,
-                     and a screen reader that read it would be reading the future. -->
                 <aside
                     class="hidden min-h-80 overflow-hidden rounded-xl border border-border lg:grid lg:grid-cols-[12.5rem_minmax(0,1fr)]"
                     aria-hidden="true"

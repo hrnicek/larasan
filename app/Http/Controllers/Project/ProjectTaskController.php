@@ -13,10 +13,6 @@ use App\Http\Requests\Project\StoreProjectTaskRequest;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
-/**
- * Adding a task from the board or the list, where the column is part of what was asked for.
- * `tasks.store` remains the way to create a task that belongs to nothing yet.
- */
 class ProjectTaskController extends Controller
 {
     public function store(StoreProjectTaskRequest $request, Project $project, CreateTaskInProject $createTaskInProject): RedirectResponse

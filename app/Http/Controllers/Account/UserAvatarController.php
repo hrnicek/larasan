@@ -12,12 +12,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * An uploaded face, drawn for somebody allowed to see it (ADR-0007: a stored path is never a
- * capability). A 404 rather than a 403 for a stranger, so the answer does not confirm that the
- * account exists.
- *
- * The URL carries the stored file's name as `v`, so a new picture is a new address and the old
- * one can be cached for as long as the browser likes.
+ * A stranger gets a 404, so the account is not confirmed. The `v` query parameter changes with
+ * every upload, which is what makes the immutable cache header safe.
  */
 class UserAvatarController extends Controller
 {

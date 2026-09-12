@@ -7,10 +7,6 @@ namespace App\Domain\Search\Data;
 use App\Domain\Shared\Enums\SearchKind;
 use App\Http\Requests\Search\StoreSavedSearchRequest;
 
-/**
- * The owner and the workspace are absent by design: they are arguments to the Action, decided by
- * who is asking and where they are, never payload a form could carry.
- */
 final readonly class SaveSearchData
 {
     /**

@@ -57,9 +57,6 @@ it('hides everything from someone whose workspace membership is not active', fun
     $actor = memberOf($workspace, WorkspaceRole::Owner);
     $project = Project::factory()->in($workspace)->create(['name' => 'Open']);
 
-    // Granted while they were a member, and then the workspace membership lapses — which is
-    // the only way this row can exist at all (TASK-040-021). A live project membership must
-    // not survive the workspace one.
     ProjectMembership::factory()->in($project)->forUser($actor)->create();
 
     $workspace->membershipFor($actor)?->forceFill(['status' => $status])->save();
@@ -133,9 +130,7 @@ it('answers in one query however many projects there are', function (): void {
     $member = memberOf($workspace, WorkspaceRole::Member);
     Project::factory()->in($workspace)->count(5)->create();
 
-    // membershipFor() is one query, the listing is the second. The count must not grow
-    // with the number of projects — asking the model per row would be the N+1 this query
-    // object exists to prevent.
+    // One query for membershipFor(), one for the listing.
     DB::enableQueryLog();
     visibleProjectNames($workspace, $member);
     $queries = count(DB::getQueryLog());

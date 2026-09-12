@@ -37,13 +37,8 @@ class UpdateWorkspaceRequest extends FormRequest
         $workspace = ResolveCurrentWorkspace::from($this);
 
         return [
-            /*
-             * The route names no workspace — it acts on the one the request is in — so
-             * the form carries the id it was rendered for. Without this, opening
-             * settings for A, switching to B in another tab and submitting writes A's
-             * values into B, and every check upstream passes because the actor is a
-             * legitimate admin of both.
-             */
+            // The route acts on the current workspace, so this stops a form opened for one workspace
+            // from writing into another that was switched to in a different tab.
             'id' => ['required', 'uuid', Rule::in([$workspace?->id])],
             'name' => ['required', 'string', 'max:255'],
             'slug' => [

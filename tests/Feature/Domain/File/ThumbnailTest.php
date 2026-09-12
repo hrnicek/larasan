@@ -16,10 +16,6 @@ beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
 });
 
-/**
- * A real picture, because a thumbnailer given fake bytes proves only that it refuses them. Drawn
- * rather than fixtured so the test carries its own input and the repository carries no binaries.
- */
 function pictureBytes(int $width = 900, int $height = 600): string
 {
     $image = imagecreatetruecolor(max(1, $width), max(1, $height));
@@ -37,9 +33,6 @@ function pictureBytes(int $width = 900, int $height = 600): string
 }
 
 /**
- * The derivative a file ended up with, or a failure that says so — `thumbnail()` is nullable and
- * every assertion below would otherwise carry its own guard.
- *
  * @return array{path: string, width: int, height: int}
  */
 function thumbnailOf(File $file): array
@@ -66,13 +59,12 @@ it('derives a thumbnail whose longer edge is the size it says', function (): voi
 
     $thumbnail = thumbnailOf($file);
 
-    // 900x600 scaled to a 480 box keeps its ratio rather than being squared off.
+    // 900x600 fitted into a 480 box.
     expect($thumbnail['width'])->toBe(480)
         ->and($thumbnail['height'])->toBe(320);
 
     Storage::disk($file->disk)->assertExists($thumbnail['path']);
 
-    // The shape of the original is recorded too: a tile reserves its space before the bytes land.
     expect($file->refresh()->imageDimensions())->toBe(['width' => 900, 'height' => 600]);
 });
 
@@ -83,7 +75,6 @@ it('leaves a picture smaller than the box alone', function (): void {
 
     app(MakeThumbnail::class)->handle($file);
 
-    // Enlarging a small picture makes a larger file and no more detail.
     expect(thumbnailOf($file))->toMatchArray(['width' => 120, 'height' => 90]);
 });
 
@@ -104,8 +95,6 @@ it('derives nothing from bytes it cannot read as a picture', function (): void {
     $file = File::factory()->in($workspace)->image()->create();
     Storage::disk($file->disk)->put($file->path, 'not a picture at all');
 
-    // The upload already succeeded. A derivative that cannot be made is a heavier page, not a
-    // failure the person who uploaded it hears about.
     expect(app(MakeThumbnail::class)->handle($file))->toBeFalse();
 });
 
@@ -116,7 +105,7 @@ it('does not derive the same thumbnail twice', function (): void {
 
     app(MakeThumbnail::class)->handle($file);
 
-    // One file hangs from two tasks, so the listener runs again for a derivative that exists.
+    // Attaching the same file to another task runs the listener again.
     expect(app(MakeThumbnail::class)->handle($file->refresh()))->toBeFalse();
 });
 
@@ -150,8 +139,7 @@ it('serves the derivative when the thumbnail is asked for', function (): void {
     $response->assertOk();
 
     expect($response->headers->get('content-type'))->toBe('image/webp')
-        // Two sizes at one address are two responses, so a cached thumbnail must not satisfy a
-        // request for the full picture.
+        // Distinct from the original's ETag so a cached thumbnail never satisfies a full-size request.
         ->and($response->headers->get('etag'))->toBe('"'.$file->checksum.'-thumb"');
 });
 
@@ -163,7 +151,6 @@ it('falls back to the original while the queue is behind', function (): void {
 
     $response = $this->actingAs($actor)->get(route('attachments.preview', ['attachment' => $attachment, 'size' => 'thumb']));
 
-    // A heavier page, never a broken one.
     $response->assertOk();
     expect($response->headers->get('content-type'))->toBe('image/png');
 });

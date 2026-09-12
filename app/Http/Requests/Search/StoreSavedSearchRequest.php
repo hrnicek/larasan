@@ -10,10 +10,6 @@ use Illuminate\Validation\Rule;
 
 class StoreSavedSearchRequest extends FormRequest
 {
-    /**
-     * Anybody signed in may keep their own search; whose workspace it lands in is the
-     * controller's answer, not this one.
-     */
     public function authorize(): bool
     {
         return true;
@@ -35,9 +31,6 @@ class StoreSavedSearchRequest extends FormRequest
     }
 
     /**
-     * The filters as the search screen carries them, so a saved search replays into the same
-     * URL it was kept from.
-     *
      * @return array{project?: string, assignee?: int, completed?: bool}
      */
     public function filters(): array
@@ -52,7 +45,7 @@ class StoreSavedSearchRequest extends FormRequest
             $filters['assignee'] = (int) $this->integer('assignee');
         }
 
-        // `filled()` would drop `completed=0`, which is the half of this filter people use most.
+        // `filled()` would drop `completed=0`.
         if ($this->exists('completed') && $this->input('completed') !== null && $this->input('completed') !== '') {
             $filters['completed'] = $this->boolean('completed');
         }

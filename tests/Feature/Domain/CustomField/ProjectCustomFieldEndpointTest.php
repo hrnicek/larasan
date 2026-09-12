@@ -17,12 +17,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\HandleInertiaRequests;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * Which of the workspace's fields a project shows. A workspace defines more than any one board
- * wants, so attaching is a decision per project — and it is `custom_field.manage`, not `update` on
- * the project: adding a column to everybody's board is the same kind of decision as inventing one.
- */
-
 it('offers the project what it shows and what the workspace has left', function (): void {
     [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
     $project = Project::factory()->in($workspace)->create();
@@ -109,10 +103,6 @@ it('detaches a field and keeps every answer', function (): void {
         ->delete(route('projects.custom-fields.destroy', [$project, $field]))
         ->assertRedirect();
 
-    /*
-     * The column is off the board and the answer is still there: putting the field back brings it
-     * with it. Deleting the field is the operation that removes answers, and that one asks first.
-     */
     expect(ProjectCustomField::query()->count())->toBe(0)
         ->and(TaskCustomFieldValue::query()->count())->toBe(1)
         ->and($task->customFieldValues()->sole()->value_text)->toBe('Two days');
@@ -128,7 +118,7 @@ it('refuses a project editor who does not manage the workspace fields', function
     app(AttachFieldToProject::class)->handle($project, $field, $owner);
     $other = app(DefineCustomField::class)->handle($workspace, $owner, 'Client', CustomFieldType::Text);
 
-    // Renaming the project and choosing what it records are two different permissions (ADR-0010).
+    // Attaching fields needs custom_field.manage, not project update access. See ADR-0010.
     $this->actingAs($editor)
         ->post(route('projects.custom-fields.store', $project), ['field' => $other->id])
         ->assertForbidden();
@@ -178,11 +168,6 @@ it('turns away a workspace that is not the actor s', function (): void {
         ->assertNotFound();
 });
 
-/*
- * The *Customize* drawer in the project's own header. Its contents are `Inertia::optional`, so a
- * visit that never opens it pays nothing for it.
- */
-
 it('does not send the drawer to somebody who only opened the project', function (): void {
     [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
     $project = Project::factory()->in($workspace)->create();
@@ -204,10 +189,7 @@ it('answers the drawer when it asks', function (): void {
     app(DefineCustomField::class)->handle($workspace, $owner, 'Client', CustomFieldType::Text);
     app(AttachFieldToProject::class)->handle($project, $shown, $owner);
 
-    /*
-     * The asset-version middleware is skipped for the reason `TaskDetailPageTest` skips it: a
-     * partial request carries a version header a test cannot know, and this is about the prop.
-     */
+    // Skipped so the partial request is not rejected for an unknown asset version.
     $this->actingAs($owner)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('projects.show', $project), [
@@ -226,7 +208,6 @@ it('does not draw the drawer for somebody who may not customize', function (): v
     $project = Project::factory()->in($workspace)->create();
     ProjectMembership::factory()->in($project)->forUser($member)->withAccess(ProjectAccessLevel::Editor)->create();
 
-    // The control is not drawn, and the endpoints behind it refuse regardless — proved above.
     $this->actingAs($member)
         ->get(route('projects.show', $project))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('project.canCustomize', false));

@@ -60,10 +60,7 @@ it('carries the role on the pivot so a listing needs no second query', function 
     expect($pivot?->getAttribute('role'))->toBe('owner');
 });
 
-/**
- * Eloquent arms the lazy loading guard only for result sets with more than one row
- * (Builder::hydrate), so this fetches collections rather than a single model.
- */
+// Eloquent only arms the lazy-loading guard for result sets with more than one row.
 it('resolves memberships without an n+1 when eager loaded', function (): void {
     $users = User::factory()->count(2)->create()->all();
     $workspaces = Workspace::factory()->count(2)->create();

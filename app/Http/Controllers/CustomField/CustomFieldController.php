@@ -24,16 +24,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * What this workspace has decided it records about its work.
- *
- * A settings screen rather than a dialog opened from a task, because defining a field is a
- * decision about everybody's screens — `custom_field.manage`, an owner's and an admin's (ADR-0010)
- * — while filling one in is an edit of one task and belongs to `TaskCustomFieldController`.
- *
- * Which projects show a field is the other half of the decision and lives on the project
- * (`ProjectCustomFieldController`), because a workspace defines more than any one board wants.
- */
 class CustomFieldController extends Controller
 {
     public function index(Request $request): Response
@@ -45,10 +35,6 @@ class CustomFieldController extends Controller
         return Inertia::render('settings/Fields', [
             'fields' => $workspace->customFields()
                 ->with('options')
-                /*
-                 * Counted rather than listed: the screen says how much a deletion costs, and
-                 * naming every project would make the row a paragraph.
-                 */
                 ->withCount(['projects', 'values'])
                 ->orderBy('name')
                 ->get()
@@ -66,8 +52,6 @@ class CustomFieldController extends Controller
                     'valueCount' => (int) $field->getAttribute('values_count'),
                 ])
                 ->all(),
-            // The types come from the enum, so a case added later offers itself without a second
-            // list to remember in TypeScript.
             'types' => array_column(CustomFieldType::cases(), 'value'),
             'can' => [
                 'manage' => $request->user()?->can(Capability::CustomFieldManage->value, $workspace) ?? false,
@@ -137,9 +121,7 @@ class CustomFieldController extends Controller
     }
 
     /**
-     * A name already taken is an error on the field somebody can act on rather than a toast they
-     * have to read and then find. The unique index is what answers, because two people can define
-     * "Estimate" in the same second — so it cannot be pre-checked in the FormRequest.
+     * The unique index enforces names, since a FormRequest pre-check would race concurrent requests.
      */
     private function translating(callable $operation): void
     {

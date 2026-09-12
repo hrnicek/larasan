@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Shared\Enums;
 
 /**
- * Source of workspace capabilities (ADR-0010). Policies ask this enum rather than
- * comparing role strings, and the check is a pure function of the membership row so it
- * behaves identically in HTTP requests, queued jobs, console commands and broadcast
- * authorization.
- *
- * This answers only "what may this role do"; it does not know whether the membership is
- * active. Callers must compose it with WorkspaceMembershipStatus::grantsAccess().
+ * Ignores membership status; callers must also check WorkspaceMembershipStatus::grantsAccess().
+ * See ADR-0010.
  */
 enum WorkspaceRole: string
 {
@@ -21,10 +16,6 @@ enum WorkspaceRole: string
     case Guest = 'guest';
 
     /**
-     * Listed case by case rather than derived, so adding a Capability forces an
-     * explicit decision for every role instead of silently granting it to the
-     * broadest ones.
-     *
      * @return list<Capability>
      */
     public function capabilities(): array
@@ -113,10 +104,7 @@ enum WorkspaceRole: string
         return $this === self::Owner;
     }
 
-    /**
-     * Guests are outside collaborators: they reach only what they were explicitly given,
-     * which is why project visibility never grants them anything (ADR-0006 with ADR-0010).
-     */
+    /** Project visibility never grants a guest access; only explicit membership does. */
     public function isGuest(): bool
     {
         return $this === self::Guest;

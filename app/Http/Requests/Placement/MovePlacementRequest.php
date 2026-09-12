@@ -29,9 +29,7 @@ class MovePlacementRequest extends FormRequest
         $placement = $this->placement();
 
         return [
-            // Null is a column: the ungrouped bucket (ADR-0004), not the absence of an
-            // answer. `sometimes` therefore cannot stand in for it — an omitted section and
-            // an explicit null are different requests.
+            // Null is the ungrouped column, so the key must be present. See ADR-0004.
             'section' => [
                 'present', 'nullable', 'uuid',
                 Rule::exists('sections', 'id')->where(
@@ -39,13 +37,6 @@ class MovePlacementRequest extends FormRequest
                 ),
             ],
 
-            /*
-             * The move is "place this after that one" (ADR-0009): there is no position field
-             * to send. The anchor must be a card in the same column of the same project and
-             * must not be the card being moved. The Action refuses all of it again — a
-             * console command or a queued job arrives without a request — but a stale board
-             * deserves a validation error rather than a domain exception.
-             */
             'after' => [
                 'nullable', 'uuid',
                 Rule::exists('task_project_memberships', 'id')->where(
@@ -58,9 +49,6 @@ class MovePlacementRequest extends FormRequest
                 Rule::notIn([$placement?->id]),
             ],
 
-            // Where in the column, when no card is named: the two ends. Meaningless
-            // alongside an anchor, so sending both is a mistake rather than a precedence
-            // rule nobody would remember.
             'at' => ['nullable', 'prohibits:after', Rule::in(['front', 'end'])],
         ];
     }
@@ -78,8 +66,7 @@ class MovePlacementRequest extends FormRequest
     }
 
     /**
-     * The column the card is moving into, resolved inside the placement's own project so a
-     * section id from elsewhere cannot be reached even if validation is bypassed.
+     * Scoped to the placement's project even when validation is bypassed.
      */
     public function targetSection(): ?Section
     {

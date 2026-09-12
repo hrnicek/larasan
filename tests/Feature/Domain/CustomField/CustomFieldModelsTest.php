@@ -14,11 +14,7 @@ use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 
 it('refuses to have its type mass assigned', function (): void {
-    /*
-     * The type decides which column every value of this field lives in, so changing it would
-     * leave the answers people have already given in a column nothing reads. That is a
-     * migration of data, not an edit.
-     */
+    // The type decides which value column existing answers live in.
     expect(fn (): CustomField => (new CustomField)->fill(['name' => 'Estimate', 'type' => 'number']))
         ->toThrow(MassAssignmentException::class);
 
@@ -27,8 +23,6 @@ it('refuses to have its type mass assigned', function (): void {
 });
 
 it('refuses to have a value s task, field or column mass assigned', function (): void {
-    // A request that could choose the column could write a number into the text column and make
-    // sorting lie.
     foreach (['task_id', 'custom_field_id', 'value_text', 'value_number'] as $attribute) {
         expect(fn (): TaskCustomFieldValue => (new TaskCustomFieldValue)->fill([$attribute => 'anything']))
             ->toThrow(MassAssignmentException::class);
@@ -60,7 +54,6 @@ it('reads an answer through the field s own type', function (): void {
         TaskCustomFieldValue::factory()->answering($task, $flag, true)->create(),
     ];
 
-    // No caller has to know the mapping: the field says which column its answer is in.
     expect($answers[0]->value($text))->toBe('Two days')
         ->and((float) $answers[1]->value($number))->toBe(12.5)
         ->and($answers[2]->value($flag))->toBeTrue();
@@ -69,8 +62,6 @@ it('reads an answer through the field s own type', function (): void {
 it('keeps a factory field, option and value in one workspace', function (): void {
     $value = TaskCustomFieldValue::factory()->create();
 
-    // A value whose field belongs to another workspace is a row the domain will never create,
-    // and a factory that produced one would hand every later test a lie.
     expect($value->field->workspace_id)->toBe($value->task->workspace_id);
 
     $attached = ProjectCustomField::factory()->create();

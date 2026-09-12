@@ -16,8 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * Something somebody had open.
- *
  * @property string $id
  * @property int $user_id
  * @property string $workspace_id

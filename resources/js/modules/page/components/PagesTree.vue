@@ -2,10 +2,6 @@
 import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
 import type { ProjectPages } from '@/modules/page/types';
 
-/**
- * The project's fifth view. The tree itself is `PageTreePanel`, which the page screen's sidebar
- * draws too — one tree, one set of controls, one answer about what a row does.
- */
 defineProps<{
     projectId: string;
     pages: ProjectPages;

@@ -8,7 +8,7 @@ export type User = {
 
 export type Auth = {
     user: User | null;
-    /** Capability values the server computed for the resolved workspace. */
+    /** Computed by the server for the current workspace. */
     capabilities: string[];
 };
 

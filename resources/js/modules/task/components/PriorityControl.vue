@@ -9,16 +9,11 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-/**
- * Priority, changed from the row. The options are the server's enum, sent with the page, so
- * a case added later appears here without a second list to remember.
- */
 const props = defineProps<{
     taskId: string;
     priority: string;
     priorities: string[];
     editable: boolean;
-    /** The panel gives the field a row of its own; a list row gives it a narrow column. */
     variant?: 'inline' | 'field';
 }>();
 

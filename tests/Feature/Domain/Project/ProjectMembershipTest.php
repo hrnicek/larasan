@@ -14,14 +14,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * Access inside one project (ADR-0006). Until now the only row ever written was the one
- * `CreateProject` gives the creator, so a project could not be shared with anybody.
- */
-
 /**
- * A project, its owner, and a second workspace member with no access to it yet.
- *
  * @return array{Workspace, Project, User, User}
  */
 function projectWithOwner(): array
@@ -63,7 +56,6 @@ it('treats granting twice as changing the level, not as a second row', function 
         ])->assertRedirect();
     }
 
-    // UNIQUE(project_id, user_id) says the same thing the Action does.
     expect($project->memberships()->where('user_id', $other->id)->count())->toBe(1)
         ->and($project->memberships()->where('user_id', $other->id)->sole()->access_level)
         ->toBe(ProjectAccessLevel::Editor);
@@ -98,11 +90,6 @@ it('refuses somebody who is not in the workspace', function (): void {
     [, $project, $owner] = projectWithOwner();
     $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
-    /*
-     * A project membership for somebody outside the workspace is a grant that means nothing and
-     * reads as if it means something (ADR-0006). The FormRequest answers first; the Action holds
-     * the same rule for the console and the queue.
-     */
     $this->actingAs($owner)
         ->from(route('projects.edit', $project))
         ->post(route('projects.members.store', $project), [
@@ -121,10 +108,7 @@ it('will not let the last owner be demoted', function (): void {
     [, $project, $owner] = projectWithOwner();
     $membership = $project->memberships()->sole();
 
-    /*
-     * Managing a project needs an explicit owner row (`Project::isManageableBy`), so a project
-     * whose last owner became an editor is one nobody can manage — not even the workspace's owner.
-     */
+    // Managing requires an explicit owner row, which not even the workspace owner can bypass.
     $this->actingAs($owner)
         ->from(route('projects.edit', $project))
         ->put(route('projects.members.update', [$project, $membership]), [
@@ -166,7 +150,6 @@ it('refuses an editor, and a workspace owner without an owner row', function ():
     $editor = memberOf($workspace, WorkspaceRole::Member);
     app(GrantProjectAccess::class)->handle($project, $project->memberships()->sole()->user, $editor, ProjectAccessLevel::Editor);
 
-    // Editing what is in a project and deciding who may reach it are different questions.
     $this->actingAs($editor)
         ->post(route('projects.members.store', $project), [
             'user' => $other->id,
@@ -174,11 +157,6 @@ it('refuses an editor, and a workspace owner without an owner row', function ():
         ])
         ->assertForbidden();
 
-    /*
-     * And a workspace admin with no membership row on this project: `isManageableBy` needs both
-     * the workspace capability and an owner row, which is the whole reason the last owner cannot
-     * be removed.
-     */
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 
     $this->actingAs($admin)
@@ -257,10 +235,6 @@ it('holds the last-owner rule for a caller without a request', function (): void
         ->toThrow(ProjectException::class, 'A project needs at least one owner.');
 });
 
-/*
- * What the header draws, and what the *Share* dialog asks for when it opens.
- */
-
 it('sends the project s faces with the screen', function (): void {
     [, $project, $owner, $other] = projectWithOwner();
     app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
@@ -270,7 +244,6 @@ it('sends the project s faces with the screen', function (): void {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('project.members', 2)
             ->where('project.memberCount', 2)
-            // The dialog's own contents are optional and were not asked for.
             ->missing('share'),
         );
 });
@@ -300,8 +273,6 @@ it('answers the share dialog when it asks', function (): void {
     app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
     $candidate = memberOf($workspace, WorkspaceRole::Member);
 
-    // Named so the list's own ordering is what the assertions read, rather than whatever the
-    // factory happened to invent.
     $owner->update(['name' => 'Aaron Owner']);
     $other->update(['name' => 'Bella Editor']);
     $candidate->update(['name' => 'Cara Candidate']);
@@ -319,8 +290,6 @@ it('answers the share dialog when it asks', function (): void {
         ->assertJsonCount(2, 'props.share.members')
         ->assertJsonPath('props.share.members.0.id', $owner->id)
         ->assertJsonPath('props.share.members.0.accessLevel', ProjectAccessLevel::Owner->value)
-        // Counted once on the server: the last owner can be neither demoted nor removed, so the
-        // dialog does not offer either.
         ->assertJsonPath('props.share.members.0.isLastOwner', true)
         ->assertJsonPath('props.share.members.1.id', $other->id)
         ->assertJsonPath('props.share.members.1.isLastOwner', false)
@@ -333,10 +302,6 @@ it('sends no candidates to somebody who may not manage members', function (): vo
     $viewer = memberOf($workspace, WorkspaceRole::Member);
     app(GrantProjectAccess::class)->handle($project, $owner, $viewer, ProjectAccessLevel::Viewer);
 
-    /*
-     * The list is what a reader may see; who *could* be added is only useful to somebody who may
-     * add them, and offering it would be a control with nothing behind it.
-     */
     $this->actingAs($viewer)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('projects.show', $project), [

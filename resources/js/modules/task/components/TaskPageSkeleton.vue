@@ -2,10 +2,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
 
-/**
- * A task's own page on its way: the way back, the toolbar, the title, its fields and the thread,
- * in the column `tasks/Show` draws them in.
- */
 const fieldWidths = ['w-32', 'w-24', 'w-40', 'w-28'];
 </script>
 

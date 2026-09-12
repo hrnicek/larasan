@@ -9,20 +9,11 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
-/**
- * The one way this application asks "are you sure".
- *
- * Destructive work never runs optimistically and never rides on a modal's own state
- * (ADR-0013): the dialog asks, the caller acts. Written once because the shape of the question
- * is what makes it answerable — the title names the thing, the description says what is lost and
- * what is not, and the confirming control repeats the verb rather than saying "OK".
- */
 withDefaults(
     defineProps<{
         open: boolean;
         title: string;
         description: string;
-        /** The verb, repeated. "OK" is not an answer to "Delete this?". */
         confirmLabel: string;
         cancelLabel?: string;
         pending?: boolean;

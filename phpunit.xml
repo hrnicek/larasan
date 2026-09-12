@@ -18,11 +18,6 @@
         </include>
     </source>
     <php>
-        <!--
-            The suite runs right at PHP's 128M default and crosses it depending on which order
-            the heavier feature tests land in — a fatal error in whichever route file happened
-            to be loading, which reads as a broken suite rather than as a missing megabyte.
-        -->
         <ini name="memory_limit" value="512M"/>
 
         <env name="APP_ENV" value="testing"/>
@@ -31,23 +26,13 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_CONNECTION" value="pgsql"/>
-        <!--
-            DB_HOST is deliberately absent: the suite runs on the host, where the environment
-            file says 127.0.0.1, and inside the Docker stack, where it says pgsql. Pinning it
-            here would send the containers at a database that is not theirs. DB_DATABASE stays
-            pinned, so neither runtime can touch its development data.
-        -->
+        <!-- DB_HOST is not pinned, so the suite runs both on the host and inside Docker. -->
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="pm_testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
-        <!--
-            The suite exercises Scout's own API and the reach rule in its query() callback
-            without a search engine to start (ADR-0016). What the collection engine cannot
-            prove — typo tolerance, ranking, index settings — is proven by the tests that skip
-            themselves when nothing answers on MEILISEARCH_HOST.
-        -->
+        <!-- Engine-specific search tests skip themselves when MEILISEARCH_HOST does not answer. -->
         <env name="SCOUT_DRIVER" value="collection"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

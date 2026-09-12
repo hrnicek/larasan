@@ -14,11 +14,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Removing a page removes what was written underneath it.
- *
- * The subtree is deleted explicitly rather than left to the foreign key: `parent_id` cascades
- * on a hard delete, and these are soft deletes, so a child whose parent is soft-deleted would
- * otherwise stay live in a tree with no way to reach it.
+ * Descendants are deleted explicitly because the `parent_id` cascade does not fire on soft deletes.
  */
 final readonly class DeletePage
 {

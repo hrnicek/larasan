@@ -19,13 +19,6 @@ class ReorderProjectColumnsRequest extends FormRequest
     }
 
     /**
-     * The order whole, in the order to draw it.
-     *
-     * Each entry is a field id or one of the built-in keys, and neither is checked here: a key the
-     * project cannot draw is not a lie about the world, it is a key that means nothing, and the
-     * Action drops it. What validation is for is the shape — a payload that is not a list of
-     * strings would be stored and then drawn.
-     *
      * @return array<string, list<mixed>>
      */
     public function rules(): array

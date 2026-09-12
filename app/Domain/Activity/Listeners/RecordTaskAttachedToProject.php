@@ -9,10 +9,6 @@ use App\Domain\Placement\Events\TaskAttachedToProject;
 use App\Domain\Shared\Enums\ActivityType;
 use App\Domain\Task\Models\Task;
 
-/**
- * The placement events carry no workspace — a placement belongs to a project, which belongs to
- * one — so the task is read for it rather than the event widened for a listener's convenience.
- */
 final readonly class RecordTaskAttachedToProject
 {
     public function __construct(private RecordActivity $record) {}

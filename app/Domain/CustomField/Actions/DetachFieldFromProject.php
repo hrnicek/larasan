@@ -11,14 +11,6 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Models\User;
 
-/**
- * Stop showing a field on a project.
- *
- * The **values stay**. Taking a column off a board is a decision about the board, and deleting
- * what people answered because of it would make that decision unrecoverable — putting the field
- * back brings the answers with it. Deleting the field itself is what removes them, and that is
- * a different operation with a different name.
- */
 final readonly class DetachFieldFromProject
 {
     public function handle(Project $project, CustomField $field, User $actor): void
@@ -27,6 +19,7 @@ final readonly class DetachFieldFromProject
             throw CustomFieldException::cannotManageFields();
         }
 
+        // Task values are kept, so attaching the field again restores them.
         ProjectCustomField::query()
             ->where('project_id', $project->id)
             ->where('custom_field_id', $field->id)

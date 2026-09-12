@@ -18,24 +18,12 @@ class TaskProjectMembershipFactory extends Factory
     protected $model = TaskProjectMembership::class;
 
     /**
-     * Every nullable column is set explicitly: strict Eloquent throws on an attribute the
-     * model never retrieved, so a factory that omits one hands each test a model that
-     * fails on first read.
-     *
-     * The default is ungrouped, which is what attaching a task to a project produces
-     * before anybody drags it into a column.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
             'task_id' => Task::factory(),
-            /*
-             * Resolved from the task rather than made independently: both ends of a
-             * placement must be in one workspace (ADR-0003), and a factory that produces
-             * two unrelated ones hands every test a row the domain would have refused.
-             */
             'project_id' => fn (array $attributes): string => Project::factory()
                 ->createOne(['workspace_id' => Task::query()->whereKey($attributes['task_id'])->value('workspace_id')])
                 ->id,

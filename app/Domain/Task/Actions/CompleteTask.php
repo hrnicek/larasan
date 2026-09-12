@@ -12,14 +12,6 @@ use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Completion is a state of the task and nothing else. No section is consulted and none can
- * be: a column called "Done" is a name somebody chose (ADR-0004), and a project that renames
- * it must not reopen anybody's work.
- *
- * Completing and reopening live together because they are one operation with two
- * directions, and splitting them would mean two copies of the same authorization check.
- */
 final readonly class CompleteTask
 {
     public function __construct(private Dispatcher $events) {}
@@ -47,10 +39,6 @@ final readonly class CompleteTask
             return $task;
         }
 
-        /*
-         * Both columns are cleared. Leaving `completed_by` behind would make a reopened
-         * task look completed to anything that reads the column instead of the timestamp.
-         */
         $task->forceFill(['completed_at' => null, 'completed_by' => null])->save();
 
         $this->events->dispatch(new TaskReopened($task->id, $task->workspace_id, $actor->id));

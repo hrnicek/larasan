@@ -16,14 +16,6 @@ use App\Domain\Task\Events\TaskReopened;
 use App\Domain\Task\Events\TaskUpdated;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Tell the screens that are showing this task.
- *
- * Not queued, unlike the broadcast it dispatches: the channels depend on where the task is
- * placed **now**, and a listener that ran a second later could answer for a placement that
- * has since changed. Resolving here and queueing the broadcast keeps the slow half on the
- * queue and the true half in the request.
- */
 final readonly class BroadcastTaskChange
 {
     public function __construct(
@@ -56,6 +48,7 @@ final readonly class BroadcastTaskChange
             TaskDeleted::class => $event->deletedById,
         };
 
+        // Not queued: channels must be resolved from the placement at the time of the change.
         $this->events->dispatch(new ViewInvalidated(
             ($this->channels)($event->taskId, $event->workspaceId),
             $change,

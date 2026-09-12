@@ -10,14 +10,6 @@ use App\Domain\Shared\Rules\IsAccentColor;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * The picker sends both fields every time, so an absent one is "no colour" or "no icon"
- * rather than "leave it alone" — the control shows both and can clear either.
- *
- * `UpdateProjectRequest` carries an `id` guard because the settings form can be opened
- * for one project and submitted after switching to another. This control cannot drift
- * that way: it is drawn from the same props that name the project in its own URL.
- */
 class UpdateProjectAppearanceRequest extends FormRequest
 {
     public function authorize(): bool

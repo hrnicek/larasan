@@ -14,10 +14,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-/**
- * The signed-in person's own face. There is no other person to authorize against: every route
- * here acts on the actor, and none takes an id.
- */
 class AvatarController extends Controller
 {
     public function update(ChooseAvatarPresetRequest $request, ChooseAvatarPreset $choose): RedirectResponse

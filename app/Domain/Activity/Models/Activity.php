@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * Something that happened, written down.
- *
- * Append-only: the table has no `updated_at` and this model says so, because an activity that
- * could be edited is not a record of anything.
- *
  * @property string $id
  * @property string $workspace_id
  * @property string $subject_type
@@ -40,10 +35,6 @@ class Activity extends Model
 
     public const UPDATED_AT = null;
 
-    /**
-     * Nothing is fillable. Every activity is written by `RecordActivity` from an event that has
-     * already happened, so there is no payload for a caller to hand in.
-     */
     protected $guarded = ['*'];
 
     /** @return MorphTo<Model, $this> */

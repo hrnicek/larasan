@@ -21,7 +21,6 @@ it('deletes the section outright', function (): void {
 
     app(DeleteSection::class)->handle($section, $actor);
 
-    // No soft deletes on sections: gone means gone, and no query has to remember a filter.
     expect(Section::query()->whereKey($section->id)->exists())->toBeFalse()
         ->and($project->sections()->count())->toBe(0);
 });
@@ -46,8 +45,6 @@ it('allows deleting the last remaining column', function (): void {
 
     app(DeleteSection::class)->handle($only, $actor);
 
-    // A project with no columns is a valid project: the list view groups what has no
-    // section, and the board offers to create one.
     expect($project->sections()->count())->toBe(0);
 });
 
@@ -98,7 +95,6 @@ it('moves the cards in the column to the ungrouped bucket, in the order they wer
 
     app(DeleteSection::class)->handle($section, $actor);
 
-    // ADR-0004: deleting a column deletes the column, not the work that was in it.
     $ungrouped = $project->placements()->whereNull('section_id')->orderBy('position')->with('task')->get();
 
     expect($ungrouped->pluck('task.title')->all())->toBe(['A', 'B', 'C'])
@@ -110,12 +106,7 @@ it('does not collide with cards already in the ungrouped bucket', function (): v
     [$project, $actor] = projectEditableBy();
     $section = addSection($project, $actor, 'Doing');
 
-    /*
-     * Both cards sit at the same position, which is legal: a position is unique inside its
-     * bucket, and these are in two. Leaving the move to `section_id`'s `nullOnDelete` would
-     * null the column and keep the position, so the two would land in one slot and the slot
-     * guard would refuse the whole delete.
-     */
+    // Equal positions in two buckets are legal; relying on nullOnDelete would put both cards in one slot.
     $ungrouped = TaskProjectMembership::factory()
         ->placing(Task::factory()->in($project->workspace)->create(['title' => 'Loose']), $project)
         ->at(SparsePosition::GAP)

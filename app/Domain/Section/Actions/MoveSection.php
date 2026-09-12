@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Reordering, expressed as "put this section after that one" (ADR-0009). The client never
- * sends a position, so a stale board cannot compute one from what it last saw and write two
- * sections into the same slot.
- */
 final readonly class MoveSection
 {
     public function __construct(private Dispatcher $events) {}
@@ -46,11 +41,7 @@ final readonly class MoveSection
         try {
             $moved = $this->place($section, $after);
         } catch (UniqueConstraintViolationException) {
-            /*
-             * Two moves computed the same midpoint. `UNIQUE(project_id, position)` made
-             * that an error instead of two sections in one slot; this one reads the order
-             * again, which now contains the winner, and places itself relative to it.
-             */
+            // A concurrent move took the same midpoint; retry against the refreshed order.
             $moved = $this->place($section->fresh() ?? $section, $after?->fresh());
         }
 
@@ -78,12 +69,6 @@ final readonly class MoveSection
             try {
                 $position = SparsePosition::between($target['before'], $target['after']);
             } catch (PositionsNeedNormalisation) {
-                /*
-                 * The neighbours have closed up, so there is no midpoint left to take. The
-                 * whole project is respread inside this transaction and the slot is
-                 * recomputed from the new positions — normalisation is the exception, not
-                 * the steady state (ADR-0009).
-                 */
                 $ordered = $this->normalise($section->project);
                 $target = $this->slotFor($ordered, $section, $after);
 
@@ -101,8 +86,6 @@ final readonly class MoveSection
     }
 
     /**
-     * The neighbours the section lands between, or null when it is already there.
-     *
      * @param  Collection<int, Section>  $ordered
      * @return array{before: int|null, after: int|null}|null
      */
@@ -115,8 +98,6 @@ final readonly class MoveSection
         if ($after !== null) {
             $anchor = $others->search(fn (Section $candidate): bool => $candidate->is($after));
 
-            // The anchor is not in this project's order at all: a stale board, or an id
-            // from somewhere else. Placing "after" it would otherwise mean the front.
             if ($anchor === false) {
                 throw SectionException::sectionBelongsToAnotherProject();
             }
@@ -129,7 +110,6 @@ final readonly class MoveSection
 
         $current = $ordered->search(fn (Section $candidate): bool => $candidate->is($section));
 
-        // Already in that slot: the same neighbours, in the same order, so nothing to write.
         if ($current !== false && $this->alreadyBetween($ordered, $current, $before, $next)) {
             return null;
         }
@@ -149,9 +129,6 @@ final readonly class MoveSection
     }
 
     /**
-     * Every section of the project, locked and in order, so a second move waits instead of
-     * reading the same neighbours.
-     *
      * @return Collection<int, Section>
      */
     private function lockedOrder(Project $project): Collection
@@ -160,9 +137,8 @@ final readonly class MoveSection
     }
 
     /**
-     * Rewrite the project's positions to an even spread. Every row is parked in negative
-     * space first, so no write can land on a row that has not moved yet — the unique
-     * constraint would otherwise make the rewrite order load-bearing.
+     * Rows are parked at negative positions first so the rewrite never violates
+     * UNIQUE(project_id, position).
      *
      * @return Collection<int, Section>
      */

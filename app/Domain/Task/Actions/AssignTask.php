@@ -12,10 +12,6 @@ use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Assignment is its own operation because it has its own capability: `task.assign` is not
- * `task.update`, and a role may hold one without the other.
- */
 final readonly class AssignTask
 {
     public function __construct(private Dispatcher $events) {}
@@ -26,24 +22,12 @@ final readonly class AssignTask
             throw TaskException::cannotAssignTask();
         }
 
-        /*
-         * The assignee has to be a live member of the task's workspace. A user id is a
-         * global thing: without this, any account in the installation could be handed work
-         * inside a tenant it has never been part of, and would then appear in its filters
-         * and notifications.
-         */
+        // User ids are global, so the assignee must be an active member of this workspace.
         if ($assignee !== null && ! $task->workspace->hasActiveMember($assignee->id)) {
             throw TaskException::assigneeIsNotAMember();
         }
 
-        /*
-         * And they have to be able to open it (TASK-070-017, answering the question
-         * TASK-060-012 deferred until a task had places). Membership alone is not reach: a
-         * guest holds the projects they were given, so handing one a card inside a project
-         * they cannot open would put work in their list that they cannot read, comment on
-         * or complete. The same rule refuses a member for a task that appears only in a
-         * private project they are not in.
-         */
+        // Membership is not reach: a guest or a member outside a private project may be unable to open the task.
         if ($assignee !== null && ! $assignee->can('view', $task)) {
             throw TaskException::assigneeCannotReachTask();
         }
@@ -55,8 +39,6 @@ final readonly class AssignTask
         DB::transaction(function () use ($task, $assignee): void {
             $task->forceFill(['assignee_id' => $assignee?->id])->save();
 
-            // A collaborator handed the task becomes its owner and stops being one of the people
-            // beside it: the two never name the same person (TASK-310-002).
             if ($assignee !== null) {
                 $task->collaborations()->where('user_id', $assignee->id)->delete();
             }

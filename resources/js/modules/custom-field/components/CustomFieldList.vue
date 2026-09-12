@@ -5,24 +5,12 @@ import TaskCustomFieldController from '@/actions/App/Http/Controllers/CustomFiel
 import { inputTypeFor } from '@/modules/custom-field/fieldTypes';
 import type { TaskCustomField } from '@/modules/task/types';
 
-/**
- * The fields this task's projects record, and what this task has answered.
- *
- * Drawn as the same label-and-value rows the task's own fields use, because to somebody reading
- * the screen a project's field and a task's field are the same kind of thing.
- *
- * Each type gets the control it deserves rather than a text box with a promise: a date opens a
- * date picker, a choice offers the choices, an address raises the keyboard with the `@` on it and
- * a number refuses letters before the request is ever made. What is written is still the server's
- * decision — these controls only ask.
- */
 const props = defineProps<{
     taskId: string;
     fields: TaskCustomField[];
     editable: boolean;
 }>();
 
-/** Which field is mid-save, so a slow network cannot be mistaken for a lost keystroke. */
 const saving = ref<string | null>(null);
 const failed = ref<string | null>(null);
 
@@ -59,8 +47,6 @@ const onText = (field: TaskCustomField, event: Event): void => {
 </script>
 
 <template>
-    <!-- Empty is said rather than left blank: a gap here reads as a screen that failed to draw
-         something, when in fact these projects ask nothing extra of this task. -->
     <p v-if="!fields.length" class="text-sm text-muted-foreground">No custom fields in these projects.</p>
 
     <dl v-else class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]">

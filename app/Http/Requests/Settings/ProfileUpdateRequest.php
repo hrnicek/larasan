@@ -18,11 +18,6 @@ class ProfileUpdateRequest extends FormRequest
     {
         $user = $this->user();
 
-        /*
-         * The id the unique rule ignores. `profileRules()` already takes `?int` for the case
-         * where there is nobody to ignore — this route is behind `auth`, so that case is the
-         * type system's rather than the application's.
-         */
         return $this->profileRules($user instanceof User ? $user->id : null);
     }
 }

@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the database's
- * behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertPlacement(Task $task, Project $project, array $overrides = []): string
@@ -68,7 +65,6 @@ it('lets the same task appear in two projects', function (): void {
     insertPlacement($task, $project);
     insertPlacement($task, $other);
 
-    // One task, two placements — never two tasks (ADR-0003).
     expect(DB::table('task_project_memberships')->count())->toBe(2)
         ->and(Task::query()->count())->toBe(1);
 });
@@ -89,11 +85,7 @@ it('refuses two placements in one slot of the ungrouped bucket', function (): vo
 
     insertPlacement($task, $project);
 
-    /*
-     * The case a plain unique index would have missed: PostgreSQL treats NULLs as distinct,
-     * so without the partial index every ungrouped placement could share a slot — and the
-     * ungrouped bucket is exactly where a list view drops cards.
-     */
+    // PostgreSQL treats NULLs as distinct, so the ungrouped bucket needs its own partial unique index.
     expect(fn (): string => DB::transaction(fn (): string => insertPlacement($second, $project)))
         ->toThrow(QueryException::class);
 });
@@ -115,8 +107,6 @@ it('moves a placement to no section when its section is deleted', function (): v
 
     $section->delete();
 
-    // ADR-0004: deleting a column must not delete what was in it — and the database says so
-    // as well as the Action, so a delete that never goes through the Action behaves the same.
     $placement = DB::table('task_project_memberships')->where('id', $id)->first();
 
     expect($placement)->not->toBeNull()
@@ -146,8 +136,6 @@ it('removes placements with the task', function (): void {
 it('indexes the ordered column read and the reverse lookup', function (): void {
     $indexes = collect(Schema::getIndexes('task_project_memberships'))->pluck('columns');
 
-    // The reverse lookup rides on `UNIQUE(task_id, project_id)`, which leads with `task_id`.
-    // Which index the planner actually chooses is asserted in `TaskPlacementIndexTest`.
     expect($indexes)->toContain(['project_id', 'section_id', 'position'])
         ->and($indexes)->toContain(['task_id', 'project_id']);
 });

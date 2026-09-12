@@ -21,12 +21,7 @@ final readonly class UpdateProject
             throw ProjectException::cannotManageProject();
         }
 
-        /*
-         * Null means two different things, and which one depends on the column. A nullable
-         * column takes it as "clear this": a project must be able to lose its colour, its
-         * description or a due date that no longer applies, and the first version of this
-         * Action filtered every null out, which made those fields write-once.
-         */
+        // Nullable columns: null clears the value.
         $project->fill([
             'description' => $data->description,
             'color' => $data->color,
@@ -35,12 +30,7 @@ final readonly class UpdateProject
             'due_date' => $data->dueDate,
         ]);
 
-        /*
-         * The rest have no null to mean anything by — the columns are not nullable — so
-         * null is "leave it alone". A slug the caller did not supply stays as it is:
-         * re-deriving it from a renamed project breaks every link anyone saved, which is
-         * the renamer's decision to make rather than a side effect of renaming.
-         */
+        // Non-nullable columns: null leaves the value unchanged.
         $project->fill(array_filter([
             'name' => $data->name,
             'slug' => $data->slug,

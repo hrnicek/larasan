@@ -17,8 +17,7 @@ function insertAttachment(string $fileId, Task $task, array $overrides = []): st
 {
     $id = (string) Str::uuid7();
 
-    // At the end of whatever this subject already holds, the way `AttachFile` appends — so a
-    // second row collides on the constraint the test is about rather than on the slot.
+    // Appends, so a second row collides on the constraint under test rather than on the position.
     $slot = (DB::table('attachments')->where('attachable_id', $task->id)->count() + 1) * SparsePosition::GAP;
 
     DB::table('attachments')->insert([
@@ -42,10 +41,6 @@ it('points one file at one thing only once', function (): void {
 
     insertAttachment($file, $task);
 
-    /*
-     * A double-submitted form would otherwise show the same document twice, and removing it
-     * once would leave the other behind.
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertAttachment($file, $task)))
         ->toThrow(QueryException::class);
 });
@@ -56,11 +51,6 @@ it('keeps one file in one slot', function (): void {
 
     insertAttachment(insertFile($workspace), $task, ['position' => SparsePosition::GAP]);
 
-    /*
-     * Two files in one slot is an order nobody decided, and the board card draws whichever the
-     * database returned that day. The constraint is also what makes normalisation park its rows
-     * in negative space (ADR-0009).
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertAttachment(
         insertFile($workspace),
         $task,
@@ -75,8 +65,6 @@ it('lets one file hang from two things', function (): void {
     insertAttachment($file, Task::factory()->in($workspace)->create());
     insertAttachment($file, Task::factory()->in($workspace)->create());
 
-    // The reason `files` and `attachments` are two tables: the same document on two tasks is
-    // one object, stored once.
     expect(DB::table('attachments')->where('file_id', $file)->count())->toBe(2);
 });
 
@@ -88,8 +76,6 @@ it('goes when the file goes for good', function (): void {
 
     DB::table('files')->where('id', $file)->delete();
 
-    // An attachment without its file is a row pointing at nothing. Soft-deleting the file is
-    // the ordinary path (TASK-120-007); this is what a permanent removal does.
     expect(DB::table('attachments')->count())->toBe(0);
 });
 

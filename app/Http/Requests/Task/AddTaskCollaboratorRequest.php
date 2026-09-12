@@ -10,9 +10,6 @@ use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-/**
- * Putting somebody on a task is assigning it, so it asks what `AssignTaskRequest` asks.
- */
 class AddTaskCollaboratorRequest extends FormRequest
 {
     public function authorize(): bool
@@ -31,8 +28,7 @@ class AddTaskCollaboratorRequest extends FormRequest
         $task = $this->task();
 
         return [
-            // Scoped to this task's workspace: an unscoped `exists` would confirm that any
-            // account in the installation exists.
+            // Scoped to the workspace, so `exists` cannot confirm another tenant's accounts.
             'user_id' => [
                 'required', 'integer',
                 Rule::exists('workspace_memberships', 'user_id')->where(

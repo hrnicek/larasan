@@ -8,15 +8,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/*
- * An index that exists and an index the planner uses are two different claims (TASK-180-004).
- * `TaskPlacementIndexTest` already makes the second one for the board; this makes it for the
- * other hot reads, and checks the whole schema for the kind of index nobody notices paying for.
- */
-
 /**
- * Every index in the application's own tables, with the columns it covers.
- *
  * @return list<array{table: string, name: string, columns: string, partial: bool}>
  */
 function applicationIndexes(): array
@@ -43,17 +35,12 @@ function applicationIndexes(): array
     return array_map(static fn (object $row): array => [
         'table' => $row->table,
         'name' => $row->name,
-        // Everything between the first bracket and the matching close, which is the column list.
         'columns' => (string) Str::of($row->definition)->after('(')->before(')'),
         'partial' => (bool) $row->partial,
     ], $rows);
 }
 
 /**
- * The plan PostgreSQL chose, as text. Named for what it returns rather than `planOf`, which
- * `TaskPlacementIndexTest` already declares with a different shape — Pest loads every test file
- * into one namespace, so a second `planOf` would be a fatal, not a failure.
- *
  * @param  list<mixed>  $bindings
  */
 function explainText(string $sql, array $bindings = []): string
@@ -65,10 +52,8 @@ function explainText(string $sql, array $bindings = []): string
 }
 
 /**
- * Every non-partial index whose columns are a leading prefix of another index on the same table.
- *
  * Partial indexes are exempt: they cover only part of the table, so a full index over the same
- * columns is not the same index — `task_project_memberships` deliberately carries both.
+ * columns is not redundant.
  *
  * @return list<string>
  */
@@ -105,8 +90,7 @@ it('carries no index that is a prefix of another on the same table', function ()
 ]);
 
 it('notices when an index is a prefix of another', function (): void {
-    // PostgreSQL takes DDL inside a transaction, so this index exists for this test and is
-    // rolled back with it. Without it the check above passes whether it works or not.
+    // PostgreSQL DDL is transactional, so the probe index is rolled back with the test.
     DB::statement('CREATE INDEX projects_prefix_probe ON projects (workspace_id)');
 
     $redundant = prefixIndexes();
@@ -173,8 +157,7 @@ it('plans a comment thread on its own index', function (): void {
 });
 
 /**
- * Rows inserted in bulk: a plan test needs a table big enough that a sequential scan would win
- * if the index did not fit, and factories cannot make five thousand rows quickly.
+ * Bulk inserts: the table must be large enough for a sequential scan to lose, which factories cannot build quickly.
  */
 function seedTaskRows(Workspace $workspace, User $assignee, int $count): void
 {
@@ -187,7 +170,7 @@ function seedTaskRows(Workspace $workspace, User $assignee, int $count): void
             'workspace_id' => $workspace->id,
             'title' => "Task {$index}",
             'priority' => TaskPriority::Medium->value,
-            // One in fifty is this person's, so the index is worth using rather than incidental.
+            // 2% selectivity, so the planner prefers the index.
             'assignee_id' => $index % 50 === 0 ? $assignee->id : null,
             'created_at' => $now,
             'updated_at' => $now,

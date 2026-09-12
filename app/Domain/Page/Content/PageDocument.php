@@ -7,39 +7,17 @@ namespace App\Domain\Page\Content;
 use App\Domain\Page\Exceptions\PageException;
 
 /**
- * What a page is allowed to be.
- *
- * A page is stored as ProseMirror's own document JSON rather than as markup (ADR-0017), and
- * this is the reason that choice is worth anything: a document made of named nodes can be
- * reduced to the vocabulary this application draws *before* it is written, and drawn back by
- * the editor that produced it — so a page never reaches a browser as markup the server did
- * not build, and `v-html` is never involved.
- *
- * An allowlist, never a denylist. A node this application cannot draw loses its own type and
- * keeps what was written inside it, the way `RichText` unwraps an unknown tag; a mark it
- * cannot draw loses the mark and keeps the words.
- *
- * Done here rather than in a FormRequest because it has to hold for every caller — console,
- * queue and any future API (`docs/conventions/security.md`).
+ * Allowlist sanitizer for stored ProseMirror JSON, so page content never reaches a browser as markup. See ADR-0017.
  */
 final readonly class PageDocument
 {
-    /**
-     * Deep enough for a list inside a list inside a table cell, shallow enough that walking
-     * one is bounded work. A document past this is refused rather than truncated: silently
-     * dropping the end of somebody's page is worse than saying no.
-     */
     public const MAX_DEPTH = 12;
 
-    /** The same argument, applied to breadth. A page is a document, not a database. */
     public const MAX_NODES = 5000;
 
     public const EXCERPT_LENGTH = 200;
 
     /**
-     * Every node the editor may produce, with the attributes each one keeps. Anything else
-     * is unwrapped; anything else in `attrs` is dropped.
-     *
      * @var array<string, list<string>>
      */
     private const NODES = [
@@ -63,8 +41,7 @@ final readonly class PageDocument
     ];
 
     /**
-     * The marks a run of text may carry. `link` keeps its destination and nothing else —
-     * `target` and `rel` are decided where the link is rendered, not by whoever wrote it.
+     * `target` and `rel` are set where a link is rendered, never taken from the document.
      *
      * @var array<string, list<string>>
      */
@@ -77,16 +54,11 @@ final readonly class PageDocument
         'link' => ['href'],
     ];
 
-    /** Anything else is a way to make a link do something other than go somewhere. */
     private const ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 
-    /** Headings go as far as the design system draws them, and no further (`docs/ui/design-system.md`). */
     private const MAX_HEADING_LEVEL = 3;
 
     /**
-     * What a page holds before anybody has written in it. A column that cannot be null needs
-     * an empty value that is still a document.
-     *
      * @return array<string, mixed>
      */
     public static function empty(): array
@@ -95,8 +67,6 @@ final readonly class PageDocument
     }
 
     /**
-     * The document, reduced to what this application can draw.
-     *
      * @return array<string, mixed>
      *
      * @throws PageException
@@ -116,9 +86,6 @@ final readonly class PageDocument
     }
 
     /**
-     * The words, without the document around them: what a search engine and a one-line
-     * preview both want.
-     *
      * @param  array<string, mixed>  $document
      */
     public static function toPlainText(array $document): string
@@ -129,9 +96,6 @@ final readonly class PageDocument
     }
 
     /**
-     * The first words of a page, kept beside it so a list of pages does not have to read
-     * every document it names.
-     *
      * @param  array<string, mixed>  $document
      */
     public static function excerpt(array $document): ?string
@@ -149,7 +113,6 @@ final readonly class PageDocument
         $cut = mb_substr($text, 0, self::EXCERPT_LENGTH);
         $lastSpace = mb_strrpos($cut, ' ');
 
-        // Cutting mid-word reads as a typo rather than as an excerpt.
         return rtrim($lastSpace === false ? $cut : mb_substr($cut, 0, $lastSpace)).'…';
     }
 
@@ -184,9 +147,6 @@ final readonly class PageDocument
     }
 
     /**
-     * One node, as the list of nodes that survive it: itself when this application draws it,
-     * its children when it does not, and nothing when neither is worth keeping.
-     *
      * @param  array<mixed, mixed>  $node
      * @return list<array<string, mixed>>
      *
@@ -197,8 +157,7 @@ final readonly class PageDocument
         $type = $node['type'] ?? null;
 
         if (! is_string($type) || ! array_key_exists($type, self::NODES)) {
-            // Unwrapped, not deleted: the words inside an unknown node were still written by
-            // somebody, and they belong where the node was.
+            // Unknown nodes are unwrapped so the text inside them is kept.
             return self::children($node['content'] ?? [], $depth, $budget);
         }
 
@@ -274,7 +233,6 @@ final readonly class PageDocument
             if ($type === 'link') {
                 $href = self::href($mark['attrs']['href'] ?? null);
 
-                // A link with nowhere to go is not a link. The words stay; the mark does not.
                 if ($href === null) {
                     continue;
                 }
@@ -364,8 +322,6 @@ final readonly class PageDocument
             return null;
         }
 
-        // A relative link stays: it addresses this application, which is where a page links
-        // to a task. Anything with a scheme has to be one a browser may safely follow.
         return $scheme === '' || in_array($scheme, self::ALLOWED_SCHEMES, true) ? $href : null;
     }
 
@@ -388,8 +344,6 @@ final readonly class PageDocument
 
         foreach ($content as $child) {
             if (is_array($child)) {
-                // A space between blocks, so `one</p><p>two` does not become one word — the
-                // problem `RichText::toPlainText()` solves the same way.
                 $text .= self::textOf($child).' ';
             }
         }

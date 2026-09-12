@@ -10,13 +10,6 @@ use App\Domain\Comment\Models\Comment;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Take a comment out of the conversation without taking it out of the record.
- *
- * The row stays, so the thread can say that something was removed rather than closing the gap
- * and presenting a conversation that reads differently from the one people had. Who may do it
- * is the policy's answer: the author, or anybody the workspace trusts to moderate.
- */
 final readonly class DeleteComment
 {
     public function __construct(private Dispatcher $events) {}

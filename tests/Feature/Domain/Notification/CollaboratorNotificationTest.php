@@ -73,7 +73,7 @@ it('says nothing when they were taken off before the notice went out', function 
     $collaborator = memberOf($workspace);
     $task = Task::factory()->in($workspace)->create();
 
-    // The queued job arriving after the row it was about has gone.
+    // Simulates the queued listener running after the collaborator was removed.
     app(NotifyNewCollaborator::class)->handle(
         new TaskCollaboratorAdded($task->id, $workspace->id, $collaborator->id, $actor->id),
     );

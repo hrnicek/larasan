@@ -15,12 +15,6 @@ use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-/*
- * Removing somebody used to unassign each of their tasks in the request — four queries per task,
- * and somebody leaving may be holding hundreds (TASK-180-019). The revocation stays in the
- * request, because that is the security answer; the bookkeeping moved to a queue.
- */
-
 /**
  * @return array{Workspace, User, User, WorkspaceMembership}
  */
@@ -37,11 +31,7 @@ function memberHolding(int $tasks): array
     return [$workspace, $owner, $leaving, $membership];
 }
 
-/*
- * A queue that actually queues, rather than `Queue::fake()`. The fake intercepts `dispatchSync`
- * as well as `dispatch`, so under it the two are indistinguishable and this test could not tell
- * "the work is queued" from "the work is done here" — which is the whole claim.
- */
+// Queue::fake() also intercepts dispatchSync, so only a real queue tells queued work from inline work.
 beforeEach(function (): void {
     config(['queue.default' => 'database']);
 });
@@ -71,10 +61,8 @@ it('revokes the membership before the queue has run', function (): void {
 
     expect($workspace->memberships()->where('user_id', $leaving->id)->value('status'))
         ->toBe(WorkspaceMembershipStatus::Revoked)
-        // Still theirs on paper, and unreachable in practice: the membership is already revoked.
         ->and(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(3)
-        // Named rather than counted: creating those three tasks also queued three indexing
-        // jobs (ADR-0016), and this test is about the one job the removal itself queues.
+        // Filtered by name: creating the tasks also queued indexing jobs.
         ->and(DB::table('jobs')->where('payload', 'like', '%ReleaseRemovedMembersWork%')->count())->toBe(1);
 })->with([
     'a removal that waits on a queue is a security answer arriving late; the tasks keeping a
@@ -100,7 +88,6 @@ it('leaves their work alone if they were invited back before the job ran', funct
 
     app(RemoveWorkspaceMember::class)->handle($workspace, $owner, $membership);
 
-    // Re-invited and active again before the queue got to it.
     $workspace->memberships()->where('user_id', $leaving->id)->update(['status' => 'active']);
 
     app(ReleaseRemovedMembersWork::class, [

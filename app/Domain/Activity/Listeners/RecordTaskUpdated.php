@@ -21,11 +21,6 @@ final readonly class RecordTaskUpdated
             return;
         }
 
-        /*
-         * The field names, not their values. A history line says a description was changed;
-         * showing what it used to say is a different feature with a different storage cost,
-         * and guessing at it here would put a copy of every task's text in this table.
-         */
         $this->record->handle(
             $event->workspaceId,
             $task,

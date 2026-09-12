@@ -20,12 +20,7 @@ class ProjectMembershipFactory extends Factory
 {
     protected $model = ProjectMembership::class;
 
-    /**
-     * A project membership only means something inside the workspace that owns the project
-     * (TASK-040-021), and the model refuses to create one that does not. The factory makes the
-     * workspace membership the row needs rather than handing tests a shape the domain never
-     * reaches — the rule the development seeder's docblock already states.
-     */
+    // The model refuses a project membership for a user who is not an active workspace member.
     public function configure(): self
     {
         return $this->afterMaking(function (ProjectMembership $membership): void {

@@ -6,10 +6,6 @@ import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { SidebarProject } from '@/modules/project/types';
 import { edit } from '@/routes/projects';
 
-/**
- * A project's settings on their way. The header is the real one when the sidebar lists the
- * project, as it is on the project's own skeleton; the rail and the form are placeholders.
- */
 const page = usePage();
 
 const project = computed<SidebarProject | null>(() => {

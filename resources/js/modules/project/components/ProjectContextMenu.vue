@@ -19,20 +19,12 @@ import ProjectRenameDialog from '@/modules/project/components/ProjectRenameDialo
 import type { SidebarProject } from '@/modules/project/types';
 import { archive, edit, show, star, unstar } from '@/routes/projects';
 
-/**
- * What can be done to a project, from the row that names it.
- *
- * Every item is an endpoint that already exists: this is a second door, not a new room. Which
- * items are drawn comes from the two flags the server computed with the project policy — hiding
- * a control is presentation, and each endpoint refuses the same reader again.
- */
 const props = defineProps<{ project: SidebarProject }>();
 
 const renaming = ref(false);
 const archiving = ref(false);
 const working = ref(false);
 
-/** Absolute, because a link is pasted somewhere this application is not. */
 async function copyLink(): Promise<void> {
     const url = `${window.location.origin}${show(props.project.id).url}`;
 
@@ -40,17 +32,11 @@ async function copyLink(): Promise<void> {
         await navigator.clipboard.writeText(url);
         toast('Link copied.');
     } catch {
-        // A browser refuses the clipboard outside a secure context, and a toast that lies about
-        // it leaves somebody pasting whatever was there before.
+        // The Clipboard API is unavailable outside a secure context.
         toast('Could not copy — open the project and use the address bar.');
     }
 }
 
-/**
- * The star is this reader's own, so the write is theirs alone and the server answers with the
- * sidebar re-ordered around it. `preserveScroll` because a row moving into the starred group is
- * the whole point, and a rail that jumps to the top with it is not.
- */
 function toggleStar(): void {
     if (props.project.starred) {
         router.delete(unstar(props.project.id).url, { preserveScroll: true });
@@ -79,10 +65,7 @@ function archiveProject(): void {
 
 <template>
     <ContextMenu>
-        <!--
-            A wrapper rather than `as-child`: the row it wraps is a tooltip around a link, and a
-            tooltip root renders no element of its own for a trigger to bind itself to.
-        -->
+        <!-- Not `as-child`: the slotted tooltip root renders no element for the trigger to bind to. -->
         <ContextMenuTrigger as="div">
             <slot />
         </ContextMenuTrigger>
@@ -102,11 +85,6 @@ function archiveProject(): void {
 
             <ContextMenuSeparator />
 
-            <!--
-                The same palette and library the project header opens, in a submenu rather than a
-                popover: the grids are one component, so a colour picked here and a colour picked
-                there are the same two columns written by the same endpoint.
-            -->
             <ContextMenuSub v-if="props.project.canUpdate">
                 <ContextMenuSubTrigger>
                     <Palette class="mr-2 size-4" />

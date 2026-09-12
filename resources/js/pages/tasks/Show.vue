@@ -9,9 +9,6 @@ import { index as myTasks } from '@/routes/my-tasks';
 import { show as showProject } from '@/routes/projects';
 import { show as showTask } from '@/routes/tasks';
 
-/**
- * A task's own page: the same component the panel renders, with nothing to close to.
- */
 const props = defineProps<TaskDetail & {
     members: TaskAssignee[];
     priorities: string[];
@@ -20,11 +17,7 @@ const props = defineProps<TaskDetail & {
 
 const page = usePage();
 
-/*
- * Where a task appears decides who hears about it, so the channels are its placements — and
- * the workspace when it has none, which is where a loose task is announced. A guess cannot
- * leak anything: `routes/channels.php` refuses a channel this person may not join.
- */
+// A task without placements is broadcast on the workspace channel; routes/channels.php authorizes each subscription.
 useRealtime({
     channels: () => {
         if (props.placements.length > 0) {
@@ -35,11 +28,6 @@ useRealtime({
     },
 });
 
-/**
- * Where this page leads back to. A task opened from a link has no screen behind it, and the
- * project it lives in is the one place that lists it; a task in none of them is only ever
- * reachable from My Tasks, so that is where it points instead.
- */
 const back = (): { url: string; label: string; component: string } => {
     const placement = props.placements[0];
 
@@ -65,10 +53,8 @@ const detail = (): TaskDetail => ({
     can: props.can,
 });
 
-/** A deleted task has no page left to stand on, so the page leaves for wherever it came from. */
 const leave = (): void => router.visit(back().url, { component: back().component });
 
-/** A subtask is a task, and on a page the way to open one is to go to it. */
 const openTask = (taskId: string): void => router.visit(showTask(taskId).url, { component: 'tasks/Show' });
 </script>
 
@@ -76,8 +62,7 @@ const openTask = (taskId: string): void => router.visit(showTask(taskId).url, { 
     <div class="mx-auto flex w-full max-w-3xl flex-col">
         <Head :title="task.title" />
 
-        <!-- The task is what this page is. The body renders the title as a field, which is a
-             control rather than a heading. -->
+        <!-- The visible title is an editable field, not a heading. -->
         <h1 class="sr-only">{{ task.title }}</h1>
 
         <div class="px-4 pt-6 pb-3 md:px-6">

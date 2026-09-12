@@ -31,8 +31,6 @@ function filesOf(
 }
 
 /**
- * A file hanging off a task, written the way the Action writes it: the row, not an upload.
- *
  * @param  array<string, mixed>  $attributes
  */
 function hanging(Workspace $workspace, Task $task, ?User $uploader = null, array $attributes = []): Attachment
@@ -47,8 +45,6 @@ function hanging(Workspace $workspace, Task $task, ?User $uploader = null, array
 }
 
 /**
- * The names the table drew, in the order it drew them.
- *
  * @param  array<string, mixed>  $files
  * @return list<string>
  */
@@ -102,8 +98,7 @@ it('leaves out a file whose file belongs to another workspace', function (): voi
 
     hanging($workspace, $task, $actor, ['original_name' => 'ours.pdf']);
 
-    // A row the domain would never write, which is exactly why the scope is proven in the query
-    // rather than left to the Action that usually creates it.
+    // An attachment the domain never writes, proving the query itself scopes by workspace.
     $elsewhere = Workspace::factory()->create();
     hanging($elsewhere, $task, null, ['original_name' => 'somebody elses.pdf']);
 
@@ -155,7 +150,6 @@ it('reads the kind from the type the upload was sniffed as', function (): void {
     $task = Task::factory()->in($workspace)->create();
     attach($task, $project, $actor);
 
-    // A PNG that calls itself a spreadsheet. The MIME type is what the file is (ADR-0007).
     hanging($workspace, $task, $actor, [
         'original_name' => 'chart.xlsx',
         'mime_type' => 'image/png',

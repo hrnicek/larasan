@@ -18,9 +18,6 @@ use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
-/**
- * A comment on a task the reader follows, so what the Inbox quotes is what the domain wrote.
- */
 function commentFollowedBy(User $reader, Task $task, User $author, string $body): Comment
 {
     app(FollowTask::class)->handle($task, $reader);
@@ -68,8 +65,6 @@ it('never names a project the reader cannot open', function (): void {
     TaskProjectMembership::factory()->placing($task, $open)->create();
     TaskProjectMembership::factory()->placing($task, $secret)->create();
 
-    // The open project makes the task reachable, and that must not make the private one's name
-    // readable through it.
     $projects = inbox($workspace, $reader)['notifications'][0]['subject']['projects'];
 
     expect(array_column($projects, 'name'))->toBe(['Launch']);
@@ -118,8 +113,6 @@ it('keeps what was said from somebody who can no longer reach the task', functio
 
     $project->forceFill(['visibility' => ProjectVisibility::Private])->save();
 
-    // The words belong to the task: losing the project is losing them too, even on a line
-    // written while the reader could still open it.
     $row = inbox($workspace, $reader)['notifications'][0];
 
     expect($row['subject']['url'])->toBeNull()
@@ -155,7 +148,6 @@ it('reads a page of comments from many people on many tasks in a fixed number of
 
     $result = inbox($workspace, $reader);
 
-    // What the assignment budget reads, plus the comments themselves — once for the page.
     expect($result['notifications'])->toHaveCount(10)
         ->and(array_filter(array_column($result['notifications'], 'excerpt')))->toHaveCount(10)
         ->and(count($queries))->toBeLessThanOrEqual(7);

@@ -34,10 +34,6 @@ final class CustomFieldException extends DomainException implements DomainRefusa
         return new self('That field is not in this workspace.');
     }
 
-    /**
-     * A field the task's projects do not show is a value nobody would ever see: the screens
-     * render a project's fields, so writing one anyway would be data with no way back out.
-     */
     public static function fieldIsNotOnThisTask(): self
     {
         return new self('That field is not shown on this task.');
@@ -48,10 +44,6 @@ final class CustomFieldException extends DomainException implements DomainRefusa
         return new self('That choice does not belong to this field.');
     }
 
-    /**
-     * Only a `select` has choices to edit — every other type's answer lives in a column of its
-     * own, and offering a choice list for one would be a control that decides nothing.
-     */
     public static function fieldIsNotAChoiceField(): self
     {
         return new self('That field does not offer choices.');

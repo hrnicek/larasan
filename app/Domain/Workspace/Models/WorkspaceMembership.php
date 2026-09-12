@@ -42,10 +42,7 @@ class WorkspaceMembership extends Model
     protected $fillable = ['workspace_id', 'user_id', 'email', 'role', 'status', 'joined_at', 'expires_at', 'invited_by'];
 
     /**
-     * The single composed authorization question for a workspace. Callers ask this and
-     * never `role->allows()` directly: the role is a pure function of the role, so it
-     * answers true for an invited, declined, revoked or expired membership, and a rule
-     * every call site has to remember is a rule one call site will forget (ADR-0010).
+     * Use this rather than role->allows(), which ignores membership status. See ADR-0010.
      */
     public function allows(Capability $capability): bool
     {
@@ -70,21 +67,11 @@ class WorkspaceMembership extends Model
         return $this->belongsTo(User::class, 'invited_by');
     }
 
-    /**
-     * Whether an account has taken this row over. An invitation to an address nobody has
-     * registered yet holds no `user_id`, and every authorization path filters by that
-     * column — so an unclaimed row grants nothing to anybody, by construction rather than
-     * by a rule each call site has to remember.
-     */
     public function isClaimed(): bool
     {
         return $this->user_id !== null;
     }
 
-    /**
-     * Who an invitation on this row reaches: the account when there is one, and the bare
-     * address when nobody has registered under it yet.
-     */
     public function invitee(): User|AnonymousNotifiable
     {
         $user = $this->user;
@@ -92,11 +79,6 @@ class WorkspaceMembership extends Model
         return $user instanceof User ? $user : Notification::route('mail', $this->address());
     }
 
-    /**
-     * The address this row answers to: the one invited, or the account's own. There is always
-     * one — `workspace_memberships_subject_check` refuses a row that names neither — so
-     * reaching the refusal below means the schema changed without this method.
-     */
     public function address(): string
     {
         return $this->email ?? $this->user->email
@@ -104,9 +86,7 @@ class WorkspaceMembership extends Model
     }
 
     /**
-     * An invitation past its deadline is not acceptable, whatever its status column says
-     * — the sweep that flips `invited` to `expired` runs on a schedule, and an acceptance
-     * arriving before it must not win the race.
+     * Checks the deadline directly, since the scheduled sweep may not have marked the row yet.
      */
     public function hasExpired(): bool
     {

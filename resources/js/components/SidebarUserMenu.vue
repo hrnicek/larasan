@@ -13,12 +13,6 @@ const collapsed = useCollapsed();
 const user = computed(() => page.props.auth.user);
 </script>
 
-<!--
-  The account sits at the foot of the sidebar rather than in the topbar corner: the workspace it
-  belongs to sits at the head of the same column, so who you are and where you are read as one
-  thing. The menu opens upwards for the reason every footer menu does — downwards there is no
-  screen left.
--->
 <template>
     <DropdownMenu v-if="user">
         <DropdownMenuTrigger

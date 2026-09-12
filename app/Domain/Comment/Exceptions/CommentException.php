@@ -8,11 +8,6 @@ use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * Invariants the comment Actions refuse for every caller. A FormRequest catches most of them
- * first; the Action still checks, because a console command or a queued job arrives without
- * one.
- */
 final class CommentException extends DomainException implements DomainRefusal
 {
     public static function cannotComment(): self
@@ -20,10 +15,6 @@ final class CommentException extends DomainException implements DomainRefusal
         return new self('You do not have permission to comment in this workspace.');
     }
 
-    /**
-     * Reach, once more. Reading a task is what makes commenting on it possible: somebody who
-     * cannot open the subject cannot say anything about it either (TASK-070-017).
-     */
     public static function cannotReachSubject(): self
     {
         return new self('You cannot comment on something you cannot reach.');
@@ -44,10 +35,7 @@ final class CommentException extends DomainException implements DomainRefusal
         return new self('You do not have permission to delete this comment.');
     }
 
-    /**
-     * One sentence for a colleague who cannot read the task and for an account in another
-     * workspace entirely: a message that told the two apart would confirm the account exists.
-     */
+    /** One message for every refusal, so the response cannot confirm that an account exists. */
     public static function cannotMention(): self
     {
         return new self('Only people who can see this task can be mentioned on it.');

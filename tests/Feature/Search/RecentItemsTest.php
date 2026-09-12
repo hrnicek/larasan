@@ -37,7 +37,7 @@ it('remembers a task opened as a panel over another screen', function (): void {
     $actor = memberOf($workspace);
     $task = Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
 
-    // The panel is an address on whichever screen it was opened from (TASK-100-003).
+    // The task panel opens through a query parameter on whichever screen it was opened from.
     $this->actingAs($actor)->get(route('search.index', ['task' => $task->id]))->assertOk();
 
     expect(recentsFor($workspace, $actor))->toHaveCount(1);

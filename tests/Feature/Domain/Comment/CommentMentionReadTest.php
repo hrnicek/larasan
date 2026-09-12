@@ -42,7 +42,7 @@ it('never reads a stranger s name through a token nobody checked', function (): 
     $stranger = memberOf(Workspace::factory()->create(), user: User::factory()->create(['name' => 'Private Person']));
     $task = Task::factory()->in($workspace)->create();
 
-    // Written past the Action, the way a seeder or a future importer could.
+    // Bypasses the Action, so the mention token was never validated.
     Comment::factory()->on($task)->by($author)->create(['body' => 'Hi @[Whoever](user:'.$stranger->id.')']);
 
     expect(mentionFeed($task, $author))->toBe(['Hi @[Whoever](user:'.$stranger->id.')']);

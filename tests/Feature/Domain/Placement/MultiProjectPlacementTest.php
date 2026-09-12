@@ -15,9 +15,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
 /**
- * One task on two boards. The whole of ADR-0003 is here: what is shared is the task, what
- * differs is the placement.
- *
  * @return array{Task, Project, Project, User, Workspace}
  */
 function taskOnTwoBoards(): array
@@ -48,8 +45,6 @@ it('completes the task everywhere at once', function (): void {
 
     app(CompleteTask::class)->complete($task, $actor);
 
-    // Completion is `tasks.completed_at` and nothing else (ADR-0004): there is no per-board
-    // notion of done, so the same card cannot be open on one board and closed on another.
     expect($first->tasks()->sole()->completed_at)->not->toBeNull()
         ->and($second->tasks()->sole()->completed_at)->not->toBeNull();
 });
@@ -80,7 +75,6 @@ it('keeps a separate column per project', function (): void {
 it('keeps a separate position per project', function (): void {
     [$task, $first, $second, $actor, $workspace] = taskOnTwoBoards();
 
-    // A card at the front of one board and behind a neighbour on the other.
     $neighbour = attach(Task::factory()->in($workspace)->create(), $second, $actor);
     moveTo($task->placements()->where('project_id', $second->id)->sole(), $actor, null, PlacementTarget::after($neighbour));
 
@@ -101,8 +95,6 @@ it('moves the card on one board and leaves the other where it was', function ():
 
     moveTo($here, $actor, $column, PlacementTarget::end());
 
-    // A drag is a change to one placement. Anything that reached the task itself would move
-    // the card on every board the task appears on.
     expect($there->refresh()->section_id)->toBeNull()
         ->and($there->position)->toBeLessThan($neighbour->refresh()->position)
         ->and($here->refresh()->section_id)->toBe($column->id);
@@ -116,8 +108,6 @@ it('leaves the other board alone when the task is detached from one', function (
     expect($task->fresh())->not->toBeNull()
         ->and($first->placements()->count())->toBe(0)
         ->and($second->placements()->count())->toBe(1)
-        // Still a workspace task with a place to be: My Tasks and search read tasks, not
-        // placements (ADR-0003).
         ->and($task->placements()->count())->toBe(1);
 });
 

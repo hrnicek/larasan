@@ -6,22 +6,12 @@ import type { PageNode } from '@/modules/page/types';
 import pageRoutes from '@/routes/pages';
 import { show as showProject } from '@/routes/projects';
 
-/**
- * Where this page sits, named rather than drawn.
- *
- * The sidebar answers the same question with indentation and disappears below `lg`; a nested page
- * on a phone would otherwise give a reader no way to know it is nested at all.
- *
- * Ancestors only — the page's own title is the heading underneath, and repeating it here would
- * make the trail end in the thing it is describing.
- */
 const props = defineProps<{
     tree: PageNode[];
     pageId: string;
     project: { id: string; name: string };
 }>();
 
-/** The path from the root to the page, exclusive of the page itself. */
 const ancestors = computed<PageNode[]>(() => {
     const walk = (nodes: PageNode[], trail: PageNode[]): PageNode[] | null => {
         for (const node of nodes) {

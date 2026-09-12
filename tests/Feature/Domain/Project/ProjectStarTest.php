@@ -50,10 +50,6 @@ it('unstars, and says nothing when there was no star', function (): void {
     expect(ProjectStar::query()->where('project_id', $project->id)->exists())->toBeFalse();
 });
 
-/*
- * A star is a shortcut rather than a change to the project, so the question it asks is `view`.
- * A reader who may not rename the project may still keep it at the top of their own sidebar.
- */
 it('lets a reader star a project they may only look at', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
 
@@ -62,11 +58,6 @@ it('lets a reader star a project they may only look at', function (): void {
     expect(ProjectStar::query()->where('project_id', $project->id)->exists())->toBeTrue();
 });
 
-/*
- * 404 rather than 403: `{project}` binds among the projects the actor may see, so a private one
- * they were never given is indistinguishable from one that does not exist. The Action refuses it
- * a second time for callers that arrive without a route.
- */
 it('refuses a project the actor cannot open', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Member);
@@ -94,10 +85,6 @@ it('refuses every caller who cannot reach the project, not only the HTTP one', f
         ->toThrow(ProjectException::class);
 });
 
-/*
- * The other direction has no reach check on purpose: somebody who has lost access must still be
- * able to clear the project out of their own sidebar.
- */
 it('lets somebody unstar a project they can no longer open', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     ProjectStar::factory()->starring($project, $actor)->create();
@@ -140,10 +127,6 @@ it('reads one person\'s star and not another\'s', function (): void {
             ->where('projects.0.starred', false));
 });
 
-/*
- * The shared list is capped at fifteen and ordered by name, so a starred project late in the
- * alphabet is exactly the one the cap would have cut off.
- */
 it('keeps a starred project in the list the cap would have cut off', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Member);

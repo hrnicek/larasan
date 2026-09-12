@@ -2,21 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ProjectSettingsNavGroup } from '@/modules/project/types';
 
-/**
- * The rail beside the project settings cards: where you are, and a way to the rest.
- *
- * The screen is one scrolling column rather than a set of sub-pages, because the fields on it
- * are read together — what a project is called, what it looks like and who can see it are one
- * errand. The rail keeps a long column navigable, mirrors the groups the column is divided into,
- * and reports the card the reader is actually at rather than merely the last one clicked.
- */
 const props = defineProps<{ groups: ProjectSettingsNavGroup[] }>();
 
 const items = computed(() => props.groups.flatMap((group) => group.items));
 
 const active = ref<string>(items.value[0]?.id ?? '');
 
-/** How far below the top of the canvas a card counts as the one being read. */
+/** Pixels from the top of the viewport at which a card becomes the active one. */
 const threshold = 140;
 
 function readActive(): void {
@@ -33,11 +25,7 @@ function readActive(): void {
     active.value = current;
 }
 
-/*
- * Measured rather than observed: the canvas is its own scrolling box inside the shell, and an
- * IntersectionObserver reports that box's cards a beat late — the rail then names the section
- * above the one on screen. Reading the rectangles on the frame after a scroll is exact.
- */
+// Rects are read once per frame; an IntersectionObserver lags inside the shell's scroll container.
 let frame = 0;
 
 function schedule(): void {
@@ -52,7 +40,7 @@ function schedule(): void {
 }
 
 onMounted(() => {
-    // Capture, because the scroll happens in the shell's canvas and never reaches `window`.
+    // Capture phase: the shell's canvas scrolls, and scroll events do not bubble to `window`.
     document.addEventListener('scroll', schedule, true);
     window.addEventListener('resize', schedule);
     readActive();
@@ -81,8 +69,6 @@ function go(id: string): void {
         block: 'start',
     });
 
-    // The card takes the focus as well as the scroll, so the keyboard carries on from where the
-    // eye was sent rather than from the rail it left.
     element.focus({ preventScroll: true });
 }
 </script>
@@ -92,12 +78,8 @@ function go(id: string): void {
         class="flex flex-row gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
         aria-label="Project settings"
     >
-        <!-- `shrink-0` on the group, not only on the items inside it. Below `lg` the rail is one
-             scrolling row: a group that may shrink is squeezed narrower than the items it holds,
-             and since those may not shrink, its last one is drawn over the next group's first. -->
+        <!-- The group needs `shrink-0` too, or below `lg` its items overflow onto the next group. -->
         <div v-for="group in props.groups" :key="group.label" class="flex shrink-0 flex-row gap-1 lg:flex-col lg:gap-0.5">
-            <!-- The group names are the column's own headings repeated; below `lg` the rail is a
-                 single scrolling row and repeating them there would only cost reading width. -->
             <p class="hidden px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase lg:block">
                 {{ group.label }}
             </p>

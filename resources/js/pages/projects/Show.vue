@@ -36,25 +36,12 @@ import type {
 } from '@/modules/task/types';
 import { create as createTask } from '@/routes/tasks';
 
-/*
- * The panel is the heaviest thing this screen can show and most visits never open one, so it is
- * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
- * is idle, which keeps opening a task instant without putting it on the critical path.
- */
 const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
-/**
- * The project's own screen: its list, its board, its month, its files or its pages, whichever the
- * URL asked for. One payload arrives, never two — the server reads what the view needs and
- * nothing else.
- */
 const props = defineProps<{
     project: ProjectHeading;
     view: string;
     views: string[];
-    // One of the five, decided by `view`: the server sends the payload the view asked for and
-    // not the others, because reading the same placements twice is what "one screen, five
-    // views" is supposed to avoid.
     list?: ProjectList;
     board?: ProjectBoard;
     calendar?: ProjectCalendar;
@@ -62,24 +49,18 @@ const props = defineProps<{
     pages?: ProjectPages;
     members: TaskAssignee[];
     priorities: string[];
-    /** What the server filtered by, and the vocabulary to filter with (TASK-140-005). */
     tags: { active: string[]; available: TaskTag[] };
-    /** What the server ordered and narrowed by (TASK-150-009). */
     sort: { field: string | null; direction: string; filters: Record<string, string> };
-    /** The open panel, when the URL names a task. */
     taskDetail?: TaskDetail | null;
-    /** Deferred with the panel: absent until its own request lands. */
+    /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
-    /** Absent until the header's *Customize* drawer asks for it (`Inertia::optional`). */
+    /** Optional prop; absent until the Customize drawer requests it. */
     customize?: ProjectCustomize;
-    /** Absent until the header's *Share* dialog asks for it, for the same reason. */
+    /** Optional prop; absent until the Share dialog requests it. */
     share?: ProjectShare;
 }>();
 
-/*
- * The board's own copy of the columns, so a card can move before the server has agreed. It is
- * replaced whenever the server sends a new board — its answer wins over the optimistic one.
- */
+// Local copy for optimistic moves; replaced whenever the server sends a new board.
 const columns = ref<BoardColumnData[]>(props.board?.columns ?? []);
 
 watch(() => props.board, (board) => {
@@ -88,11 +69,7 @@ watch(() => props.board, (board) => {
 
 const editable = () => (props.board ?? props.list ?? props.calendar)?.can.updateTask === true;
 
-/**
- * Which payload this screen is drawing, by the name the server sends it under. Read from the
- * props rather than from `view`, so a reload asks for the region that is actually on the screen
- * rather than the one a half-landed switch has named.
- */
+// Derived from the payload props rather than `view`, so a reload targets the region actually on screen.
 const drawing = computed<string>(() =>
     props.board
         ? 'board'
@@ -107,10 +84,7 @@ const drawing = computed<string>(() =>
 
 const page = usePage();
 
-/*
- * An address without `?view=` draws the project's default view, which only the server knows. It
- * is written down so the next instant visit to this address draws a skeleton of that shape.
- */
+// Only the server knows the default view, so it is remembered for the skeleton of the next instant visit.
 watch(
     () => props.view,
     (view) => {
@@ -123,36 +97,17 @@ watch(
     { immediate: true },
 );
 
-/*
- * Somebody else moved a card, renamed a column, commented or attached a file: refetch what this
- * screen draws and let the server answer (ADR-0008). Only the view props, so an open detail panel
- * is not thrown away by somebody else's edit elsewhere on the board.
- */
+// Only the view props are reloaded, so another user's edit never discards an open task panel. See ADR-0008.
 useRealtime({
     channels: () => [`project.${props.project.id}`],
     only: ['board', 'list', 'calendar', 'files', 'pages'],
 });
 const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
-/**
- * Asking for one column in full. The ids live in the URL, so the state survives a reload and
- * a shared link shows what the sender was looking at — the same rule the view switcher
- * follows.
- */
-/*
- * The panel is a URL, not a piece of local state: `?task=` on this screen's own address. A
- * copied link reopens the same board with the same task; back closes it; forward reopens it.
- * The visit is partial — only `taskDetail` — so the list or board behind it is not re-read.
- */
 const { open: openTask, close: closeTask } = useTaskPanel();
 
 const drag = useBoardDragAndDrop(columns, () => editable());
 
-/*
- * The list's own copy of its sections, for the same reason the board keeps one: a row moves
- * locally, the request confirms it, and a refusal puts it back in the slot it came from. The
- * server's answer replaces it whenever a new list arrives.
- */
 const sections = ref<TaskSectionGroup[]>(props.list?.sections ?? []);
 
 watch(() => props.list, (list) => {
@@ -164,11 +119,6 @@ const listDrag = useTaskDragAndDrop(sections, () => editable(), {
     reloadKey: 'list',
 });
 
-/*
- * The calendar's own copy of the month and of its tray, for the reason the board and the list
- * keep theirs: a chip lands on a day before the server has agreed, and a refusal puts it back on
- * the day it came from. The server's answer replaces both whenever a new month arrives.
- */
 const days = ref<CalendarDay[]>(props.calendar?.days ?? []);
 const undated = ref<ProjectCalendar['undated']>(props.calendar?.undated ?? { count: 0, hasMore: false, tasks: [] });
 
@@ -179,25 +129,13 @@ watch(() => props.calendar, (calendar) => {
 
 const calendarDrag = useCalendarDrag(days, undated, () => editable());
 
-/*
- * Below `md` the board shows one column at a time. A row of four columns on a phone is four
- * columns nobody can read, and a drag across a pager is a gesture nobody can land — which is
- * why every card carries a "Move…" action rather than relying on the drag.
- */
 const activeColumn = ref(0);
 
-/*
- * Which columns are drawn is a CSS question, not a JavaScript one: reading `window.innerWidth`
- * gives an answer that is right once and then stale — a resize left the desktop board showing
- * a single column, because nothing re-read the width.
- */
+// Left to CSS breakpoints; reading window.innerWidth would go stale on resize.
 const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
-/**
- * Asking for one group in full — a column of the board, or a day of the calendar. Both spend the
- * same `expand` parameter, because a URL names one view and the two meanings can never meet.
- */
+// Board columns and calendar days share the `expand` parameter; a URL only ever names one view.
 const expand = (group: string | null): void => {
     const key = group ?? 'ungrouped';
     const current = new URLSearchParams(window.location.search).getAll('expand[]');
@@ -210,16 +148,9 @@ const expand = (group: string | null): void => {
 
 const { isCollapsed, toggle } = useCollapsedSections(props.project.id);
 
-// Named for the element, not the prop: `list` is already the payload.
 const listElement = ref<HTMLElement | null>(null);
 const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 
-/*
- * The rows are part of the page rather than a deferred region: the whole list is one query
- * and one round trip, and deferring the main content would trade a fast page for a spinner.
- * What does take time is a reload of the list alone — the retry after an error, and whatever
- * later asks for more rows — so the skeleton stands in for exactly that.
- */
 const reloading = ref(false);
 const failed = ref(false);
 const listening = (event: { detail: { visit: { only: string[] } } }) =>
@@ -236,11 +167,6 @@ const finished = () => {
     reloading.value = false;
 };
 
-/*
- * Inertia v3's names: `invalid` became `httpException` and `exception` became `networkError`.
- * Both leave the rows that are already drawn alone — an error region that emptied the screen
- * would lose the reader's place to tell them something went wrong.
- */
 const errored = () => {
     failed.value = true;
     reloading.value = false;
@@ -270,11 +196,6 @@ onUnmounted(() => {
     <div class="flex flex-col">
         <Head :title="project.name" />
 
-        <!--
-            The project's name, its views, the toolbar and the list's column names are one block
-            pinned to the top of the canvas: at the bottom of a long list you still need to know
-            which project this is, which view you are in and what the fourth column means.
-        -->
         <div class="sticky top-0 z-20 bg-background">
             <ProjectHeader
                 :project="project"
@@ -284,15 +205,6 @@ onUnmounted(() => {
                 :share="share"
             />
 
-            <!--
-                The toolbar: what this view is showing and how to change it, on one line above the
-                content. Adding comes first because it is the thing done most.
-
-                The files table and the pages tree have none of it. Every control here narrows or
-                orders *tasks*, and
-                a tag filter over a list of documents would answer a question about something the
-                reader is not looking at.
-            -->
             <div v-if="view !== 'files' && view !== 'pages'" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
                 <Link
                     v-if="creatable()"
@@ -337,7 +249,6 @@ onUnmounted(() => {
 
         <div class="flex flex-col pb-6">
             <div class="flex flex-1 flex-col">
-        <!-- The keyboard move path's feedback: a card that moves silently has not moved. -->
         <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
 
         <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6" aria-label="Columns">
@@ -354,10 +265,6 @@ onUnmounted(() => {
             </button>
         </nav>
 
-        <!--
-            The board scrolls sideways and nothing else does, so the scrollbar is thin and tinted
-            rather than the platform's default bar drawn across the whole width of the canvas.
-        -->
         <div
             v-if="board"
             class="flex gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
@@ -388,7 +295,6 @@ onUnmounted(() => {
                 @open="openTask"
             />
 
-            <!-- At the end of the row, where the next column would go. -->
             <InlineSectionCreate
                 v-if="board.can.createSection"
                 :project-id="project.id"
@@ -437,7 +343,6 @@ onUnmounted(() => {
                 @pickup="(event, task) => listDrag.pickUp(event, task)"
                 />
 
-                <!-- Under the last group, where the next one would start. -->
                 <InlineSectionCreate
                     v-if="list.can.createSection"
                     :project-id="project.id"
@@ -477,19 +382,14 @@ onUnmounted(() => {
             @pickup="calendarDrag.pickUp"
         />
 
-        <!-- The fourth view: what hangs off this project's tasks. It opens the same panel the
-             other three do, because a file is only ever reached through the task it is on. -->
         <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
 
-        <!-- The fifth: what was written beside the work rather than inside a task. -->
         <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
 
-        <!-- No payload yet: the view switcher has swapped to the new view before its answer. -->
+        <!-- The view has switched but its payload has not arrived yet. -->
         <ProjectViewSkeleton v-else data-screen-pending :view="view" />
             </div>
 
-            <!-- The panel teleports itself over the page; it is placed here so it is torn down
-                 with the screen that owns the open task. -->
             <TaskDetailPanel
                 v-if="taskDetail"
                 :key="taskDetail.task.id"

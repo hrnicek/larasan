@@ -51,7 +51,6 @@ it('attaches a field to a project once', function (): void {
 
     DB::table('project_custom_fields')->insert($row);
 
-    // Attaching twice is the same column, not two of them.
     expect(fn () => DB::transaction(fn () => DB::table('project_custom_fields')->insert([...$row, 'id' => (string) Str::uuid7()])))
         ->toThrow(QueryException::class);
 });
@@ -63,7 +62,6 @@ it('holds one answer per field per task', function (): void {
 
     insertValue($task, $field, ['value_text' => 'Two days']);
 
-    // A second row would make "the value" a question with two answers and no way to choose.
     expect(fn (): string => DB::transaction(fn (): string => insertValue($task, $field, ['value_text' => 'Three days'])))
         ->toThrow(QueryException::class);
 });
@@ -73,10 +71,6 @@ it('refuses a row with two answers in it', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $field = insertCustomField($workspace, 'Estimate');
 
-    /*
-     * The type on the field says which single column is the right one, so a row with two filled
-     * is a row nobody can read.
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertValue($task, $field, [
         'value_text' => 'Two days',
         'value_number' => 2,
@@ -88,8 +82,6 @@ it('allows a row with no answer at all', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $field = insertCustomField($workspace, 'Estimate');
 
-    // The Action removes the row when a value is cleared (TASK-150-006); the schema permitting an
-    // empty one keeps that a domain decision rather than a constraint accident.
     $id = insertValue($task, $field);
 
     expect(DB::table('task_custom_field_values')->where('id', $id)->exists())->toBeTrue();
@@ -102,7 +94,6 @@ it('keeps an exact number rather than a float', function (): void {
 
     insertValue($task, $field, ['value_number' => '1234567890.123456']);
 
-    // Money and estimates both end up here, and a float would make "1.1 + 2.2" a support ticket.
     expect(DB::table('task_custom_field_values')->value('value_number'))->toBe('1234567890.123456');
 });
 
@@ -116,10 +107,6 @@ it('keeps the answer when the option it named is deleted', function (): void {
 
     DB::table('custom_field_options')->where('id', $option)->delete();
 
-    /*
-     * Removing a choice from a list must not silently delete what people had already answered —
-     * the row stays and its value goes, which is a thing a screen can explain.
-     */
     $value = DB::table('task_custom_field_values')->first();
 
     expect($value)->not->toBeNull()
@@ -140,10 +127,6 @@ it('goes when the task or the field goes', function (): void {
 it('indexes each value column under its field', function (): void {
     $indexes = collect(Schema::getIndexes('task_custom_field_values'))->pluck('columns');
 
-    /*
-     * Leading with the field is what makes a filter an index scan rather than a scan of every
-     * value in the workspace (TASK-150-009).
-     */
     expect($indexes)->toContain(['custom_field_id', 'value_text'])
         ->and($indexes)->toContain(['custom_field_id', 'value_number'])
         ->and($indexes)->toContain(['custom_field_id', 'value_date'])
@@ -154,12 +137,7 @@ it('indexes each value column under its field', function (): void {
 it('indexes the option a value points at', function (): void {
     $indexes = collect(Schema::getIndexes('task_custom_field_values'))->pluck('columns');
 
-    /*
-     * Found by the Phase 150 review. `value_option_id` is nulled when an option is deleted, and
-     * PostgreSQL does not index the referencing side of a foreign key — the composite index
-     * leads with `custom_field_id`, so without this, deleting one choice from one list scanned
-     * every answer in the installation.
-     */
+    // PostgreSQL does not index the referencing side of a foreign key, and nullOnDelete must find these rows.
     expect($indexes)->toContain(['value_option_id']);
 });
 
@@ -168,7 +146,7 @@ it('finds the answers to null by the option rather than by scanning', function (
     $field = insertCustomField($workspace, 'Stage', ['type' => CustomFieldType::Select->value]);
     $option = insertOption($field, 'Draft', 1);
 
-    // Three thousand answers, `ANALYZE`d, so the planner is choosing from statistics.
+    // Enough analysed rows that the planner is choosing from statistics.
     $tasks = Task::factory()->in($workspace)->count(100)->create()->pluck('id')->all();
     $rows = [];
 

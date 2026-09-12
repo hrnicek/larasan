@@ -16,12 +16,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * An object somewhere, and what it was called when it arrived.
- *
- * `disk`, `path`, `size` and `checksum` are the Action's to write from the upload itself
- * (ADR-0007). None of them is fillable, because every one of them is a statement about bytes
- * that exist — a payload that could set `path` could point a row at somebody else's object.
- *
  * @property string $id
  * @property string $workspace_id
  * @property int|null $uploaded_by
@@ -41,6 +35,7 @@ class File extends Model
     /** @use HasFactory<FileFactory> */
     use HasFactory, HasUuids, SoftDeletes;
 
+    // Storage columns are never mass-assigned: a writable path could point a row at another object.
     protected $fillable = ['original_name'];
 
     /** @return HasMany<Attachment, $this> */
@@ -50,12 +45,6 @@ class File extends Model
     }
 
     /**
-     * The derivative drawn in a grid and on a card, once the job that makes it has run.
-     *
-     * Read through a method rather than reached into: `metadata` is a json column, so every
-     * caller would otherwise write its own guard against a shape that is missing on every file
-     * attached before TASK-250-002.
-     *
      * @return array{path: string, width: int, height: int}|null
      */
     public function thumbnail(): ?array
@@ -74,8 +63,6 @@ class File extends Model
     }
 
     /**
-     * What shape the picture is, so a tile can reserve its own space before the bytes arrive.
-     *
      * @return array{width: int, height: int}|null
      */
     public function imageDimensions(): ?array

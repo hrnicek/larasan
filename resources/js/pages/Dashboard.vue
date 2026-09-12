@@ -16,7 +16,6 @@ const projects = computed<SidebarProject[]>(() => page.props.projects);
 const unread = computed<number>(() => page.props.unreadNotifications);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
 
-/** The greeting reads the visitor's own clock; the server has no business knowing their timezone. */
 const greeting = computed<string>(() => {
     const hour = new Date().getHours();
 
@@ -81,7 +80,6 @@ const greeting = computed<string>(() => {
                 </li>
             </ul>
 
-            <!-- One concrete next action rather than an apology about emptiness. -->
             <div v-else class="rounded-md border border-dashed border-border p-8 text-center">
                 <p class="text-sm text-muted-foreground">Nothing is running in this workspace yet.</p>
                 <Link

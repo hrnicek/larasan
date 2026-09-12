@@ -9,13 +9,6 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Throwable;
 
-/**
- * Wear a picture of your own.
- *
- * The object is written before the row and removed again if the row cannot be saved, so a
- * failure leaves either the old face or the new one — never a row pointing at nothing, and never
- * a stored picture nobody points at.
- */
 final readonly class UploadAvatar
 {
     public function __construct(private AvatarFiles $files) {}

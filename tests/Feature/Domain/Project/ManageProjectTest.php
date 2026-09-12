@@ -65,7 +65,6 @@ it('clears a nullable field the caller emptied, and keeps the ones null cannot d
     expect($updated?->description)->toBeNull()
         ->and($updated?->color)->toBeNull()
         ->and($updated?->due_date)->toBeNull()
-        // Not nullable, so a null says nothing about these and they stay as they were.
         ->and($updated?->visibility)->toBe(ProjectVisibility::Private)
         ->and($updated?->slug)->toBe('web');
 });

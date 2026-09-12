@@ -15,20 +15,8 @@ import type { PageDetail, PageDocument, ProjectPages } from '@/modules/page/type
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import { show as showProject } from '@/routes/projects';
 
-/*
- * Tiptap and ProseMirror are a large chunk and only this screen has any use for them, so the
- * editor is asked for when a page is opened rather than downloaded by everybody who opens a
- * project (the arrangement `TaskDetailPanel` and the Quill editor already use).
- */
 const PageEditor = defineAsyncComponent(() => import('@/modules/page/components/PageEditor.vue'));
 
-/**
- * One page, written in.
- *
- * The document is the screen's own state while somebody is typing — the server is authoritative
- * about what is stored, and this is what has not been stored yet. Everything else on the screen
- * (the tree, the title, the project) comes from props and is replaced when the server answers.
- */
 const props = defineProps<{
     page: PageDetail;
     project: { id: string; name: string; slug: string; color: string | null; icon: string | null };
@@ -39,18 +27,12 @@ const document = ref<PageDocument>(props.page.content);
 
 const { state, save } = usePageAutosave(props.page.id, props.page.version);
 
-/*
- * Somebody else changed a page in this project: the tree is refetched so a title or a new page
- * appears. The document is deliberately **not** in `only` — replacing it would take the caret
- * and the last sentence with it, and a save that lands after somebody else's is refused by the
- * version rather than by a refetch.
- */
+// The document stays out of `only` so a reload never steals the caret; concurrent saves are refused by version.
 useRealtime({
     channels: () => [`project.${props.project.id}`],
     only: ['pages'],
 });
 
-/** A different page arrived under the same component: start again from what the server sent. */
 watch(
     () => props.page.id,
     () => (document.value = props.page.content),
@@ -63,10 +45,8 @@ const write = (next: PageDocument): void => {
 
 const editable = (): boolean => props.pages.can.updatePage;
 
-/** Where the title's Enter goes. */
 const body = ref<{ focus: () => void } | null>(null);
 
-/** Whether anything has been written here at all — a document of no blocks, or of none with words. */
 const empty = (): boolean => {
     const blocks = document.value.content;
 
@@ -78,8 +58,6 @@ const empty = (): boolean => {
     <div class="flex w-full">
         <Head :title="page.title" />
 
-        <!-- The tree, beside the page rather than above it: what a document needs at hand is
-             where it sits, and a sidebar keeps that visible while the page scrolls. -->
         <aside class="hidden w-72 shrink-0 border-r border-border py-4 lg:block">
             <div class="px-3 pb-2">
                 <Link
@@ -104,8 +82,6 @@ const empty = (): boolean => {
 
         <div class="mx-auto flex w-full max-w-3xl flex-col px-4 py-6 md:px-8">
             <div class="flex items-center justify-between gap-3 pb-2">
-                <!-- Below `lg` the sidebar is gone, so the tree is a sheet rather than absent:
-                     a page nobody can navigate away from is a dead end on a phone. -->
                 <Sheet>
                     <SheetTrigger
                         class="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none lg:hidden"
@@ -133,8 +109,6 @@ const empty = (): boolean => {
                 <PageSaveState :state="state" class="ml-auto" />
             </div>
 
-            <!-- Where this page sits, for the reader the sidebar cannot reach: below `lg` there
-                 is no tree on the screen, and a nested page would otherwise look like a root one. -->
             <PageBreadcrumb
                 :tree="pages.tree"
                 :page-id="page.id"
@@ -157,9 +131,6 @@ const empty = (): boolean => {
                 <template v-if="page.updatedBy"> by {{ page.updatedBy }}</template>
             </p>
 
-            <!-- A conflict stops the editor rather than letting somebody keep writing into a
-                 copy that can no longer be saved. Reloading is the only honest way out of it
-                 until pages are edited together (ADR-0017). -->
             <div
                 v-if="state === 'conflict'"
                 class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
@@ -172,9 +143,6 @@ const empty = (): boolean => {
                 <Button size="sm" variant="outline" @click="router.reload()">Reload</Button>
             </div>
 
-            <!-- A page nobody has written in, to somebody who cannot write in it. The editor
-                 would render an empty document with a placeholder inviting an edit they may not
-                 make. -->
             <p v-if="!editable() && empty()" class="text-sm text-muted-foreground">
                 Nothing has been written on this page yet.
             </p>

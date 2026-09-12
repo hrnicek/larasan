@@ -19,10 +19,6 @@ beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
 });
 
-/**
- * An attachment whose object actually exists on the fake disk, so a download reads bytes rather
- * than a row.
- */
 function storedAttachment(Task $task, string $contents = 'the contents'): Attachment
 {
     $file = File::factory()->in($task->workspace)->create(['original_name' => 'plan.pdf']);
@@ -64,8 +60,6 @@ it('attaches several files chosen at once, in the order they were chosen', funct
         ])
         ->assertRedirect(route('tasks.show', $task));
 
-    // Position, not insertion order in the table: the order somebody chose is the order they see
-    // afterwards, and it is theirs to change from there (ADR-0009).
     $names = $task->attachments()->with('file')->orderBy('position')->get()
         ->map(fn (Attachment $attachment): string => $attachment->file->original_name)
         ->all();
@@ -77,8 +71,6 @@ it('attaches nothing at all when one file in the batch is refused', function ():
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    // All-or-nothing, and validation is what makes it so: the request never reaches the controller,
-    // so nobody is left with half a folder attached and a message about the rest.
     $this->actingAs($actor)
         ->from(route('tasks.show', $task))
         ->post(route('tasks.attachments.store', $task), [
@@ -123,7 +115,6 @@ it('gives the file back under the name people recognise', function (): void {
     $response->assertOk()
         ->assertDownload('plan.pdf');
 
-    // The stored path is generated and is nobody's business outside its table.
     expect($response->headers->get('content-disposition'))->not->toContain($attachment->file->path);
 });
 
@@ -135,11 +126,7 @@ it('refuses a leaked attachment id from a project the actor was never given', fu
     TaskProjectMembership::factory()->placing($task, $private)->create();
     $attachment = storedAttachment($task);
 
-    /*
-     * The whole reason downloads go through a controller: a storage path is never a capability
-     * (ADR-0007), and neither is knowing an id. 403 rather than 404 because they can see the
-     * workspace — what is refused is the access.
-     */
+    // 403, not 404: the actor is in the workspace, only the project is out of reach.
     $this->actingAs($outsider)
         ->get(route('attachments.download', $attachment))
         ->assertForbidden();
@@ -154,8 +141,6 @@ it('lets a guest download what they were given', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
     $attachment = storedAttachment($task);
 
-    // Reading is reading: a guest given the project may open what is in it, even though
-    // `file.upload` is not theirs.
     $this->actingAs($guest)->get(route('attachments.download', $attachment))->assertOk();
 });
 
@@ -175,8 +160,6 @@ it('stops serving a file that has been removed', function (): void {
 
     $attachment->file->delete();
 
-    // A soft-deleted file does not bind at all: it has stopped being reachable, which is the
-    // point of removing it that way (TASK-120-007).
     $this->actingAs($actor)->get(route('attachments.download', $attachment))->assertNotFound();
 });
 
@@ -187,8 +170,6 @@ it('answers with a 404 when the row outlives the object', function (): void {
 
     Storage::disk($attachment->file->disk)->delete($attachment->file->path);
 
-    // Not a 500: bytes going missing is an operational fact, and the reader gets an answer
-    // rather than a stack trace.
     $this->actingAs($actor)->get(route('attachments.download', $attachment))->assertNotFound();
 });
 

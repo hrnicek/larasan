@@ -13,16 +13,8 @@ import type { RecentItem, SavedSearch, SearchAnswer, SearchKind } from '@/module
 import { index as searchIndex, suggestions } from '@/routes/search';
 import { destroy as forgetSaved } from '@/routes/search/saved';
 
-/**
- * The way anywhere: `⌘K`, a term, and the four kinds of thing this application holds.
- *
- * It is an overlay rather than a screen because it opens over whatever somebody was doing and
- * has to be able to leave without changing it. That is also why it asks a JSON endpoint instead
- * of visiting: an Inertia visit would replace the page underneath.
- *
- * One request per settled keystroke, and the one before it is cancelled — a palette that answers
- * out of order shows the results for a word somebody has already finished typing over.
- */
+// A JSON endpoint rather than a visit, which would replace the page underneath. Each request cancels
+// the previous one so answers cannot arrive out of order.
 const { open, kind, hide } = useCommandPalette();
 
 const KINDS: { value: SearchKind; label: string; icon: typeof CheckCircle2 }[] = [
@@ -41,11 +33,7 @@ const active = ref(0);
 const field = ref<HTMLInputElement | null>(null);
 const list = ref<HTMLElement | null>(null);
 
-/*
- * No data on the request: `useHttp` serialises its own state into the query string for a GET,
- * and a `null` kind goes over the wire as `kind=`, which is not a kind. The term and the kind
- * are in the URL this builds instead.
- */
+// No form data: `useHttp` serialises it into a GET query, where a `null` kind becomes `kind=`.
 const http = useHttp<Record<string, never>, SearchAnswer>({});
 
 let pending: ReturnType<typeof setTimeout> | null = null;
@@ -56,10 +44,6 @@ type Row =
     | { kind: 'people'; id: string; title: string; url: string; email: string; avatar: string | null; role: string | null }
     | { kind: 'messages'; id: string; title: string; url: string; task: string | null; author: string | null };
 
-/**
- * Every result as one walkable list, in the kinds' own order. Ranking happens inside a kind; a
- * task and a person have nothing to be ranked against each other by (ADR-0016).
- */
 const rows = computed<Row[]>(() => {
     const results = answer.value?.results ?? {};
 
@@ -85,8 +69,7 @@ const rows = computed<Row[]>(() => {
             kind: 'people',
             id: String(person.id),
             title: person.name,
-            // A person is not a screen in this application; what somebody wants from finding one
-            // is their work, which is a search the assignee filter already answers.
+            // People have no screen of their own, so a person opens the search for their assigned work.
             url: searchIndex.url({ query: { assignee: person.id } }),
             email: person.email,
             avatar: person.avatar,
@@ -171,10 +154,6 @@ function chooseKind(next: SearchKind | null): void {
     ask();
 }
 
-/**
- * A saved search is a link, not a palette state: it opens the search screen, with the term and
- * the filters it was kept with, so it can be shared, reloaded and paged.
- */
 function openSaved(search: SavedSearch): void {
     hide();
 
@@ -204,8 +183,6 @@ function openRecent(item: RecentItem): void {
 }
 
 function forget(search: SavedSearch): void {
-    // No confirmation: a bookmark is a few seconds to make again, and a dialog per chip would
-    // cost more than the mistake it prevents (TASK-200-011 is for what cannot be undone).
     router.delete(forgetSaved.url({ savedSearch: search.id }), {
         preserveScroll: true,
         preserveState: true,
@@ -222,8 +199,7 @@ watch(open, (isOpen) => {
     term.value = '';
     answer.value = null;
     active.value = 0;
-    // The empty field is where the saved searches are, and this is the request that fetches
-    // them.
+    // The empty-term request is what loads saved searches and recents.
     ask();
     nextTick(() => field.value?.focus());
 });

@@ -13,17 +13,7 @@ use App\Domain\Task\Models\Task;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Event;
 
-/*
- * Nothing listens to these yet — Phase 110 notifies and Phase 170 broadcasts. What is
- * pinned here is the shape they will listen to, because an event is a contract the moment
- * a second thing depends on it, and changing one afterwards is a migration.
- */
-
 /**
- * One of each event, built through its own constructor: reflecting over an instance keeps
- * the dataset honest — an event whose constructor changed shape stops the test here rather
- * than in the phase that first listens to it.
- *
  * @return array<string, object>
  */
 function taskEventSamples(): array
@@ -65,11 +55,7 @@ it('carries ids rather than models', function (object $event): void {
         $type = $property->getType();
         $name = $type instanceof ReflectionNamedType ? $type->getName() : null;
 
-        /*
-         * A queued listener that deserialises a model reads the row as it is when the job
-         * runs, not as it was when the thing happened — and the difference only shows up
-         * under load, which is the worst time to find it.
-         */
+        // A queued listener would read a model as it is when the job runs, not when the event happened.
         expect($name === null || ! is_subclass_of($name, Model::class))->toBeTrue();
     }
 
@@ -121,7 +107,6 @@ it('announces a deletion with the ids the task no longer has', function (): void
 
     $this->actingAs($actor)->delete(route('tasks.destroy', $task));
 
-    // Read before the delete, so a listener is not asked to look up a row that is gone.
     Event::assertDispatched(TaskDeleted::class, fn (TaskDeleted $event): bool => $event->taskId === $taskId
         && $event->workspaceId === $workspaceId);
 

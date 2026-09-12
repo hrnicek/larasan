@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\File;
 
-/*
- * The manifest is a route rather than a file in `public/` (TASK-190-005): a static one would carry
- * a second copy of the application's name, and the first time `APP_NAME` changed an installed app
- * would keep showing the old one.
- */
-
 it('serves a manifest anybody can read, signed in or not', function (): void {
     $response = $this->get(route('manifest'));
 
@@ -34,8 +28,6 @@ it('names the application the application is called', function (): void {
 it('opens on a screen that exists', function (): void {
     $start = (string) $this->get(route('manifest'))->json('start_url');
 
-    // Signed out it redirects to login rather than 404ing, which is what an installed app needs:
-    // somewhere to go, not an error to look at.
     $this->get($start)->assertRedirect(route('login'));
 })->with([
     'an installed app that opens on a 404 is one nobody opens twice',
@@ -63,16 +55,11 @@ it('is linked from the page the browser loads first', function (): void {
     $head = (string) File::get(resource_path('views/app.blade.php'));
 
     expect($head)->toContain('rel="manifest"')
-        // Two theme colours: the manifest carries one, and a browser chrome painted white around
-        // a dark application is the seam people notice.
         ->toContain('prefers-color-scheme: light')
         ->toContain('prefers-color-scheme: dark');
 });
 
 /**
- * GD answers with unions — `false` for a file it could not read — so the narrowing happens once,
- * here, rather than in the middle of an assertion.
- *
  * @return array{width: int, height: int, corner: array{red: int, green: int, blue: int, alpha: int}}
  */
 function pngShape(string $path): array
@@ -98,21 +85,13 @@ function pngShape(string $path): array
 }
 
 it('ships one icon family rather than two', function (): void {
-    // iOS never reads the manifest: it takes `apple-touch-icon.png`, and it composites whatever
-    // it finds onto its own background before rounding the corners itself. A transparent icon
-    // therefore arrives with a colour nobody chose, and a full-bleed one does not — which is why
-    // this file is opaque while the manifest's `any` icons carry their own rounding.
+    // iOS ignores the manifest and composites `apple-touch-icon.png` onto its own background, so it must be opaque.
     $apple = public_path('apple-touch-icon.png');
 
     expect(File::exists($apple))->toBeTrue();
 
     $shape = pngShape($apple);
 
-    /*
-     * The tile is asserted against the manifest's own `theme_color` rather than against a hex
-     * written here. Those two are the same colour by design — the application's chrome (ADR-0014)
-     * — and a third copy in a test is the copy that drifts.
-     */
     $themeColor = $this->get(route('manifest'))->json('theme_color');
 
     expect($shape['width'])->toBe(180)
@@ -127,8 +106,6 @@ it('ships one icon family rather than two', function (): void {
 ]);
 
 it('keeps the icons a browser tab asks for', function (): void {
-    // Kept rather than replaced: a tab renders these at 16px, where the mark reads and a tile
-    // with a small mark inside it does not.
     expect(File::exists(public_path('favicon.ico')))->toBeTrue()
         ->and(File::exists(public_path('favicon.svg')))->toBeTrue();
 });

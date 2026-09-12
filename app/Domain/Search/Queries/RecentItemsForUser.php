@@ -12,14 +12,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
-/**
- * What this person had open lately, in this workspace, and may still open.
- *
- * The reach rules are read here rather than trusted from the row: access is taken away between
- * one visit and the next, and a list of things somebody used to be allowed to see is the same
- * leak a stale search index would be (ADR-0016). Two queries, one per kind, rather than a morph
- * join — each kind's rule is its own.
- */
 final readonly class RecentItemsForUser
 {
     public const SHOWN = 8;
@@ -36,7 +28,7 @@ final readonly class RecentItemsForUser
             ->where('workspace_id', $workspace->id)
             ->latest('opened_at')
             ->orderByDesc('id')
-            // More than are shown, because what the rules take out comes out after the read.
+            // Over-fetch because unreachable items are filtered out after the read.
             ->limit($limit * 3)
             ->get();
 
@@ -100,8 +92,7 @@ final readonly class RecentItemsForUser
             ->projectIds($workspace, $actor)
             ->whereIn('projects.id', $ids)
             ->reorder()
-            // `projectIds()` is a subquery of keys, so its own `select` has to be replaced
-            // rather than added to: `get($columns)` is ignored once a query names its columns.
+            // `projectIds()` already selects keys, and `get($columns)` is ignored once a select is set.
             ->select(['projects.id', 'projects.name', 'projects.color', 'projects.icon', 'projects.archived_at'])
             ->get()
             ->mapWithKeys(fn (Project $project): array => [$project->id => [

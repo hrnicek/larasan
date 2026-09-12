@@ -17,15 +17,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * The one operation Phase 150 left out: a choice field's choices were written once, when the field
- * was invented. The list is sent whole and reconciled — an id kept, an absent id removed, an entry
- * without one created.
- */
-
 /**
- * A choice field with three choices, and the owner who may edit them.
- *
  * @return array{Workspace, CustomField, User}
  */
 function choiceField(): array
@@ -71,7 +63,6 @@ it('renames a choice, adds one and removes one in a single request', function ()
 
     expect($options?->pluck('label')->all())->toBe(['Drafting', 'Blocked', 'Done'])
         ->and($options?->pluck('position')->all())->toBe([1, 2, 3])
-        // The kept choice is the same row, so every answer that points at it still does.
         ->and($options?->first()?->id)->toBe($existing[0]['id']);
 });
 
@@ -79,7 +70,7 @@ it('reorders without tripping the unique position index', function (): void {
     [, $field, $owner] = choiceField();
     $existing = asSent($field);
 
-    // Exactly reversed: every row wants a position another row currently holds.
+    // Reversed, so every row wants a position another row currently holds.
     $this->actingAs($owner)
         ->put(route('custom-fields.options.update', $field), [
             'options' => array_reverse($existing),
@@ -108,11 +99,7 @@ it('empties the answers that pointed at a removed choice', function (): void {
         'options' => [$existing[0], $existing[2]],
     ])->assertRedirect();
 
-    /*
-     * `nullOnDelete` empties the column; the row is then an answer that says nothing, and
-     * "no answer" and "an answer that is blank" are the same thing to a reader — the rule
-     * `SetTaskCustomFieldValue` already keeps.
-     */
+    // nullOnDelete alone would leave an empty answer row behind.
     expect(TaskCustomFieldValue::query()->count())->toBe(0);
 });
 
@@ -153,8 +140,7 @@ it('refuses an empty list', function (): void {
 it('refuses a list of nothing but blank labels', function (): void {
     [, $field, $owner] = choiceField();
 
-    // Validation cannot catch this one: each label is a string, and it is the trimming that
-    // empties them.
+    // Each label passes validation; only trimming empties them.
     $this->actingAs($owner)
         ->from(route('custom-fields.index'))
         ->put(route('custom-fields.options.update', $field), ['options' => [['id' => null, 'label' => '   ']]])

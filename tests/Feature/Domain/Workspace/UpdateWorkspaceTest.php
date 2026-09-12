@@ -39,12 +39,7 @@ it('rejects a slug another workspace already holds', function (): void {
     Workspace::factory()->create(['slug' => 'taken']);
     $workspace = Workspace::factory()->create(['slug' => 'mine']);
 
-    /*
-     * PostgreSQL aborts the whole transaction on a failed statement, and RefreshDatabase
-     * already holds one — so the assertion after the failure would hit "current
-     * transaction is aborted" rather than the database. Wrapping the call makes Laravel
-     * open a savepoint it can roll back to, leaving the outer transaction usable.
-     */
+    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement.
     expect(fn (): Workspace => DB::transaction(fn (): Workspace => updateWorkspace(
         $workspace,
         new UpdateWorkspaceData(name: 'Mine', slug: 'taken'),

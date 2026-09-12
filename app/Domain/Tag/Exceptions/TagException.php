@@ -14,10 +14,6 @@ final class TagException extends DomainException implements DomainRefusal
         return new self('You do not have permission to change this task.');
     }
 
-    /**
-     * Two valid ids that must not be combined. The foreign keys prove each row exists; only this
-     * proves they belong to the same tenant.
-     */
     public static function tagIsFromAnotherWorkspace(): self
     {
         return new self('That tag is not in this workspace.');

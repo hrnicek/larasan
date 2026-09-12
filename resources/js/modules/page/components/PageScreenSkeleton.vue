@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * A page of a project on its way: the tree beside it and the document itself, laid out as
- * `pages/Show` lays them out so the editor arrives where its placeholder was.
- */
 const treeRows: { depth: number; width: string }[] = [
     { depth: 0, width: 'w-40' },
     { depth: 1, width: 'w-32' },

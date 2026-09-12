@@ -175,12 +175,7 @@ it('refuses to remove the last owner through the endpoint', function (): void {
 });
 
 it('refuses an invitation from someone who is in no workspace', function (): void {
-    /*
-     * 403, not 404, and deliberately so: the FormRequest authorizes before the controller
-     * resolves anything, and the request names no workspace, so there is nothing a status
-     * code could confirm. The 404 rule protects ids the actor should not know exist —
-     * `WorkspaceIsolationTest` covers that side.
-     */
+    // 403 rather than 404: the request names no workspace, so there is no resource to conceal.
     $outsider = User::factory()->create();
 
     $this->actingAs($outsider)
@@ -231,8 +226,6 @@ it('refuses an admin acting on an owner through the endpoints', function (string
         ? $this->actingAs($admin)->delete(route('workspaces.members.destroy', $membership->id))
         : $this->actingAs($admin)->put(route('workspaces.members.update', $membership->id), ['role' => 'member']);
 
-    // The controller translates the refusal onto the field the form can show: the
-    // membership for a removal, the role for a demotion.
     $response->assertInvalid([$method === 'delete' ? 'membership' : 'role' => 'Only an owner']);
 
     expect($membership->fresh()?->role)->toBe(WorkspaceRole::Owner)
@@ -251,8 +244,6 @@ it('lists the invitations separately from the people', function (): void {
     $this->actingAs($admin)
         ->get(route('workspaces.members'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            // The declined row is in neither list: it is history, and inviting them again is
-            // the form's job rather than a button on a row.
             ->has('members', 1)
             ->has('invitations', 1)
             ->where('invitations.0.email', 'nobody@example.com')

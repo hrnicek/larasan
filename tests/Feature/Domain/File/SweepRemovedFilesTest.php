@@ -14,9 +14,6 @@ beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
 });
 
-/**
- * A file with its object actually on the fake disk, removed the given number of days ago.
- */
 function removedFile(Workspace $workspace, int $daysAgo): File
 {
     $file = File::factory()->in($workspace)->create();
@@ -35,10 +32,6 @@ it('deletes the objects of files removed longer ago than the window', function (
 
     expect(Artisan::call('files:sweep'))->toBe(0);
 
-    /*
-     * The only place in this application where bytes are destroyed: on a schedule, after a
-     * window, where a mistake is noticed before it is permanent (TASK-120-007).
-     */
     Storage::disk($old->disk)->assertMissing($old->path);
     expect(DB::table('files')->where('id', $old->id)->exists())->toBeFalse();
 });
@@ -49,7 +42,6 @@ it('leaves a file that was removed recently', function (): void {
 
     expect(Artisan::call('files:sweep'))->toBe(0);
 
-    // The window is what makes the irreversible step recoverable at all.
     Storage::disk($recent->disk)->assertExists($recent->path);
     expect(DB::table('files')->where('id', $recent->id)->exists())->toBeTrue();
 });
@@ -60,11 +52,7 @@ it('never touches a file something still points at', function (): void {
     $file = removedFile($workspace, 90);
     Attachment::factory()->attaching($file, $task)->create();
 
-    /*
-     * A soft-deleted file with a live attachment should not exist — `DetachFile` removes the
-     * attachment first. This is the belt: the sweep is the one operation that cannot be undone,
-     * so it refuses to act on anything still referenced rather than trusting the invariant.
-     */
+    // DetachFile never leaves this state, but the sweep is irreversible so it checks references anyway.
     expect(Artisan::call('files:sweep'))->toBe(0);
 
     Storage::disk($file->disk)->assertExists($file->path);
@@ -91,8 +79,6 @@ it('reads the disk from the row rather than from configuration', function (): vo
     $file->delete();
     $file->forceFill(['deleted_at' => now()->subDays(60)])->saveQuietly();
 
-    // A file written before `FILESYSTEM_ATTACHMENTS_DISK` changed is still findable, which is
-    // why the row records its disk at all (ADR-0007).
     expect(Artisan::call('files:sweep'))->toBe(0);
 
     Storage::disk('legacy')->assertMissing($file->path);

@@ -9,17 +9,6 @@ use App\Domain\File\Support\Thumbnailer;
 use App\Domain\Shared\Enums\FileKind;
 use Illuminate\Support\Facades\Storage;
 
-/**
- * Give a file the small copy the screens draw.
- *
- * An Action rather than the body of a listener because three callers want it and only one of
- * them is an event: the listener that runs on upload, the backfill command for everything
- * attached before this existed, and any future re-derivation after the size changes.
- *
- * Every refusal is a `false` rather than an exception. There is nothing here a user did wrong —
- * the upload already succeeded — and a derivative that cannot be made is a heavier page, not a
- * failure anybody needs to be told about.
- */
 final readonly class MakeThumbnail
 {
     public function __construct(private Thumbnailer $thumbnailer) {}
@@ -48,8 +37,6 @@ final readonly class MakeThumbnail
 
         $thumbnail = $this->thumbnailer->fromBlob($blob);
 
-        // Bytes this host cannot read as an image: a corrupt upload, or a format the extension
-        // was built without.
         if ($thumbnail === null) {
             return false;
         }
@@ -72,10 +59,6 @@ final readonly class MakeThumbnail
         return $file->save();
     }
 
-    /**
-     * Beside the original, under a directory of its own, so a workspace's objects are still one
-     * prefix — which is what `files:sweep` and any future bulk export walk.
-     */
     private function pathFor(File $file): string
     {
         $directory = dirname($file->path);

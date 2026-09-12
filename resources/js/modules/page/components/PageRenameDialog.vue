@@ -7,10 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-/**
- * One field, because renaming is one decision — and its own endpoint, because the document
- * endpoint carries a version and this change touches no word anybody wrote.
- */
 const props = defineProps<{
     open: boolean;
     page: { id: string; title: string };

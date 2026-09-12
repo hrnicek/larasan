@@ -13,13 +13,6 @@ use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 
-/**
- * Put somebody on a task beside its assignee.
- *
- * Putting people on work is assigning it, so this asks `task.assign` and holds a collaborator to
- * every rule `AssignTask` holds an assignee to: a live member of the workspace who can open the
- * task (TASK-070-017).
- */
 final readonly class AddTaskCollaborator
 {
     public function __construct(private Dispatcher $events) {}
@@ -38,7 +31,6 @@ final readonly class AddTaskCollaborator
             throw TaskException::collaboratorCannotReachTask();
         }
 
-        // The one person the task belongs to is not also somebody helping with it.
         if ($task->assignee_id === $collaborator->id) {
             throw TaskException::collaboratorIsTheAssignee();
         }
@@ -53,7 +45,6 @@ final readonly class AddTaskCollaborator
             $collaboration = new TaskCollaborator(['task_id' => $task->id, 'user_id' => $collaborator->id]);
             $collaboration->save();
         } catch (UniqueConstraintViolationException) {
-            // Two requests at once; `UNIQUE(task_id, user_id)` kept one row, and it is the answer.
             return $task->collaborations()->where('user_id', $collaborator->id)->firstOrFail();
         }
 

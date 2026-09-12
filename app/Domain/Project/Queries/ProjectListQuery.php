@@ -22,27 +22,9 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection as Grouped;
 
-/**
- * What a project holds, grouped by column and in order: the list view's whole data source.
- *
- * Three rules the earlier phases put here rather than in the screen:
- *
- * - the ungrouped bucket is a bucket. A card in the project and in no column is not missing
- *   (ADR-0004), and a list that quietly dropped it would lose work rather than misplace it.
- * - a column's count and a column's rows come from the same scope. `visible()` excludes the
- *   placements of soft-deleted tasks, and a header counted any other way disagrees with what
- *   is drawn the first time somebody deletes a task (TASK-050-013).
- * - authorization is computed once, for the project. Asking the placement policy per card
- *   throws outside production and is an N+1 inside it (TASK-070-015), and the answer is the
- *   same for every card on the board anyway.
- */
 final class ProjectListQuery
 {
     /**
-     * The project's fields, keyed by id, set once per read. A row answers the columns above it,
-     * so the definitions are the project's rather than the workspace's — a value for a field
-     * this project does not show is not a column anybody is looking at.
-     *
      * @var Collection<string, CustomField>
      */
     private Collection $fields;
@@ -83,18 +65,12 @@ final class ProjectListQuery
 
         $ungrouped = $cards->get('') ?? new Collection;
 
-        // Only when it holds something. An empty "no column" group on every board is noise;
-        // a non-empty one is work somebody has to be able to see.
         if ($ungrouped->isNotEmpty()) {
             $sections[] = $this->group(null, null, null, $ungrouped);
         }
 
         return [
             'sections' => array_values($sections),
-            /*
-             * The project's fields, once, as the columns the rows answer. Sending the definition
-             * per row would repeat it as many times as there are cards.
-             */
             'fields' => array_values($project->customFields
                 ->map(fn (CustomField $field): array => [
                     'id' => $field->id,
@@ -102,32 +78,11 @@ final class ProjectListQuery
                     'type' => $field->type->value,
                 ])
                 ->all()),
-            /*
-             * The columns, in the order this project draws them, with the label each one carries
-             * in the header. The header and the rows are two components and both read this — a
-             * header that has drifted from the cell beneath it labels the wrong thing with
-             * confidence, which is the rule `listColumns` already keeps for their widths.
-             *
-             * The task name is not here: it is always first, so a list that could omit it would
-             * be a list with no titles in it.
-             */
             'columns' => ListColumns::describe($project),
-            /*
-             * The permissions the screen renders, answered by the server. Three different
-             * questions, not one: creating a task and placing it here is `createTask`,
-             * editing a card's task is `task.update`, and removing one is `task.delete` —
-             * a role can hold any of them without the others (ADR-0010).
-             */
             'can' => [
                 'createTask' => $actor->can('createTask', $project),
                 'updateTask' => $project->allowsChangesBy($actor, Capability::TaskUpdate),
                 'deleteTask' => $project->allowsChangesBy($actor, Capability::TaskDelete),
-                /*
-                 * The list's own columns are editable from the list now, not only from the
-                 * settings screen, so the screen has to be told which of those it may offer.
-                 * Asked the same way every other capability is (ADR-0010): the client renders
-                 * the answer and never works it out.
-                 */
                 'createSection' => $project->allowsChangesBy($actor, Capability::SectionCreate),
                 'updateSection' => $project->allowsChangesBy($actor, Capability::SectionUpdate),
                 'deleteSection' => $project->allowsChangesBy($actor, Capability::SectionDelete),
@@ -136,9 +91,6 @@ final class ProjectListQuery
     }
 
     /**
-     * Every visible card in the project, in position order, keyed by section — one query for
-     * the placements and one for their tasks, whatever the board's size.
-     *
      * @param  list<string>  $tags
      * @param  array<string, string>  $fieldFilters
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
@@ -152,12 +104,7 @@ final class ProjectListQuery
             ->with(['task' => function (Relation $tasks): void {
                 $tasks
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
-                    // A subquery per card's count, not a query per card. Removed comments are
-                    // excluded by the model's own soft-delete scope rather than by a condition
-                    // written here twice.
                     ->withCount('comments')
-                    // The answers for the whole page in one read: a column of values is worth
-                    // nothing if drawing it costs a query per row.
                     ->with([PersonSummary::eager('assignee'), 'tags:id,name,color', 'customFieldValues']);
             }])
             ->orderBy('position');
@@ -166,8 +113,6 @@ final class ProjectListQuery
             $field = $this->fields->get($fieldId);
 
             if (! $field instanceof CustomField) {
-                // A field this project does not show filters nothing. A stale link renders the
-                // list rather than an error, the way a deleted tag does (TASK-140-005).
                 continue;
             }
 
@@ -200,33 +145,18 @@ final class ProjectListQuery
             'id' => $id,
             'name' => $name,
             'color' => $color,
-            // The same collection the rows come from, so the header cannot disagree with them.
             'count' => $cards->count(),
             'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
         ];
     }
 
     /**
-     * Order by a field's answer, in the database.
-     *
-     * A left join rather than a subquery per row, and **nulls last** in both directions: a row
-     * nobody has answered is not the smallest value, it is an absence, and burying it at the top
-     * of an ascending list is how a column of blanks becomes the first thing anybody sees.
-     *
-     * The column is the type's, which is the whole reason the values are stored in typed columns
-     * — a number sorts numerically and a date chronologically without a cast per row.
-     *
      * @param  Builder<TaskProjectMembership>  $query
      */
     private function orderByField(Builder $query, FieldSort $sort): void
     {
-        /*
-         * Written out rather than interpolated from a method call: this string reaches the
-         * database as SQL, and the only safe kind of that is one the code states literally.
-         */
+        // Literal column names only: this value is interpolated into raw SQL.
         $column = match ($sort->field->type) {
-            // The four text-shaped types share the column, and therefore the ordering: an
-            // address, a number to call and a link all sort as text.
             CustomFieldType::Text,
             CustomFieldType::Email,
             CustomFieldType::Phone,
@@ -247,14 +177,10 @@ final class ProjectListQuery
             ->select('task_project_memberships.*')
             ->reorder()
             ->orderByRaw("task_custom_field_values.{$column} {$direction} nulls last")
-            // Then by position, so two rows with the same answer keep the order somebody put
-            // them in rather than swapping between requests.
             ->orderBy('task_project_memberships.position');
     }
 
     /**
-     * This row's answers, keyed by field id.
-     *
      * @return array<string, string|float|bool|null>
      */
     private function answers(Task $task): array
@@ -272,11 +198,7 @@ final class ProjectListQuery
                 continue;
             }
 
-            /*
-             * Each branch reads its own column. A decimal reads back as a string, and a number
-             * sent as `"12.500000"` sorts like text on the client — which is the sort of thing
-             * that only shows up in somebody's ordering.
-             */
+            // Decimal columns read back as strings, so numbers are cast before reaching the client.
             $answers[$field->id] = match ($field->type) {
                 CustomFieldType::Number => (float) $value->value_number,
                 CustomFieldType::Boolean => (bool) $value->value_boolean,
@@ -293,9 +215,6 @@ final class ProjectListQuery
     }
 
     /**
-     * Listed column by column rather than handed the model: a model would ship every column
-     * the table grows later as a public API by accident.
-     *
      * @return array<string, mixed>
      */
     private function card(TaskProjectMembership $card): array
@@ -312,11 +231,6 @@ final class ProjectListQuery
             'dueAt' => $task->due_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
-            /*
-             * Keyed by field, because a row answers the columns above it — a list would have to
-             * be read positionally, and a project whose fields changed between two requests
-             * would then shift every row's values sideways.
-             */
             'fields' => $this->answers($task),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [

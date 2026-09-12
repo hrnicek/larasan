@@ -14,19 +14,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Every workspace role against every project access level, and against no project membership at
- * all, over the three things somebody can do to a conversation. The policy tests prove the
- * rules; this proves the endpoints ask them, and that a refusal is the right kind — 404 where
- * the actor may not know the thing exists, 403 where they may know and still not act.
- *
- * Outcomes are written out rather than derived from the policy, which would assert only that
- * the code agrees with itself.
- */
-
 /**
- * A task in one project, and somebody with the given access to it.
- *
  * @return array{Task, User, Project}
  */
 function matrixCommentTask(
@@ -67,16 +55,7 @@ it('answers writing a comment the same way for each role and access level', func
 
     expect($task->comments()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
-    /*
-     * `comment.create` is held by every role, including a guest — it is the *one* capability a
-     * guest's role holds (ADR-0010). Reach settles who may be here at all, and then the project
-     * access level settles what they may do: a Viewer reads and says nothing, which is the
-     * whole difference between that level and Commenter (ADR-0006).
-     *
-     * Until TASK-260-001 this path asked reach and stopped, so a Viewer could comment on every
-     * task in a project they were explicitly restricted from — while `ProjectPolicy::comment()`
-     * had been refusing the same person on the project itself all along.
-     */
+    // Every role holds `comment.create`; the project access level then refuses Viewers. See ADR-0006.
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
     'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'forbidden'],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'allowed'],
@@ -91,7 +70,6 @@ it('answers writing a comment the same way for each role and access level', func
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'allowed'],
     'guest as commenter' => [WorkspaceRole::Guest, ProjectAccessLevel::Commenter, 'allowed'],
     'guest as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'forbidden'],
-    // Nobody gave them the project, so there is nothing here they can reach.
     'guest with no project membership' => [WorkspaceRole::Guest, null, 'forbidden'],
 ]);
 
@@ -100,8 +78,7 @@ it('refuses a comment on a task that lives only in a private project the actor w
 ): void {
     [$task, $actor] = matrixCommentTask($role, null, ProjectVisibility::Private);
 
-    // 403 rather than 404: they can see the workspace, so what is refused is the access and not
-    // the task's existence (TASK-070-017).
+    // 403, not 404: the task belongs to the actor's own workspace.
     $this->actingAs($actor)
         ->post(route('tasks.comments.store', $task), ['body' => 'Looks right to me'])
         ->assertForbidden();
@@ -135,9 +112,6 @@ it('answers editing a comment by authorship and nothing else', function (
 
     expect($comment->fresh()?->body)->toBe($outcome === 'allowed' ? 'Rewritten' : 'Untouched');
 })->with([
-    // Nothing but authorship opens this door — not a workspace owner, not a project owner. An
-    // administrator who could reword what somebody said would make the thread evidence of
-    // nothing.
     'owner, their own' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, true, 'allowed'],
     'owner, somebody else s' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, false, 'forbidden'],
     'admin, somebody else s' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, false, 'forbidden'],
@@ -168,11 +142,7 @@ it('answers deleting a comment by authorship or by the capability', function (
 
     expect($comment->fresh()?->deleted_at === null)->toBe($outcome !== 'allowed');
 })->with([
-    /*
-     * `comment.delete` is every full member's under ADR-0010 — a workspace moderates itself —
-     * and a guest holds only `comment.create`, so a guest may remove what they wrote and
-     * nothing else.
-     */
+    // `comment.delete` belongs to every full member; a guest may only remove their own. See ADR-0010.
     'owner, somebody else s' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, false, 'allowed'],
     'admin, somebody else s' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, false, 'allowed'],
     'member, somebody else s' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, false, 'allowed'],
@@ -186,7 +156,6 @@ it('hides a comment in another workspace behind a 404 for every role', function 
     $comment = Comment::factory()->on($task)->create();
     $stranger = memberOf(Workspace::factory()->create(), $role);
 
-    // Another tenant's conversation is not theirs to know about at all.
     $this->actingAs($stranger)->put(route('comments.update', $comment), ['body' => 'Rewritten'])->assertNotFound();
     $this->actingAs($stranger)->delete(route('comments.destroy', $comment))->assertNotFound();
     $this->actingAs($stranger)->post(route('tasks.comments.store', $task), ['body' => 'Hello'])->assertNotFound();
@@ -203,8 +172,7 @@ it('refuses everybody whose workspace membership is no longer live', function (W
     $task = Task::factory()->in($workspace)->create();
     $comment = Comment::factory()->on($task)->create(['author_id' => $revoked->id]);
 
-    // A revoked membership has no current workspace, so the binding answers before the policy
-    // does — and authorship is not a way back into a workspace somebody was removed from.
+    // A revoked member has no current workspace, so the route binding answers 404 before the policy runs.
     $this->actingAs($revoked)->post(route('tasks.comments.store', $task), ['body' => 'Hello'])->assertNotFound();
     $this->actingAs($revoked)->put(route('comments.update', $comment), ['body' => 'Hello'])->assertNotFound();
     $this->actingAs($revoked)->delete(route('comments.destroy', $comment))->assertNotFound();

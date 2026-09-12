@@ -10,16 +10,6 @@ import { segmentsOf, toDisplay, toStorage } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
 import type { TaskAssignee, TaskFeedEntry } from '@/modules/task/types';
 
-/**
- * One thing somebody said.
- *
- * A removed comment keeps its place and loses its words: closing the gap would change what the
- * conversation appears to say, and an edited one says so — a thread that silently presents
- * different words leaves everybody who replied answering something nobody can see.
- *
- * A mention is drawn from the body's runs of text, never as markup, and one naming the reader is
- * drawn stronger so they can find where they were asked.
- */
 const props = defineProps<{ entry: TaskFeedEntry; people: TaskAssignee[] }>();
 
 const viewerId = computed<number | null>(() => usePage().props.auth.user?.id ?? null);

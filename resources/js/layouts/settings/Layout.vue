@@ -54,10 +54,6 @@ const sidebarNavItems: NavItem[] = [
 
 const { isCurrentOrParentUrl } = useCurrentUrl();
 
-/*
- * The layout outlives the screens inside it, so moving between them keeps the navigation where it
- * is and draws only the column the next screen fills.
- */
 const skeleton = usePendingSkeleton('settings');
 </script>
 
@@ -70,7 +66,6 @@ const skeleton = usePendingSkeleton('settings');
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
-                <!-- Below md the list scrolls sideways above the content (docs/ui/settings.md). -->
                 <nav
                     class="flex flex-row gap-1 overflow-x-auto pb-2 md:flex-col md:gap-0 md:space-y-1 md:overflow-x-visible md:pb-0"
                     aria-label="Settings"

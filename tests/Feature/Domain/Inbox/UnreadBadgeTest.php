@@ -15,8 +15,6 @@ it('shares the unread count with every screen', function (): void {
     assignTo($workspace, $actor, $reader);
     assignTo($workspace, $actor, $reader);
 
-    // Shared, because the badge is in the shell rather than on a page: every screen has to be
-    // able to draw it without asking for it.
     $this->actingAs($reader)
         ->get(route('dashboard'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('unreadNotifications', 2));
@@ -50,7 +48,6 @@ it('drops as soon as something is read', function (): void {
 
     $this->actingAs($reader)->put(route('inbox.read', $notification))->assertRedirect();
 
-    // The badge follows the server's answer rather than being decremented by the client.
     $this->actingAs($reader)
         ->get(route('inbox.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('unreadNotifications', 1));
@@ -64,8 +61,6 @@ it('asks nothing when nobody is signed in', function (): void {
 
     $this->get(route('home'))->assertOk();
 
-    // A query to answer "zero" is a query nobody needed, and this one would run on every
-    // request of a public page.
     expect(collect($queries)->filter(fn (string $sql): bool => str_contains($sql, 'notifications')))->toBeEmpty();
 });
 

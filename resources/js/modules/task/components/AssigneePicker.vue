@@ -8,19 +8,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
-/**
- * Who is on this task.
- *
- * The candidates are the server's — active members of this workspace — because a client
- * filtering a list it fetched would eventually filter it differently, and "who may be given
- * work here" is not a question the browser gets to answer.
- */
 const props = defineProps<{
     taskId: string;
     assignee: TaskAssignee | null;
     members: TaskAssignee[];
     editable: boolean;
-    /** The panel gives the field room for an avatar and an email; a list row does not. */
     variant?: 'inline' | 'field';
 }>();
 
@@ -31,11 +23,7 @@ const highlighted = ref(0);
 const input = ref<HTMLInputElement | null>(null);
 const listId = 'assignee-options';
 
-/**
- * Name **and** email, because half of finding a colleague is knowing their address and not how
- * they spelled their surname. Case- and accent-insensitive: `Hrncir` finds `Hrnčíř`, the same
- * rule search itself keeps (ADR-0012).
- */
+/** Case- and accent-insensitive, the same rule as server-side search. See ADR-0012. */
 const flatten = (value: string): string => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 
 const matches = computed<TaskAssignee[]>(() => {
@@ -78,13 +66,6 @@ function assign(id: number | null, onDone?: () => void): void {
     );
 }
 
-/**
- * Taking somebody off a task asks nothing and offers the way back instead.
- *
- * A confirmation for this would be one dialog too many — it destroys nothing and is a single
- * click to reverse — but reversing it means remembering who it was, which the screen stops
- * showing the moment it happens.
- */
 function unassign(): void {
     const previous = props.assignee;
 
@@ -144,20 +125,11 @@ function onKeydown(event: KeyboardEvent): void {
                         : 'px-1 text-xs text-muted-foreground hover:text-foreground'
                 "
             >
-                <!--
-                    A row shows the face and a field shows the name. Down a column, a name is a
-                    ragged block of text of the wrong width; a face is recognised before it is
-                    read. The name is still the control's accessible name and its tooltip.
-                -->
                 <template v-if="assignee">
                     <UserAvatar :user="{ ...assignee, avatar: assignee.avatar }" size="sm" />
                     <span v-if="variant === 'field'" class="truncate">{{ assignee.name }}</span>
                 </template>
 
-                <!--
-                    Empty is a target, not a gap. The dashed ring says "something goes here" the way
-                    an empty cell in the reference does, rather than leaving a word to aim at.
-                -->
                 <template v-else>
                     <span
                         class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/50 text-muted-foreground"
@@ -184,8 +156,6 @@ function onKeydown(event: KeyboardEvent): void {
                     />
                 </div>
 
-                <!-- Offered before a keystroke: with a handful of colleagues, typing to see the
-                     list you already know is work for nothing. -->
                 <ul :id="listId" role="listbox" class="max-h-64 overflow-y-auto p-1">
                     <li
                         v-for="(member, index) in matches"
@@ -222,10 +192,6 @@ function onKeydown(event: KeyboardEvent): void {
             </PopoverContent>
         </Popover>
 
-        <!--
-            Only in the panel. In a list row the same control would repeat once per line, and a
-            column of little crosses reads as a column of dangers rather than as one affordance.
-        -->
         <button
             v-if="assignee && variant === 'field'"
             type="button"

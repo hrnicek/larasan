@@ -12,17 +12,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Everybody a comment names, checked, and written down under the name they have now.
- *
- * A mention is a user id arriving from outside — the composer offers people, but the payload is
- * whatever the request says — so it gets the question an assignee gets: a live member of the
- * subject's workspace who can read the subject. Refused rather than dropped, because a comment that
- * quietly lost a name leaves its author believing somebody was told who was not.
- *
- * The name in the token is replaced with the account's own, so what was typed next to an id
- * decides nothing about what the thread shows.
- */
 final readonly class ResolveMentions
 {
     public function handle(Model&Commentable $subject, string $body): MentionedBody
@@ -46,6 +35,7 @@ final readonly class ResolveMentions
             throw CommentException::cannotMention();
         }
 
+        // Names are rewritten from the accounts so a typed name cannot pass for someone else.
         return new MentionedBody(
             Mentions::withNames($body, $people->mapWithKeys(fn (User $person): array => [$person->id => $person->name])->all()),
             $ids,

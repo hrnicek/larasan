@@ -23,11 +23,7 @@ class ProfileDeleteRequest extends FormRequest
     }
 
     /**
-     * `workspaces.owner_id` restricts on delete, so an owner's account cannot be removed
-     * while the workspace exists — without this the request reaches the database and
-     * answers 500. Ownership transfer is a deliberate operation, not something an account
-     * deletion should perform on the owner's behalf, so the request names the workspaces
-     * and stops.
+     * `workspaces.owner_id` restricts on delete, so owners are refused here rather than by the database.
      *
      * @return list<callable(Validator): void>
      */

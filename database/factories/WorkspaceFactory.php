@@ -37,11 +37,6 @@ class WorkspaceFactory extends Factory
         return $this->state(fn (): array => ['owner_id' => $user->id]);
     }
 
-    /**
-     * The owner column alone makes nobody a member. Without this state a factory builds a
-     * workspace its own owner cannot open — a shape the application never produces, and
-     * one a test should have to ask for rather than get by default.
-     */
     public function withOwnerMembership(): self
     {
         return $this->afterCreating(function (Workspace $workspace): void {

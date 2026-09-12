@@ -26,11 +26,7 @@ class GrantProjectAccessRequest extends FormRequest
         $project = $this->route('project');
 
         return [
-            /*
-             * Scoped to the project's own workspace: a valid user id from elsewhere is a grant
-             * that would mean nothing and read as if it meant something (ADR-0006). The Action
-             * refuses it too, for the callers that arrive without a request.
-             */
+            // Scoped to the workspace, so `exists` cannot confirm another tenant's accounts.
             'user' => [
                 'required',
                 Rule::exists('workspace_memberships', 'user_id')->where(

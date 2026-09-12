@@ -14,19 +14,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Support\Str;
 
-/*
- * Every workspace role against every project access level at the three endpoints a drag calls.
- * Found missing by the isolation audit (TASK-180-002): the board's own endpoints — attach, move,
- * detach — were the only workspace-owned resource without a matrix, and they are the ones a card
- * moves through.
- *
- * All three are `task.update` on the project (`TaskProjectMembershipPolicy`, and
- * `ProjectPolicy::placeTask()` for the attach, which has no placement yet to judge). Detaching is
- * deliberately not `task.delete`: it removes where a task appears, not the task.
- *
- * Outcomes are written out rather than derived, which would assert only that the code agrees with
- * itself.
- */
+// All three endpoints require `task.update` on the project; detaching removes a placement, not the task.
 
 /**
  * @return array{TaskProjectMembership, User, Project, Section, Task}
@@ -74,8 +62,6 @@ it('answers each role and access level the same way at every placement endpoint'
     };
 
     if ($outcome !== 'allowed') {
-        // The board is exactly as it was: the card is still there, still ungrouped, and the
-        // second task never arrived.
         expect($project->placements()->count())->toBe(1)
             ->and($placement->fresh()?->section_id)->toBeNull();
     }
@@ -92,13 +78,7 @@ it('answers each role and access level the same way at every placement endpoint'
     'owner as viewer attach' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'attach', 'forbidden'],
     'owner as viewer move' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'move', 'forbidden'],
     'owner as viewer detach' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'detach', 'forbidden'],
-    /*
-     * No membership row, on a project the whole workspace can open. These were refused until
-     * TASK-260-001: `visibility` had answered only the read half of ADR-0006, so a board
-     * everybody could see was one nobody but its named members could shape — the workspace
-     * owner included. The project's `default_access_level` answers now, and it is `editor`.
-     * A guest is still refused: they hold projects, never a default.
-     */
+    // Without a membership row the project's default access level, `editor`, applies; guests get no default. See ADR-0020.
     'owner as no member attach' => [WorkspaceRole::Owner, null, 'attach', 'allowed'],
     'owner as no member move' => [WorkspaceRole::Owner, null, 'move', 'allowed'],
     'owner as no member detach' => [WorkspaceRole::Owner, null, 'detach', 'allowed'],
@@ -163,8 +143,7 @@ it('answers a card from another workspace exactly as it answers one that does no
     $foreign->assertSessionHasErrors('task');
     $missing->assertSessionHasErrors('task');
 
-    // The same status and the same error: an id that exists elsewhere must not be
-    // distinguishable from one that never existed, or the endpoint is an existence oracle.
+    // A foreign id must be indistinguishable from a missing one, or the endpoint is an existence oracle.
     expect($foreign->status())->toBe($missing->status())
         ->and(session('errors')?->get('task'))->not->toBeEmpty()
         ->and($project->placements()->count())->toBe(0);

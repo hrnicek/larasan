@@ -19,9 +19,6 @@ beforeEach(function () {
     Storage::fake('avatars');
 });
 
-/**
- * Gives `$user` an uploaded picture through the Action and answers with where it was stored.
- */
 function uploadedAvatarOf(User $user): string
 {
     app(UploadAvatar::class)->handle($user, UploadedFile::fake()->image('me.png', 64, 64));
@@ -97,7 +94,7 @@ test('a picture can be uploaded, and it replaces an illustration', function () {
 
 test('the stored name comes from what the file is, not from what it was called', function () {
     $user = User::factory()->create();
-    // Held in a variable: a fake file deletes its temporary copy once nothing refers to it.
+    // Held in a variable: a fake file deletes its temporary copy once it is no longer referenced.
     $source = UploadedFile::fake()->image('source.png', 64, 64);
     $png = (string) file_get_contents($source->getRealPath());
 

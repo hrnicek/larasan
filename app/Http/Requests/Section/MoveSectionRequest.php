@@ -27,13 +27,6 @@ class MoveSectionRequest extends FormRequest
         $section = $this->section();
 
         return [
-            /*
-             * The move is "place this after that one" (ADR-0009): there is no position
-             * field to send, and the anchor must be a section of the same project and not
-             * the one being moved. The Action refuses both again — a console command or a
-             * queued job arrives without a request — but a stale board deserves a
-             * validation error rather than a domain exception.
-             */
             'after' => [
                 'nullable', 'uuid',
                 Rule::exists('sections', 'id')->where(

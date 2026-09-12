@@ -13,35 +13,20 @@ import type { ListColumn } from '@/modules/task/listColumns';
 import type { TaskAssignee, TaskRowData, TaskSectionGroup } from '@/modules/task/types';
 import { create } from '@/routes/tasks';
 
-/**
- * A column of the list. The count comes from the server alongside the rows it counted, so
- * the header cannot disagree with what is drawn.
- */
 const props = defineProps<{
     section: TaskSectionGroup;
     members: TaskAssignee[];
     priorities: string[];
     editable: boolean;
     creatable: boolean;
-    /** What may be done to the column itself, decided by the server (ADR-0010). */
     canSection?: { create: boolean; update: boolean; delete: boolean };
     collapsed: boolean;
     loading: boolean;
-    /** The row being dragged, so it can be drawn as picked up. */
     draggingId?: string | null;
-    /**
-     * Where a drop would land right now. Drawn as a line in the gap the row would take, because
-     * a list of rows the same height is exactly where "somewhere in here" is hardest to read.
-     */
+    /** `before` is the placement the drop lands above; null means the end of the section. */
     dropTarget?: { key: string; before: string | null } | null;
     projectId: string;
-    /** The project's field columns, passed through to each row (TASK-150-008). */
-    /** The columns after the name, in the order the project draws them (TASK-240-010). */
     columns?: ListColumn[];
-    /**
-     * Every group this list draws, in order, so the menu can express a move as an anchor
-     * (ADR-0009). The ungrouped bucket is one of them on the screen and has no id.
-     */
     siblings?: (string | null)[];
 }>();
 
@@ -73,10 +58,7 @@ function saveRename(): void {
         return;
     }
 
-    /*
-     * The colour goes with the name. `PUT /sections/{section}` replaces both columns and reads an
-     * absent colour as "clear it", so a rename carrying only the name silently blanks the colour.
-     */
+    // The update replaces both fields and reads an absent colour as "clear", so resend the colour.
     router.put(
         SectionController.update.url(props.section.id),
         { name: next, color: props.section.color },
@@ -84,10 +66,6 @@ function saveRename(): void {
     );
 }
 
-/**
- * Whether the line belongs in this gap: the pointer is over this section, and the row after the
- * gap is the one the dragged card would sit above. `null` is the gap at the end.
- */
 const isDropSlot = (placementId: string | null | undefined): boolean =>
     props.dropTarget !== null
     && props.dropTarget !== undefined
@@ -108,7 +86,6 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 <ChevronDown class="size-4 transition-transform" :class="collapsed ? '-rotate-90' : ''" />
             </button>
 
-            <!-- Renamed where it is read, not on a settings screen two navigations away. -->
             <input
                 v-if="renaming"
                 ref="renameInput"
@@ -127,9 +104,6 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 class="flex min-w-0 flex-1 items-center gap-2 py-2 text-left text-sm font-medium"
                 @click="toggle"
             >
-                <!-- The colour, on the one element in the row that is always there. The band behind
-                     the header says it at a glance; the dot is what survives a colour too pale to
-                     read as a background. -->
                 <span class="size-2 shrink-0 rounded-full" :class="accentDotClass(section.color)" :style="accentVars(section.color)" aria-hidden="true" />
                 <span class="truncate">{{ section.name ?? 'No section' }}</span>
             </button>
@@ -148,11 +122,6 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 @rename="startRename"
             />
 
-            <!--
-                The third way in. It knows both the project and the column, so the form opens with
-                both filled and both still editable — the inline row below adds to this column and
-                nothing else, and somebody who wanted a different one would have to start again.
-            -->
             <Link
                 v-if="creatable"
                 :href="create({ query: { project: projectId, section: section.id ?? undefined } })"
@@ -165,8 +134,7 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
 
         <TaskListSkeleton v-if="!collapsed && loading" :rows="Math.max(section.count, 1)" />
 
-        <!-- `data-column-key` is what the drag reads back from the pointer, exactly as a board
-             column does: one implementation of what a move means, two views using it. -->
+        <!-- The drag handler reads `data-column-key` from the element under the pointer. -->
         <div v-else-if="!collapsed" class="border-t border-border">
             <div class="divide-y divide-border" :data-column-key="section.id ?? 'ungrouped'">
             <template v-for="(task, position) in section.tasks" :key="task.placementId ?? task.id">
@@ -187,7 +155,6 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 />
             </template>
 
-                <!-- The end of the section is a slot too, and the only one with no row after it. -->
                 <div v-if="isDropSlot(null)" class="relative h-0">
                     <span class="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" aria-hidden="true" />
                 </div>

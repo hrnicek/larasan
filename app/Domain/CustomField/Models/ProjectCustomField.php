@@ -13,9 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A field a project has chosen to show. A workspace can define more than any one project wants
- * on its screen, so attaching is a decision per project rather than a consequence of defining.
- *
  * @property string $id
  * @property string $project_id
  * @property string $custom_field_id

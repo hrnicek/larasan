@@ -10,11 +10,6 @@ use App\Domain\Project\Models\Project;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Archiving is reversible and destroys nothing: the project leaves the listings, its tasks
- * and memberships stay exactly as they were, and restoring puts it back. Deleting is a
- * different operation with a different confirmation.
- */
 final readonly class ArchiveProject
 {
     public function __construct(private Dispatcher $events) {}

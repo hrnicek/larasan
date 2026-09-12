@@ -10,7 +10,6 @@ final readonly class TaskCollaboratorRemoved
         public string $taskId,
         public string $workspaceId,
         public int $collaboratorId,
-        /** The collaborator themselves when they stepped off. */
         public int $removedById,
     ) {}
 }

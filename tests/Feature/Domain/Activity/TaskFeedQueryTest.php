@@ -33,8 +33,7 @@ it('interleaves comments and activities by time', function (): void {
     Comment::factory()->on($task)->create(['body' => 'Second', 'created_at' => now()->subMinutes(2)]);
     Activity::factory()->on($task)->ofType(ActivityType::TaskReopened)->create(['created_at' => now()->subMinute()]);
 
-    // Newest first: a long thread is read from its end, and "load older" is the direction
-    // people scroll. The screen reverses a page to draw it.
+    // Newest first.
     expect(array_column(feedOf($task)['entries'], 'kind'))
         ->toBe(['activity', 'comment', 'activity', 'comment']);
 });
@@ -48,11 +47,6 @@ it('paginates one thread rather than two lists', function (): void {
         Activity::factory()->on($task)->create(['created_at' => now()->subMinutes($minute * 2 + 1)]);
     }
 
-    /*
-     * Merging two paginated lists in PHP would give a page that is neither table's page, and a
-     * thread that skips lines as soon as it is longer than one screen. Twelve lines, four at a
-     * time, and every one of them appears exactly once.
-     */
     $seen = [];
 
     foreach (range(1, 3) as $page) {
@@ -97,11 +91,7 @@ it('reads every actor on a page in one query', function (): void {
     $queries = DB::getQueryLog();
     DB::disableQueryLog();
 
-    /*
-     * A feed is the one screen where every line has a different person on it, so a lazy
-     * relation here is an N+1 per page. Four reads: the count, the page, the actors, and the
-     * one membership lookup that answers the page's permissions.
-     */
+    // The count, the page, the actors, and one membership lookup for the page's permissions.
     expect($feed['entries'])->toHaveCount(10)
         ->and(count($queries))->toBe(4);
 });
@@ -114,9 +104,6 @@ it('keeps a removed comment in the thread and its words out of it', function ():
 
     $entry = feedOf($task)['entries'][0];
 
-    // The line stays so the feed can say a comment was removed rather than closing the gap and
-    // changing what the conversation appears to say — and "removed" is not a place the words
-    // are still readable.
     expect($entry['deleted'])->toBeTrue()
         ->and($entry['body'])->toBeNull();
 });
@@ -157,11 +144,7 @@ it('proves its own workspace scope', function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
 
-    /*
-     * A row that names the right subject and the wrong workspace should not be readable. It
-     * cannot arrive through the domain, which is exactly why the query asks rather than
-     * trusting the id it was handed (ADR-0005).
-     */
+    // Inserted raw: the query must check the workspace rather than trust the subject id. See ADR-0005.
     $elsewhere = Workspace::factory()->create();
 
     DB::table('comments')->insert([
@@ -197,12 +180,7 @@ it('sends the permissions the thread renders, and they match what the policy ans
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $comment = Comment::factory()->on($task)->by($author)->create();
 
-    /*
-     * Reach is settled by the time somebody is reading this feed, so the query answers the two
-     * questions that are left — authorship and `comment.delete` — instead of loading a model
-     * per line to ask the policy again. These assertions are what keeps the two answers the
-     * same one.
-     */
+    // The query derives these flags without the policy, so they are checked against it here.
     foreach ([$author, $moderator, $guest] as $viewer) {
         $entry = feedOf($task, $viewer)['entries'][0];
 
@@ -219,8 +197,6 @@ it('offers nothing to change on an activity or on a removed comment', function (
     $comment = Comment::factory()->on($task)->by($author)->create();
     $comment->delete();
 
-    // An activity is a record of something that already happened, and a removed comment is no
-    // longer part of the conversation.
     $entries = feedOf($task, $author)['entries'];
 
     expect(array_column($entries, 'canEdit'))->toBe([false, false])

@@ -19,17 +19,8 @@ pest()->extend(TestCase::class)
     ->in('Feature');
 
 /*
-| Only Feature tests get a database. Unit is reserved for logic that needs none —
-| enums, data objects, ordering arithmetic, cycle detection — so it stays fast. A test
-| that touches Eloquent, a factory or a migration belongs in Feature, whatever it is
-| testing.
-*/
-
-/*
-| Shared helpers. Pest loads every test file into the global function namespace in one
-| process, so a helper defined at file scope in two files is a fatal redeclaration that
-| takes down the whole run rather than a failing test. Anything more than one file needs
-| belongs here.
+| Shared helpers. Pest loads every test file into one process, so a helper declared at
+| file scope in two files is a fatal redeclaration.
 */
 
 use App\Domain\Project\Models\Project;
@@ -43,10 +34,6 @@ use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-/**
- * A user with a membership in the given workspace. Defaults to the case most tests
- * want: an active member.
- */
 function memberOf(
     Workspace $workspace,
     WorkspaceRole $role = WorkspaceRole::Member,
@@ -65,8 +52,6 @@ function memberOf(
 }
 
 /**
- * A workspace and a user who belongs to it in the given role.
- *
  * @return array{Workspace, User}
  */
 function workspaceWith(
@@ -95,11 +80,7 @@ function projectFor(
         ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
     }
 
-    /*
-     * The status is applied last, because a project membership can only be created for an
-     * active workspace member (TASK-040-021) — and a lapsed membership with a live project
-     * grant is exactly the shape these tests are about.
-     */
+    // Applied last: a project membership can only be created for an active workspace member.
     if ($status !== WorkspaceMembershipStatus::Active) {
         $workspace->membershipFor($actor)?->forceFill(['status' => $status])->save();
     }
@@ -108,11 +89,8 @@ function projectFor(
 }
 
 /**
- * A workspace member who was explicitly restricted on this project.
- *
- * Wanted wherever a test needs somebody who can see a project and change nothing in it. Since
- * TASK-260-001 a member with no row of their own inherits the project's `default_access_level`,
- * so "not allowed here" has to be said with a row rather than by leaving one out.
+ * A member without a membership row inherits the project's `default_access_level`, so a
+ * restriction needs an explicit row.
  */
 function viewerOf(Project $project, ProjectAccessLevel $access = ProjectAccessLevel::Viewer): User
 {
@@ -124,15 +102,9 @@ function viewerOf(Project $project, ProjectAccessLevel $access = ProjectAccessLe
 }
 
 /**
- * Point the application at the broadcast connection production uses and register the
- * channel callbacks on it.
- *
- * The suite's default connection is `null`, whose `auth()` decides nothing and would let
- * every subscription through whatever `routes/channels.php` says. Reverb is the Pusher
- * broadcaster, and its auth path is entirely local — it runs the channel callback and
- * signs the answer with HMAC, reaching no server. `Broadcast::channel()` registers on
- * whichever driver was the default when the file first ran, so the file is read again
- * here: it is the subject of these tests, not a workaround (TASK-170-002).
+ * The suite's `null` broadcaster authorizes every subscription, so channels are registered on
+ * Reverb, whose auth runs locally. `Broadcast::channel()` binds to the driver that was default
+ * when the file first ran, hence the second require.
  *
  * @return array<string, Closure>
  */
@@ -151,12 +123,8 @@ function broadcastChannels(): array
 }
 
 /**
- * The authorization callback registered for a channel pattern, asked directly.
- *
- * Necessary rather than redundant: `{project}` resolves through the explicit route binder
- * in `routes/projects.php`, which already refuses a project the actor may not see. A
- * callback that answered `true` unconditionally would therefore pass every request-level
- * test in this suite, and this is what catches it.
+ * The `{project}` route binding already refuses unseen projects, so only calling the callback
+ * directly catches one that always returns `true`.
  */
 function channelCallback(string $pattern): Closure
 {
@@ -170,9 +138,6 @@ function channelCallback(string $pattern): Closure
 }
 
 /**
- * A page document, and one run of text inside it. Wanted by the sanitizer's unit tests and by
- * every test that writes a page, so they live here rather than at file scope in several.
- *
  * @param  list<array<string, mixed>>  $content
  * @return array<string, mixed>
  */
@@ -192,10 +157,6 @@ function textNode(string $text, array $marks = []): array
         : ['type' => 'text', 'text' => $text, 'marks' => $marks];
 }
 
-/**
- * How a comment names somebody. The name is whatever a composer sent; the Action replaces it with
- * the account's own.
- */
 function mentionOf(User $user, ?string $name = null): string
 {
     return '@['.($name ?? $user->name).'](user:'.$user->id.')';

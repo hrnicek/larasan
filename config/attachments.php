@@ -9,10 +9,7 @@ return [
     | Upload limits
     |--------------------------------------------------------------------------
     |
-    | The size bound lives here rather than in a rules array so that changing it
-    | is a configuration change and so that the same number can be shown to the
-    | person doing the uploading. It is bounded by PHP's own upload_max_filesize
-    | and post_max_size, which refuse earlier and less politely.
+    | Maximum size of one file. PHP's upload_max_filesize and post_max_size must allow it.
     |
     */
 
@@ -23,10 +20,7 @@ return [
     | Files per upload
     |--------------------------------------------------------------------------
     |
-    | A batch is one request, so this bound is what keeps a folder dropped onto
-    | the control from becoming a request PHP refuses at post_max_size — where
-    | the failure arrives as an empty body rather than as a message. It also
-    | bounds the work one throttled request can ask for.
+    | Maximum files in one request, which keeps a batch under post_max_size.
     |
     */
 
@@ -37,10 +31,7 @@ return [
     | Accepted types
     |--------------------------------------------------------------------------
     |
-    | An allow-list, not a deny-list: a deny-list is a promise to have thought of
-    | every dangerous type in advance, and the list of those grows without asking.
-    | Values are MIME types, which Laravel checks by reading the file rather than
-    | by trusting the extension or the client's Content-Type.
+    | Allowed MIME types, detected from the file contents rather than the extension.
     |
     */
 
@@ -66,10 +57,7 @@ return [
     | Retention after removal
     |--------------------------------------------------------------------------
     |
-    | Removing an attachment soft-deletes the file and leaves the object alone;
-    | `files:sweep` deletes the bytes this many days later. The window exists so
-    | that the one irreversible step in this application happens on a schedule,
-    | where a mistake is noticed before it is permanent (TASK-120-007).
+    | Days after removal before `files:sweep` permanently deletes the stored file.
     |
     */
 

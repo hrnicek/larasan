@@ -16,27 +16,12 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 
 /**
- * Work assigned to somebody who has been removed goes back to the project, and the tasks they
- * were collaborating on let them go.
- *
- * Queued rather than done in the request (TASK-180-019). Each task is unassigned through
- * `AssignTask` so it produces the same `TaskAssigned` event any other unassignment does and the
- * history reads as one thing — which is four queries per task, and somebody who is leaving may
- * be holding hundreds. The removal itself is not here: revoking the membership and the project
- * grants is the security answer, and a security answer must not wait on a queue.
- *
- * The consequence is worth stating plainly: for the moments between the removal and this job,
- * tasks still carry the name of somebody who can no longer open them. That is a stale label, not
- * an access grant — their membership is already revoked, so every read and write refuses them.
- *
- * Ids rather than models, as everything queued here does: a job that deserialises a model gets
- * whatever the row looked like when it ran.
+ * Access is revoked synchronously before this runs; the job only clears stale assignments.
  */
 final class ReleaseRemovedMembersWork implements ShouldQueue
 {
     use Queueable;
 
-    /** How many tasks are unassigned per read. */
     private const CHUNK = 100;
 
     public function __construct(
@@ -45,10 +30,6 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
         private readonly int $actorId,
     ) {}
 
-    /**
-     * The `default` queue, deliberately. This is neither a board update nor somebody's inbox: it
-     * is bulk work that nobody is waiting on, and it must not sit in front of either.
-     */
     public function viaQueue(): string
     {
         return 'default';
@@ -63,10 +44,6 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
             return;
         }
 
-        /*
-         * If the person was re-invited between the removal and this job, their work is theirs
-         * again and taking it away would undo a decision somebody made after this one.
-         */
         if ($workspace->membershipFor($actor)?->status->grantsAccess() !== true) {
             return;
         }
@@ -90,8 +67,6 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
                 }
             });
 
-        // The tasks they were helping with let them go the same way, each through the Action so
-        // the history says who was taken off.
         Task::query()
             ->where('workspace_id', $workspace->id)
             ->whereHas('collaborations', fn (Builder $collaborations): Builder => $collaborations

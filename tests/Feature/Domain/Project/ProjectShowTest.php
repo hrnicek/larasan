@@ -36,8 +36,6 @@ it('renders the project in the view the project prefers', function (): void {
             ->where('view', ProjectDefaultView::Board->value)
             ->where('project.name', $project->name)
             ->where('board.columns.0.tasks.0.title', 'Write it down')
-            // Only the payload the view asked for: sending both would read the same
-            // placements twice for a reader who can see one of them.
             ->missing('list'));
 });
 
@@ -67,7 +65,6 @@ it('sends the calendar payload for the calendar view and nothing of the other tw
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('calendar.month', '2026-07')
-            // The grid runs Monday to Sunday around the month, so July 2026 opens on 29 June.
             ->where('calendar.days.0.date', '2026-06-29')
             ->where('calendar.days.8.tasks.0.title', 'Ship it')
             ->missing('list')
@@ -130,14 +127,12 @@ it('lets the url override the project s own view for one request', function (): 
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('view', ProjectDefaultView::Board->value));
 
-    // Overridden for the request, not for the project: the URL is the state.
     expect($project->fresh()?->default_view)->toBe(ProjectDefaultView::List);
 });
 
 it('refuses a view that is neither', function (): void {
     [, $project, $actor] = placeableProject();
 
-    // A typo that silently rendered the list would look like the switcher is broken.
     $this->actingAs($actor)
         ->get(route('projects.show', ['project' => $project, 'view' => 'gantt']))
         ->assertSessionHasErrors('view');
@@ -154,7 +149,6 @@ it('sends the permissions rather than leaving them to the client', function (): 
             ->where('list.can.createTask', false)
             ->where('list.can.updateTask', false)
             ->where('list.can.deleteTask', false)
-            // Still shown what is there: a viewer reads the board they cannot change.
             ->has('list.sections.0.tasks', 1));
 });
 
@@ -177,8 +171,6 @@ it('hides a private project from a workspace member who is not in it', function 
     $outsider = memberOf($workspace, WorkspaceRole::Member);
     $private = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
 
-    // The binding resolves through the projects the actor can see, so this is a 404 and not
-    // an empty board (ADR-0005).
     $this->actingAs($outsider)
         ->get(route('projects.show', $private))
         ->assertNotFound();
@@ -198,7 +190,6 @@ it('keeps a guest out of a project they were not given', function (): void {
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
 
-    // Workspace visibility never reaches a guest (ADR-0006).
     $this->actingAs($guest)
         ->get(route('projects.show', $project))
         ->assertNotFound();
@@ -215,8 +206,6 @@ it('sends the people a card can be handed to', function (): void {
         ->assertInertia(function (AssertableInertia $page) use ($actor, $member, $pending): void {
             $ids = array_column($page->toArray()['props']['members'], 'id');
 
-            // Active members only: somebody whose invitation is still pending cannot be
-            // given work (TASK-060-012), so offering them would be offering a refusal.
             expect($ids)->toContain($actor->id)
                 ->and($ids)->toContain($member->id)
                 ->and($ids)->not->toContain($pending->id);

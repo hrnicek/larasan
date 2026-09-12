@@ -8,10 +8,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class SearchRequest extends FormRequest
 {
-    /**
-     * Anybody signed in may search; what they *find* is the query's answer, not this one
-     * (TASK-160-002).
-     */
     public function authorize(): bool
     {
         return true;
@@ -23,10 +19,7 @@ class SearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Bounded because it reaches a text search: a term nobody could have typed is a term
-            // nobody meant.
-            // Nullable because `ConvertEmptyStringsToNull` turns `?q=` — which is what a
-            // cleared search field submits — into null.
+            // Nullable: ConvertEmptyStringsToNull turns a cleared `?q=` into null.
             'q' => ['sometimes', 'nullable', 'string', 'max:200'],
             'project' => ['sometimes', 'uuid'],
             'assignee' => ['sometimes', 'integer'],
@@ -55,7 +48,7 @@ class SearchRequest extends FormRequest
             $filters['assignee'] = (int) $this->integer('assignee');
         }
 
-        // `filled()` would drop `completed=0`, which is the half of this filter people use most.
+        // `filled()` would drop `completed=0`.
         if ($this->exists('completed') && $this->input('completed') !== null && $this->input('completed') !== '') {
             $filters['completed'] = $this->boolean('completed');
         }

@@ -22,7 +22,6 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach(function (): void {
-    // No test in this suite touches a real object store (ADR-0007).
     Storage::fake(config('filesystems.attachments'));
 });
 
@@ -53,15 +52,10 @@ it('generates the path and never derives it from the name', function (): void {
 
     $file = attachTo($task, $actor, UploadedFile::fake()->create('../../etc/passwd.pdf', 4, 'application/pdf'))->file;
 
-    /*
-     * A path built from a filename is a path the person uploading chooses, and one of them will
-     * eventually choose `../`. The name survives only as metadata.
-     */
     expect($file->path)->toStartWith("workspaces/{$workspace->id}/task/")
         ->and($file->path)->not->toContain('..')
         ->and($file->path)->not->toContain('passwd')
-        // The framework hands back the basename, so the traversal is gone before this Action
-        // sees it — which is a second line of defence rather than the first one.
+        // UploadedFile already reduces the client name to its basename.
         ->and($file->original_name)->toBe('passwd.pdf');
 });
 
@@ -73,8 +67,6 @@ it('takes the workspace from the subject rather than from the request', function
     memberOf($elsewhere, WorkspaceRole::Member, user: $actor);
     $actor->forceFill(['current_workspace_id' => $elsewhere->id])->save();
 
-    // A file scoped to whichever workspace the actor happened to be in is a row that leaks
-    // across tenants the first time somebody follows a link from somewhere else.
     expect(attachTo($task, $actor)->file->workspace_id)->toBe($workspace->id);
 });
 
@@ -125,8 +117,6 @@ it('refuses a guest, who may say things but may not upload them', function (): v
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // `comment.create` is the one capability a guest's role holds (ADR-0010); `file.upload` is
-    // not among them, so reaching the project is not enough.
     expect(fn (): Attachment => attachTo($task, $guest))
         ->toThrow(FileException::class, 'You do not have permission to upload files in this workspace.');
 });
@@ -153,8 +143,6 @@ it('leaves no row when the object cannot be stored', function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    // A row pointing at bytes that are not there is worse than a refused upload: the first
-    // person to click it gets an error nobody can explain.
     Storage::shouldReceive('disk')->andReturnSelf();
     Storage::shouldReceive('putFileAs')->andReturnFalse();
 

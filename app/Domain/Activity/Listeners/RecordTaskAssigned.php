@@ -21,8 +21,6 @@ final readonly class RecordTaskAssigned
             return;
         }
 
-        // Null is the whole point of carrying it: unassigning is something that happened, and
-        // a line that omitted the field would be indistinguishable from one nobody recorded.
         $this->record->handle(
             $event->workspaceId,
             $task,

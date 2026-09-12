@@ -97,7 +97,7 @@ it('refuses a member who cannot read the task', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Naming somebody in a project they were never given would tell them it exists.
+    // Mentioning them would reveal a task in a project they were never given.
     expect(fn (): Comment => writeMentioning($task, $author, 'Hi '.mentionOf($colleague)))
         ->toThrow(CommentException::class, CANNOT_MENTION);
 

@@ -21,10 +21,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
-/**
- * Sections are edited in place on the board and the list, so every method answers with a
- * redirect back to wherever the actor was. There is no section screen to render.
- */
 class SectionController extends Controller
 {
     public function store(StoreSectionRequest $request, Project $project, CreateSection $createSection): RedirectResponse

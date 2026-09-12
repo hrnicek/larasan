@@ -16,8 +16,7 @@ use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Support\Facades\Gate;
 
 it('is the policy the framework finds for a comment', function (): void {
-    // The `app/Domain/<Context>/Policies` pairing is not the layout the framework documents,
-    // so a namespace move would otherwise stop authorizing in silence.
+    // Domain policies live outside the framework's default discovery layout.
     expect(Gate::getPolicyFor(Comment::class))->toBeInstanceOf(CommentPolicy::class);
 });
 
@@ -29,8 +28,6 @@ it('answers reading a comment by asking about its subject', function (): void {
     TaskProjectMembership::factory()->placing($task, $private)->create();
     $comment = Comment::factory()->on($task)->create();
 
-    // Nothing about the comment changed — the task moved out of reach, and the conversation
-    // about it went with it.
     expect(Gate::forUser($reader)->allows('view', $comment))->toBeFalse();
 
     ProjectMembership::factory()->in($private)->forUser($reader)->withAccess(ProjectAccessLevel::Viewer)->create();
@@ -45,11 +42,6 @@ it('lets only the author edit what they said', function (): void {
     $owner = memberOf($workspace, WorkspaceRole::Owner);
     $comment = Comment::factory()->on($task)->by($author)->create();
 
-    /*
-     * Not even the workspace owner. An administrator who could rewrite what somebody else said
-     * would make the thread evidence of nothing — moderation removes a comment, it does not
-     * reword it.
-     */
     expect(Gate::forUser($author)->allows('update', $comment))->toBeTrue()
         ->and(Gate::forUser($owner)->allows('update', $comment))->toBeFalse();
 });
@@ -60,12 +52,7 @@ it('lets the author or a moderator delete, and nobody else', function (): void {
     $author = memberOf($workspace, WorkspaceRole::Member);
     $comment = Comment::factory()->on($task)->by($author)->create();
 
-    /*
-     * `comment.delete` is every full member's, not only an administrator's (ADR-0010): a
-     * workspace's members moderate their own workspace. A guest does not hold it, so a guest
-     * may say something and — until TASK-110-006 gives them authorship of it — remove only
-     * what they wrote themselves.
-     */
+    // comment.delete is held by every full member but not by guests. See ADR-0010.
     expect(Gate::forUser($author)->allows('delete', $comment))->toBeTrue()
         ->and(Gate::forUser(memberOf($workspace, WorkspaceRole::Admin))->allows('delete', $comment))->toBeTrue()
         ->and(Gate::forUser(memberOf($workspace, WorkspaceRole::Member))->allows('delete', $comment))->toBeTrue()
@@ -78,7 +65,6 @@ it('refuses an author whose membership is no longer live', function (): void {
     $author = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Revoked);
     $comment = Comment::factory()->on($task)->create(['author_id' => $author->id]);
 
-    // Authorship is not a way back into a workspace somebody was removed from.
     expect(Gate::forUser($author)->allows('view', $comment))->toBeFalse()
         ->and(Gate::forUser($author)->allows('update', $comment))->toBeFalse()
         ->and(Gate::forUser($author)->allows('delete', $comment))->toBeFalse();
@@ -102,8 +88,6 @@ it('leaves a deleted comment alone', function (): void {
     $comment = Comment::factory()->on($task)->by($author)->create();
     $comment->delete();
 
-    // The row survives so the feed can say a comment was removed; editing or deleting it
-    // again would be changing something that is no longer part of the conversation.
     expect(Gate::forUser($author)->allows('update', $comment))->toBeFalse()
         ->and(Gate::forUser($author)->allows('delete', $comment))->toBeFalse();
 });

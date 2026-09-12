@@ -14,16 +14,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * Every role against the four places a task can be: a workspace-visible project, a private one
- * they were given, a private one they were not, and no project at all. Outcomes written out,
- * because search is the one screen where a wrong answer is invisible — nobody notices a row that
- * should not be there, and nobody notices one that is missing.
- */
-
 /**
- * A task carrying the search term, placed as described, and somebody of the given role.
- *
  * @return array{Workspace, User}
  */
 function searchable(WorkspaceRole $role, string $placement): array
@@ -61,8 +52,6 @@ it('answers a search the same way for each role and each placement', function (
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('tasks', $found ? 1 : 0));
 })->with([
-    // A workspace-visible project is reachable by any member whatever their project access; a
-    // guest reaches only what they were given.
     'owner, workspace project' => [WorkspaceRole::Owner, 'workspace', true],
     'admin, workspace project' => [WorkspaceRole::Admin, 'workspace', true],
     'member, workspace project' => [WorkspaceRole::Member, 'workspace', true],
@@ -72,13 +61,11 @@ it('answers a search the same way for each role and each placement', function (
     'member, private project they were given' => [WorkspaceRole::Member, 'private given', true],
     'guest, private project they were given' => [WorkspaceRole::Guest, 'private given', true],
 
-    // The row that must never appear: a private project nobody added them to.
     'owner, private project they were not given' => [WorkspaceRole::Owner, 'private', false],
     'admin, private project they were not given' => [WorkspaceRole::Admin, 'private', false],
     'member, private project they were not given' => [WorkspaceRole::Member, 'private', false],
     'guest, private project they were not given' => [WorkspaceRole::Guest, 'private', false],
 
-    // Workspace work: a member's to find, and never a guest's.
     'owner, no project' => [WorkspaceRole::Owner, 'nowhere', true],
     'member, no project' => [WorkspaceRole::Member, 'nowhere', true],
     'guest, no project' => [WorkspaceRole::Guest, 'nowhere', false],
@@ -111,10 +98,7 @@ it('returns nothing rather than a row somebody cannot open', function (): void {
     $task = Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    /*
-     * Not an empty-looking row, not a count that says one: nothing. A result somebody cannot
-     * open would tell them the task exists, which is what the private project was for.
-     */
+    // Even a count would reveal that the private task exists.
     $this->actingAs($actor)
         ->get(route('search.index', ['q' => 'login']))
         ->assertOk()
@@ -128,7 +112,6 @@ it('turns away a revoked membership', function (WorkspaceRole $role): void {
     $revoked = memberOf($workspace, $role, WorkspaceMembershipStatus::Revoked);
     Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
 
-    // No live membership is no current workspace, and a search without one is not a search.
     $this->actingAs($revoked)->get(route('search.index', ['q' => 'login']))->assertNotFound();
 })->with([
     'owner' => [WorkspaceRole::Owner],

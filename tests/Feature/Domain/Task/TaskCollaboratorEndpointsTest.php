@@ -105,7 +105,6 @@ it('hides another workspace\'s task at both endpoints', function (): void {
         ->delete(route('tasks.collaborators.destroy', [$task, $collaborator->id]))
         ->assertNotFound();
 
-    // Naming themselves is no way in either: the task is not theirs to find.
     $this->actingAs($outsider)
         ->delete(route('tasks.collaborators.destroy', [$task, $outsider->id]))
         ->assertNotFound();

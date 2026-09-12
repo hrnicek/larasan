@@ -33,10 +33,7 @@ final readonly class ChangeWorkspaceMemberRole
         }
 
         return DB::transaction(function () use ($workspace, $membership, $role, $from): WorkspaceMembership {
-            /*
-             * Inside the transaction and locking: the check and the write have to be one
-             * step, or two requests demoting the two remaining owners both pass.
-             */
+            // Locked inside the transaction so concurrent demotions cannot remove the last owner.
             if ($workspace->isLastOwner($membership, locking: true)) {
                 throw WorkspaceMembershipException::lastOwner();
             }
@@ -67,19 +64,11 @@ final readonly class ChangeWorkspaceMemberRole
             throw WorkspaceMembershipException::roleRequiresCapability($role);
         }
 
-        /*
-         * An admin may manage members, but demoting an owner is permanent — no code path
-         * grants Owner back — so it takes an owner to do it.
-         */
+        // Owner can never be granted back, so only an owner may demote an owner.
         if ($membership->role->isOwner() && ! $actorMembership->role->isOwner()) {
             throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
         }
 
-        /*
-         * An admin who could promote themselves to owner would make the capability model
-         * decorative, and the same check stops an owner demoting themselves out of the
-         * last-owner rule.
-         */
         if ($membership->user_id === $actor->id) {
             throw WorkspaceMembershipException::cannotChangeOwnRole();
         }

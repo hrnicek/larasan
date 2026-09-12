@@ -36,26 +36,15 @@ class StoreTaskRequest extends FormRequest
 
         return [
             'title' => ['required', 'string', 'max:255'],
-            /*
-             * Rich text, so the ceiling is on markup rather than on prose: the same paragraph
-             * that fitted in 5,000 characters as plain text carries tags now, and the limit is
-             * meant to stop a payload rather than a description somebody meant to write.
-             */
+            // The limit counts rich-text markup, not only prose.
             'description' => ['nullable', 'string', 'max:20000'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],
 
-            /*
-             * Both ids are scoped to the workspace the request is in. A valid id from
-             * another tenant deserves a validation error rather than a domain exception —
-             * and without the scope, `exists` would happily confirm that somebody else's
-             * task and somebody else's account exist.
-             */
+            // Scoped to this workspace, so `exists` cannot confirm another tenant's records.
             'parent_id' => [
                 'nullable', 'uuid',
-                // Reach, not merely the workspace: a task inside a private project is in the
-                // same workspace, and naming one as a parent read its title back through the
-                // panel's breadcrumb (TASK-260-002).
+                // Reachable tasks only, so a task in a private project cannot be exposed as a parent.
                 Rule::exists('tasks', 'id')->where(
                     fn (Builder $query): Builder => $query
                         ->where('workspace_id', $workspace?->id)
@@ -75,8 +64,6 @@ class StoreTaskRequest extends FormRequest
     }
 
     /**
-     * The ids of the tasks this actor may reach, for a rule that has to check a reference.
-     *
      * @return EloquentBuilder<Task>
      */
     private function reachableTaskIds(?Workspace $workspace): EloquentBuilder

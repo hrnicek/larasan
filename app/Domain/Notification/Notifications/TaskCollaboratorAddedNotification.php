@@ -9,12 +9,6 @@ use App\Domain\Notification\Contracts\WorkspaceNotification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-/**
- * Somebody put you on a task beside its assignee.
- *
- * Ids and nothing else, as `TaskAssignedNotification` carries: read a week later, it shows the
- * task as it is.
- */
 final class TaskCollaboratorAddedNotification extends Notification implements DeduplicatesNotifications, WorkspaceNotification
 {
     use BroadcastsToInbox;
@@ -49,7 +43,6 @@ final class TaskCollaboratorAddedNotification extends Notification implements De
         ];
     }
 
-    /** Taken off and put back by the same person is one sentence, not two. */
     public function deduplicationKey(): string
     {
         return 'task.collaborator_added:'.$this->taskId.':'.$this->addedById;

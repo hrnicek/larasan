@@ -13,15 +13,6 @@ import { accentChipClass, accentVars } from '@/lib/accentColor';
 import { dayOf, formatDay, isOverdue } from '@/lib/dueDate';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
-/**
- * One card on the board: what it is called, who has it, when it is due, how much conversation
- * it has and what it is about.
- *
- * A card is read at a glance and in bulk, so every fact on it is a shape rather than a sentence:
- * an avatar instead of a name, a count beside its icon instead of the word "comments", a chip
- * instead of a bordered word. What survives that compression is the title, which is why it is
- * the only thing here at full size.
- */
 const props = defineProps<{
     card: BoardCardData;
     editable: boolean;
@@ -37,12 +28,7 @@ const emit = defineEmits<{
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 
-/*
- * Where the pointer went down, so the card can tell a click from the end of a drag — the same
- * guard `CalendarTaskChip` uses, and for the same reason: both finish with a `click` over
- * whatever the pointer is above, and opening the panel every time somebody moves a card would
- * make dragging useless.
- */
+// A drag also ends in `click`, so the pointer-down position tells a click from a drop.
 const origin = ref<{ x: number; y: number } | null>(null);
 
 const down = (event: PointerEvent): void => {
@@ -53,14 +39,6 @@ const down = (event: PointerEvent): void => {
     }
 };
 
-/**
- * The whole card opens the task, not only its title. A card is a thing to click, and the parts
- * of it that are not the title — the cover, the chips, the room around them — were dead surface
- * that looked exactly as clickable as the rest.
- *
- * Controls inside it are not: the menu answers for itself, and a click that reached it is not a
- * click on the card.
- */
 const activate = (event: MouseEvent): void => {
     const from = origin.value;
 
@@ -75,7 +53,6 @@ const activate = (event: MouseEvent): void => {
 
 const day = computed<string | null>(() => dayOf(props.card.dueAt));
 
-/** Overdue is red **and** carries an icon **and** says so in the label: colour alone is not a message. */
 const overdue = computed<boolean>(() => props.card.completedAt === null && isOverdue(day.value));
 
 const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
@@ -91,18 +68,12 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
         :class="[
             card.completedAt ? 'text-muted-foreground' : '',
             dragging ? 'opacity-50' : '',
-            // The pointer, not the open hand: the card's first meaning is that it opens, and
-            // `active:` still says what a drag in progress is. A viewer who cannot drag gets the
-            // same pointer, because they can still open it.
             editable ? 'touch-none active:cursor-grabbing' : '',
         ]"
         @pointerdown="down"
         @click="activate"
         @keydown.enter.self="emit('open', card.id)"
     >
-        <!-- The first picture attached to the task, if it has one. The thumbnail rather than the
-             original, at a fixed ratio: a column of cards whose heights depend on what somebody
-             photographed is a column nobody can scan. -->
         <img
             v-if="card.cover"
             :src="AttachmentController.preview.url(card.cover.id, { query: { size: 'thumb' } })"
@@ -125,8 +96,7 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
             </span>
         </div>
 
-        <!-- Still a control of its own, so the title is reachable by keyboard and named to a
-             screen reader. Its click needs no handler: it lands on the card like any other. -->
+        <!-- No click handler: the click bubbles to the card's own handler. -->
         <button
             type="button"
             class="line-clamp-3 w-full cursor-pointer text-left"
@@ -137,8 +107,6 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
 
         <div class="mt-2.5 flex items-center gap-2.5 text-xs text-muted-foreground">
             <UserAvatar v-if="card.assignee" :user="card.assignee" size="sm" />
-            <!-- Unassigned says so with the same silhouette the list uses. An empty dashed box
-                 reads as something that failed to load. -->
             <span
                 v-else
                 class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/40"
@@ -170,11 +138,6 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
                 <span class="sr-only">comments</span>
             </span>
 
-            <!--
-                Moving without dragging: the phone's path, where a drag across a pager is a
-                gesture nobody can land — and a perfectly good one with a mouse too. Revealed on
-                hover or focus, because it is the card's action rather than one of its facts.
-            -->
             <DropdownMenu v-if="editable">
                 <DropdownMenuTrigger
                     class="ml-auto inline-flex size-6 items-center justify-center rounded-md opacity-0 transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"

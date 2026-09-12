@@ -11,10 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-/**
- * Asserted through raw inserts, so what is proven is the database's behaviour rather than a
- * model's.
- */
 function insertCollaboration(Task $task, User $user): string
 {
     $id = (string) Str::uuid7();

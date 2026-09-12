@@ -25,8 +25,8 @@ beforeEach(function (): void {
 });
 
 /**
- * Eloquent only arms the per-instance lazy loading guard when a query hydrates more
- * than one row (Builder::hydrate), so an N+1 test must fetch a collection.
+ * Eloquent only arms the lazy loading guard when a query hydrates more than one row, so
+ * an N+1 test must fetch a collection.
  */
 function createParentsWithChildren(int $count): void
 {

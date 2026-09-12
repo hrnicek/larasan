@@ -49,10 +49,6 @@ it('clears either half when the picker sends it empty', function (): void {
     expect($project->fresh()?->icon)->toBeNull();
 });
 
-/*
- * The reason this endpoint exists rather than the picker posting to `projects.update`, which
- * takes the whole settings form and reads an absent nullable field as a deliberate clearing.
- */
 it('leaves everything the picker does not show alone', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
     $project->forceFill([
@@ -161,11 +157,6 @@ it('sends the header its icon and whether this reader may change it', function (
             ->where('project.canUpdate', false));
 });
 
-/*
- * The picker maps a stored name to a bundled component, so the two lists have to hold the same
- * names — a case added to the enum and not to `projectIcon.ts` is an icon the server accepts and
- * the browser draws as nothing at all.
- */
 it('offers the same library on both sides', function (): void {
     $library = file_get_contents(resource_path('js/lib/projectIcon.ts'));
 

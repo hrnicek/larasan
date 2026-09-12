@@ -17,10 +17,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
-/**
- * Cards are attached, dragged and removed from the board and the list, so every method
- * answers with a redirect back to wherever the actor was. There is no placement screen.
- */
 class PlacementController extends Controller
 {
     public function store(StorePlacementRequest $request, Project $project, AttachTaskToProject $attach): RedirectResponse

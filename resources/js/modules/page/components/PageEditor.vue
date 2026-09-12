@@ -11,18 +11,7 @@ import { matchingCommands, slashCommands } from '@/modules/page/lib/slashCommand
 import type { PageDocument } from '@/modules/page/types';
 import '../../../../css/page-editor.css';
 
-/**
- * The page, written.
- *
- * What goes in and what comes out is **the document as JSON**, never markup (ADR-0017). The
- * server reduces it to a known vocabulary on the way in and hands the same shape back, so no
- * raw markup is ever handed to the renderer here and the allowlist is one list rather than two
- * that drift. (`MarkupTest` looks for the directive by name, which is why this sentence does not
- * spell it.)
- *
- * The component is loaded asynchronously by whoever renders it: Tiptap and ProseMirror together
- * are a large chunk, and a person reading a list of pages has no use for them.
- */
+// The document is exchanged as JSON, never markup. See ADR-0017.
 const props = withDefaults(
     defineProps<{
         modelValue: PageDocument;
@@ -34,13 +23,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [document: PageDocument] }>();
 
-/**
- * The contextual toolbar: what it is showing, and where. Null while there is nothing to offer —
- * a caret sitting in a paragraph is not a question.
- */
 const toolbar = ref<{ mode: 'marks' | 'code' | 'table'; anchor: { top: number; left: number } } | null>(null);
 
-/** The menu a slash opens, and where the caret was when it did. */
 const menu = ref<{
     commands: SlashCommand[];
     selected: number;
@@ -48,10 +32,6 @@ const menu = ref<{
     range: Range;
 } | null>(null);
 
-/**
- * `shallowRef`, because an Editor is a large object graph with its own reactivity; making Vue
- * walk it would be expensive and would achieve nothing — the editor tells us when it changed.
- */
 const editor = shallowRef<Editor>();
 
 const insert = (command: SlashCommand, over?: Range): void => {
@@ -65,11 +45,7 @@ const insert = (command: SlashCommand, over?: Range): void => {
     menu.value = null;
 };
 
-/**
- * `/` opens the block list. Registered as an extension rather than as a keymap so it carries the
- * range it was typed over: inserting a block replaces what was typed, instead of leaving a stray
- * slash on the line.
- */
+// An extension rather than a keymap, so inserting a block replaces the typed `/` range.
 const slashMenu = Extension.create({
     name: 'pageSlashMenu',
 
@@ -93,8 +69,7 @@ const slashMenu = Extension.create({
                         menu.value = {
                             commands: state.items as SlashCommand[],
                             selected: 0,
-                            // Below the caret, unless the caret is low enough that the list
-                            // would leave the window — then above it.
+                            // Above the caret when the list would overflow the window.
                             position: {
                                 top: rect.bottom + 300 > window.innerHeight ? rect.top - 296 : rect.bottom + 6,
                                 left: Math.min(rect.left, window.innerWidth - 272),
@@ -151,11 +126,7 @@ const slashMenu = Extension.create({
     },
 });
 
-/**
- * Where the toolbar hangs, in viewport coordinates: above the start of the selection, nudged back
- * inside the window when the selection is near an edge. Read from ProseMirror's own coordinates
- * rather than from a DOM range, because a selection can span nodes the editor drew itself.
- */
+// ProseMirror coordinates rather than a DOM range, since a selection can span nodes the editor drew.
 const placeToolbar = (mode: 'marks' | 'code' | 'table'): void => {
     const instance = editor.value;
 
@@ -175,11 +146,6 @@ const placeToolbar = (mode: 'marks' | 'code' | 'table'): void => {
     };
 };
 
-/**
- * What the selection is asking for. A table wins over a code block and a code block over a run of
- * text, because the more specific context is the one somebody is working in — and an empty
- * selection in ordinary text is asking for nothing at all.
- */
 const readSelection = (): void => {
     const instance = editor.value;
 
@@ -225,9 +191,7 @@ editor.value = new Editor({
     onUpdate: ({ editor: instance }) => emit('update:modelValue', instance.getJSON() as PageDocument),
     onSelectionUpdate: readSelection,
     onBlur: ({ event }) => {
-        // Clicking a control in the toolbar blurs the editor, and tearing the toolbar down on
-        // the way to being clicked is how a formatting button becomes unclickable. Anything
-        // outside both is a person who has finished with the selection.
+        // Clicking a toolbar control blurs the editor, so the toolbar must survive that blur.
         const moved = event.relatedTarget;
 
         if (!(moved instanceof HTMLElement) || moved.closest('[role="toolbar"]') === null) {
@@ -236,11 +200,7 @@ editor.value = new Editor({
     },
 });
 
-/*
- * The server is authoritative, and it is also the source of what is on the screen right now.
- * Replacing the content on every incoming value would move the caret while somebody is typing,
- * so a document that matches what the editor already holds is not applied.
- */
+// Applied only when it differs, so an echoed value does not move the caret while typing.
 watch(
     () => props.modelValue,
     (document) => {
@@ -263,11 +223,6 @@ watch(
 
 onBeforeUnmount(() => editor.value?.destroy());
 
-/**
- * The title's Enter ends the title and starts the document, so the screen above needs a way to
- * put the caret in here. `start` rather than `end`: a page whose title was just typed is a page
- * with nothing in it yet.
- */
 defineExpose({
     focus: (): void => {
         editor.value?.commands.focus('start');
@@ -282,8 +237,6 @@ defineExpose({
             :aria-activedescendant="menu ? `page-slash-${menu.commands[menu.selected]?.key}` : undefined"
         />
 
-        <!-- The space under the last block is part of the document as far as a person is
-             concerned: clicking it puts the caret at the end rather than doing nothing. -->
         <div
             v-if="editable"
             class="min-h-32 cursor-text"

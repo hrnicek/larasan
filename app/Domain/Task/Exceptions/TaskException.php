@@ -7,11 +7,6 @@ namespace App\Domain\Task\Exceptions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * Invariants the task Actions refuse for every caller. A FormRequest catches most of them
- * first; the Action still checks, because a console command, a queued job or the future
- * API arrives without one.
- */
 final class TaskException extends DomainException implements DomainRefusal
 {
     public static function cannotCreateTasks(): self
@@ -54,29 +49,16 @@ final class TaskException extends DomainException implements DomainRefusal
         return new self('A task can only be a subtask of a task in the same workspace.');
     }
 
-    /**
-     * Reach, not membership. A guest is a member and still cannot open a task that is in no
-     * project of theirs, and work nobody can read is not work anybody can do.
-     */
     public static function assigneeCannotReachTask(): self
     {
         return new self('That person cannot reach this task.');
     }
 
-    /**
-     * Reach again, this time for notifications: subscribing somebody to a task they cannot
-     * open fills an inbox with work nobody can reach (TASK-070-017's rule, applied to
-     * watching).
-     */
     public static function followerCannotReachTask(): self
     {
         return new self('That person cannot reach this task.');
     }
 
-    /**
-     * A star is a shortcut to a task, so it cannot point at one the actor may not open — the same
-     * rule as the follower above, applied to a list rather than to an inbox.
-     */
     public static function cannotStarUnreachableTask(): self
     {
         return new self('You do not have access to that task.');
@@ -92,7 +74,6 @@ final class TaskException extends DomainException implements DomainRefusal
         return new self('A collaborator has to be an active member of the task\'s workspace.');
     }
 
-    /** The rule an assignee is held to, for the people beside them. */
     public static function collaboratorCannotReachTask(): self
     {
         return new self('That person cannot reach this task.');

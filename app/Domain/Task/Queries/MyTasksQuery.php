@@ -18,23 +18,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-/**
- * What one person is responsible for, in this workspace.
- *
- * The workspace is proved inside the query rather than assumed from the caller (ADR-0005), and
- * the projects listed beside a task are only the ones the reader can reach: a task can appear in
- * a project they were never given, and naming it here would leak a project through a task they
- * are allowed to see (ADR-0006).
- *
- * A task assigned to somebody with **no due date** appears in Upcoming, after everything dated.
- * The dated tabs are the whole of what somebody was given, so a task that matched none of them
- * would be work they had been handed and could not find.
- *
- * Starred is the exception, and the only tab that drops the assignee: it answers "what did I want
- * at hand" rather than "what am I responsible for", so it may hold a task somebody else is doing.
- * Reach is asked there for the same reason it is not asked anywhere else here — assignment proves
- * nothing about a task the reader starred and then lost access to.
- */
 final readonly class MyTasksQuery
 {
     public const PER_PAGE = 25;
@@ -60,7 +43,6 @@ final readonly class MyTasksQuery
     ): array {
         $tasks = $this->paginate($workspace, $actor, $tab, $page, $perPage);
 
-        // Asked once for the page: the capability is the actor's, not the row's.
         $workspaceMayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
 
         return [
@@ -98,22 +80,14 @@ final readonly class MyTasksQuery
         $query = Task::query()
             ->where('workspace_id', $workspace->id)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
-            // The count the row draws, as a subquery rather than a read per row (TASK-110-015).
             ->withCount('comments')
-            /*
-             * Whether this row may be edited, decided per row rather than per screen. My Tasks
-             * draws work from every board at once, and one boolean for the whole list was the
-             * screen promising an edit that the board behind a given row would refuse — two of
-             * them are subqueries here rather than a policy call per line (ADR-0005).
-             */
             ->withCount('placements')
             ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
                 ->whereIn('project_id', $changeable)])
             ->with([
                 PersonSummary::eager('assignee'),
                 'tags:id,name,color',
-                // Only the placements whose project the reader can open, and the project itself
-                // — one query for the page rather than one per row.
+                // Constrained so a project the reader cannot open is never named. See ADR-0006.
                 'placements' => fn (Relation $placements) => $placements
                     ->whereIn('project_id', $visible)
                     ->with('project:id,name,color'),
@@ -122,10 +96,7 @@ final readonly class MyTasksQuery
         if ($tab->isAboutAssignment()) {
             $query->where('assignee_id', $actor->id);
         } else {
-            /*
-             * Starred lists what this person marked, whoever it belongs to — so the reach rule
-             * every other list uses has to be asked here rather than inherited from assignment.
-             */
+            // Starred tasks are not necessarily assigned to the actor, so reach must be checked explicitly.
             $this->reachableTasks->constrain($query, $workspace, $actor);
             $query->whereHas('stars', fn (Builder $stars): Builder => $stars->where('user_id', $actor->id));
         }
@@ -149,44 +120,29 @@ final readonly class MyTasksQuery
             MyTasksTab::Overdue => $query->whereNull('completed_at')
                 ->whereNotNull('due_at')
                 ->where('due_at', '<', $today),
-            /*
-             * Everything still to come, and everything with no date at all. `orderByRaw` puts
-             * the undated last: they are work somebody has been given, not work due first.
-             */
             MyTasksTab::Upcoming => $query->whereNull('completed_at')
                 ->where(fn (Builder $inner) => $inner->whereNull('due_at')->orWhere('due_at', '>=', $tomorrow)),
             MyTasksTab::Completed => $query->whereNotNull('completed_at'),
-            // Starred says nothing about dates or completion: it is the list somebody built, and
-            // hiding half of it would make the star look like it had stopped working.
             MyTasksTab::Starred => $query,
         };
 
         if ($tab->showsCompleted()) {
-            // A finished list reads newest first: what was done most recently is what somebody
-            // is checking.
             $query->orderByDesc('completed_at')->orderBy('id');
 
             return;
         }
 
         if ($tab === MyTasksTab::Starred) {
-            // Finished work sinks rather than disappearing, so the tab opens on what is still to
-            // do without pretending the rest was never starred.
             $query->orderByRaw('completed_at is not null');
         }
 
         $query->orderByRaw('due_at is null')
             ->orderBy('due_at')
-            // Then by priority, highest first. The enum's values sort the wrong way as strings,
-            // so the order is written out rather than left to the column.
+            // Priority values do not sort by urgency as strings.
             ->orderByRaw("case priority when 'urgent' then 0 when 'high' then 1 when 'medium' then 2 else 3 end")
             ->orderBy('id');
     }
 
-    /**
-     * Whether this row's task may be changed: the workspace capability, and then a board that
-     * allows it — or no board at all, which is workspace work (TASK-260-001).
-     */
     private function canUpdate(Task $task, bool $workspaceMayUpdate): bool
     {
         if (! $workspaceMayUpdate) {
@@ -212,10 +168,6 @@ final readonly class MyTasksQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
-            /*
-             * Always the reader, and sent anyway: the row is the list view's component, and a
-             * shape that differs by screen is the shape one of the two screens gets wrong.
-             */
             'assignee' => PersonSummary::fromNullable($assignee),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
@@ -224,8 +176,6 @@ final readonly class MyTasksQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            // Where the task lives, which is where multi-project membership becomes visible
-            // (`docs/ui/inbox.md`) — and only the parts of it this reader may know about.
             'projects' => array_values($task->placements
                 ->map(fn (TaskProjectMembership $placement): array => [
                     'id' => $placement->project->id,

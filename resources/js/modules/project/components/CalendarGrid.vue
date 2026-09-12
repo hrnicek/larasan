@@ -6,24 +6,14 @@ import CalendarDayCell from '@/modules/project/components/CalendarDayCell.vue';
 import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue';
 import type { CalendarCardData, CalendarDay, ProjectCalendar } from '@/modules/task/types';
 
-/**
- * The month itself.
- *
- * Two shapes rather than one that stretches. From `md` it is the table everybody means by
- * "calendar": seven columns, whole weeks, every day drawn whether or not it holds anything.
- * Below `md` seven columns is seven columns nobody can read, so the same month is drawn as an
- * agenda of the days that hold something — which is what a phone can show and what somebody on
- * one is looking for.
- */
 const props = defineProps<{
     calendar: ProjectCalendar;
     projectId: string;
     editable: boolean;
     creatable: boolean;
     draggingId: string | null;
-    /** The day a drop would land on, as `Y-m-d`. */
+    /** `Y-m-d`. */
     overDay: string | null;
-    /** True while another month is on its way, so the one on screen can step back rather than blink. */
     loading: boolean;
 }>();
 
@@ -33,7 +23,6 @@ const emit = defineEmits<{
     pickup: [event: PointerEvent, card: CalendarCardData];
 }>();
 
-/** The reader's own weekday names, taken from the first week the grid draws. */
 const weekdays = computed<{ date: string; label: string }[]> (() =>
     props.calendar.days.slice(0, 7).map((day) => ({
         date: day.date,
@@ -43,13 +32,7 @@ const weekdays = computed<{ date: string; label: string }[]> (() =>
 
 const withTasks = computed<CalendarDay[]>(() => props.calendar.days.filter((day) => day.tasks.length > 0));
 
-/**
- * The month in rows of seven.
- *
- * A table rather than a grid of boxes: a cell of a calendar means *this weekday, this week*, and
- * a column header a reader is never told about is a column header only the sighted have. The
- * server sends whole weeks, so the chunking cannot leave a short row.
- */
+/** The server sends whole weeks, so chunking by seven never leaves a short row. */
 const weeks = computed<CalendarDay[][]>(() => {
     const rows: CalendarDay[][] = [];
 
@@ -64,7 +47,6 @@ const monthLabel = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
 );
 
-/** Why the month is empty, said once — the line on a desktop and the panel on a phone share it. */
 const emptyDetail = computed<string>(() =>
     props.calendar.undated.count > 0
         ? `${props.calendar.undated.count} task${props.calendar.undated.count === 1 ? '' : 's'} in this project have no due date yet.`
@@ -116,7 +98,6 @@ const dayLabel = (date: string): string =>
             </tbody>
         </table>
 
-        <!-- The phone's month: the days that hold something, in order, with the same chips. -->
         <div v-if="withTasks.length" class="flex flex-col divide-y divide-border border-y border-border md:hidden">
             <section v-for="day in withTasks" :key="day.date" class="flex flex-col gap-0.5 px-2 py-3">
                 <h3
@@ -148,8 +129,6 @@ const dayLabel = (date: string): string =>
             </section>
         </div>
 
-        <!-- The grid says "empty" by being empty, so on a desktop the month needs a line rather
-             than a panel. Below `md` there is no grid to read, and the panel is the whole answer. -->
         <p v-if="!withTasks.length" class="hidden px-4 py-3 text-sm text-muted-foreground md:block md:px-6">
             Nothing is due in {{ monthLabel }}. {{ emptyDetail }}
         </p>

@@ -15,12 +15,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * The same matrix `ProjectListMatrixTest` runs, at the board. The two views read the same
- * placements through different queries, and a permission that is right in one and wrong in the
- * other is exactly the kind of drift a second matrix catches.
- */
-
 /**
  * @return array{Project, User}
  */
@@ -76,11 +70,7 @@ it('answers each role and access level the same way at the board', function (
     'owner as editor' => [WorkspaceRole::Owner, ProjectAccessLevel::Editor, 'visible', true],
     'owner as commenter' => [WorkspaceRole::Owner, ProjectAccessLevel::Commenter, 'visible', false],
     'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'visible', false],
-    /*
-     * No membership row, on a board the whole workspace can open: the project's
-     * `default_access_level` answers, and it is `editor` (TASK-260-001). A guest is still
-     * refused — they hold projects, never a default.
-     */
+    // Without a membership row the project's default access level, `editor`, applies; guests get no default. See ADR-0020.
     'owner with no project membership' => [WorkspaceRole::Owner, null, 'visible', true],
 
     'admin as project owner' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'visible', true],
@@ -95,8 +85,7 @@ it('answers each role and access level the same way at the board', function (
     'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'visible', false],
     'member with no project membership' => [WorkspaceRole::Member, null, 'visible', true],
 
-    // A guest reaches what they were given: given the project they may read the board, and
-    // they still cannot move a card, because `task.update` is not theirs (ADR-0006, ADR-0010).
+    // Workspace visibility grants a guest nothing, and guests never hold `task.update`. See ADR-0010.
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'visible', false],
     'guest as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'visible', false],
     'guest with no project membership' => [WorkspaceRole::Guest, null, 'missing', false],
@@ -130,8 +119,6 @@ it('gives the board and the list the same answer for the same actor', function (
         return $props[$view === ProjectDefaultView::Board->value ? 'board' : 'list']['can'];
     };
 
-    // Two queries, one answer. A permission right in one view and wrong in the other is the
-    // drift this assertion exists to catch.
     expect($flags(ProjectDefaultView::Board->value))->toBe($flags(ProjectDefaultView::List->value));
 })->with([
     'editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor],

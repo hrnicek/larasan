@@ -7,32 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { dayOf, formatDay, isOverdue, today } from '@/lib/dueDate';
 
-/**
- * The due date, changed from the row or the panel. Only this field is sent: `tasks.update`
- * treats an absent field as untouched, so a date change cannot clear a description the row
- * never carried.
- *
- * A calendar rather than the browser's date input. The native control draws its own placeholder
- * in every row of a list where most tasks have no date, opens differently in every browser, and
- * cannot be given *Today* or *Clear* — which are the two things anybody actually wants from a due
- * date.
- */
+/** Sends only `due_at`; `tasks.update` leaves absent fields untouched. */
 const props = defineProps<{
     taskId: string;
     dueAt: string | null;
     editable: boolean;
-    /**
-     * The panel gives the field a row of its own and can afford to say what an empty one means;
-     * down a list column, where most tasks have no date, the same words are noise on every line.
-     */
     variant?: 'inline' | 'field';
 }>();
 
-/*
- * The month grid is 50 kB of calendar and date library, and a list draws hundreds of these
- * triggers without opening one. It is fetched on the intent to open — a pointer over the trigger,
- * or focus on it — so it is there by the time the popover is.
- */
+// The calendar chunk is heavy and lists render many triggers, so it loads on hover or focus.
 const loadCalendar = () => import('@/modules/task/components/DueDateCalendar.vue');
 
 const DueDateCalendar = defineAsyncComponent(loadCalendar);
@@ -44,10 +27,6 @@ const saving = ref(false);
 
 const day = computed<string | null>(() => dayOf(props.dueAt));
 
-/**
- * Overdue is said twice — in red **and** with an icon — because colour alone is not a message
- * somebody who cannot see it receives.
- */
 const overdue = computed<boolean>(() => isOverdue(day.value));
 
 const label = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
@@ -82,11 +61,6 @@ function save(next: string | null): void {
     </span>
 
     <Popover v-else v-model:open="open">
-        <!--
-            An empty cell is a target rather than a gap: the dashed outline says "something goes
-            here" the way the reference's placeholder does, instead of leaving a browser's
-            `dd.mm.yyyy` in every row of a list where most tasks have no date.
-        -->
         <PopoverTrigger
             :disabled="saving"
             @pointerenter="warmCalendar"
@@ -107,18 +81,15 @@ function save(next: string | null): void {
             </span>
             <span v-else>{{ label }}</span>
 
-            <!-- Only where the field has a row to itself. -->
             <span v-if="variant === 'field' && dueAt === null">No due date</span>
         </PopoverTrigger>
 
         <PopoverContent class="w-auto p-0" align="start">
-            <!-- The room the month will take, held while it is on its way, so the popover does not
-                 resize under the pointer that opened it. -->
+            <!-- Reserves the calendar's size while its chunk loads. -->
             <div class="min-h-[298px] w-[266px]">
                 <DueDateCalendar :day="day" @pick="save" />
             </div>
 
-            <!-- The two things anybody actually wants from a due date, and neither is a month grid. -->
             <div class="flex items-center gap-1 border-t border-border p-2">
                 <Button
                     variant="ghost"

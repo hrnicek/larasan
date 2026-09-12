@@ -20,27 +20,10 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection as Grouped;
 use Illuminate\Support\Facades\DB;
 
-/**
- * The board: the same placements the list reads, drawn as columns, and bounded.
- *
- * The one thing this does that `ProjectListQuery` does not is **stop**. A column ships a page
- * of cards and the total it was drawn from, so a project with four thousand cards renders in
- * the same time as one with forty and "load more" is a partial reload rather than a second
- * full read. The page is cut inside the database with a window function, not by reading
- * everything and slicing in PHP — a query that reads the whole board to show a hundred cards
- * has not been bounded, it has been hidden.
- *
- * Everything else it inherits deliberately: the ungrouped bucket is a column (ADR-0004), the
- * count and the rows come from one scope so a header cannot disagree with them
- * (TASK-050-013), and authorization is answered once for the project rather than per card
- * (TASK-070-015).
- */
 final readonly class ProjectBoardQuery
 {
-    /** Enough to fill a tall column twice over, and small enough that a wide board is cheap. */
     public const PER_COLUMN = 25;
 
-    /** The key the ungrouped bucket answers to, since it has no id of its own. */
     public const UNGROUPED = 'ungrouped';
 
     /**
@@ -72,8 +55,6 @@ final readonly class ProjectBoardQuery
 
         $ungroupedCount = $counts[self::UNGROUPED] ?? 0;
 
-        // Only when it holds something: an empty "no column" on every board is noise, and a
-        // non-empty one is work somebody has to be able to see.
         if ($ungroupedCount > 0) {
             $columns[] = $this->column(
                 null,
@@ -93,8 +74,6 @@ final readonly class ProjectBoardQuery
                 'createTask' => $actor->can('createTask', $project),
                 'updateTask' => $project->allowsChangesBy($actor, Capability::TaskUpdate),
                 'deleteTask' => $project->allowsChangesBy($actor, Capability::TaskDelete),
-                // The board's columns are the list's sections, so the two views answer the same
-                // question the same way — which `BoardMatrixTest` asserts row by row.
                 'createSection' => $project->allowsChangesBy($actor, Capability::SectionCreate),
                 'updateSection' => $project->allowsChangesBy($actor, Capability::SectionUpdate),
                 'deleteSection' => $project->allowsChangesBy($actor, Capability::SectionDelete),
@@ -103,8 +82,6 @@ final readonly class ProjectBoardQuery
     }
 
     /**
-     * How many visible cards each column holds, whatever the page shows.
-     *
      * @param  list<string>  $tags
      * @return array<string, int>
      */
@@ -126,13 +103,6 @@ final readonly class ProjectBoardQuery
     }
 
     /**
-     * One page of cards per column, cut in the database.
-     *
-     * `row_number() over (partition by section_id order by position)` numbers each column's
-     * cards independently, so one query returns the first page of every column at once. A
-     * column the reader has expanded is read separately and in full — that is one column, on
-     * purpose, rather than a board-wide limit somebody can turn off.
-     *
      * @param  list<string>  $expanded
      * @param  list<string>  $tags
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
@@ -174,7 +144,6 @@ final readonly class ProjectBoardQuery
                 $tasks
                     ->select(['id', 'workspace_id', 'title', 'completed_at', 'due_at', 'priority', 'assignee_id'])
                     ->withCount(['children', 'comments'])
-                    // The chips a card draws: one read for the page's tags, not one per card.
                     ->with([PersonSummary::eager('assignee'), 'tags:id,name,color']);
             }])
             ->orderBy('position')
@@ -183,8 +152,6 @@ final readonly class ProjectBoardQuery
     }
 
     /**
-     * The expanded columns, with the ungrouped bucket spelled as the null it really is.
-     *
      * @param  list<string>  $expanded
      */
     private function whereExpanded(Builder $query, array $expanded): void
@@ -210,16 +177,7 @@ final readonly class ProjectBoardQuery
     }
 
     /**
-     * The first image attached to each task on this page, as one read.
-     *
-     * `DISTINCT ON` is PostgreSQL's answer to "the first row of each group" and it is the whole
-     * reason this is one query rather than one per card — the N+1 TASK-070-015 took off this
-     * board is not one to put back for a picture.
-     *
-     * "First" is `position`, which is somebody's decision (TASK-250-003), not the earliest
-     * upload. The dimensions come from the file's metadata so the card can reserve the space
-     * before the bytes arrive; they are absent until the thumbnail has been derived, which is a
-     * fixed-ratio box rather than a broken one.
+     * Uses PostgreSQL DISTINCT ON to take each task's first image by position in one query.
      *
      * @param  Grouped<string, Collection<int, TaskProjectMembership>>  $cards
      * @return array<string, array{id: string, width: int|null, height: int|null}>
@@ -236,8 +194,7 @@ final readonly class ProjectBoardQuery
             ->toBase()
             ->join('files', function (JoinClause $file) use ($project): void {
                 $file->on('files.id', '=', 'attachments.file_id')
-                    // A removed file takes its cover off the card, and the workspace is asserted
-                    // in the query rather than assumed from the task (`docs/architecture/database.md`).
+                    // Joins bypass SoftDeletes; the workspace is asserted on the file itself.
                     ->whereNull('files.deleted_at')
                     ->where('files.workspace_id', '=', $project->workspace_id);
             })
@@ -278,8 +235,6 @@ final readonly class ProjectBoardQuery
             'name' => $name,
             'color' => $color,
             'count' => $count,
-            // What the column knows it is not showing, so "load more" is a fact rather than a
-            // guess the client makes from a page size.
             'hasMore' => ! $expanded && $count > $cards->count(),
             'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card, $covers))->all()),
         ];
@@ -311,8 +266,6 @@ final readonly class ProjectBoardQuery
                 ])
                 ->all()),
             'subtasks' => (int) ($task->children_count ?? 0),
-            // Only the board fills this in. The list, My Tasks and the calendar share
-            // `TaskRowData` and are unchanged, which is why the field is optional there.
             'cover' => $covers[$task->id] ?? null,
             'assignee' => PersonSummary::fromNullable($assignee),
         ];

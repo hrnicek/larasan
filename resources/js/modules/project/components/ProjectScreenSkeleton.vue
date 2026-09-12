@@ -8,13 +8,6 @@ import { landingView } from '@/modules/project/landingView';
 import type { SidebarProject } from '@/modules/project/types';
 import { show } from '@/routes/projects';
 
-/**
- * A project on its way in, drawn the moment somebody chooses it.
- *
- * The sidebar already knows the project's name, colour and icon, so the header is the real one
- * from the first frame and only what the server has to read pulses. A project the capped sidebar
- * does not list — one opened from the project index — gets a placeholder name instead.
- */
 const page = usePage();
 
 const address = computed<URL>(() => new URL(page.url, window.location.origin));

@@ -15,12 +15,7 @@ use Illuminate\Http\RedirectResponse;
 class ProjectAppearanceController extends Controller
 {
     /**
-     * Back rather than to a named route: the picker is opened from whichever view of the
-     * project the reader is on, and `projects.show` without its query string would send
-     * a board back to the list.
-     *
-     * No toast either. The control's own tile is the confirmation, and a message per
-     * swatch turns trying colours into a stack of notifications.
+     * Redirects back, since `projects.show` without its query string would lose the current view.
      */
     public function update(
         UpdateProjectAppearanceRequest $request,

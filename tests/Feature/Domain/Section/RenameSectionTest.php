@@ -38,8 +38,6 @@ it('sets and clears the colour', function (): void {
     renameSection($section, $actor, new UpdateSectionData(name: $section->name, color: AccentColor::palette(ProjectColor::Amber)));
     expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Amber);
 
-    // Null clears a nullable column rather than meaning "unchanged" — the rule Phase 040's
-    // review settled after the same bug made project fields write-once.
     renameSection($section->refresh(), $actor, new UpdateSectionData(name: $section->name));
     expect($section->fresh()?->color)->toBeNull();
 });
@@ -49,11 +47,7 @@ it('announces only what changed, and stays quiet on a no-op', function (): void 
     $section = addSection($project, $actor, 'Backlog');
     Event::fake();
 
-    /*
-     * The colour goes with the name, because `PUT` replaces both columns and a column now starts
-     * slate rather than colourless — omitting it would clear it, which is a change and would
-     * announce itself. Every caller on the screen sends both for the same reason.
-     */
+    // PUT replaces both columns, so the colour is resent to avoid clearing it.
     renameSection($section, $actor, new UpdateSectionData(name: 'Backlog', color: $section->color));
     Event::assertNotDispatched(SectionUpdated::class);
 

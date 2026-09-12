@@ -15,12 +15,7 @@ const { mobileOpen } = provideShell();
 const page = usePage();
 const { skeleton, failed, retry } = usePendingScreen();
 
-/*
- * A screen fades in when it is a different screen, or when it replaces its own skeleton — never
- * when the same screen is drawn again after a write, which would read as the page blinking. The
- * flag is raised before the render that inserts the new page, so the animation in `app.css` is on
- * the element from its first frame, and lowered when that animation ends.
- */
+// Fade in only on a different screen or a replaced skeleton, never on a same-screen redraw after a write.
 const screen = computed<string>(() => `${page.component} ${new URL(page.url, window.location.origin).pathname}`);
 const entering = ref(false);
 
@@ -36,22 +31,12 @@ const settled = (event: AnimationEvent): void => {
     }
 };
 
-/*
- * The palette is drawn once, here: it opens over any screen, and one listener on the document is
- * what makes `⌘K` mean the same thing everywhere rather than only where somebody remembered to
- * add it.
- */
 const { handleShortcut } = useCommandPalette();
 
 onMounted(() => document.addEventListener('keydown', handleShortcut));
 onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
 </script>
 
-<!--
-  The chrome frames the canvas: a topbar across the full width, the sidebar under it on the left,
-  and the page in what is left (ADR-0014). Below `md` the sidebar is a drawer instead, because a
-  64px-wide rail beside a phone-width canvas leaves neither of them usable.
--->
 <template>
     <TooltipProvider :delay-duration="200">
         <div class="flex h-svh w-full flex-col overflow-hidden bg-chrome">
@@ -70,16 +55,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                 </Sheet>
 
                 <!--
-                    `relative` is load-bearing: `sr-only` is `position: absolute`, and a visually
-                    hidden label with no positioned ancestor is laid out against the document at
-                    its static position — far down the canvas — which grows the page past the
-                    shell's own height and lets the whole application scroll out of the window.
-                    Positioning the canvas keeps every absolute descendant inside the box that
-                    scrolls and clips.
-
-                    `scroll-region` hands the canvas to Inertia: a new screen starts at its top,
-                    and back or forward returns to where the reader was. The window never scrolls
-                    in this shell, so without it every screen opened at the last one's depth.
+                    `relative` keeps absolutely positioned `sr-only` descendants from growing the page past the shell.
+                    `scroll-region` lets Inertia reset and restore scroll here, since the window itself never scrolls.
                 -->
                 <div
                     scroll-region
@@ -88,7 +65,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                     class="relative min-w-0 flex-1 overflow-y-auto bg-background md:rounded-tl-xl md:border-t md:border-l md:border-border"
                     @animationend="settled"
                 >
-                    <!-- Above whichever layout is waiting: a settings screen waits inside its own. -->
                     <div
                         v-if="failed"
                         class="mx-4 mt-4 flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
@@ -98,10 +74,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                         <button type="button" class="font-medium underline" @click="retry">Try again</button>
                     </div>
 
-                    <!--
-                        A screen opened instantly is drawn as its skeleton until its own props
-                        land (`usePendingScreen`).
-                    -->
                     <div v-if="skeleton" data-screen-pending class="flex flex-col" aria-busy="true">
                         <p class="sr-only" role="status">Loading…</p>
 

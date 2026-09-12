@@ -8,13 +8,6 @@ import { Button } from '@/components/ui/button';
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { AvatarChoice, AvatarPreset } from '@/modules/account/types';
 
-/**
- * A face: one of the shipped illustrations, a picture of your own, or initials.
- *
- * Each choice saves on its own rather than waiting for the profile form's *Save*. Picking a
- * picture is the whole decision, and a grid that needs a second click to mean anything is one
- * somebody leaves believing they changed it.
- */
 const props = defineProps<{
     user: { name: string; avatar: string | null };
     current: AvatarChoice;
@@ -45,7 +38,7 @@ function send(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
-    // Cleared at once, so choosing the same file again after a refusal is still a change.
+    // Cleared so choosing the same file again still fires `change`.
     input.value = '';
 
     if (!file) {

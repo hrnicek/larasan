@@ -16,24 +16,16 @@ import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
 import type { ProjectCustomize, ProjectHeading, ProjectShare } from '@/modules/project/types';
 import { edit, star, unstar } from '@/routes/projects';
 
-/**
- * The project's own header: what this is, and which way you are looking at it.
- *
- * The name is drawn in the foreground colour, not in the project's accent. The accent identifies
- * the project at a glance in a list of them — as a tile here and a dot in the sidebar — and a
- * heading tinted the same way is a heading whose contrast depends on which colour somebody picked.
- */
 const props = defineProps<{
     project: ProjectHeading;
     view: string;
     views: string[];
-    /** Absent until the *Customize* drawer asks for it — see `ProjectCustomizeSheet`. */
+    /** Optional prop, undefined until the drawer loads it. */
     customize?: ProjectCustomize;
-    /** Absent until the *Share* dialog asks for it, for the same reason. */
+    /** Optional prop, undefined until the dialog loads it. */
     share?: ProjectShare;
 }>();
 
-/** The same write the sidebar's own menu makes, from the screen the project is open on. */
 function toggleStar(): void {
     if (props.project.starred) {
         router.delete(unstar(props.project.id).url, { preserveScroll: true });
@@ -48,11 +40,6 @@ function toggleStar(): void {
 <template>
     <header class="border-b border-border">
         <div class="flex flex-wrap items-center gap-3 px-4 pt-4 pb-3 md:px-6">
-            <!--
-                The tile is the control for somebody who may change the project, and the same tile
-                without a handle for everybody else. A picker drawn for a reader who cannot save is
-                a promise the endpoint would refuse.
-            -->
             <ProjectAppearancePicker v-if="props.project.canUpdate" :project="props.project" />
             <ProjectTile
                 v-else
@@ -75,8 +62,6 @@ function toggleStar(): void {
                 >
                     <MoreHorizontal class="size-4" />
                 </DropdownMenuTrigger>
-                <!-- Wide enough for *Remove from starred* on one line: a menu item that wraps
-                     reads as two items at a glance. -->
                 <DropdownMenuContent align="start" class="w-56">
                     <DropdownMenuItem @select="toggleStar">
                         <component :is="project.starred ? StarOff : Star" class="mr-2 size-4 text-muted-foreground" />
@@ -92,8 +77,6 @@ function toggleStar(): void {
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <!-- Pushed to the trailing edge: this is a control for the project as a whole, not
-                 another item in the row of things that name it. -->
             <div class="ml-auto flex shrink-0 items-center gap-3">
                 <ProjectMemberFaces :members="project.members" :total="project.memberCount" />
 

@@ -16,17 +16,6 @@ import {
     CalendarRoot,
 } from 'reka-ui';
 
-/**
- * A month, to pick a day out of.
- *
- * Composed from `reka-ui`'s calendar parts rather than pulled in as a package: the primitive is
- * already a dependency, it owns the keyboard grid and the locale's week order, and what it
- * deliberately does not own is how any of it looks. That is what this file is.
- *
- * Written as one component rather than the dozen shadcn-vue ships. The pieces are only ever
- * used together, and a dozen files that can only be composed one way is a dozen files to keep
- * in step for no choice anybody gets to make.
- */
 defineProps<{ modelValue?: DateValue }>();
 
 defineEmits<{ 'update:modelValue': [DateValue | undefined] }>();
@@ -77,11 +66,6 @@ defineEmits<{ 'update:modelValue': [DateValue | undefined] }>();
                     class="flex w-full"
                 >
                     <CalendarCell v-for="day in week" :key="day.toString()" :date="day" class="p-0">
-                        <!--
-                            Today is outlined, the chosen day is filled. Two different facts about
-                            the same square, so they are drawn two different ways rather than
-                            competing for one.
-                        -->
                         <CalendarCellTrigger
                             :day="day"
                             :month="month.value"

@@ -48,7 +48,6 @@ it('shows what is late, and only that', function (): void {
         'completed_at' => now(),
     ]);
 
-    // Something finished late is not overdue; it is done.
     expect(array_column(myTasks($workspace, $actor, MyTasksTab::Overdue)['tasks'], 'title'))->toBe(['Last week']);
 });
 
@@ -59,11 +58,6 @@ it('puts undated work in Upcoming rather than nowhere', function (): void {
     Task::factory()->in($workspace)->create(['title' => 'Next week', 'assignee_id' => $actor->id, 'due_at' => now()->addWeek()]);
     Task::factory()->in($workspace)->create(['title' => 'No date', 'assignee_id' => $actor->id, 'due_at' => null]);
 
-    /*
-     * The four tabs are the whole screen, so a task matching none of them would be work somebody
-     * had been given and could not find. Dated first, because the undated are not due soonest —
-     * they are simply not due.
-     */
     expect(array_column(myTasks($workspace, $actor, MyTasksTab::Upcoming)['tasks'], 'title'))
         ->toBe(['Next week', 'No date']);
 });
@@ -72,15 +66,13 @@ it('sorts by due date and then by priority', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 
-    // The same instant for all three, written out: `due_at` is `timestamp(0)`, so rows created
-    // a second apart would be sorted by date before priority ever came into it.
+    // due_at is timestamp(0), so rows created a second apart would sort by date before priority.
     $due = now()->startOfHour();
 
     Task::factory()->in($workspace)->create(['title' => 'Low today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::Low]);
     Task::factory()->in($workspace)->create(['title' => 'Urgent today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::Urgent]);
     Task::factory()->in($workspace)->create(['title' => 'High today', 'assignee_id' => $actor->id, 'due_at' => $due, 'priority' => TaskPriority::High]);
 
-    // The enum's values sort the wrong way as strings, which is why the order is written out.
     expect(array_column(myTasks($workspace, $actor)['tasks'], 'title'))
         ->toBe(['Urgent today', 'High today', 'Low today']);
 });
@@ -116,7 +108,6 @@ it('proves its own workspace scope', function (): void {
     Task::factory()->in($workspace)->create(['title' => 'Here', 'assignee_id' => $actor->id, 'due_at' => now()]);
     Task::factory()->in($elsewhere)->create(['title' => 'There', 'assignee_id' => $actor->id, 'due_at' => now()]);
 
-    // The same person in two workspaces has two lists, and switching is what changes this one.
     expect(array_column(myTasks($workspace, $actor)['tasks'], 'title'))->toBe(['Here']);
 });
 
@@ -130,10 +121,6 @@ it('names only the projects the reader can reach', function (): void {
     TaskProjectMembership::factory()->placing($task, $open)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    /*
-     * The task is theirs and stays visible; the project they were never given does not appear
-     * beside it. Naming it would leak a project through a task they are allowed to see.
-     */
     $row = myTasks($workspace, $actor)['tasks'][0];
 
     expect(array_column($row['projects'], 'name'))->toBe(['Open']);
@@ -147,7 +134,6 @@ it('keeps a task whose only project the reader cannot open', function (): void {
     $task = Task::factory()->in($workspace)->create(['title' => 'Assigned to me', 'assignee_id' => $actor->id, 'due_at' => now()]);
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    // Work somebody has been given is theirs to see, wherever it was filed.
     $rows = myTasks($workspace, $actor)['tasks'];
 
     expect(array_column($rows, 'title'))->toBe(['Assigned to me'])
@@ -196,8 +182,7 @@ it('reads a page of tasks in several projects without a query per row', function
 
     $result = myTasks($workspace, $actor);
 
-    // Ten tasks in three projects each: the count, the page, the tags, the placements and their
-    // projects.
+    // The count, the page, the tags, the placements, and their projects.
     expect($result['tasks'])->toHaveCount(10)
         ->and(count($queries))->toBeLessThanOrEqual(7);
 });

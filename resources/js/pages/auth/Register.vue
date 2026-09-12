@@ -12,7 +12,7 @@ import { store } from '@/routes/register';
 
 defineProps<{
     passwordRules: string;
-    /** The address an invitation was sent to, when one sent the visitor here. */
+    /** Prefilled from the invitation that brought the visitor here. */
     email?: string | null;
 }>();
 

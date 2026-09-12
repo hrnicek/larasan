@@ -3,14 +3,6 @@ import { Link } from '@inertiajs/vue3';
 import type { ListFieldColumn } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
-/**
- * Ordering a list by one of its columns.
- *
- * Links rather than a control with state, for the reason the view switcher and the tag filter
- * are links: an ordering is part of what somebody sends when they send the list. Clicking the
- * column you are already sorted by turns it round, and clicking it again clears it — the three
- * states a column header has had since spreadsheets.
- */
 const props = defineProps<{
     projectId: string;
     view: string;

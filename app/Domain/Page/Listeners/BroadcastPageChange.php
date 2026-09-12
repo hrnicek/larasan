@@ -11,10 +11,6 @@ use App\Domain\Page\Events\PageUpdated;
 use App\Domain\Shared\Broadcasting\ViewInvalidated;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * A page appeared, was written in, moved or removed. A page belongs to one project and nothing
- * outside it, so only that project's channel hears about it.
- */
 final readonly class BroadcastPageChange
 {
     public function __construct(private Dispatcher $events) {}

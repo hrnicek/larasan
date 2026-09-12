@@ -3,12 +3,6 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { dashboard } from '@/routes';
 
-/**
- * What the application says when a request does not reach a screen.
- *
- * The framework's own pages are a different application to look at, and they say nothing about
- * where to go next — which is the only thing somebody who has landed here wants (TASK-180-009).
- */
 const props = defineProps<{ status: number }>();
 
 const titles: Record<number, string> = {

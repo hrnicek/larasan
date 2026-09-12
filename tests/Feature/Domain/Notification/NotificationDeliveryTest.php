@@ -41,8 +41,6 @@ it('tells somebody a task was given to them', function (): void {
 
     expect($inbox)->toHaveCount(1)
         ->and($inbox[0]->type)->toBe(TaskAssignedNotification::class)
-        // The column the framework's own table does not have, without which the Inbox cannot
-        // place the row and the badge cannot count it.
         ->and($inbox[0]->workspace_id)->toBe($workspace->id)
         ->and(json_decode((string) $inbox[0]->data, true, 512, JSON_THROW_ON_ERROR))
         ->toBe(['task_id' => $task->id, 'assigned_by_id' => $actor->id]);
@@ -54,7 +52,6 @@ it('says nothing when somebody assigns a task to themselves', function (): void 
 
     app(AssignTask::class)->handle($task, $actor, $actor);
 
-    // An inbox full of one's own doing is an inbox nobody reads.
     expect(inboxOf($actor))->toBeEmpty();
 });
 
@@ -66,8 +63,6 @@ it('says nothing when a task is taken back from somebody', function (): void {
     app(AssignTask::class)->handle($task, $actor, $assignee);
     app(AssignTask::class)->handle($task, $actor, null);
 
-    // There is nobody to tell: unassignment has no recipient, and the person it was taken from
-    // finds that out from the task rather than from a second notification.
     expect(inboxOf($assignee))->toHaveCount(1);
 });
 
@@ -95,8 +90,6 @@ it('never tells somebody about their own comment', function (): void {
 
     app(CreateComment::class)->handle($task, $author, new CreateCommentData(body: 'Looks right to me'));
 
-    // Being told about your own comment is the fastest way to teach somebody to ignore the
-    // inbox entirely.
     expect(inboxOf($author))->toBeEmpty();
 });
 
@@ -116,16 +109,12 @@ it('writes the morph alias rather than a class name', function (): void {
 
     app(AssignTask::class)->handle($task, $actor, $assignee);
 
-    // A class name in a database column is a rename waiting to break a table, and the map is
-    // enforced so an unmapped model is an error rather than a row nobody can read back.
     expect(DB::table('notifications')->value('notifiable_type'))->toBe('user');
 });
 
 it('refuses to write a database notification that cannot say which workspace it is from', function (): void {
     $user = User::factory()->create();
 
-    // The alternative is a row the Inbox cannot place and the badge cannot count, discovered
-    // long after whoever added the notification has moved on.
     expect(fn () => $user->notify(new class extends Notification
     {
         /** @return list<string> */

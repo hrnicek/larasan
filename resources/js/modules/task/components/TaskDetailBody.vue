@@ -16,21 +16,9 @@ import TaskProjectMemberships from '@/modules/task/components/TaskProjectMembers
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
-/**
- * The task itself — its title, its fields and everything under them.
- *
- * Separated from `TaskDetailPanel` so that the overlay panel and the task's own page render the
- * *same* component rather than two that drift, while the shell around it differs: one traps focus
- * and can be closed, the other is a page and has nowhere to close to.
- *
- * Two regions, and the difference between them is the point: the fields say what the task *is*
- * and sit on the canvas; the thread says what has been said about it and sits on its own surface
- * at the foot. The block draws its own horizontal padding rather than taking it from the shell,
- * because that surface has to reach the panel's edges.
- */
 const props = defineProps<{
     detail: TaskDetail;
-    /** Deferred: absent until the follow-up request lands (TASK-100-011). */
+    /** Deferred prop, undefined until loaded. */
     activity?: TaskFeed;
     members: TaskAssignee[];
     priorities: string[];
@@ -38,7 +26,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ open: [taskId: string] }>();
 
-/** The composer's face. Shared by the shell, so it is the same person the topbar shows. */
 const viewer = computed(() => {
     const user = usePage().props.auth.user;
 
@@ -52,7 +39,6 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
     <div class="flex flex-col">
         <div class="flex flex-col gap-6 px-4 pt-4 pb-6 md:px-6 md:pt-5">
             <div class="flex flex-col gap-2">
-                <!-- A subtask says whose it is before it says anything about itself. -->
                 <Link
                     v-if="detail.task.parent"
                     :href="`/tasks/${detail.task.parent.id}`"
@@ -71,15 +57,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                 />
             </div>
 
-            <!--
-                One grid for every field, so the labels form a column and the values form a column.
-                Four rows of `label: value` laid out one at a time drift apart by a few pixels each
-                and the eye reads the drift before it reads the fields.
-            -->
             <dl class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]">
                 <dt class="text-[13px] text-muted-foreground">Assignee</dt>
                 <dd class="flex min-h-9 items-center">
-                    <!-- The same components the list row uses, not second copies of them. -->
                     <AssigneePicker
                         :task-id="detail.task.id"
                         :assignee="detail.task.assignee"

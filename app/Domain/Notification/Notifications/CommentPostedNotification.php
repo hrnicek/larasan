@@ -9,9 +9,6 @@ use App\Domain\Notification\Contracts\WorkspaceNotification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-/**
- * Somebody said something about a task you are watching.
- */
 final class CommentPostedNotification extends Notification implements DeduplicatesNotifications, WorkspaceNotification
 {
     use BroadcastsToInbox;
@@ -48,10 +45,6 @@ final class CommentPostedNotification extends Notification implements Deduplicat
         ];
     }
 
-    /**
-     * A comment is created once, so its id is exactly what makes this notification the same
-     * notification. A retried job writes nothing new.
-     */
     public function deduplicationKey(): string
     {
         return 'comment.posted:'.$this->commentId;

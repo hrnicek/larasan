@@ -3,23 +3,13 @@ import { computed } from 'vue';
 import { accentContentTileClass, accentTileClass, accentVars } from '@/lib/accentColor';
 import { projectIconComponent } from '@/lib/projectIcon';
 
-/**
- * A project, as a tinted square: its icon, or the first letter of its name when it has none.
- *
- * One component because four places draw it — the project header, the sidebar's collapsed rail,
- * the project list and the appearance picker's own trigger — and an icon that appeared in three
- * of them would read as three different projects.
- */
 const props = withDefaults(
     defineProps<{
         name: string;
         color: string | null;
         icon: string | null;
         size?: 'sm' | 'md' | 'lg';
-        /**
-         * Which surface this is drawn on. The sidebar rail stays dark in both themes and needs
-         * the light-on-tint pair; a page needs the pair that follows the theme.
-         */
+        /** `chrome` is the sidebar, which stays dark in both themes. */
         surface?: 'content' | 'chrome';
     }>(),
     { size: 'md', surface: 'content' },
@@ -37,7 +27,6 @@ const tint = computed(() =>
     props.surface === 'chrome' ? accentTileClass(props.color) : accentContentTileClass(props.color),
 );
 
-/** A chosen colour is a custom property rather than a class; the eight carry nothing (ADR-0021). */
 const tintVars = computed(() => accentVars(props.color));
 </script>
 

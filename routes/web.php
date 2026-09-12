@@ -7,10 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 
-/*
- * Public on purpose: the browser fetches the manifest before anybody has signed in, and an
- * install prompt that depends on a session never appears.
- */
+// Public: browsers fetch the manifest without a session.
 Route::get('manifest.webmanifest', ManifestController::class)->name('manifest');
 
 Route::middleware(['auth', 'verified'])->group(function () {

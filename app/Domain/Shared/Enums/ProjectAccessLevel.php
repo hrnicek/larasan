@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Shared\Enums;
 
 /**
- * Per-project access (ADR-0006). Independent of WorkspaceRole: a workspace Member may
- * hold the ProjectUpdate capability and still only view a project they were added to
- * as a Viewer. Both checks must pass.
+ * Checked in addition to the WorkspaceRole capability; both must pass. See ADR-0006.
  */
 enum ProjectAccessLevel: string
 {
@@ -17,9 +15,7 @@ enum ProjectAccessLevel: string
     case Viewer = 'viewer';
 
     /**
-     * The levels a project may hand to a workspace member who has no membership row of their
-     * own. `Owner` is not among them: managing a project belongs to the people who were named
-     * on it, never to everybody who can see it.
+     * Owner is excluded: it is only ever granted through an explicit project membership.
      *
      * @return list<self>
      */
@@ -29,9 +25,6 @@ enum ProjectAccessLevel: string
     }
 
     /**
-     * The levels that may change what a project holds, as values — the SQL half of
-     * `canEdit()`, for the queries that decide this for many projects at once.
-     *
      * @return list<string>
      */
     public static function editingValues(): array

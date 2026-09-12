@@ -22,7 +22,6 @@ it('follows a task the moment somebody is given it', function (): void {
 
     app(AssignTask::class)->handle($task, $actor, $assignee);
 
-    // Nobody should have to remember to subscribe to their own work.
     expect($task->followers()->pluck('users.id')->all())->toBe([$assignee->id]);
 });
 
@@ -34,8 +33,6 @@ it('leaves somebody watching a task that was taken back from them', function ():
     app(AssignTask::class)->handle($task, $actor, $assignee);
     app(AssignTask::class)->handle($task, $actor, null);
 
-    // Somebody handed a task and then handed it on may still want to know how it ends, and
-    // stopping is a button they already have.
     expect($task->followers()->pluck('users.id')->all())->toBe([$assignee->id]);
 });
 
@@ -45,7 +42,6 @@ it('follows a task the moment somebody says something about it', function (): vo
 
     app(CreateComment::class)->handle($task, $author, new CreateCommentData(body: 'Looks right to me'));
 
-    // Joining a conversation and hearing none of the replies is the worst of both.
     expect($task->followers()->pluck('users.id')->all())->toBe([$author->id]);
 });
 
@@ -69,10 +65,6 @@ it('starts watching again when somebody who had stopped comments', function (): 
 
     app(CreateComment::class)->handle($task, $author, new CreateCommentData(body: 'Second'));
 
-    /*
-     * Deliberate: unfollowing is "not now" rather than "never again", and speaking is the
-     * clearest statement of interest somebody can make.
-     */
     expect($task->followers()->pluck('users.id')->all())->toBe([$author->id]);
 });
 

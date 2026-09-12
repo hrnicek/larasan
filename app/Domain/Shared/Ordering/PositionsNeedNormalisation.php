@@ -7,9 +7,7 @@ namespace App\Domain\Shared\Ordering;
 use DomainException;
 
 /**
- * Not a user-facing failure: the caller catches this, normalises the set and retries the
- * move. It exists so that running out of room is impossible to mistake for a valid
- * position (ADR-0009).
+ * Not user-facing: the caller normalises the set and retries the move. See ADR-0009.
  */
 final class PositionsNeedNormalisation extends DomainException
 {

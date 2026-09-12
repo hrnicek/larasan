@@ -31,8 +31,6 @@ function calendarOf(
 }
 
 /**
- * The day the grid drew, by its date — the shape every assertion below reads.
- *
  * @param  array<string, mixed>  $calendar
  * @return array<string, mixed>
  */
@@ -50,10 +48,7 @@ function day(array $calendar, string $date): array
 }
 
 /**
- * A task in the project, due on that day.
- *
- * Every card gets a slot of its own because an ungrouped placement's position is unique per
- * project — two cards at the same position is a constraint violation, not a tie.
+ * Ungrouped placement positions are unique per project, so every card takes its own slot.
  */
 function due(Workspace $workspace, Project $project, string $date, string $title, ?int $slot = null): TaskProjectMembership
 {
@@ -66,7 +61,6 @@ function due(Workspace $workspace, Project $project, string $date, string $title
         ->create();
 }
 
-/** A task in the project that nobody has scheduled. */
 function unscheduled(Workspace $workspace, Project $project, string $title): TaskProjectMembership
 {
     return TaskProjectMembership::factory()
@@ -90,13 +84,11 @@ it('draws whole weeks around the month, Monday first', function (): void {
     /** @var list<array<string, mixed>> $days */
     $days = $calendar['days'];
 
-    // July 2026 starts on a Wednesday and ends on a Friday, so the grid runs from Monday the
-    // 29th of June to Sunday the 2nd of August: five whole weeks.
+    // July 2026 runs Wednesday to Friday, so the Monday-to-Sunday grid spans 29 June to 2 August.
     expect($days)->toHaveCount(35)
         ->and($days[0]['date'])->toBe('2026-06-29')
         ->and($days[34]['date'])->toBe('2026-08-02')
         ->and($calendar['month'])->toBe('2026-07')
-        // The spill from either side is drawn, and says it is not this month.
         ->and($days[0]['inMonth'])->toBeFalse()
         ->and($days[2]['inMonth'])->toBeTrue()
         ->and($days[34]['inMonth'])->toBeFalse();
@@ -154,8 +146,6 @@ it('draws a day in full once the reader opens it', function (): void {
     $calendar = calendarOf($project, $actor, '2026-07', [], ['2026-07-07']);
     $opened = day($calendar, '2026-07-07');
 
-    // The opened day only: every other cell keeps its page, or "see all" would be a switch that
-    // reads the whole month.
     expect($opened['tasks'])->toHaveCount(ProjectCalendarQuery::PER_DAY + 3)
         ->and($opened['hasMore'])->toBeFalse()
         ->and(array_column(day($calendar, '2026-07-08')['tasks'], 'title'))->toBe(['Elsewhere']);
@@ -189,7 +179,6 @@ it('leaves a deleted task out of the grid and out of the counts', function (): v
 
     $cell = day(calendarOf($project, $actor), '2026-07-07');
 
-    // The count and the rows come from one scope, so a cell cannot say more than it draws.
     expect(array_column($cell['tasks'], 'title'))->toBe(['Kept'])
         ->and($cell['count'])->toBe(1);
 });
@@ -247,12 +236,7 @@ it('reads a month in a bounded number of queries', function (): void {
 
     $calendar = calendarOf($project, $actor);
 
-    /*
-     * The counts, the page of ids, the cards, their tasks, those tasks' assignees and tags, the
-     * tray and its count and tasks and their two relations, plus the memberships the permissions
-     * ask for. A bound rather than an exact number, because those lookups are memoised per
-     * request (TASK-040-020) and a month with no cards asks fewer.
-     */
+    // A bound rather than an exact count: membership lookups are memoised and an empty month asks fewer.
     expect(count($queries))->toBeLessThanOrEqual(16)
         ->and($calendar['undated']['count'])->toBe(5);
 });

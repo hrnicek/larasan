@@ -4,31 +4,11 @@ import UserAvatar from '@/components/UserAvatar.vue';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { CalendarCardData } from '@/modules/task/types';
 
-/**
- * One task in a day cell.
- *
- * A cell is about a hundred and sixty pixels wide and holds several of these, so a chip carries
- * the least that still identifies a task: what it is called and who has it. The rest of what a
- * board card shows is one click away in the panel — a chip that tried to say everything would say
- * none of it legibly.
- *
- * No time of day. `due_at` can hold one, but nothing in this product can set one — the picker is
- * a calendar of days and the panel prints a date — so a clock on the chip would be a value the
- * reader cannot change, spending a third of the width of the cell.
- *
- * The full title is on the element as well as in it, so a truncated one is a hover away rather
- * than lost.
- */
 const props = withDefaults(
     defineProps<{
         card: CalendarCardData;
-        /** Dragging is how the calendar reschedules, so a chip only offers it when it is allowed. */
         editable: boolean;
         dragging: boolean;
-        /**
-         * `cell` is the grid's chip, packed four to a day. `row` is the same task drawn as a line
-         * of the phone's agenda, where there is a whole width to use and a finger to hit it with.
-         */
         variant?: 'cell' | 'row';
     }>(),
     { variant: 'cell' },
@@ -39,11 +19,7 @@ const emit = defineEmits<{
     pickup: [event: PointerEvent, card: CalendarCardData];
 }>();
 
-/*
- * Where the pointer went down, so the chip can tell a click from the end of a drag. Both finish
- * with a `click` over whatever the pointer is above, and opening the panel every time somebody
- * reschedules a task would make dragging useless.
- */
+// A drag also ends in `click`, so the pointer-down position tells a click from a drop.
 const origin = ref<{ x: number; y: number } | null>(null);
 
 const down = (event: PointerEvent): void => {

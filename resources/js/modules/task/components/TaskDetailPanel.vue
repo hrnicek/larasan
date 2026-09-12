@@ -5,17 +5,9 @@ import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
-/**
- * The task detail as an overlay panel: over the content, under the topbar, with the rest of the
- * application dimmed behind it.
- *
- * The task itself is `TaskDetailBody`, which the task's own page renders too — one component in
- * both places, so neither can drift. What lives here is only what an overlay owes: a pinned bar,
- * a way out, a way to make it a page, a focus trap and the place you came from.
- */
 defineProps<{
     detail: TaskDetail;
-    /** Deferred: absent until the follow-up request lands (TASK-100-011). */
+    /** Deferred prop, undefined until loaded. */
     activity?: TaskFeed;
     members: TaskAssignee[];
     priorities: string[];
@@ -25,27 +17,15 @@ const emit = defineEmits<{ close: []; open: [taskId: string] }>();
 
 const panel = ref<HTMLElement | null>(null);
 
-/*
- * Remembered as an id rather than an element. The row or card that opened the panel is
- * re-rendered while the panel is open, so the element reference goes stale and focus would land
- * on the document — which is the opposite of not losing your place.
- */
+// An id, not an element: the originating row re-renders while the panel is open.
 let restoreFocusToTask: string | null = null;
 
-/**
- * Whether the title has scrolled out of the body. Past that point the bar says which task it
- * belongs to, so the panel never shows a set of controls with no subject.
- */
 const scrolled = ref(false);
 
 const onScroll = (event: Event): void => {
     scrolled.value = (event.target as HTMLElement).scrollTop > 56;
 };
 
-/**
- * `Tab` cycles inside the panel while it is open, and `Esc` closes it. A panel you can tab out of
- * is a panel that loses your place in the list behind it.
- */
 const onKeydown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
         event.preventDefault();
@@ -91,7 +71,6 @@ onMounted(() => {
     restoreFocusToTask = origin?.dataset.taskId ?? null;
     panel.value?.focus();
 
-    // The page behind the panel must not scroll under it; the panel scrolls on its own.
     document.body.style.overflow = 'hidden';
 });
 
@@ -102,8 +81,6 @@ onUnmounted(() => {
         return;
     }
 
-    // Back to the row or card the panel was opened from: the keyboard equivalent of not losing
-    // your place.
     void nextTick(() => {
         document.querySelector<HTMLElement>(`[data-task-id="${restoreFocusToTask}"]`)?.focus();
     });
@@ -112,10 +89,6 @@ onUnmounted(() => {
 
 <template>
     <Teleport to="body">
-        <!--
-            Anchored below the topbar rather than over it: the topbar is where you get out of the
-            task and into anything else, and a panel that covers it is a panel with one exit.
-        -->
         <div class="fixed inset-x-0 top-13 bottom-0 z-40">
             <div class="absolute inset-0 bg-black/25 backdrop-blur-[1px]" @click="emit('close')" />
 
@@ -140,8 +113,6 @@ onUnmounted(() => {
                     @deleted="emit('close')"
                 />
 
-                <!-- No padding here: the thread at the foot of the body is a surface of its own and
-                     has to reach the panel's edges. Each block draws its own. -->
                 <div class="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent" @scroll="onScroll">
                     <TaskDetailBody
                         :detail="detail"

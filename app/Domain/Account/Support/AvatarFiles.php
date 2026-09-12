@@ -12,18 +12,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-/**
- * Where uploaded faces are kept: a disk by name (ADR-0007), with no route of its own.
- *
- * The extension comes from the type the file was read as, never from the name it arrived with.
- * An avatar is drawn inline from this application's own origin, and a stored `face.html` served
- * with the type its extension claims is a page, not a picture.
- */
 final readonly class AvatarFiles
 {
     /**
-     * No SVG: it is a document that can carry script, and a face is the one image every screen
-     * draws.
+     * SVG is excluded because it can carry script.
      *
      * @var array<string, string>
      */
@@ -41,8 +33,8 @@ final readonly class AvatarFiles
     }
 
     /**
-     * The type is read from the bytes here rather than asked of the upload: an `UploadedFile`
-     * handed in by a console command or a test may report the type its name suggests.
+     * The extension comes from the sniffed content type, never the client filename, so an upload
+     * cannot be served back as HTML.
      */
     public function store(User $user, UploadedFile $upload): string
     {

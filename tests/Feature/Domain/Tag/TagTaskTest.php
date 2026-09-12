@@ -47,7 +47,6 @@ it('treats a second attach as the same tag', function (): void {
     Event::fake();
     tagTask($task, $tag, $actor);
 
-    // Nothing changed, so nothing happened.
     expect($task->tags()->count())->toBe(1);
     Event::assertNotDispatched(TaskTagged::class);
 });
@@ -57,10 +56,7 @@ it('refuses a tag from another workspace', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $elsewhere = Tag::factory()->create();
 
-    /*
-     * Two valid ids that must not be combined. The foreign keys prove each row exists; only the
-     * Action proves they belong to the same tenant, because the pivot cannot say it.
-     */
+    // Foreign keys prove both rows exist, not that they share a workspace; only the Action checks that.
     expect(fn () => tagTask($task, $elsewhere, $actor))
         ->toThrow(TagException::class, 'That tag is not in this workspace.');
 
@@ -73,7 +69,6 @@ it('refuses somebody who may not edit the task', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $tag = Tag::factory()->in($workspace)->create();
 
-    // Tagging a task is editing it, so it asks exactly what every other edit asks.
     expect(fn () => tagTask($task, $tag, $guest))
         ->toThrow(TagException::class, 'You do not have permission to change this task.');
 });
@@ -86,7 +81,6 @@ it('refuses somebody who cannot reach the task', function (): void {
     TaskProjectMembership::factory()->placing($task, $private)->create();
     $tag = Tag::factory()->in($workspace)->create();
 
-    // The capability is not enough; `TaskPolicy::update()` answers reach first (TASK-070-017).
     expect(fn () => tagTask($task, $tag, $outsider))->toThrow(TagException::class);
 });
 
@@ -125,7 +119,6 @@ it('says nothing when the tag was not there', function (): void {
     Event::fake();
     untagTask($task, $tag, $actor);
 
-    // The outcome they asked for is already true — the shape `UnfollowTask` has.
     Event::assertNotDispatched(TaskUntagged::class);
 });
 

@@ -55,7 +55,6 @@ it('belongs to a workspace and goes with it', function (): void {
 
     $workspace->delete();
 
-    // The options go with the field, and the field goes with the workspace.
     expect(DB::table('custom_fields')->count())->toBe(0)
         ->and(DB::table('custom_field_options')->count())->toBe(0);
 });
@@ -64,7 +63,6 @@ it('refuses two fields whose names differ only in case', function (): void {
     $workspace = Workspace::factory()->create();
     insertCustomField($workspace, 'Estimate');
 
-    // Two columns on the same screen with the same heading is not a thing a workspace can have.
     expect(fn (): string => DB::transaction(fn (): string => insertCustomField($workspace, 'estimate')))
         ->toThrow(QueryException::class);
 });
@@ -79,10 +77,6 @@ it('lets two workspaces record the same thing', function (): void {
 it('refuses a type nothing could store', function (): void {
     $workspace = Workspace::factory()->create();
 
-    /*
-     * The type decides which column a value is written to, so a value outside the enum is a row
-     * nothing can read or store.
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertCustomField($workspace, 'Mystery', ['type' => 'hologram'])))
         ->toThrow(QueryException::class);
 });
@@ -91,7 +85,6 @@ it('refuses two options in one slot', function (): void {
     $field = insertCustomField(Workspace::factory()->create(), 'Stage');
     insertOption($field, 'Draft', 1);
 
-    // The order a screen draws is the order the table states, not whichever row came back first.
     expect(fn (): string => DB::transaction(fn (): string => insertOption($field, 'Review', 1)))
         ->toThrow(QueryException::class);
 });

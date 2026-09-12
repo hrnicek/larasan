@@ -44,8 +44,6 @@ it('renders a task that is in no project at all', function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    // A task with no placements is still a task (ADR-0003), and its page says so rather than
-    // refusing to render.
     $this->actingAs($actor)
         ->get(route('tasks.show', $task))
         ->assertOk()
@@ -67,8 +65,6 @@ it('refuses a task that lives only in a project the actor was not given', functi
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    // They can see the workspace, so the task is not a secret's existence — the access is
-    // what is refused (TASK-070-017).
     $this->actingAs($actor)
         ->get(route('tasks.show', $task))
         ->assertForbidden();
@@ -87,8 +83,6 @@ it('lets a guest read a task in a project they were given', function (): void {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('can.update', false)
-            // Viewer is the level below Commenter: they were given the project to read
-            // (ADR-0006), and the panel offers them neither control.
             ->where('can.comment', false));
 });
 
@@ -103,8 +97,6 @@ it('sends the lists the detail s own controls need', function (): void {
         ->assertInertia(function (AssertableInertia $page) use ($member): void {
             $props = $page->toArray()['props'];
 
-            // The same two lists the project screen sends, because the panel's controls are
-            // the same components the list row uses.
             expect(array_column($props['members'], 'id'))->toContain($member->id)
                 ->and($props['priorities'])->toContain('urgent');
         });
@@ -119,7 +111,6 @@ it('renames a task from its own page', function (): void {
         ->put(route('tasks.update', $task), ['title' => 'New name'])
         ->assertRedirect(route('tasks.show', $task));
 
-    // Only the title was sent, so the description is untouched (TASK-080-008).
     expect($task->fresh()?->title)->toBe('New name')
         ->and($task->fresh()?->description)->toBe('Kept');
 });
@@ -162,12 +153,6 @@ it('surfaces the depth limit rather than pre-empting it', function (): void {
         $deepest = Task::factory()->in($workspace)->create(['parent_id' => $deepest->id]);
     }
 
-    /*
-     * The limit belongs to the Action (`ParentChain::MAX_DEPTH`); the client surfaces its
-     * refusal rather than counting depth itself, because a second copy of the rule is the one
-     * that drifts. `TaskController` translates the refusal onto the field it is about, which
-     * is a better answer than the generic `refusal` key the renderer would give it.
-     */
     $this->actingAs($actor)
         ->from(route('tasks.show', $deepest))
         ->post(route('tasks.store'), ['title' => 'One too deep', 'parent_id' => $deepest->id])
@@ -228,8 +213,6 @@ it('defers the activity region rather than holding the page for it', function ()
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    // The first response carries everything the reader needs and not the region that can be
-    // slow — the case the frontend rule about skeletons was written for.
     $this->actingAs($actor)
         ->get(route('tasks.show', $task))
         ->assertOk()
@@ -242,11 +225,7 @@ it('sends the activity when the region asks for it', function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    /*
-     * The follow-up request a `<Deferred>` region makes. The asset-version middleware is
-     * skipped because this test is about the deferred prop, not about versioning — with it in
-     * place the request would 409 on a version header a test cannot know.
-     */
+    // HandleInertiaRequests is skipped so the asset version check does not answer 409.
     $this->actingAs($actor)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('tasks.show', $task), [
@@ -256,8 +235,6 @@ it('sends the activity when the region asks for it', function (): void {
         ])
         ->assertOk()
         ->assertJsonPath('component', 'tasks/Show')
-        // A partial response is JSON rather than a rendered page, so it is read as JSON: the
-        // region asked for `activity` and `activity` is what came back.
         ->assertJsonStructure(['props' => ['activity' => ['entries', 'meta']]]);
 });
 
@@ -266,8 +243,6 @@ it('answers the deferred region with the thread itself', function (): void {
     $task = Task::factory()->in($workspace)->create();
     Comment::factory()->on($task)->by($actor)->create(['body' => 'Looks right to me']);
 
-    // The region has been answering with an empty array since TASK-100-011. This is the task
-    // that gives it something to say.
     $this->actingAs($actor)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('tasks.show', $task), [
@@ -287,8 +262,6 @@ it('sends each thread line with the permissions its controls render from', funct
     Comment::factory()->on($task)->by($actor)->create(['body' => 'Mine']);
     Comment::factory()->on($task)->create(['body' => 'Theirs']);
 
-    // The Edit and Delete controls are rendered from these, never from a rule written into the
-    // template — a second copy of the policy in a component is the copy that goes stale.
     $this->actingAs($actor)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('tasks.show', $task), [
@@ -297,7 +270,6 @@ it('sends each thread line with the permissions its controls render from', funct
             'X-Inertia-Partial-Data' => 'activity',
         ])
         ->assertOk()
-        // Newest first from the server; the component reverses a page to draw it.
         ->assertJsonPath('props.activity.entries.0.canEdit', false)
         ->assertJsonPath('props.activity.entries.0.canDelete', true)
         ->assertJsonPath('props.activity.entries.1.canEdit', true)
@@ -315,13 +287,6 @@ it('tells the panel whether a comment form belongs on the screen', function (
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    /*
-     * A guest holds `comment.create` and nothing else (ADR-0010), and the level they were given
-     * decides whether that reaches this project: Commenter is the level that exists for exactly
-     * this — somebody outside the team taking part in one piece of work — and Viewer is the one
-     * below it. The flag is what the component hides the form by, and hiding is right where
-     * disabling would be an affordance leading nowhere.
-     */
     $this->actingAs($guest)
         ->get(route('tasks.show', $task))
         ->assertOk()
@@ -339,8 +304,6 @@ it('sends a task s tags and the workspace vocabulary to pick from', function ():
     Tag::factory()->in($workspace)->named('Docs')->create();
     tagTask($task, $applied, $actor);
 
-    // The picker offers what the workspace already has; making a tag is a different permission
-    // and a different control (TASK-140-004).
     $this->actingAs($actor)
         ->get(route('tasks.show', $task))
         ->assertOk()

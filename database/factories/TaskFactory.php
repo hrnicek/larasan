@@ -20,10 +20,6 @@ class TaskFactory extends Factory
     protected $model = Task::class;
 
     /**
-     * Every nullable column is set explicitly: strict Eloquent throws on an attribute the
-     * model never retrieved, so a factory that omits one hands each test a model that
-     * fails on first read.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -47,11 +43,6 @@ class TaskFactory extends Factory
         return $this->state(fn (): array => ['workspace_id' => $workspace->id]);
     }
 
-    /**
-     * Completed by somebody: a completion with no `completed_by` is a shape the Actions
-     * never produce, and a factory that produced it would let a test pass against a state
-     * the application cannot reach.
-     */
     public function completed(?User $by = null): self
     {
         return $this->state(fn (): array => [
@@ -69,7 +60,6 @@ class TaskFactory extends Factory
     {
         return $this->state(fn (): array => [
             'parent_id' => $parent->id,
-            // A subtask outside its parent's workspace is not a shape the domain allows.
             'workspace_id' => $parent->workspace_id,
         ]);
     }

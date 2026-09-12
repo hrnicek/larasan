@@ -6,11 +6,6 @@ import { useCommandPalette } from '@/modules/search/composables/useCommandPalett
 
 const { toggle, openMobile } = useShell();
 
-/*
- * The field is a button rather than an input, and it opens the palette rather than navigating:
- * the palette is where typing goes now, and it opens over whatever screen this is. The search
- * *screen* is still where a search with filters and pages lives (ADR-0012, ADR-0016).
- */
 const { show: openSearch } = useCommandPalette();
 </script>
 

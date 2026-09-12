@@ -13,11 +13,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * A claim that some thing points at a file.
- *
- * Nothing is fillable: which file and which subject are decided by the Action from what was
- * uploaded and what it was uploaded to, never by a payload.
- *
  * @property string $id
  * @property string $file_id
  * @property string $attachable_type

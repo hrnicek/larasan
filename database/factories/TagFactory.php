@@ -18,9 +18,6 @@ class TagFactory extends Factory
     protected $model = Tag::class;
 
     /**
-     * The name is unique per workspace and unique *case-insensitively*, so a factory that used
-     * a plain word would collide the moment a test made two tags.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

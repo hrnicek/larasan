@@ -14,18 +14,6 @@ class SweepRemovedFiles extends Command
 
     protected $description = 'Delete the objects of files removed longer ago than the retention window';
 
-    /**
-     * The other half of TASK-120-007's decision.
-     *
-     * Removing an attachment soft-deletes the file and deliberately leaves the object where it
-     * is: deleting bytes inside a request is the one thing in this application that cannot be
-     * undone. That makes this command the only place bytes are destroyed — on a schedule, after
-     * a window, where a mistake is noticed before it is permanent, and never while something
-     * still points at the file.
-     *
-     * The disk comes from each row rather than from configuration, so files written before
-     * `FILESYSTEM_ATTACHMENTS_DISK` changed are still found (ADR-0007).
-     */
     public function handle(): int
     {
         $cutoff = now()->subDays((int) config('attachments.sweep_after_days'));
@@ -37,12 +25,11 @@ class SweepRemovedFiles extends Command
             ->whereDoesntHave('attachments')
             ->chunkById(100, function ($files) use (&$swept): void {
                 foreach ($files as $file) {
+                    // The disk is read per row so files stored before the attachments disk
+                    // changed are still found. See ADR-0007.
                     $disk = Storage::disk($file->disk);
                     $thumbnail = $file->thumbnail();
 
-                    // The derivative goes with what it was derived from. Left behind it would be
-                    // an object nothing points at, which is precisely what this command exists
-                    // to stop accumulating.
                     if ($thumbnail !== null) {
                         $disk->delete($thumbnail['path']);
                     }

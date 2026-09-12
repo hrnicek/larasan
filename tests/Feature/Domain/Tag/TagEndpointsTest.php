@@ -21,7 +21,7 @@ it('renders the workspace vocabulary with what each tag would cost to delete', f
         ->get(route('tags.index'))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/Tags')
-            // Ordered by name, so the screen is read rather than searched.
+            // Ordered by name.
             ->where('tags.0.name', 'Bug')
             ->where('tags.0.color', ProjectColor::Rose->value)
             ->where('tags.0.taskCount', 1)
@@ -66,7 +66,6 @@ it('creates a tag', function (): void {
 
     $tag = Tag::query()->sole();
 
-    // Trimmed by the Action: the endpoint is a transport and nothing more.
     expect($tag->name)->toBe('Bug')
         ->and($tag->color?->paletteColor())->toBe(ProjectColor::Rose)
         ->and($tag->workspace_id)->toBe($workspace->id);
@@ -76,12 +75,9 @@ it('refuses a second tag with the same name in any case', function (): void {
     [$workspace, , $actor] = placeableProject();
     Tag::factory()->in($workspace)->named('Bug')->create();
 
-    // The race is real — two people can create "Bug" in the same second — so the unique index is
-    // what answers, and the Action turns it into a refusal.
     $this->actingAs($actor)
         ->from(route('dashboard'))
         ->post(route('tags.store'), ['name' => 'bug'])
-        // On the name box rather than as a toast: it is the box somebody can act on.
         ->assertSessionHasErrors('name');
 
     expect(Tag::query()->count())->toBe(1);
@@ -91,7 +87,6 @@ it('refuses somebody without tag.manage', function (): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
 
-    // Applying a tag is editing a task; inventing one changes what everybody's filters mean.
     $this->actingAs($guest)
         ->post(route('tags.store'), ['name' => 'Bug'])
         ->assertForbidden();
@@ -122,7 +117,7 @@ it('takes a colour the palette does not have, and refuses one that is neither', 
 
     $this->actingAs($actor)->put(route('tags.update', $tag), ['color' => '#3F7D5A'])->assertRedirect();
 
-    // Lower-cased on the way in, so `#3F7D5A` and `#3f7d5a` are one colour (ADR-0021).
+    // Hex colours are normalised to lower case. See ADR-0021.
     expect($tag->fresh()?->color?->value)->toBe('#3f7d5a');
 
     $this->actingAs($actor)
@@ -204,8 +199,6 @@ it('attaches the tag a name already belongs to rather than refusing it as a dupl
     $task = Task::factory()->in($workspace)->create();
     $bug = Tag::factory()->in($workspace)->named('Bug')->create();
 
-    // Somebody typing a word that exists means that word. The match is case-insensitive because
-    // the unique index is.
     $this->actingAs($actor)
         ->post(route('tasks.tags.store', $task), ['name' => 'bug'])
         ->assertRedirect();
@@ -219,11 +212,7 @@ it('turns a guest away before a name can reach the vocabulary', function (): voi
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $task = Task::factory()->in($workspace)->create();
 
-    /*
-     * The transport asks `update` on the task and `CreateTag` asks `tag.manage`, which are two
-     * questions — but no role currently holds the first without the second, so this is the only
-     * refusal that can be demonstrated through HTTP. `ManageTagsTest` covers the Action's own.
-     */
+    // No role holds task update without tag.manage, so only this refusal is reachable over HTTP.
     $this->actingAs($guest)
         ->post(route('tasks.tags.store', $task), ['name' => 'Bug'])
         ->assertForbidden();
@@ -248,8 +237,6 @@ it('refuses to put a tag from another workspace on a task', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $elsewhere = Tag::factory()->create();
 
-    // A 404 before the Action has to refuse it — and the Action still refuses, for callers that
-    // never pass through here.
     $this->actingAs($actor)
         ->post(route('tasks.tags.store', $task), ['tag' => $elsewhere->id])
         ->assertNotFound();

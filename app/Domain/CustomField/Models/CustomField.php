@@ -17,13 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Something a workspace has decided it wants to record about its work.
- *
- * The **type is not fillable**: it decides which column every value of this field lives in, so
- * changing it would leave the answers people have already given in a column nothing reads.
- * Changing a field's type is a migration of its data, not an edit — and until somebody asks for
- * it, it is not an operation at all.
- *
  * @property string $id
  * @property string $workspace_id
  * @property string $name
@@ -36,6 +29,7 @@ class CustomField extends Model
     /** @use HasFactory<CustomFieldFactory> */
     use HasFactory, HasUuids;
 
+    // Type is not fillable: it decides which column existing values are stored in.
     protected $fillable = ['name'];
 
     /** @return BelongsTo<Workspace, $this> */
@@ -45,8 +39,6 @@ class CustomField extends Model
     }
 
     /**
-     * The choices, in the order the screen draws them.
-     *
      * @return HasMany<CustomFieldOption, $this>
      */
     public function options(): HasMany
@@ -55,9 +47,6 @@ class CustomField extends Model
     }
 
     /**
-     * The projects that show this field. The inverse of `Project::customFields()`, and what the
-     * settings screen counts to say what a deletion would take off which boards.
-     *
      * @return BelongsToMany<Project, $this>
      */
     public function projects(): BelongsToMany

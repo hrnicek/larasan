@@ -9,15 +9,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * A face is one of the illustrations the application ships, or a picture somebody uploaded —
-     * never both, and never an illustration that does not exist. Both rules are constraints
-     * rather than validation, because a console command or a seeder arrives without a request.
-     *
-     * The bound is written out rather than read from `AvatarPresets::COUNT`: a migration records
-     * what the schema was when it ran, and shipping a twenty-seventh illustration is a new
-     * migration widening this one.
-     */
+    // The preset bound is literal, so shipping more illustrations needs a new migration.
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table): void {

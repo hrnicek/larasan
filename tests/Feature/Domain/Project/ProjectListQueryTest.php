@@ -26,9 +26,6 @@ function listOf(Project $project, User $actor): array
     return [app(ProjectListQuery::class)($project, $actor), $project];
 }
 
-/**
- * A card in a project, optionally in a column, at a chosen slot.
- */
 function card(Workspace $workspace, Project $project, ?Section $section, int $slot, string $title): TaskProjectMembership
 {
     $factory = TaskProjectMembership::factory()
@@ -63,8 +60,6 @@ it('renders the ungrouped bucket as a group of its own', function (): void {
     [$list] = listOf($project, $actor);
     $last = $list['sections'][count($list['sections']) - 1];
 
-    // A card in the project and in no column is not missing (ADR-0004). A list that dropped
-    // it would lose work rather than misplace it.
     expect($last['id'])->toBeNull()
         ->and(array_column($last['tasks'], 'title'))->toBe(['In no column']);
 });
@@ -86,8 +81,6 @@ it('lists an empty column rather than hiding it', function (): void {
 
     [$list] = listOf($project, $actor);
 
-    // A column with no cards is still a column: hiding it would make "add a task here"
-    // impossible for the one place that needs it most.
     expect($list['sections'])->toHaveCount(1)
         ->and($list['sections'][0]['count'])->toBe(0)
         ->and($list['sections'][0]['tasks'])->toBe([]);
@@ -103,8 +96,6 @@ it('counts a column the same way it fills it', function (): void {
 
     [$list] = listOf($project, $actor);
 
-    // The header and the rows come from one collection, so a soft-deleted task cannot leave
-    // a count of two above a single row (TASK-050-013).
     expect($list['sections'][0]['count'])->toBe(1)
         ->and($list['sections'][0]['tasks'])->toHaveCount(1);
 });
@@ -146,12 +137,7 @@ it('reads a whole board without a query per card', function (): void {
 
     [$list] = listOf($project, $actor);
 
-    /*
-     * Twelve cards, twelve assignees, and a fixed number of queries: the placements, their
-     * tasks, the assignees, the sections, and the authorization the actor's membership
-     * answers. Asserted as a bound rather than an exact figure because the membership
-     * lookups are memoised per request (TASK-040-020) and a test is one request.
-     */
+    // A bound rather than an exact count, because membership lookups are memoised per request.
     expect($list['sections'][0]['tasks'])->toHaveCount(12)
         ->and(count($queries))->toBeLessThanOrEqual(10);
 });
@@ -162,9 +148,7 @@ it('never asks the placement policy per card', function (): void {
     card($workspace, $project, $column, 1, 'A');
     card($workspace, $project, $column, 2, 'B');
 
-    // The Phase 070 review found this by probe: authorizing a collection of cards row by row
-    // throws outside production and is an N+1 inside it (TASK-070-015). The answer is the
-    // same for every card, so it is answered once for the project.
+    // Per-card authorization would trip the lazy-loading guard and be an N+1 in production.
     [$list] = listOf($project, $actor);
 
     expect($list['can'])->toBe([
@@ -200,7 +184,6 @@ it('closes an archived project to changes while still showing it', function (): 
 
     [$list] = listOf($project->refresh(), $actor);
 
-    // Read-only, not hidden: an archived board still shows what it held (TASK-050-013).
     expect($list['can'])->toBe([
         'createTask' => false,
         'updateTask' => false,
@@ -231,8 +214,6 @@ it('counts a row s comments and leaves the removed ones out', function (): void 
     Comment::factory()->on($task)->count(3)->create();
     Comment::factory()->on($task)->create()->delete();
 
-    // The thread still shows the removed one so the conversation reads correctly; a card that
-    // counted it would promise something that is not there.
     [$list] = listOf($project, $actor);
 
     expect($list['sections'][0]['tasks'][0]['comments'])->toBe(3);

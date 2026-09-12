@@ -38,12 +38,6 @@ class WorkspaceController extends Controller
                     'slug' => $workspace->slug,
                 ])
                 ->all() ?? [],
-            /*
-             * The workspaces somebody has been asked to join belong on the screen that
-             * answers which workspaces they are in — and it is where the invitation mail
-             * lands. Rows already swept to `expired` are left out: there is nothing to
-             * answer, and the answer is to ask for a new invitation.
-             */
             'invitations' => $actor?->workspaceMemberships()
                 ->with('workspace', 'invitedBy')
                 ->where('status', WorkspaceMembershipStatus::Invited->value)
@@ -63,11 +57,7 @@ class WorkspaceController extends Controller
     public function create(): Modal
     {
         return Inertia::modal('workspaces/Create', [
-            /*
-             * The list the `timezone` rule checks against, so the picker cannot offer a zone
-             * the store request would refuse — and a browser's own list would, because it
-             * still reports legacy aliases such as `Asia/Calcutta`.
-             */
+            // The list the `timezone` rule validates against; browsers still report legacy aliases.
             'options' => [
                 'timezones' => DateTimeZone::listIdentifiers(),
             ],
@@ -81,11 +71,7 @@ class WorkspaceController extends Controller
             CreateWorkspaceData::fromRequest($request),
         );
 
-        /*
-         * The creator lands in the workspace they just made. Without this the settings
-         * screen would resolve whichever workspace they were in before, because
-         * resolution reads the stored choice and this request never named one.
-         */
+        // The redirect resolves the stored workspace, so point it at the new one first.
         $request->user()?->forceFill(['current_workspace_id' => $workspace->id])->save();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Workspace created.')]);
@@ -94,10 +80,7 @@ class WorkspaceController extends Controller
     }
 
     /**
-     * Switching is a redirect, because the work is already done: the resolution
-     * middleware refuses a workspace the actor has no active membership in and records
-     * the one it resolved. Repeating either here would be a second implementation of the
-     * same rule, and the weaker of the two would eventually win.
+     * The resolution middleware has already validated and stored the workspace.
      */
     public function switch(Request $request): RedirectResponse
     {
@@ -138,10 +121,6 @@ class WorkspaceController extends Controller
         return to_route('workspaces.edit');
     }
 
-    /**
-     * The workspace the resolution middleware already resolved and proved membership
-     * for. Re-reading the route parameter here would be a second, weaker check.
-     */
     private function current(Request $request): Workspace
     {
         return ResolveCurrentWorkspace::from($request) ?? abort(404);

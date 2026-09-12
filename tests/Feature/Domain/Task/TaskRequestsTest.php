@@ -15,11 +15,6 @@ use App\Http\Requests\Task\UpdateTaskRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The endpoints arrive with TASK-060-017. Probe routes assert the requests for what they
- * are — validation and authorization — before a controller exists to confuse a failure
- * with a routing one.
- */
 beforeEach(function (): void {
     Route::middleware('web')->post('task-probe/{workspace}', function (StoreTaskRequest $request) {
         $data = CreateTaskData::fromRequest($request);

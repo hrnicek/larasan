@@ -66,10 +66,6 @@ function switchTo(workspace: WorkspaceSummary): void {
 
             <DropdownMenuSeparator />
 
-            <!--
-                The way to an invitation for somebody who no longer has the mail: this list is
-                where the ones waiting for them are answered.
-            -->
             <DropdownMenuItem as-child class="gap-2">
                 <Link :href="index()" component="workspaces/Index">
                     <List class="size-4" />
@@ -86,11 +82,6 @@ function switchTo(workspace: WorkspaceSummary): void {
         </DropdownMenuContent>
     </DropdownMenu>
 
-    <!--
-        Somebody who belongs to no workspace is exactly who may have been invited to one, so this
-        goes to the list — which offers both the invitations waiting for them and the button to
-        make a workspace of their own.
-    -->
     <Link
         v-else
         :href="index()"

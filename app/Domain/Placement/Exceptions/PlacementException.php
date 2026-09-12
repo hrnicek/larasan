@@ -7,11 +7,6 @@ namespace App\Domain\Placement\Exceptions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * Invariants the placement Actions refuse for every caller. A FormRequest catches most of
- * them first; the Action still checks, because a console command or a queued job arrives
- * without one.
- */
 final class PlacementException extends DomainException implements DomainRefusal
 {
     public static function cannotPlaceTasks(): self
@@ -34,11 +29,6 @@ final class PlacementException extends DomainException implements DomainRefusal
         return new self('A task cannot be placed after itself.');
     }
 
-    /**
-     * The rule no foreign key can express: `task_id` and `project_id` each point at a valid
-     * row, and the pair is still wrong when the two rows belong to different tenants
-     * (ADR-0003).
-     */
     public static function taskBelongsToAnotherWorkspace(): self
     {
         return new self('That task is not in this workspace.');

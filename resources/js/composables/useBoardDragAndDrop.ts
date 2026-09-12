@@ -5,21 +5,12 @@ import PlacementController from '@/actions/App/Http/Controllers/Placement/Placem
 import { perFrame } from '@/lib/perFrame';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
-/**
- * What this needs of a card and of a column, and nothing more.
- *
- * The board's columns and the list's sections are different shapes carrying different fields;
- * what a *move* is does not depend on any of them. Typed structurally so the two views share one
- * implementation of "this card, into this group, after that one" rather than growing a second
- * one that will disagree with the first about a rollback.
- */
 type Movable = { placementId?: string };
 type Grouped<T extends Movable> = { id: string | null; tasks: T[] };
 
 export type DragSurface = {
-    /** What a draggable element is called in the DOM. The board draws cards, the list draws rows. */
     cardSelector: string;
-    /** The prop to re-read when the server refuses a move. */
+    /** Prop reloaded when the server refuses a move. */
     reloadKey: string;
 };
 
@@ -28,63 +19,26 @@ const BOARD: DragSurface = { cardSelector: '[data-task-card]', reloadKey: 'board
 export type BoardDrag = {
     draggingId: Ref<string | null>;
     overColumn: Ref<string | null>;
-    /**
-     * Where the card would land if it were dropped now: the group under the pointer, and the
-     * placement it would sit **above** — `null` meaning the end of that group.
-     *
-     * Exposed so a view can draw the slot rather than only tint the column. "Somewhere in this
-     * column" is not an answer to "where am I putting this", and a list where every row is the
-     * same height is exactly where that question is hardest to answer by eye.
-     */
+    /** `before` is the placement the card would land above; `null` is the end of the group. */
     dropTarget: Ref<{ key: string; before: string | null } | null>;
     pickUp: (event: PointerEvent, card: BoardCardData) => void;
-    /**
-     * The request a drop makes, shared with the keyboard path so the two cannot disagree
-     * about what a move means. `rollbackTo` is the board as it was before the move began —
-     * the keyboard path moves a card several times before dropping it, and "before" is where
-     * it was picked up, not where the last arrow left it.
-     */
+    /** `rollbackTo` is the board as it was when the card was picked up, not after the last step. */
     commit: (placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]) => void;
-    /** The board as it stands, for a caller that is about to change it. */
     snapshot: () => BoardColumnData[];
-    /**
-     * Move a card to the end of a column without dragging it — the phone's path, and a
-     * perfectly good one on a desktop too.
-     */
     moveTo: (placementId: string, columnKey: string) => void;
 };
 
 const keyOf = (columnId: string | null): string => columnId ?? 'ungrouped';
 
-/** Below this the pointer was a click, not a drag. */
+/** Pixels of pointer travel below which a press is a click, not a drag. */
 const THRESHOLD = 4;
 
-/**
- * Picking a card up and putting it down.
- *
- * Pointer events rather than HTML5 drag and drop. The native API cannot be driven by a
- * synthetic pointer, which would make TASK-090-016's requirement — that an actual drag has
- * been observed working — impossible to meet honestly; it also has no touch support, so the
- * board would have needed a second implementation for phones anyway.
- *
- * What a drop produces is "this card, into this column, after that one" — the shape
- * `MoveTaskInProject` already takes (ADR-0009). Never an index: an index is a number the
- * server would have to trust from a board that may be seconds out of date, and two people
- * dragging at once is exactly when it would be wrong.
- *
- * This is the one place optimistic UI is permitted, and the rollback is what earns it: the
- * card moves locally, the request confirms it, and a failure puts the card back in the slot it
- * came from rather than merely the column. The message is the server's — the refusal renderer
- * already flashes it.
- */
+// Pointer events rather than HTML5 drag and drop, which cannot be driven synthetically and has no
+// touch support. A drop sends its neighbour, never an index. See ADR-0009.
 export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: () => boolean): BoardDrag {
     return useTaskDragAndDrop(columns, enabled, BOARD) as BoardDrag;
 }
 
-/**
- * The same picking-up and putting-down, for any view that groups placements into ordered
- * columns. The board is one caller; the list is the other.
- */
 export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
     columns: Ref<C[]>,
     enabled: () => boolean,
@@ -108,7 +62,6 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 
     const snapshot = (): C[] => columns.value.map((column) => ({ ...column, tasks: [...column.tasks] }));
 
-    /** The column under the pointer, and which card the dragged one would land above. */
     const targetUnder = (x: number, y: number): { key: string; before: string | null } | null => {
         const element = document.elementFromPoint(x, y);
         const column = element?.closest<HTMLElement>('[data-column-key]');
@@ -146,9 +99,7 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
             {
                 preserveScroll: true,
                 onError: () => {
-                    // Back to the exact slot, not merely the column — and then ask the server
-                    // what the board actually looks like. A refusal usually means somebody
-                    // else moved something, and the snapshot is only right about this card.
+                    // The snapshot is only right about this card, so the board is reloaded as well.
                     columns.value = rollbackTo;
 
                     router.reload({ only: [surface.reloadKey] });
@@ -177,13 +128,10 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 
         target.tasks.splice(index, 0, card);
 
-        // Dropped where it already was: nothing to write, and nothing to announce.
         if (origin.column === target && origin.index === index) {
             return;
         }
 
-        // The neighbour it now follows. No neighbour means the top of the column, which the
-        // server hears as `at: 'front'` — never as a position.
         const after = index === 0 ? null : target.tasks[index - 1];
 
         send(placementId, target.id, after?.placementId ?? null, previous);
@@ -215,8 +163,6 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
             const startY = event.clientY;
             let dragging = false;
 
-            // Where the card would land, answered once a frame rather than once a pointer event:
-            // the answer reads a box per card in the column, and it can only be seen once a frame.
             const track = perFrame((x: number, y: number): void => {
                 const under = targetUnder(x, y);
 

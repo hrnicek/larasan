@@ -7,12 +7,6 @@ use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Models\Task;
 
-/*
- * The unit tests prove the arithmetic of the chain; these prove the Action and the endpoint
- * refuse what it rejects, and — just as importantly — that a legitimate deep chain still
- * works. A rule that refuses too much is as broken as one that refuses too little.
- */
-
 it('accepts a chain one level short of the limit', function (): void {
     [$root, $actor] = taskEditableBy();
 

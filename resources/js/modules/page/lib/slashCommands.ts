@@ -15,18 +15,10 @@ import type { Editor, Range } from '@tiptap/vue-3';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
 
 type SlashCommandDefinition = SlashCommand & {
-    /** What the block is called elsewhere, so "bullet" finds the bulleted list. */
     aliases: string[];
     run: (editor: Editor, range: Range) => void;
 };
 
-/**
- * Every block a slash can insert — which is every block the server keeps.
- *
- * The range is replaced rather than the slash being deleted afterwards: what the person typed is
- * the command, and leaving it on the line for a tick is how an editor gets a stray "/" in a
- * paragraph.
- */
 export const slashCommands: SlashCommandDefinition[] = [
     {
         key: 'paragraph',
@@ -123,7 +115,6 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
 ];
 
-/** Matched on the label and on what the block is called elsewhere, so "bullet" finds the list. */
 export function matchingCommands(query: string): SlashCommandDefinition[] {
     const term = query.trim().toLowerCase();
 

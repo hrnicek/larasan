@@ -17,8 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 /**
- * A card in the project, with the given tags on it.
- *
  * @param  list<Tag>  $tags
  */
 function taggedCard(Project $project, User $actor, string $title, array $tags, int $slot): Task
@@ -42,10 +40,6 @@ it('filters a list to the cards carrying every tag', function (): void {
     taggedCard($project, $actor, 'Only bug', [$bug], 2);
     taggedCard($project, $actor, 'Neither', [], 3);
 
-    /*
-     * All rather than any: a filter that widened as you added terms would be the opposite of
-     * what picking a second tag means.
-     */
     $list = app(ProjectListQuery::class)($project, $actor, [$bug->id, $urgent->id]);
 
     expect(array_column($list['sections'][0]['tasks'], 'title'))->toBe(['Both']);
@@ -58,8 +52,6 @@ it('filters a board and its counts together', function (): void {
     taggedCard($project, $actor, 'Tagged', [$bug], 1);
     taggedCard($project, $actor, 'Untagged', [], 2);
 
-    // A column's header must not disagree with its contents: counting and rendering go through
-    // the same scope.
     $board = app(ProjectBoardQuery::class)($project, $actor, [], [$bug->id]);
 
     expect(array_column($board['columns'][0]['tasks'], 'title'))->toBe(['Tagged'])
@@ -73,7 +65,6 @@ it('treats no tags as no filter', function (): void {
     taggedCard($project, $actor, 'Tagged', [$bug], 1);
     taggedCard($project, $actor, 'Untagged', [], 2);
 
-    // An empty list is no filter at all rather than a filter nothing matches.
     expect(app(ProjectListQuery::class)($project, $actor, [])['sections'][0]['tasks'])->toHaveCount(2);
 });
 
@@ -83,8 +74,7 @@ it('matches nothing for a tag that is not on anything', function (): void {
 
     taggedCard($project, $actor, 'Untagged', [], 1);
 
-    // The ungrouped bucket appears only when it holds something, so a filter that matches
-    // nothing leaves the screen with no groups at all rather than an empty one.
+    // The ungrouped section is omitted when it is empty.
     expect(app(ProjectListQuery::class)($project, $actor, [$unused->id])['sections'])->toBe([]);
 });
 
@@ -103,7 +93,6 @@ it('reads a filtered board without a query per card', function (): void {
 
     $board = app(ProjectBoardQuery::class)($project, $actor, [], [$bug->id]);
 
-    // The filter is a condition on the reads the board already makes, not a read per card.
     expect($board['columns'][0]['tasks'])->toHaveCount(12)
         ->and($board['columns'][0]['count'])->toBe(12)
         ->and(count($queries))->toBeLessThanOrEqual(8);
@@ -132,10 +121,6 @@ it('renders a board rather than an error when a link names a tag that is gone', 
     $id = $tag->id;
     $tag->delete();
 
-    /*
-     * A 404 for a deleted tag would throw away a board somebody can still read. The filter
-     * matches nothing, which is the honest answer to a stale link.
-     */
     $this->actingAs($actor)
         ->get(route('projects.show', [$project, 'view' => ProjectDefaultView::List->value, 'tags' => [$id]]))
         ->assertOk()
@@ -166,7 +151,6 @@ it('draws each card s tags without a query per card', function (): void {
 
     $board = app(ProjectBoardQuery::class)($project, $actor);
 
-    // The chips the cards have been leaving room for since Phase 090 cost one read for the page.
     expect(array_column($board['columns'][0]['tasks'][0]['tags'], 'name'))->toBe(['Bug', 'Urgent'])
         ->and(count($queries))->toBeLessThanOrEqual(9);
 });

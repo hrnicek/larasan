@@ -8,13 +8,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * What a workspace has decided it wants to record about its work.
- *
- * Names are unique per workspace and unique **case-insensitively**, for the reason tags are:
- * two fields called "Estimate" and "estimate" would be two columns on the same screen with the
- * same heading.
- */
 return new class extends Migration
 {
     public function up(): void
@@ -29,9 +22,6 @@ return new class extends Migration
 
         DB::statement('CREATE UNIQUE INDEX custom_fields_workspace_id_lower_name_unique ON custom_fields (workspace_id, lower(name))');
 
-        // The type decides which column a value is written to, so a value outside the enum is a
-        // row nothing can read or store — the same reason every other enum column here carries
-        // its constraint.
         $values = implode(', ', array_map(
             fn (CustomFieldType $case): string => "'".$case->value."'",
             CustomFieldType::cases(),

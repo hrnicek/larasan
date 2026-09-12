@@ -10,19 +10,6 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Models\User;
 
-/**
- * Decide the order this project's list draws its columns in.
- *
- * `custom_field.manage`, the same permission attaching a field asks for, and for the same reason
- * `AttachFieldToProject` states: what everybody's board looks like is not what `task.update` is
- * for. It is one drawer, one kind of decision, one permission.
- *
- * The whole order arrives at once. An order applied in halves is an order somebody can interrupt
- * into a shape nobody chose, and the list is short enough that sending it whole costs nothing.
- * What is stored is filtered to keys the project could actually draw — a payload naming a field
- * from another project is not an error worth a refusal, it is a key that means nothing, and
- * `ListColumns::for()` would drop it on the way out anyway.
- */
 final readonly class ReorderProjectColumns
 {
     /**
@@ -41,9 +28,7 @@ final readonly class ReorderProjectColumns
 
         $ordered = array_values(array_intersect(array_values(array_unique($columns)), $available));
 
-        // Storing nothing rather than a copy of the default: a project that is put back the way it
-        // was should read as one nobody has reordered, so a field attached later still lands at
-        // the end instead of behind an order that happens to name everything.
+        // Null when it matches the default, so fields attached later still append at the end.
         $project->list_columns = $ordered === $available ? null : $ordered;
         $project->save();
 

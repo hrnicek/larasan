@@ -11,14 +11,6 @@ use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Say what a task is about.
- *
- * Tagging a task is **editing** it, so the question is `update` on the task — reach and the
- * `task.update` capability, answered once by `TaskPolicy`. `tag.manage` is a different
- * permission for a different thing: making and renaming the workspace's vocabulary
- * (TASK-140-004).
- */
 final readonly class AttachTagToTask
 {
     public function __construct(private Dispatcher $events) {}
@@ -29,17 +21,11 @@ final readonly class AttachTagToTask
             throw TagException::cannotTagTask();
         }
 
-        /*
-         * Two valid ids that must not be combined. The foreign keys prove each row exists; only
-         * this check proves they belong to the same tenant, and it lives here because the
-         * schema cannot express it (ADR-0005).
-         */
+        // Foreign keys cannot enforce that the tag and the task share a workspace. See ADR-0005.
         if ($tag->workspace_id !== $task->workspace_id) {
             throw TagException::tagIsFromAnotherWorkspace();
         }
 
-        // Attaching twice is the same tag, not two of them — and not an event either, because
-        // nothing changed.
         if ($task->tags()->whereKey($tag->id)->exists()) {
             return;
         }

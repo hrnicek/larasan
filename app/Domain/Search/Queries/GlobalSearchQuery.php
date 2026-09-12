@@ -10,23 +10,10 @@ use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-/**
- * One term, five kinds of answer.
- *
- * Each kind is asked separately and ranked within itself, because a task and a person have
- * nothing to be ranked against each other by: the palette shows the best few of each and lets a
- * reader's eye do what a score cannot.
- *
- * When the engine cannot be reached, tasks are still answered from PostgreSQL's own full-text
- * index (ADR-0012, kept as the degraded path by ADR-0016) and the response says so. Search dying
- * entirely because a container restarted is a worse failure than a narrower answer.
- */
 final readonly class GlobalSearchQuery
 {
-    /** How many of each kind the palette shows before it stops being a palette. */
     public const PER_KIND = 5;
 
-    /** How many one kind gets when it is the only kind asked for — the tabs. */
     public const PER_KIND_ALONE = 20;
 
     public function __construct(
@@ -62,12 +49,6 @@ final readonly class GlobalSearchQuery
             try {
                 $results[$name] = $this->fromEngine($wanted, $workspace, $actor, $term, $limit);
             } catch (Throwable $failure) {
-                /*
-                 * The engine is a second service, and services stop — one index at a time, in the
-                 * case of a deployment that has not run `scout:import` yet. One kind failing must
-                 * not take the others with it, which is why this is caught per kind rather than
-                 * around all of them.
-                 */
                 Log::warning('Search fell back for one kind.', [
                     'kind' => $name,
                     'exception' => $failure->getMessage(),
@@ -100,10 +81,6 @@ final readonly class GlobalSearchQuery
     }
 
     /**
-     * The degraded path: PostgreSQL's own full-text index, tasks only, no typo tolerance
-     * (ADR-0012, kept by ADR-0016). Search answering less is better than search answering
-     * nothing because a container restarted.
-     *
      * @return list<array<string, mixed>>
      */
     private function tasksFromDatabase(Workspace $workspace, User $actor, string $term, int $limit): array

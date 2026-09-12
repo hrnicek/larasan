@@ -8,15 +8,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
 /**
- * The workspace a request is operating in, resolved once.
- *
- * `ResolveWorkspaceForUser` is a query and stays one. The problem it cannot solve on its own
- * is that four route bindings and one middleware all need the answer, and route model
- * binding runs before the middleware that would have cached it — so a request that touched
- * a project ran the resolution twice and its membership subquery four times.
- *
- * Request-scoped, and emptied whenever a membership row changes, for the same reason
- * `MembershipRegistry` is: an answer about access must never outlive the row it came from.
+ * Request-scoped memo, flushed with MembershipRegistry whenever a membership row changes.
  */
 final class CurrentWorkspace
 {

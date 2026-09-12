@@ -14,15 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Autosave.
- *
- * The one endpoint in the application that answers with JSON rather than a redirect, because
- * the caller is not a form: it is an editor somebody is still typing into, and re-rendering
- * the page under them is exactly what must not happen.
- *
- * A stale save is a 409 rather than the 422 a domain refusal usually becomes. The distinction
- * is worth the code: 422 says "what you sent is wrong", and what the writer sent is fine — the
- * page simply moved on without them, and the client has to reload rather than retry.
+ * A stale save answers 409 rather than 422, so the editor reloads instead of retrying.
  */
 class PageContentController extends Controller
 {

@@ -48,8 +48,6 @@ it('refuses to fill what an Action owns', function (): void {
     $task->workspace_id = $workspace->id;
     $task->save();
 
-    // completed_at, completed_by, created_by and workspace_id are not fillable: a request
-    // that sends them changes nothing, which is the point.
     expect($task->fresh()?->assignee_id)->toBe($intruder->id)
         ->and($task->fresh()?->completed_at)->toBeNull()
         ->and($task->fresh()?->created_by)->toBeNull();
@@ -80,8 +78,7 @@ it('loads its people without a query per row', function (): void {
     $assignee = User::factory()->create();
     Task::factory()->in($workspace)->assignedTo($assignee)->count(3)->create();
 
-    // A collection, never `first()`: Eloquent only arms the lazy-loading guard for result
-    // sets with more than one row.
+    // Eloquent only arms the lazy-loading guard for result sets with more than one row.
     $tasks = Task::query()->with('assignee')->get();
 
     expect($tasks)->toHaveCount(3)

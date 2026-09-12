@@ -1,11 +1,5 @@
-# Docker for local development, through Laravel Sail. The application also runs directly on a host
-# with PHP, Node, PostgreSQL, Redis and Meilisearch installed — see CONTRIBUTING.md — and neither
-# way is the "real" one.
-#
-# The hostnames a container resolves live in `.env.docker.example`, which is copied over `.env`.
-# They are deliberately not set here: `php artisan serve` passes only a fixed list of variables
-# through to a request (ServeCommand::$passthroughVariables), so anything set in this file would
-# reach an artisan command and never the served application.
+# Container hostnames belong in .env.docker.example, not here:
+# php artisan serve only forwards a fixed list of env vars to the request.
 
 x-app: &app
     build:
@@ -18,11 +12,9 @@ x-app: &app
         - 'host.docker.internal:host-gateway'
     volumes:
         - '.:/var/www/html'
-        # A volume of its own, so the container's `node_modules` and a host one never overwrite
-        # each other. esbuild and rollup ship platform-specific binaries, and a checkout used both
-        # ways would otherwise install Linux ones over the host's on every `npm install`.
+        # Keeps the container's platform-specific node_modules binaries apart from the host's.
         - 'sail-node-modules:/var/www/html/node_modules'
-        # Sorted after the image's own 99-sail.ini. See the file for what it settles.
+        # Named to load after the image's 99-sail.ini.
         - './docker/php/99-zz-larasan.ini:/etc/php/8.4/cli/conf.d/99-zz-larasan.ini:ro'
     networks:
         - sail
@@ -43,13 +35,9 @@ services:
     laravel.test:
         <<: *app
         ports:
-            # 8000 rather than 80, because `.env.example` already says APP_URL=http://localhost:8000
-            # and a URL the application prints should be one that works.
             - '${APP_PORT:-8000}:80'
             - '${VITE_PORT:-5173}:${VITE_PORT:-5173}'
 
-    # The queue, supervised as it is in production (ADR-0011). Without it an invitation is written
-    # and never sent, a thumbnail is never made, and the inbox stays empty.
     horizon:
         <<: *app
         command: ['php', 'artisan', 'horizon']
@@ -61,15 +49,11 @@ services:
             redis:
                 condition: service_healthy
 
-    # Realtime is an enhancement, never the source of truth (ADR-0008) — the application works
-    # with this container stopped, and only presence degrades.
     reverb:
         <<: *app
         command: ['php', 'artisan', 'reverb:start']
         ports:
-            # Forwarded like every other service, and deliberately not tied to REVERB_PORT: that
-            # one is what PHP dials inside the network, where the server always listens on 8080.
-            # A browser reaching a different port is what VITE_REVERB_PORT is for.
+            # Not REVERB_PORT, which is the in-network port PHP dials; browsers use VITE_REVERB_PORT.
             - '${FORWARD_REVERB_PORT:-8080}:8080'
         depends_on:
             laravel.test:
@@ -112,8 +96,6 @@ services:
             retries: 10
             timeout: 5s
 
-    # Search only (ADR-0016). PostgreSQL still decides what may be seen, so the application serves
-    # without this container — set SCOUT_DRIVER=database or null to skip it entirely.
     meilisearch:
         image: 'getmeili/meilisearch:v1.17'
         ports:

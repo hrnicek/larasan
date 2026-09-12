@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-/**
- * Asserted through raw inserts, so what is proven is the database's behaviour rather than a
- * model's.
- */
 function insertFollow(Task $task, User $user): string
 {
     $id = (string) Str::uuid7();
@@ -69,8 +65,6 @@ it('removes the follows with the task', function (): void {
 
     $task->forceDelete();
 
-    // A follow is a live subscription, not history: with the task gone there is nothing left
-    // to notify about.
     expect(DB::table('task_followers')->count())->toBe(0);
 });
 
@@ -87,8 +81,6 @@ it('removes the follows with the account', function (): void {
 });
 
 it('carries no workspace of its own', function (): void {
-    // Scoped by joining the task that owns it (ADR-0005): the denormalised copy would be the
-    // one that drifts.
     expect(Schema::hasColumn('task_followers', 'workspace_id'))->toBeFalse();
 });
 
@@ -99,8 +91,6 @@ it('records when somebody started following, and nothing else', function (): voi
 
     $row = DB::table('task_followers')->first();
 
-    // A follow is not edited — it exists or it does not — so an `updated_at` would be a column
-    // that never changes and a reader would have to wonder what it meant.
     expect($row?->created_at)->not->toBeNull()
         ->and(Schema::hasColumn('task_followers', 'updated_at'))->toBeFalse();
 });

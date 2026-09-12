@@ -7,10 +7,6 @@ namespace App\Domain\Account\Exceptions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * What the account Actions refuse for every caller. The FormRequest catches these first over
- * HTTP; the Action still checks, because a console command arrives without one.
- */
 final class AccountException extends DomainException implements DomainRefusal
 {
     public static function unknownAvatarPreset(): self

@@ -21,10 +21,6 @@ class FileFactory extends Factory
     protected $model = File::class;
 
     /**
-     * The path is generated here as the Action generates it (ADR-0007) — never from the
-     * original name — so a test cannot accidentally depend on a shape the domain will not
-     * produce.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -68,10 +64,6 @@ class FileFactory extends Factory
         return $this->state(fn (): array => ['uploaded_by' => $uploader->id]);
     }
 
-    /**
-     * A file the screens will draw rather than list. The extension is carried on the generated
-     * path too, because some object stores serve by it and the Action writes it that way.
-     */
     public function image(string $mimeType = 'image/png', string $extension = 'png'): self
     {
         return $this->state(fn (): array => [

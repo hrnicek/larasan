@@ -7,15 +7,7 @@ namespace App\Domain\Notification\Actions;
 use Illuminate\Notifications\DatabaseNotification;
 
 /**
- * Say that somebody has seen a line of their inbox.
- *
- * Idempotent, and deliberately not a toggle: reading something twice does not unread it, and the
- * original `read_at` is when they first saw it rather than when they last clicked. A second
- * request is answered by the state already being true.
- *
- * No authorization here: which notification this is has already been decided by the binding,
- * which resolves only inside the reader's own inbox (`routes/inbox.php`). An Action cannot
- * improve on "you can only name your own".
+ * Authorized by the route binding in `routes/inbox.php`, which only resolves the reader's own notifications.
  */
 final readonly class MarkNotificationRead
 {

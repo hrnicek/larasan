@@ -48,7 +48,6 @@ it('leaves the moment they first saw the ones they had already read', function (
 
     $this->actingAs($reader)->put(route('inbox.read-all'))->assertRedirect();
 
-    // "Mark all read" must not rewrite when somebody first saw the things they had already seen.
     expect($seen->fresh()?->read_at?->toIso8601String())->toBe($originally);
 });
 
@@ -65,10 +64,6 @@ it('leaves another workspace s inbox alone', function (): void {
 
     $this->actingAs($reader)->put(route('inbox.read-all'))->assertRedirect();
 
-    /*
-     * Clearing the inbox somebody is standing in must not hide things in one they have not
-     * looked at.
-     */
     $unread = DatabaseNotification::query()
         ->where('notifiable_id', $reader->id)
         ->whereNull('read_at')
@@ -104,8 +99,6 @@ it('says how many it cleared', function (): void {
     /** @var array<string, array<string, string>> $flashed */
     $flashed = session()->get(SessionKey::FLASH_DATA, []);
 
-    // Read through Inertia's own session key: the toast is what tells somebody the request did
-    // something, and a count nobody sees is a count nobody can trust.
     expect($flashed['toast']['message'])->toBe('Marked 2 notifications read');
 });
 
@@ -113,7 +106,6 @@ it('is harmless on an inbox that is already clear', function (): void {
     $workspace = Workspace::factory()->create();
     $reader = memberOf($workspace);
 
-    // Nothing to do is not an error; it is the outcome somebody asked for.
     $this->actingAs($reader)->put(route('inbox.read-all'))->assertRedirect();
 });
 

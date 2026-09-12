@@ -13,12 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Somebody watching a task.
- *
- * No `workspace_id`: the table is scoped by joining the task that owns it
- * (`docs/architecture/database.md`), and a denormalised copy would be the one that drifts
- * (ADR-0005).
- *
  * @property string $id
  * @property string $task_id
  * @property int $user_id
@@ -31,7 +25,6 @@ class TaskFollower extends Model
     /** @use HasFactory<TaskFollowerFactory> */
     use HasFactory, HasUuids;
 
-    /** A follow is created and deleted, never edited. */
     public const UPDATED_AT = null;
 
     protected $fillable = ['task_id', 'user_id'];

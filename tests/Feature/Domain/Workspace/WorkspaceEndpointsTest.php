@@ -115,11 +115,6 @@ it('shares the actor\'s workspaces with every page for the switcher', function (
 });
 
 it('refuses an update whose form was rendered for another workspace', function (): void {
-    /*
-     * The route names no workspace, so the target is the pointer: open settings for A,
-     * switch to B in another tab, submit. Both are legitimate admins' workspaces, so
-     * every check upstream passes and A's values would land in B.
-     */
     $current = Workspace::factory()->create(['slug' => 'current', 'name' => 'Current']);
     $stale = Workspace::factory()->create(['slug' => 'stale', 'name' => 'Stale']);
     $admin = memberOf($current, WorkspaceRole::Admin);
@@ -148,23 +143,13 @@ it('requires authentication on every workspace route', function (string $method,
 ]);
 
 it('guards every workspace route with auth and verified', function (): void {
-    /*
-     * The route table as well as the behaviour: the request test below proves `verified`
-     * blocks an unverified actor, and this proves the middleware is on every route rather
-     * than on the ones that happen to be tested.
-     */
     $routes = collect(Route::getRoutes()->getRoutesByName())
         ->filter(fn ($route, string $name): bool => str_starts_with($name, 'workspaces.'));
 
-    // The count is deliberate: adding a workspace route should make someone confirm it
-    // is guarded, rather than inherit the assertion silently.
+    // Pinned so that adding a workspace route forces a check that it is guarded.
     expect($routes)->toHaveCount(14);
 
-    /*
-     * One route is outside the gate on purpose. Following the link in an invitation mail is
-     * how somebody who has no account arrives at all, so it is guarded by its signature
-     * instead — and it answers nothing, it only establishes who is holding the link.
-     */
+    // The invitation link is opened before sign-in, so it is guarded by its signature instead of auth.
     $open = $routes->pull('workspaces.invitations.show');
 
     expect($open?->gatherMiddleware())->toContain('signed')

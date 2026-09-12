@@ -1,8 +1,4 @@
-/**
- * How a comment names a person: `@[Jana Nováková](user:42)` is what is sent and stored, and the
- * server rewrites the name to the account's own on the way in and on the way out (TASK-280-001,
- * TASK-280-002). The textarea shows `@Jana Nováková`; these functions translate between the two.
- */
+// A mention is stored as `@[Jana Nováková](user:42)` and shown in the textarea as `@Jana Nováková`.
 export type NamedPerson = { id: number; name: string };
 
 export type CommentSegment =
@@ -13,7 +9,6 @@ const token = (): RegExp => /@\[([^[\]\r\n]{1,120})\]\(user:(\d{1,18})\)/gu;
 const escapeForPattern = (value: string): string =>
     value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** A stored body as runs of text and names, for drawing without markup. */
 export const segmentsOf = (body: string): CommentSegment[] => {
     const segments: CommentSegment[] = [];
     let cursor = 0;
@@ -40,7 +35,6 @@ export const segmentsOf = (body: string): CommentSegment[] => {
     return segments;
 };
 
-/** A stored body as the textarea shows it, and who it names. */
 export const toDisplay = (
     body: string,
 ): { text: string; named: NamedPerson[] } => {
@@ -55,13 +49,7 @@ export const toDisplay = (
     return { text, named: [...named.values()] };
 };
 
-/**
- * The textarea's text as it is sent: every `@Name` of somebody chosen becomes their token.
- *
- * Longest names first, so `@Jan Novák` is not claimed by a `@Jan` who was also chosen, and only
- * where the name ends — `@Jan` is not a mention inside `@Janet`. An `@` typed without choosing
- * anybody stays text.
- */
+// Longest names first so `@Jan Novák` is not claimed by `@Jan`, and only where the name ends.
 export const toStorage = (text: string, named: NamedPerson[]): string =>
     [...named]
         .sort((a, b) => b.name.length - a.name.length)
@@ -77,6 +65,5 @@ export const toStorage = (text: string, named: NamedPerson[]): string =>
             text,
         );
 
-/** Case and diacritics set aside, so `nova` finds Nováková. */
 export const foldForSearch = (value: string): string =>
     value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();

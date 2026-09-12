@@ -11,12 +11,6 @@ use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Change what a field is called.
- *
- * Only the name: the type is not editable here for the reason it is not fillable on the model —
- * it decides which column every existing answer lives in.
- */
 final readonly class RenameCustomField
 {
     public function handle(CustomField $field, User $actor, string $name): CustomField

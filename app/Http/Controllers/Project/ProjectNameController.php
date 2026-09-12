@@ -12,12 +12,6 @@ use Illuminate\Http\RedirectResponse;
 
 class ProjectNameController extends Controller
 {
-    /**
-     * Back rather than to a named route, as the appearance endpoint does: renaming is offered
-     * from the sidebar, which is on every screen, and a redirect of its own would move somebody
-     * off the board they were reading. The new name in the sidebar and in the header is the
-     * confirmation, so there is no toast either.
-     */
     public function update(
         UpdateProjectNameRequest $request,
         Project $project,

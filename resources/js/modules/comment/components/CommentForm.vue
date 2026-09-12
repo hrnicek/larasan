@@ -9,21 +9,10 @@ import { toStorage } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
 import type { TaskAssignee } from '@/modules/task/types';
 
-/**
- * Saying something about a task.
- *
- * One line until it is being written in, because the composer sits in view the whole time the
- * thread is read and a three-row box that is usually empty spends the panel's height on nothing.
- *
- * The rule that matters is the failure one, the same one `TaskTextField` established: **a failed
- * send never discards what was typed.** The draft is its own state and only a success clears it,
- * so the text is still there to try again with.
- */
 const props = defineProps<{
     taskId: string;
-    /** The face beside the box: whoever is about to speak. */
     viewer: { name: string; avatar: string | null } | null;
-    /** Who `@` offers. The server decides who may actually be named. */
+    /** Offered by `@`; the server decides who may actually be named. */
     people: TaskAssignee[];
 }>();
 
@@ -41,8 +30,6 @@ const send = (): void => {
 
     form.post(CommentController.store.url(props.taskId), {
         preserveScroll: true,
-        // Only on success: a reset after a failure would throw away the paragraph the network
-        // blinked on.
         onSuccess: () => {
             form.reset('body');
             draft.value = '';
@@ -51,7 +38,6 @@ const send = (): void => {
     });
 };
 
-/** Collapsing on blur would take the box away from somebody who left to copy something. */
 const onBlur = (): void => {
     if (draft.value.trim() === '') {
         writing.value = false;

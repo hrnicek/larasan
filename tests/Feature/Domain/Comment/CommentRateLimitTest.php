@@ -16,11 +16,6 @@ it('bounds how fast one account can comment', function (): void {
             ->assertRedirect();
     }
 
-    /*
-     * A comment is cheap for the server and expensive for everybody else: each one notifies the
-     * task's followers and its assignee, so a loop here fills other people's inboxes rather
-     * than a table.
-     */
     $this->actingAs($actor)
         ->post(route('tasks.comments.store', $task), ['body' => 'One too many'])
         ->assertStatus(429);
@@ -53,7 +48,6 @@ it('gives each account its own budget', function (): void {
         $this->actingAs($actor)->post(route('tasks.comments.store', $task), ['body' => "Comment {$index}"]);
     }
 
-    // Keyed by user, so one noisy account cannot silence a workspace.
     $this->actingAs($other)
         ->post(route('tasks.comments.store', $task), ['body' => 'Mine'])
         ->assertRedirect();

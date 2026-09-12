@@ -15,19 +15,9 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table): void {
             $table->uuid('id')->primary();
 
-            /*
-             * A task is owned by a workspace and placed by nothing (ADR-0003). There is no
-             * `project_id` and no `section_id` here, and adding one later would create the
-             * second source of truth that ADR rejects — placement lives in
-             * `task_project_memberships`, which Phase 070 creates.
-             */
+            // Project placement lives in `task_project_memberships`, never on the task. See ADR-0003.
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
 
-            /*
-             * Nulled, not cascaded. Deleting a parent must not take its subtasks with it:
-             * they are tasks in their own right, they may be assigned to other people, and
-             * a cascade would delete work nobody asked to delete. They become root tasks.
-             */
             $table->uuid('parent_id')->nullable();
 
             $table->string('title');
@@ -37,10 +27,6 @@ return new class extends Migration
 
             $table->timestamp('due_at')->nullable();
 
-            /*
-             * Completion is a column, never something inferred from where the task sits: a
-             * "Done" section is a name somebody chose (ADR-0004).
-             */
             $table->timestamp('completed_at')->nullable();
             $table->foreignId('completed_by')->nullable()->constrained('users')->nullOnDelete();
 
@@ -49,27 +35,16 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // A deleted task is recoverable, and its comments and attachments outlive it.
             $table->softDeletes();
 
-            // My Tasks: one person's open work in one workspace, which is the query the
-            // application runs most often after a project listing.
             $table->index(['workspace_id', 'assignee_id', 'completed_at']);
 
-            /*
-             * PostgreSQL does not index the referencing side of a foreign key, so without
-             * these a parent deletion, an account deletion or a subtask read scans the
-             * table (the same lesson the projects migration recorded).
-             */
             $table->index('parent_id');
             $table->index('created_by');
             $table->index('completed_by');
         });
 
-        /*
-         * Added after the table exists: a self-reference declared inside `CREATE TABLE`
-         * is emitted before the primary key it points at, and PostgreSQL refuses it.
-         */
+        // PostgreSQL rejects a self-reference emitted inside CREATE TABLE before its primary key.
         Schema::table('tasks', function (Blueprint $table): void {
             $table->foreign('parent_id')->references('id')->on('tasks')->nullOnDelete();
         });

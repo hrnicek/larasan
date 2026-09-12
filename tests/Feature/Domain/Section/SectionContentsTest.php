@@ -18,10 +18,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\DeleteTask;
 use App\Domain\Task\Models\Task;
 
-/**
- * What a column contains once a task can be soft-deleted and a project can be archived
- * (TASK-050-013). The rows and what is drawn from them are two different questions.
- */
 it('keeps the placement of a soft-deleted task and draws nothing for it', function (): void {
     [$project, $actor] = projectEditableBy(ProjectAccessLevel::Editor, WorkspaceRole::Owner);
     $section = addSection($project, $actor, 'Doing');
@@ -31,9 +27,6 @@ it('keeps the placement of a soft-deleted task and draws nothing for it', functi
 
     app(DeleteTask::class)->handle($task, $actor);
 
-    // The row survives, so restoring the task puts the card back where it was. Until then
-    // there is nothing to draw: a board that rendered the row would render a card with no
-    // task on it.
     expect($section->placements()->count())->toBe(1)
         ->and($section->placements()->visible()->count())->toBe(0);
 });
@@ -71,8 +64,6 @@ it('counts a column the same way it draws it', function (): void {
 
     app(DeleteTask::class)->handle($tasks[1], $actor);
 
-    // A header that counts rows and a column that draws cards must not disagree, which is
-    // why both go through the same scope.
     $drawn = $section->placements()->visible()->get();
 
     expect($section->placements()->visible()->count())->toBe(2)
@@ -87,8 +78,6 @@ it('refuses to change the columns of an archived project', function (): void {
     app(ArchiveProject::class)->archive($project, $actor);
     $project->refresh();
 
-    // An archived project is a record of what happened, not a board somebody is still
-    // working on.
     expect(fn (): Section => app(RenameSection::class)->handle($section->refresh(), $actor, new UpdateSectionData(name: 'Renamed')))
         ->toThrow(SectionException::class);
 
@@ -128,8 +117,6 @@ it('lets an archived project be restored and edited again', function (): void {
     app(ArchiveProject::class)->archive($project, $actor);
     app(ArchiveProject::class)->restore($project->refresh(), $actor);
 
-    // Restoring goes through `isManageableBy()`, not through the content rule, so an
-    // archived project is never stuck.
     $renamed = app(RenameSection::class)->handle($section->refresh(), $actor, new UpdateSectionData(name: 'Renamed'));
 
     expect($renamed->name)->toBe('Renamed');

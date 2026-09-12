@@ -8,15 +8,7 @@
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
 
-        <!--
-            Everything is inline. This document is shown when the network is gone, which is exactly
-            when a stylesheet cannot be fetched — a fallback that needs a second request is a
-            fallback that shows unstyled text.
-
-            It carries no name, no workspace and no data of any kind. That is what makes it the one
-            document the service worker is allowed to hold: it is a constant that ships with the
-            repository, not a response the server generated for somebody.
-        -->
+        <!-- Self-contained and free of user data: the service worker caches it for offline use. -->
         <style>
             :root {
                 color-scheme: light dark;
@@ -120,8 +112,6 @@
         </main>
 
         <script>
-            // Coming back recovers without anybody pressing anything. The button above is for the
-            // other case: a network that is technically there and still cannot reach the server.
             window.addEventListener('online', () => location.reload());
         </script>
     </body>

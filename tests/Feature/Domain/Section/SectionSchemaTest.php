@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the database's
- * behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertSection(Project $project, array $overrides = []): string
@@ -36,8 +33,7 @@ it('refuses two sections in the same slot of one project', function (): void {
     $project = Project::factory()->create();
     insertSection($project);
 
-    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (docs/conventions/testing.md).
+    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement.
     expect(fn (): string => DB::transaction(fn (): string => insertSection($project, ['name' => 'In progress'])))
         ->toThrow(QueryException::class);
 

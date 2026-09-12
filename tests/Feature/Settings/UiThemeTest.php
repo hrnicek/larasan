@@ -6,12 +6,7 @@ use App\Domain\Shared\Enums\UiTheme;
 use App\Http\Middleware\HandleUiTheme;
 use App\Models\User;
 
-/*
- * The surface scheme (ADR-0019). The whole mechanism is one attribute on <html> plus a pair of
- * token blocks per theme, so what these tests guard is that the attribute is written server-side
- * — a theme that arrived as page data would repaint after hydration, and every full load would
- * flash the other theme first — and that the blocks behind it are complete and stay off the brand.
- */
+// The theme is rendered server-side; applied after hydration, every full load would flash the default first.
 
 test('a new person starts in the default theme', function (): void {
     expect(User::factory()->create()->ui_theme)->toBe(UiTheme::default());
@@ -34,10 +29,6 @@ test('a guest gets the default theme', function (): void {
         ->assertSee('data-theme="'.UiTheme::default()->value.'"', escape: false);
 });
 
-/*
- * The device keeps a copy so that the screens with no user — the sign-in page above all — are not
- * the one place the application forgets what it looks like.
- */
 test('a signed out guest keeps the theme the device remembers', function (): void {
     $this->withCookie(HandleUiTheme::COOKIE, 'nocturne')
         ->get(route('login'))
@@ -62,8 +53,7 @@ test('the stored theme beats the one on the device', function (): void {
         ->get(route('appearance.edit'))
         ->assertOk()
         ->assertSee('data-theme="nocturne"', escape: false)
-        // ...and the device is corrected on the way out, so signing out here does not hand the
-        // sign-in page the theme of another session.
+        // Corrected so that after signing out the sign-in page does not keep another session's theme.
         ->assertCookie(HandleUiTheme::COOKIE, 'nocturne');
 });
 

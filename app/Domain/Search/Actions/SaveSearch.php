@@ -10,12 +10,6 @@ use App\Domain\Search\Models\SavedSearch;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/**
- * Keep a search.
- *
- * The cap exists because the chips are drawn in one row a person reads at a glance; past a
- * couple of dozen it is a list, and a list of searches is a screen nobody asked for.
- */
 final readonly class SaveSearch
 {
     public const LIMIT = 24;
@@ -31,8 +25,7 @@ final readonly class SaveSearch
             ->where('workspace_id', $workspace->id);
 
         if ((clone $held)->where('name', $data->name)->exists()) {
-            // The unique index is what makes this true under concurrency; this is what makes
-            // the answer a sentence rather than a constraint violation.
+            // The unique index enforces this under concurrency; the check only gives a readable refusal.
             throw SavedSearchException::nameIsTaken($data->name);
         }
 

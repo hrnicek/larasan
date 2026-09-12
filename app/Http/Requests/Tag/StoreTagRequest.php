@@ -26,8 +26,6 @@ class StoreTagRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Short, because a tag is a word rather than a sentence: anything longer stops
-            // fitting on the card it exists to label.
             'name' => ['required', 'string', 'max:40'],
             'color' => ['nullable', new IsAccentColor],
         ];

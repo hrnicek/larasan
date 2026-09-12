@@ -19,13 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
-/**
- * A thread is read inside whatever screen it belongs to, so every method answers with a
- * redirect back rather than rendering anything of its own.
- *
- * The requests have already asked the questions these Actions ask again; that repetition is
- * deliberate, because the console and the future API arrive without a FormRequest.
- */
 class CommentController extends Controller
 {
     public function store(StoreCommentRequest $request, Task $task, CreateComment $createComment): RedirectResponse

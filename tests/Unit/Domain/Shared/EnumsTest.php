@@ -11,10 +11,7 @@ use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
 
-/**
- * These values are persisted, so a rename is a data migration rather than a
- * refactor. The assertions exist to make that impossible to do by accident.
- */
+// These values are persisted, so renaming a case requires a data migration.
 it('pins every persisted enum value', function (string $enum, array $expected): void {
     $actual = array_map(fn ($case): string => $case->value, $enum::cases());
 
@@ -53,10 +50,7 @@ it('pins every persisted enum value', function (string $enum, array $expected): 
     'task priority' => [TaskPriority::class, ['low', 'medium', 'high', 'urgent']],
 ]);
 
-/**
- * Pinned per role rather than asserted against an expression, so adding a Capability
- * case fails here until someone decides what each role should do with it.
- */
+// Pinned per role, so a new Capability case fails here until each role's grant is decided.
 it('pins the capabilities of every role', function (WorkspaceRole $role, array $expected): void {
     $granted = array_map(fn (Capability $capability): string => $capability->value, $role->capabilities());
 

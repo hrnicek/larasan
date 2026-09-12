@@ -13,11 +13,6 @@ use Illuminate\Support\Facades\Http;
 use Laravel\Scout\EngineManager;
 use Meilisearch\Client as MeilisearchClient;
 
-/**
- * What the collection engine cannot prove: typo tolerance, and that a stale index cannot widen
- * an answer (ADR-0016). These run against a real Meilisearch and skip themselves when none
- * answers, so the suite still passes on a machine that has never started one.
- */
 function meilisearchAnswers(): bool
 {
     try {
@@ -53,12 +48,11 @@ beforeEach(function (): void {
     config(['scout.driver' => 'meilisearch', 'scout.prefix' => 'pm_suite_']);
     app()->forgetInstance(EngineManager::class);
 
-    // The index and its settings, as a deployment would create them: a filter on an attribute
-    // Meilisearch was not told about does not error, it answers with the wrong set.
+    // Meilisearch does not reject a filter on an undeclared attribute; it returns the wrong set.
     try {
         app(EngineManager::class)->engine()->createIndex('pm_suite_tasks');
     } catch (Throwable) {
-        // Already there, from the test before this one.
+        // The index already exists.
     }
 
     Artisan::call('scout:sync-index-settings');
@@ -94,8 +88,7 @@ it('does not hand over a task the index still holds and the database no longer a
     $found = untilIndexed(fn (): array => app(TaskResults::class)($workspace, $actor, 'login'));
     expect($found)->toHaveCount(1);
 
-    // The permission changes and the index is deliberately not told — the case a queue that is
-    // behind, a failed job or a restarted container produces in production.
+    // Leaves the index stale, as a lagging queue or a failed job would.
     Task::withoutSyncingToSearch(function () use ($project): void {
         $project->update(['visibility' => 'private']);
     });
@@ -123,7 +116,6 @@ it('lets the search screen forgive a typo, and counts what it found exactly', fu
     expect($answer)->not->toBeNull()
         ->and($answer['meta']['degraded'])->toBeFalse()
         ->and($answer['meta']['capped'])->toBeFalse()
-        // Exact, because the count is PostgreSQL's over the keys the engine matched.
         ->and($answer['meta']['total'])->toBe(count($answer['tasks']));
 })->with([
     'the screen matches through the engine and pages against the database, so the total is a
@@ -136,8 +128,7 @@ it('says so when it had to answer from the database instead', function (): void 
     Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
 
     config(['scout.meilisearch.host' => 'http://127.0.0.1:9']);
-    // The client is a singleton Scout binds once, so forgetting the manager alone would leave
-    // the old host in place and the engine would answer as if nothing had happened.
+    // Scout binds the client as a singleton, so the manager alone would keep the old host.
     app()->forgetInstance(MeilisearchClient::class);
     app()->forgetInstance(EngineManager::class);
 

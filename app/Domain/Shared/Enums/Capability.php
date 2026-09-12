@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Shared\Enums;
 
-/**
- * Workspace-wide capabilities. A capability answers "may this role ever do this kind
- * of thing in this workspace"; whether it may do it to a *specific* project or task is
- * decided separately by ProjectAccessLevel (ADR-0006). Both checks must pass.
- *
- * Values are persisted in authorization assertions and logs, so they are stable.
- */
 enum Capability: string
 {
     case WorkspaceManage = 'workspace.manage';

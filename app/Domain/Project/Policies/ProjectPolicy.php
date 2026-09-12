@@ -8,16 +8,6 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Models\User;
 
-/**
- * Every ability asks both halves where both apply: the workspace capability decides
- * whether the actor may do this kind of thing at all, the project access level decides
- * whether they may do it here (ADR-0006 with ADR-0010). Holding `task.create` in the
- * workspace grants nothing in a project the actor may only view.
- *
- * Resolved by auto-discovery, and `ProjectPolicyTest` asserts that resolution — the
- * `app/Domain/<Context>/Policies` pairing is not the layout the framework documents, so a
- * namespace move would otherwise stop authorizing in silence.
- */
 class ProjectPolicy
 {
     public function view(User $user, Project $project): bool
@@ -46,38 +36,24 @@ class ProjectPolicy
             && $project->memberFor($user)?->access_level->canManageProject() === true;
     }
 
-    /**
-     * Adding a column, asked of the project because there is no section yet to judge.
-     */
     public function createSection(User $user, Project $project): bool
     {
         return $project->allowsChangesBy($user, Capability::SectionCreate);
     }
 
-    /**
-     * Starting a document in this project, asked of the project because there is no page yet
-     * to judge.
-     */
     public function createPage(User $user, Project $project): bool
     {
         return $project->allowsChangesBy($user, Capability::PageCreate);
     }
 
     /**
-     * Putting a task on this board, asked of the project because there is no placement yet
-     * to judge. `task.update` rather than `task.create`: attaching an existing task changes
-     * where it appears, and creating one is `createTask()` below.
+     * Placing an existing task changes that task, so it needs task.update rather than task.create.
      */
     public function placeTask(User $user, Project $project): bool
     {
         return $project->allowsChangesBy($user, Capability::TaskUpdate);
     }
 
-    /**
-     * Creating a task on this board is a change to what the project holds, so it asks the
-     * same question placing an existing one does — including that an archived project is
-     * read-only (TASK-050-013).
-     */
     public function createTask(User $user, Project $project): bool
     {
         return $project->allowsChangesBy($user, Capability::TaskCreate);

@@ -74,11 +74,7 @@ it('leaves an invitation to another address alone', function (): void {
 });
 
 it('drops an invitation to a workspace the account is already in', function (): void {
-    /*
-     * Reachable by changing an account's address to one that was invited separately. The row
-     * they already hold is the authoritative one, and UNIQUE(workspace_id, user_id) refuses a
-     * second — so the invitation goes rather than the membership.
-     */
+    // Reachable when an account changes to an address invited separately; the membership wins.
     $workspace = Workspace::factory()->create();
     $user = memberOf($workspace, WorkspaceRole::Member);
     $invitation = unclaimedInvitation($workspace, $user->email);

@@ -54,8 +54,6 @@ it('lets a member manage tags, because a workspace names its own work', function
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace, WorkspaceRole::Member);
 
-    // `tag.manage` is a full member's under ADR-0010: the vocabulary belongs to the people using
-    // it rather than to an administrator.
     expect(app(CreateTag::class)->handle($workspace, $member, 'Bug')->exists)->toBeTrue();
 });
 
@@ -69,8 +67,7 @@ it('changes a name without touching a colour, and the other way round', function
     app(UpdateTag::class)->handle($tag, $actor, color: AccentColor::palette(ProjectColor::Teal));
     expect($tag->fresh()?->name)->toBe('Bug');
 
-    // Clearing is its own instruction, because a null argument cannot say "leave it alone" and
-    // "remove it" at once.
+    // A separate flag, because a null color already means "leave unchanged".
     app(UpdateTag::class)->handle($tag, $actor, clearColor: true);
     expect($tag->fresh()?->color)->toBeNull();
 });

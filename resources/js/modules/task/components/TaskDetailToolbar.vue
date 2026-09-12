@@ -17,21 +17,10 @@ import FollowerList from '@/modules/task/components/FollowerList.vue';
 import type { TaskDetail } from '@/modules/task/types';
 import { show, star, unstar } from '@/routes/tasks';
 
-/**
- * The bar above a task: whether it is done, who is watching it, and every action that applies to
- * the task as a whole rather than to one of its fields.
- *
- * It is pinned, so completing a task never means scrolling back to the top for the control that
- * does it. The panel and the task's own page render the same bar and differ only in what a way
- * out means: the panel closes, the page has nowhere to close to.
- */
 const props = defineProps<{
     detail: TaskDetail;
     variant: 'panel' | 'page';
-    /**
-     * Once the title has scrolled out of the body it is repeated here. A bar that says nothing
-     * about which task it belongs to is a bar you have to scroll up to trust.
-     */
+    /** The title has scrolled out of view, so the bar shows it in place of the complete button. */
     collapsed?: boolean;
 }>();
 
@@ -44,11 +33,7 @@ function toggleCompletion(): void {
         return;
     }
 
-    /*
-     * Called on the router rather than pulled off it. `router.put` extracted into a variable
-     * loses its receiver, and Inertia's methods reach for `this` — which is a `Cannot read
-     * properties of undefined (reading 'visit')` the moment somebody clicks, not at build time.
-     */
+    // Call methods on `router` directly; a detached `router.put` loses `this` and fails at runtime.
     if (completed()) {
         router.delete(TaskController.reopen.url(props.detail.task.id), { preserveScroll: true });
 
@@ -58,10 +43,6 @@ function toggleCompletion(): void {
     router.put(TaskController.complete.url(props.detail.task.id), {}, { preserveScroll: true });
 }
 
-/**
- * The address of the task's own page, absolute, because a link is pasted somewhere this
- * application is not.
- */
 async function copyLink(): Promise<void> {
     const url = `${window.location.origin}${show(props.detail.task.id).url}`;
 
@@ -69,17 +50,11 @@ async function copyLink(): Promise<void> {
         await navigator.clipboard.writeText(url);
         toast('Link copied.');
     } catch {
-        // A browser refuses the clipboard outside a secure context, and a toast that lies about
-        // it leaves somebody pasting whatever was there before.
+        // The Clipboard API is unavailable outside a secure context.
         toast('Could not copy — the address is in the URL bar.');
     }
 }
 
-/**
- * A star is this reader's own: nobody is notified, and nobody else's panel changes. It sits beside
- * the followers because both answer "what is this task to me", and apart from them because
- * following is a subscription and starring is a shortcut.
- */
 function toggleStar(): void {
     if (props.detail.starred) {
         router.delete(unstar(props.detail.task.id).url, { preserveScroll: true });
@@ -93,11 +68,7 @@ function toggleStar(): void {
 const deleting = ref(false);
 const working = ref(false);
 
-/*
- * `tasks.destroy` answers with `back()`, and back from an open panel is the same screen with
- * `?task=` still on it — the deleted task. The shell is told instead, because only it knows
- * whether the way out is closing a panel or leaving a page.
- */
+// `tasks.destroy` redirects back to the URL with `?task=`, so the shell decides how to leave.
 function destroy(): void {
     working.value = true;
 
@@ -114,10 +85,6 @@ function destroy(): void {
 
 <template>
     <div class="flex h-13 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
-        <!--
-            Two states of the same control. Scrolled to the top it is the button that finishes the
-            task; past the title it becomes the title, with the same circle in front of it.
-        -->
         <button
             v-if="detail.can.update && !collapsed"
             type="button"
@@ -164,8 +131,6 @@ function destroy(): void {
                 :aria-label="detail.starred ? 'Remove this task from starred' : 'Add this task to starred'"
                 @click="toggleStar"
             >
-                <!-- Filled when it is on: a star that only changes colour is a star somebody has
-                     to remember the meaning of. -->
                 <Star class="size-4" :class="detail.starred && 'fill-current'" />
             </Button>
 

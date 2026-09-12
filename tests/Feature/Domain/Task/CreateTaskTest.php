@@ -84,8 +84,6 @@ it('refuses a parent from another workspace', function (): void {
     $creator = memberOf($workspace, WorkspaceRole::Member);
     $foreignParent = Task::factory()->create();
 
-    // The database accepts this pairing — a self-referencing key cannot express "the same
-    // workspace" — so the Action is the only thing standing between the two tenants.
     expect(fn (): Task => createTask($workspace, $creator, new CreateTaskData(title: 'Child', parentId: $foreignParent->id)))
         ->toThrow(TaskException::class, 'same workspace');
 
@@ -110,9 +108,6 @@ it('refuses to create a subtask past the depth limit', function (): void {
         $deepest = createTask($workspace, $creator, new CreateTaskData(title: "Level {$level}", parentId: $deepest->id));
     }
 
-    // One more is still legal; the one after it is not. Enforcing the limit only in
-    // UpdateTask would mean a chain that cannot be built by moving a task can still be
-    // built by creating one under its deepest end.
     $last = createTask($workspace, $creator, new CreateTaskData(title: 'Last legal', parentId: $deepest->id));
 
     expect(fn (): Task => createTask($workspace, $creator, new CreateTaskData(title: 'Too deep', parentId: $last->id)))

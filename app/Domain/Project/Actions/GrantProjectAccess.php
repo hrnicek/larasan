@@ -10,21 +10,6 @@ use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Models\User;
 
-/**
- * Give somebody access to a project, or change the access they already have.
- *
- * One Action for both, because they are the same sentence: *this person has this access here*.
- * `UNIQUE(project_id, user_id)` says so too — granting twice is one row, not two (ADR-0006).
- *
- * Two invariants the schema cannot hold:
- *
- * - the person has to be an active member of the project's workspace. `ProjectMembership::booted`
- *   refuses it as well, because these rows are written from several places; this asks first so the
- *   refusal is the Action's rather than a model event's.
- * - **the last owner cannot be demoted.** Managing a project needs an explicit `owner` row
- *   (`Project::isManageableBy`), so a project whose last owner became an editor is a project
- *   nobody can manage — not its workspace's owner, not anybody.
- */
 final readonly class GrantProjectAccess
 {
     public function handle(

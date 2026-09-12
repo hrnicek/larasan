@@ -5,17 +5,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useRealtimeConnection } from '@/composables/useRealtime';
 import { useCollapsed } from '@/composables/useShell';
 
-/**
- * Says that live updates are not arriving, and nothing else.
- *
- * Realtime is an enhancement (ADR-0008): every screen works by asking the server, which is what
- * it does without a socket too. So this is a line of muted text rather than a banner — a person
- * whose connection dropped for two seconds does not need to be interrupted, and one whose
- * connection is gone should be able to see why the board stopped moving.
- *
- * Collapsed to an icon in the icon rail, because the sentence wraps to five lines in 56px. The
- * icon is never the whole message: the sentence stays in the tooltip and in the live region.
- */
 const connection = useRealtimeConnection();
 const collapsed = useCollapsed();
 

@@ -4,21 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Ancestry;
 
-/**
- * Whether a proposed parent would close a loop, and how deep the chain already is. Pure
- * logic with a resolver passed in, so the rule can be tested without a database and the
- * Action decides where the parents come from.
- *
- * A cycle is not merely invalid data: every read that walks the chain — a breadcrumb, a
- * progress roll-up, a delete — would run forever.
- */
 final readonly class ParentChain
 {
-    /**
-     * How many levels of subtask the application supports. Stated rather than discovered:
-     * without a limit, a chain grows until something that walks it becomes the slowest
-     * page in the product, and nobody can say what the intended shape was.
-     */
     public const MAX_DEPTH = 10;
 
     /**
@@ -38,8 +25,7 @@ final readonly class ParentChain
                 return true;
             }
 
-            // Corrupt data would otherwise spin here: a chain that already contains a loop
-            // never reaches a null.
+            // Stops on a loop already present in the data, which would otherwise never reach null.
             if (isset($seen[$current])) {
                 return true;
             }
@@ -52,8 +38,6 @@ final readonly class ParentChain
     }
 
     /**
-     * The number of ancestors above a task, counting from zero for a root.
-     *
      * @param  callable(string): ?string  $parentOf
      */
     public static function depthOf(string $taskId, callable $parentOf): int

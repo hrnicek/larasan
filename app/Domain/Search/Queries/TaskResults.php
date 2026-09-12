@@ -13,22 +13,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
- * The tasks a term finds, for the palette.
- *
- * The engine matches and ranks; PostgreSQL decides what comes back (ADR-0016). Scout's
- * `query()` callback runs on the builder that hydrates the matched keys, which is where
- * `ReachableTasks` goes — so a task in a project this actor cannot open is not returned even
- * when the index still holds it. The index can shorten this list. It cannot widen it.
+ * Scout's `query()` callback constrains the hydration query, so reach holds even when the index is stale. See ADR-0016.
  */
 final readonly class TaskResults
 {
     /**
-     * Candidates asked of the engine per result wanted.
-     *
-     * Reach is applied after matching, so a run of candidates can be entirely made of projects
-     * this actor cannot open. Asking for more than is wanted makes that a shorter list rather
-     * than an empty one; it is not a guarantee, and nothing is served by making it one — the
-     * palette shows a handful, and the search screen pages against PostgreSQL.
+     * Over-fetch factor, because reach filtering after matching can discard candidates.
      */
     private const CANDIDATES_PER_RESULT = 4;
 
@@ -83,8 +73,6 @@ final readonly class TaskResults
                 'name' => $assignee->name,
                 'email' => $assignee->email,
             ],
-            // Only the projects this reader may open: a chip is a project's name, and a task
-            // reached through one project must not name another the reader has never seen.
             'projects' => array_values($task->placements
                 ->map(fn (TaskProjectMembership $placement): array => [
                     'id' => $placement->project->id,

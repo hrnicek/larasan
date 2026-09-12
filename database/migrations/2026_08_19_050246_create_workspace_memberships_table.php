@@ -15,11 +15,6 @@ return new class extends Migration
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            /*
-             * No database default on either column. A default role would decide an
-             * authorization question silently (ADR-0010), and a default status would
-             * make an unaccepted invitation indistinguishable from a joined member.
-             */
             $table->string('role');
             $table->string('status');
 

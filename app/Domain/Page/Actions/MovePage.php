@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Moving a page in the tree: under a parent, or to the root, and after one of its new
- * siblings. Expressed as "put this page after that one" rather than as a position (ADR-0009),
- * so a stale tree cannot compute a slot from what it last saw.
- */
 final readonly class MovePage
 {
     public function __construct(private Dispatcher $events, private PageSubtree $subtree) {}
@@ -42,11 +37,6 @@ final readonly class MovePage
         try {
             $this->place($page, $parent, $after);
         } catch (UniqueConstraintViolationException) {
-            /*
-             * Two moves computed the same midpoint under the same parent. The sibling
-             * constraint made that an error instead of two pages in one slot; this one reads
-             * the order again, which now contains the winner, and places itself relative to it.
-             */
             $this->place($page->refresh(), $parent?->fresh(), $after?->fresh());
         }
 
@@ -67,8 +57,6 @@ final readonly class MovePage
             throw PageException::parentBelongsToAnotherProject();
         }
 
-        // A page inside itself is a subtree that has left the tree: nothing would list it, and
-        // deleting the project would be the only way to reach it again.
         if ($parent->is($page) || in_array($parent->id, $this->subtree->idsUnder($page), true)) {
             throw PageException::cannotContainItself();
         }
@@ -88,8 +76,6 @@ final readonly class MovePage
             throw PageException::anchorIsNotASibling();
         }
 
-        // The anchor has to be where the page is going, or "after" means nothing. A tree that
-        // sends one from somewhere else is stale, and placing at the front would be a guess.
         if ($after->project_id !== $page->project_id || $after->parent_id !== $parent?->id) {
             throw PageException::anchorIsNotASibling();
         }
@@ -104,11 +90,6 @@ final readonly class MovePage
             try {
                 $position = SparsePosition::between($slot['before'], $slot['after']);
             } catch (PositionsNeedNormalisation) {
-                /*
-                 * The neighbours have closed up, so there is no midpoint left to take. The
-                 * level is respread inside this transaction and the slot recomputed from the
-                 * new positions — normalisation is the exception, not the steady state.
-                 */
                 $siblings = $this->normalise($page, $parent);
                 $slot = $this->slotFor($siblings, $page, $after);
                 $position = SparsePosition::between($slot['before'], $slot['after']);
@@ -122,10 +103,6 @@ final readonly class MovePage
     }
 
     /**
-     * The level the page is moving into, locked and in order, so a second move waits instead
-     * of reading the same neighbours. The page itself is excluded: it is being placed, not
-     * placed against.
-     *
      * @return Collection<int, Page>
      */
     private function lockedSiblings(Page $page, ?Page $parent): Collection
@@ -164,17 +141,13 @@ final readonly class MovePage
     }
 
     /**
-     * Rewrite one level's positions to an even spread. Every row is parked in negative space
-     * first, so no write can land on a row that has not moved yet — the sibling constraint
-     * would otherwise make the rewrite order load-bearing.
+     * Rows are parked in negative space first so no write collides with the sibling unique constraint.
      *
      * @return Collection<int, Page>
      */
     private function normalise(Page $page, ?Page $parent): Collection
     {
-        // The page being moved is parked first. It is excluded from its siblings because it is
-        // being placed rather than placed against — but it may still be sitting in this level,
-        // on a position the respread is about to hand to somebody else.
+        // The moved page is excluded from the siblings but may still hold a position in this level.
         $page->forceFill(['position' => SparsePosition::parking(0)])->save();
 
         $siblings = $this->lockedSiblings($page, $parent);

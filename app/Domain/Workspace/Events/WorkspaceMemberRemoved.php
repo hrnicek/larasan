@@ -9,7 +9,6 @@ final readonly class WorkspaceMemberRemoved
     public function __construct(
         public string $membershipId,
         public string $workspaceId,
-        /** Null when what was removed was an invitation nobody had claimed yet. */
         public ?int $userId,
         public int $removedById,
     ) {}

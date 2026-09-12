@@ -8,15 +8,6 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Every workspace role against every task operation, over HTTP. `TaskPolicyTest` proves the
- * rules; this proves the endpoints ask them, and that the refusal is the right kind: 404
- * across a tenant boundary, 403 inside one.
- *
- * Outcomes are written out rather than derived from the policy, which would assert only
- * that the code agrees with itself.
- */
-
 /**
  * @return array{Task, User}
  */
@@ -104,11 +95,7 @@ it('refuses every operation while the membership is not active', function (
 
     $response = $this->actingAs($actor)->{$method}($url, $payload);
 
-    /*
-     * Creating is 403 because the request is authorized before anything is resolved; the
-     * rest are 404 because resolution finds no workspace to look in. Both refuse, and the
-     * codes differ because they answer different questions.
-     */
+    // Creating is 403 because authorization runs first; the rest are 404 because no workspace resolves.
     expect($response->status())->toBeIn([403, 404]);
 
     expect($task->fresh()?->title)->toBe('Untouched')
@@ -146,8 +133,7 @@ it('refuses a payload that reaches across the tenant boundary', function (): voi
     $foreignTask = Task::factory()->create();
     $stranger = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
-    // The ids are real; they simply belong to somebody else. A validation error is the
-    // right answer, and it is what keeps the domain exception off a reachable path.
+    // Foreign ids fail validation, which keeps the domain exception off a reachable path.
     $this->actingAs($actor)
         ->put(route('tasks.update', $task), ['title' => 'Renamed', 'parent_id' => $foreignTask->id])
         ->assertSessionHasErrors('parent_id');

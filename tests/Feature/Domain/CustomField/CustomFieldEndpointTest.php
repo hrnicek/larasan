@@ -14,11 +14,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * The transport for the five Actions Phase 150 left without one. `custom_field.manage` is an
- * owner's and an admin's, so a member reads this screen and writes nothing on it.
- */
-
 it('renders the workspace fields with their choices and what they would cost to delete', function (): void {
     [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
 
@@ -91,7 +86,6 @@ it('defines a field', function (): void {
 
     $field = CustomField::query()->sole();
 
-    // Trimmed by the Action: the endpoint is a transport and nothing more.
     expect($field->name)->toBe('Estimate')
         ->and($field->type)->toBe(CustomFieldType::Number)
         ->and($field->workspace_id)->toBe($workspace->id);
@@ -138,10 +132,6 @@ it('reports a name already taken on the field somebody can act on', function ():
     [$workspace, $owner] = workspaceWith(WorkspaceRole::Owner);
     app(DefineCustomField::class)->handle($workspace, $owner, 'Estimate', CustomFieldType::Text);
 
-    /*
-     * The unique index is what answers — two people can define "Estimate" in the same second —
-     * so the refusal becomes an error on `name` rather than a toast pointing at nothing.
-     */
     $this->actingAs($owner)
         ->from(route('custom-fields.index'))
         ->post(route('custom-fields.store'), ['name' => 'estimate', 'type' => 'text'])
@@ -159,8 +149,6 @@ it('renames a field', function (): void {
         ->assertRedirect();
 
     expect($field->fresh()?->name)->toBe('Estimate')
-        // The type is not editable here: it decides which column every answer already given
-        // lives in.
         ->and($field->fresh()?->type)->toBe(CustomFieldType::Text);
 });
 
@@ -214,7 +202,7 @@ it('answers a field from another workspace with a 404', function (): void {
     [$elsewhere, $stranger] = workspaceWith(WorkspaceRole::Owner);
     $theirs = app(DefineCustomField::class)->handle($elsewhere, $stranger, 'Their field', CustomFieldType::Text);
 
-    // A 403 would confirm the id, which is what makes a leaked UUID worth something.
+    // A 403 would confirm that the id exists.
     $this->actingAs($owner)->put(route('custom-fields.update', $theirs), ['name' => 'Mine'])->assertNotFound();
     $this->actingAs($owner)->delete(route('custom-fields.destroy', $theirs))->assertNotFound();
 
@@ -224,11 +212,6 @@ it('answers a field from another workspace with a 404', function (): void {
 it('turns nobody away who is not signed in', function (): void {
     $this->get(route('custom-fields.index'))->assertRedirect(route('login'));
 });
-
-/*
- * `email`, `phone` and `link` are text with a format: the server stores all four in `value_text`
- * and refuses the shape before the request reaches the database.
- */
 
 it('defines a field of each text-shaped type', function (string $type): void {
     [, $owner] = workspaceWith(WorkspaceRole::Owner);
@@ -250,7 +233,6 @@ it('writes an address, a number to call and a link into the text column', functi
         ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => $sent])
         ->assertRedirect();
 
-    // One column for four types, and the field in hand says which of them this is.
     expect($task->customFieldValues()->sole()->value_text)->toBe($sent);
 })->with([
     'email' => [CustomFieldType::Email, 'someone@example.com'],

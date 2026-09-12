@@ -8,22 +8,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
-/**
- * Who is watching this task, drawn as the faces watching it.
- *
- * In the bar rather than in a section, because it belongs to the task rather than to any of its
- * fields, and because a row of faces answers "who will hear about this" without being read.
- *
- * The server says which way the control points (`following`): it already compared the ids, and a
- * client comparing them again is a second answer to the same question.
- */
 const props = defineProps<{
     taskId: string;
     followers: TaskAssignee[];
     following: boolean;
 }>();
 
-/** Three faces and a number. Past that the stack stops being a glance and becomes a queue. */
 const shown = computed<TaskAssignee[]>(() => props.followers.slice(0, 3));
 const hidden = computed<number>(() => Math.max(props.followers.length - shown.value.length, 0));
 
@@ -109,10 +99,6 @@ const toggle = (): void => {
             </PopoverContent>
         </Popover>
 
-        <!--
-            Watching is joining the faces above, so the control that does it is the empty place at
-            the end of them. Once this reader is one of the faces, the way out is inside the list.
-        -->
         <Button
             v-if="!following"
             variant="ghost"

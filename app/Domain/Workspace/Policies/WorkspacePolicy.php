@@ -8,12 +8,6 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/**
- * Resolved by Laravel's policy auto-discovery: `guessPolicyName()` walks the model's
- * namespace segments upward, so no registration is needed for
- * `App\Domain\Workspace\Models\Workspace`. `WorkspacePolicyTest` asserts that resolution,
- * because a namespace move would otherwise stop authorizing silently.
- */
 class WorkspacePolicy
 {
     public function view(User $user, Workspace $workspace): bool

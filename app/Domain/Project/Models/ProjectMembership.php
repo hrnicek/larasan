@@ -15,10 +15,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Access level inside one project. It answers only what this person may do *here*; the
- * workspace capability answers whether they may do that kind of thing at all, and both
- * must pass where both apply (ADR-0006, ADR-0010).
- *
  * @property string $id
  * @property string $project_id
  * @property int $user_id
@@ -35,14 +31,8 @@ class ProjectMembership extends Model
     protected $fillable = ['project_id', 'user_id', 'access_level'];
 
     /**
-     * A project membership only means something inside the workspace that owns the project.
-     * Enforced here rather than in one Action because these rows are written from several
-     * places — project creation, membership management, a seeder — and an invariant that
-     * depends on remembering to check it is one that eventually is not checked.
-     *
-     * The database cannot express it: the check spans `projects` and `workspace_memberships`,
-     * and PostgreSQL's `CHECK` cannot see another table (ADR-0005 records the same limit for
-     * cross-aggregate references).
+     * Enforced on the model because the rule spans tables, which a CHECK constraint cannot express.
+     * See ADR-0005.
      */
     protected static function booted(): void
     {

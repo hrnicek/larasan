@@ -16,11 +16,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
         parent::boot();
     }
 
-    /**
-     * Failed job payloads are serialised domain objects spanning every workspace, so this
-     * is an operator check rather than a workspace capability: `workspace.manage` is held
-     * by the owner of any workspace, and anyone can create one (ADR-0011).
-     */
+    /** An operator allowlist, not a workspace capability: job payloads span every workspace. See ADR-0011. */
     protected function gate(): void
     {
         Gate::define('viewHorizon', function (?User $user): bool {
@@ -32,13 +28,7 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
                 return true;
             }
 
-            /*
-             * Verified, then listed. The list cannot be changed by anyone who compromises
-             * an account, but the address matched against it can: registration does not
-             * prove mailbox control, and `PATCH settings/profile` lets any account change
-             * its address. Without this check, claiming an unregistered ops alias hands
-             * over every tenant's job payloads.
-             */
+            // Unverified addresses never match: any account can claim an unregistered operator address.
             if (! $user->hasVerifiedEmail()) {
                 return false;
             }

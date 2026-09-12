@@ -4,13 +4,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import ProjectAppearanceFields from '@/modules/project/components/ProjectAppearanceFields.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 
-/**
- * The project's own tile, and what it looks like.
- *
- * Clicking the thing you want to change is the shortest route to changing it, so the tile in the
- * header is the control rather than a link to a form that also holds the description, the dates
- * and the visibility. The endpoint behind it writes those two columns and nothing else.
- */
 const props = defineProps<{
     project: { id: string; name: string; color: string | null; icon: string | null };
 }>();

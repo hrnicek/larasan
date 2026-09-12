@@ -49,8 +49,6 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
 
-    /* The brand accent, as steps rather than one value: a filled control needs a hover and an
-       active that stay readable, and a ring needs to be seen against three different surfaces. */
     --color-primary-hover: var(--primary-hover);
     --color-primary-active: var(--primary-active);
     --color-primary-ring: var(--primary-ring);
@@ -92,15 +90,7 @@
     }
 }
 
-/*
- * A colour somebody chose rather than one of the eight names (ADR-0021).
- *
- * The eight are static class records, tuned twice — a darker step for light and a lighter one for
- * dark. A hex cannot be, because the scanner has to see every class written out and nobody knows
- * the hex until it is picked. These rules derive the same two steps from one custom property:
- * mixing the hue with `--foreground`, which is near-black in light and near-white in dark, darkens
- * or lightens it in exactly the direction the theme needs.
- */
+/* Custom hex accents (ADR-0021): mixing with --foreground darkens in light mode, lightens in dark. */
 @layer components {
     .accent-text {
         color: color-mix(in oklab, var(--custom-accent, currentColor) 78%, var(--foreground));
@@ -120,21 +110,13 @@
         color: color-mix(in oklab, var(--custom-accent, currentColor) 72%, var(--foreground));
     }
 
-    /* The rail stays dark in both themes (ADR-0014), so its tile mixes towards the chrome's own
-       foreground rather than the page's. */
     .accent-tile {
         background-color: color-mix(in oklab, var(--custom-accent, transparent) 22%, transparent);
         color: color-mix(in oklab, var(--custom-accent, currentColor) 45%, var(--chrome-foreground));
     }
 }
 
-/*
- * A screen fades in when it arrives, and a skeleton only once the wait is long enough to notice
- * (`AppShell`). Opacity alone: a transform, even an identity one, would make the page the
- * containing block of everything fixed inside it for as long as the animation runs. A skeleton
- * spends its first 120ms invisible, so a response inside that time replaces it before anybody
- * sees a flash of grey.
- */
+/* Opacity only: any transform would make the screen the containing block of its fixed descendants. */
 @keyframes screen-in {
     from {
         opacity: 0;
@@ -206,8 +188,6 @@
 :root.dark {
     --background: oklch(0.205 0 0);
     --foreground: hsl(0 0% 98%);
-    /* A card is a surface, so in dark it is lighter than the canvas. The starter kit gave both
-       the same value, which left a card with no surface of its own at all. */
     --card: oklch(0.245 0 0);
     --card-foreground: hsl(0 0% 98%);
     --popover: oklch(0.245 0 0);
@@ -227,8 +207,6 @@
     --accent-foreground: hsl(0 0% 98%);
     --destructive: hsl(0 84% 60%);
     --destructive-foreground: hsl(0 0% 98%);
-    /* Raised with the canvas: a 14.9% border was drawn for a 3.9% background and disappears
-       against the card this theme now has. */
     --border: hsl(0 0% 22%);
     --input: hsl(0 0% 24%);
     --ring: oklch(0.72 0.16 330);
@@ -244,49 +222,13 @@
     --chrome-border: oklch(0.25 0.008 285);
     --chrome-primary: oklch(0.72 0.16 330);
     --chrome-primary-foreground: oklch(0.19 0.03 330);
-
-    /* Was hsl(0 0% 100%): white on white, so anything relying on the pair for contrast
-       rendered invisible in dark mode. Mirrors the light palette, which is 10% on 98%. */
 }
 
 /*
-  Surface schemes (ADR-0019). Slate is the default and lives in `:root` and `.dark` above; the
-  four coloured schemes re-declare the same nineteen names here.
-
-  Three things about these blocks are not stylistic choices.
-
-  **The selectors are not anchored to `:root`, on purpose.** `[data-theme='ember']` matches the
-  <html> element the middleware stamps *and* any element stamped further down, which is what lets
-  the settings page draw each swatch in the scheme it is offering rather than in the one currently
-  on. The first attempt anchored them and every swatch came out in the current theme.
-
-  **Each theme needs a light block AND a dark block, and the specificities have to be read.** The
-  base dark block is `:root.dark` (0,1,1) so that it beats a theme's *light* block (0,1,0) when
-  both apply. A theme's dark block is `.dark [data-theme='ember'], [data-theme='ember'].dark`
-  (0,2,0), which beats both — at the root and inside a swatch. None of this depends on source
-  order. A token a dark block forgets does not fall back to nothing: it falls back to the theme's
-  own *light* value. `UiThemeTokensTest` fails on a block that is short.
-
-  **A theme owns surfaces and never the brand.** No `--primary`, `--ring`, `--destructive` or
-  chart token appears below. ADR-0014 picked plum at hue 330 for its distance from the eight
-  colours that label projects, sections and tags; a per-theme accent would land in that gap and
-  make a project dot look like the primary action.
-
-  **The colour lives in the chrome, not in the canvas.** The rail is a 250px field that no text is
-  read against, so it can carry real chroma; the paper carries the same hue at a fraction of it,
-  which is what makes the two look like one room. A canvas with the chroma of the rail would be a
-  tinted page nobody can read a task list on, and every ink token would have to be redrawn to
-  chase it.
-
-  The chrome stays darker than the canvas in every block, by more in dark than in light, which is
-  ADR-0014's rule and what keeps the rail from merging into the page. `UiThemeTokensTest` measures
-  it rather than trusting it.
+  Surface schemes (ADR-0019). Selectors are not anchored to :root so a swatch can render any scheme.
+  Each scheme needs a light and a dark block, and never overrides brand tokens such as --primary.
 */
 
-/* Meridian: petrol on a cool white. The rail is the one saturated field in the
-   application and it is a green-blue far enough from plum to sit under it without
-   arguing. The paper carries the same hue at a twentieth of the chroma, which is what
-   stops the white looking like a different sheet of paper next to the rail. */
 [data-theme='meridian'] {
     --background: oklch(0.985 0.016 200);
     --foreground: oklch(0.19 0.018 220);
@@ -332,9 +274,6 @@
     --chrome-border: oklch(0.28 0.062 205);
 }
 
-/* Ember: burnt umber on ivory. The warmest scheme here, and the one to reach for in a
-   room lit by something other than daylight — a white canvas at nine in the evening is
-   the complaint this answers. */
 [data-theme='ember'] {
     --background: oklch(0.98 0.026 75);
     --foreground: oklch(0.2 0.018 45);
@@ -380,9 +319,6 @@
     --chrome-border: oklch(0.275 0.058 45);
 }
 
-/* Nocturne: deep indigo on a paper with the same blue in it. The rail is the darkest and
-   the most saturated of the five — 55 degrees off plum, which is enough for the Create
-   pill to read as a different colour rather than a lighter one. */
 [data-theme='nocturne'] {
     --background: oklch(0.982 0.018 275);
     --foreground: oklch(0.185 0.022 280);
@@ -428,9 +364,6 @@
     --chrome-border: oklch(0.255 0.085 278);
 }
 
-/* Moss: forest on a paper with a trace of sage. The quietest of the coloured schemes —
-   the chroma is in the rail and almost nowhere else, so a board full of coloured
-   project dots still has the loudest colour on screen. */
 [data-theme='moss'] {
     --background: oklch(0.982 0.02 130);
     --foreground: oklch(0.192 0.018 150);
@@ -485,13 +418,6 @@
     }
 }
 
-/*
- * Rich text, drawn the same way whether it is being read or written.
- *
- * The task description is the one field in this application that holds markup (TASK-200-026), and
- * two sets of rules for it — one for the editor and one for what the editor produced — is how a
- * paragraph comes to look different the moment you stop typing. `.rich-text` is applied to both.
- */
 @layer components {
     .rich-text {
         @apply text-sm leading-relaxed;

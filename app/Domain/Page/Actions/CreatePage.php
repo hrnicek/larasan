@@ -18,12 +18,6 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Start a document, at the end of its siblings.
- *
- * A page begins empty rather than with a template: the first thing somebody does with a new
- * page is type into it, and a paragraph they have to delete first is in the way.
- */
 final readonly class CreatePage
 {
     public function __construct(private Dispatcher $events, private PageSubtree $subtree) {}
@@ -45,11 +39,7 @@ final readonly class CreatePage
         try {
             $page = $this->append($project, $actor, $data, $parent);
         } catch (UniqueConstraintViolationException) {
-            /*
-             * Two people started a page under the same parent at the same moment and computed
-             * the same slot. The sibling constraint turned that into an error rather than two
-             * pages in one place; this one reads the tail again and appends after the winner.
-             */
+            // An empty level has no row to lock, so concurrent creates can still collide on the sibling constraint.
             $page = $this->append($project, $actor, $data, $parent);
         }
 
@@ -61,12 +51,6 @@ final readonly class CreatePage
     private function append(Project $project, User $actor, CreatePageData $data, ?Page $parent): Page
     {
         return DB::transaction(function () use ($project, $actor, $data, $parent): Page {
-            /*
-             * The tail row is read and locked inside the transaction, so a second append waits
-             * rather than computing the same slot — the arrangement `CreateSection` uses, with
-             * the same caveat: an empty level has no row to lock, and the unique constraint is
-             * what catches the collision that leaves.
-             */
             $last = Page::query()
                 ->where('project_id', $project->id)
                 ->where('parent_id', $parent?->id)

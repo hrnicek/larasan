@@ -7,13 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-/**
- * One field, because renaming is one decision.
- *
- * The address a project is reached at is not re-derived from the new name — every link anybody
- * saved would stop working — so the slug is changed from the settings form, where the field and
- * its consequence are both visible.
- */
 const props = defineProps<{
     open: boolean;
     project: { id: string; name: string };

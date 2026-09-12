@@ -10,13 +10,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\ReorderProjectColumnsRequest;
 use Illuminate\Http\RedirectResponse;
 
-/**
- * The order the list draws its columns in.
- *
- * A `PUT` of the whole order rather than a move endpoint: the list is short, it is read as one
- * thing, and a request that could apply half an order is one nobody wants to have sent — the same
- * reasoning `CustomFieldOptionController` writes down for a choice field's choices.
- */
 class ProjectColumnController extends Controller
 {
     public function update(

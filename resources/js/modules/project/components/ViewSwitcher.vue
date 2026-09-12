@@ -6,19 +6,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { warmView } from '@/modules/project/views';
 import { show } from '@/routes/projects';
 
-/**
- * The views a project has, and the one it does not have yet.
- *
- * The view lives in the URL rather than in local state, so a reload and a shared link both show
- * what the sender saw, and each option is a real link for the same reason.
- *
- * The one that is not built is **shown disabled with a reason** rather than hidden or, worse,
- * linked to an empty screen. A tab that is absent reads as "this product does not do that"; a tab
- * that is disabled and says why reads as "not yet", which is the truth.
- *
- * Timeline is absent rather than disabled. It needs dependencies drawn against a time axis, which
- * is further off than the dashboard, and a greyed tab is still a promise.
- */
 const props = defineProps<{
     projectId: string;
     current: string;
@@ -37,11 +24,7 @@ const planned: { label: string; icon: Component }[] = [{ label: 'Dashboard', ico
 
 const isCurrent = (view: string): boolean => view === props.current;
 
-/*
- * The switch is instant (Inertia v3): the screen stays, the tab moves at once, and only the region
- * the new view draws waits for the server — `projects/Show` draws that region's skeleton while it
- * holds no view payload. An open panel goes with the old view, as the address it lived on does.
- */
+// Instant visit: cleared view payloads make `projects/Show` draw skeletons; the task panel closes.
 const switchingTo =
     (view: string) =>
     (current: Record<string, unknown>): Record<string, unknown> => ({

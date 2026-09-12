@@ -31,10 +31,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
 /**
- * A task belongs to a workspace and to no project (ADR-0003). Where it appears is a
- * separate question, answered by `task_project_memberships`: the relations below read
- * placement, and no column here records it.
- *
  * @property string $id
  * @property string $workspace_id
  * @property string|null $parent_id
@@ -55,35 +51,23 @@ class Task extends Model implements Attachable, Commentable
     use HasFactory, HasUuids, Searchable, SoftDeletes;
 
     /**
-     * What the search engine is told, which is less than what the screen draws.
-     *
-     * Title and description are what somebody types a search box to find; the description
-     * arrives as markup and goes in as words, because `p`, `li` and `strong` are terms to a
-     * search engine and *strong* would otherwise return every task with a bold word in it.
-     *
-     * `workspace_id` is a filter, not a permission: every query sends it so one tenant's typing
-     * cannot rank against another's data, and the rows are still hydrated through
-     * `ReachableTasks` afterwards. Nothing here decides what anybody may see (ADR-0016).
-     *
      * @return array<string, mixed>
      */
     public function toSearchableArray(): array
     {
         return [
             'id' => (string) $this->id,
+            // A search filter, not a permission: results are still hydrated through ReachableTasks. See ADR-0016.
             'workspace_id' => (string) $this->workspace_id,
             'title' => (string) $this->title,
             'description' => RichText::toPlainText($this->description),
             'completed' => $this->completed_at !== null,
-            // Seconds since the epoch: Meilisearch sorts numbers, not ISO strings.
+            // Meilisearch sorts numbers, not ISO strings.
             'created_at' => (int) $this->created_at?->getTimestamp(),
         ];
     }
 
-    /**
-     * Completion, ownership and authorship are absent by design: each is set by the Action
-     * that owns the operation, and a fillable column is one a request can reach.
-     */
+    // Completion, workspace and creator columns are set by Actions and must never be mass assigned.
     protected $fillable = [
         'parent_id',
         'title',
@@ -93,10 +77,6 @@ class Task extends Model implements Attachable, Commentable
         'assignee_id',
     ];
 
-    /**
-     * Completion is this column and nothing else. A "Done" column is a name somebody chose
-     * (ADR-0004), and inferring completion from placement is how a rename closes work.
-     */
     public function isCompleted(): bool
     {
         return $this->completed_at !== null;
@@ -115,22 +95,15 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * Ordered by creation, then by key: `created_at` is `timestamp(0)`, so two subtasks
-     * added in the same second would otherwise come back in whichever order PostgreSQL
-     * chose that day. The key is UUIDv7, which breaks the tie the way time would.
-     *
      * @return HasMany<Task, $this>
      */
     public function children(): HasMany
     {
+        // created_at has second precision, so the UUIDv7 key breaks ties in creation order.
         return $this->hasMany(self::class, 'parent_id')->oldest('created_at')->orderBy('id');
     }
 
     /**
-     * Where this task appears (ADR-0003). Unordered on purpose: a task's placements are a
-     * set, and `position` orders a task against its neighbours in one project rather than
-     * ordering the projects against each other.
-     *
      * @return HasMany<TaskProjectMembership, $this>
      */
     public function placements(): HasMany
@@ -139,9 +112,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * The projects this task appears in, by name — the chip list on a task, where the only
-     * order a reader can follow is the one they can read.
-     *
      * @return BelongsToMany<Project, $this>
      */
     public function projects(): BelongsToMany
@@ -152,19 +122,12 @@ class Task extends Model implements Attachable, Commentable
             ->orderBy('projects.name');
     }
 
-    /**
-     * A comment carries the workspace of the thing it is about, and this is where a task says
-     * which that is (`Commentable`).
-     */
     public function workspaceId(): string
     {
         return $this->workspace_id;
     }
 
     /**
-     * What has been said about this task, newest last — a conversation reads in the order it
-     * happened.
-     *
      * @return MorphMany<Comment, $this>
      */
     public function comments(): MorphMany
@@ -173,8 +136,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * The answers this task has given to its projects' custom fields (Phase 150).
-     *
      * @return HasMany<TaskCustomFieldValue, $this>
      */
     public function customFieldValues(): HasMany
@@ -183,9 +144,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * What this task is about. Ordered by name so a card's chips do not reshuffle between
-     * requests for no reason anybody can see.
-     *
      * @return BelongsToMany<Tag, $this>
      */
     public function tags(): BelongsToMany
@@ -194,12 +152,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * What is attached to this task, in the order somebody put it in (TASK-250-003).
-     *
-     * `position` rather than `created_at`, because the board card draws the *first* image of a
-     * task: "first" has to be a decision, not whichever file happened to be uploaded earliest.
-     * The column is unique per subject, so there is no tie left to break.
-     *
      * @return MorphMany<Attachment, $this>
      */
     public function attachments(): MorphMany
@@ -208,9 +160,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * The rows that say who is watching. `followers()` is the people themselves — both exist
-     * because an Action deletes a row and a screen draws a person.
-     *
      * @return HasMany<TaskFollower, $this>
      */
     public function follows(): HasMany
@@ -219,10 +168,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * The rows that say who starred this task. A star is one person's shortcut, so there is no
-     * `starrers()` beside it the way `followers()` sits beside `follows()`: nothing draws the
-     * list of people who starred something.
-     *
      * @return HasMany<TaskStar, $this>
      */
     public function stars(): HasMany
@@ -245,9 +190,6 @@ class Task extends Model implements Attachable, Commentable
     }
 
     /**
-     * The rows that say who works on this task beside its assignee. `collaborators()` is the
-     * people themselves, the way `followers()` sits beside `follows()`.
-     *
      * @return HasMany<TaskCollaborator, $this>
      */
     public function collaborations(): HasMany

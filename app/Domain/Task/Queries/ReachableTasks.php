@@ -11,18 +11,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * The tasks one person may see in one workspace, as a constraint rather than a list.
- *
- * A task is reachable when it sits in a project the actor may open, or in no project at all and
- * the actor is not a guest — guests hold projects, and a task in none was never given to them
- * (ADR-0006, TASK-070-017). That sentence used to be written inside `SearchTasksQuery`; it is
- * here because the search engine now has a second caller for it, and a rule with two copies is a
- * rule with one that will be forgotten.
- *
- * It constrains a builder rather than returning rows, because both callers need it joined to
- * their own query: a leak is invisible in a list nobody expected to be complete.
- */
 final readonly class ReachableTasks
 {
     public function __construct(private VisibleProjectsForUser $visibleProjects) {}
@@ -52,13 +40,6 @@ final readonly class ReachableTasks
     }
 
     /**
-     * The keys of the tasks this actor may reach, as a subquery.
-     *
-     * Wanted where a *referenced* task has to be checked rather than a listed one: naming a
-     * parent is naming a task, and `parent_id` was scoped to the workspace and nothing more —
-     * so a task inside a private project could be made somebody's parent, and its title read
-     * back off the panel that draws the breadcrumb (TASK-260-002).
-     *
      * @return Builder<Task>
      */
     public function idsFor(Workspace $workspace, User $actor): Builder
@@ -67,15 +48,6 @@ final readonly class ReachableTasks
     }
 
     /**
-     * The keys of the projects this actor may open, as a subquery.
-     *
-     * Callers need it a second time to constrain what they *show*: a task's project chips are
-     * drawn from its placements, and an unconstrained eager load would name a private project on
-     * a task the actor reached through a different one.
-     *
-     * Archived projects are included: a task in one is still reachable, and a search that hid it
-     * would be hiding work rather than tidying it.
-     *
      * @return Builder<Project>
      */
     public function projectIds(Workspace $workspace, User $actor): Builder

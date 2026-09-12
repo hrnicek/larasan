@@ -7,11 +7,6 @@ namespace App\Domain\Section\Exceptions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * Invariants the section Actions refuse for every caller. A FormRequest catches most of
- * them first; the Action still checks, because a console command or a queued job arrives
- * without one.
- */
 final class SectionException extends DomainException implements DomainRefusal
 {
     public static function cannotManageSections(): self

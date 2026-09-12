@@ -12,23 +12,11 @@ import {
 import type { PageNode } from '@/modules/page/types';
 import pageRoutes from '@/routes/pages';
 
-/**
- * One document in the tree, and whatever is written underneath it.
- *
- * Recursive, because the thing being drawn is: a page holds pages, bounded at five levels by the
- * server. The indent is the only thing that says which level a row is on, so it is also carried
- * by `aria-level` — a screen reader has no indent to look at.
- *
- * The row is a **link**, not a button that navigates: a page has an address, and middle-click,
- * ⌘-click and "copy link" are things people do to documents.
- */
 const props = defineProps<{
     page: PageNode;
     depth: number;
     can: { createPage: boolean; updatePage: boolean; deletePage: boolean };
-    /** The page being read, so the tree can say where the reader is. */
     currentId?: string | null;
-    /** What this row may do about its own position, decided by where it sits among its siblings. */
     moves?: { up: boolean; down: boolean; in: boolean; out: boolean };
 }>();
 
@@ -43,15 +31,9 @@ const hasChildren = computed<boolean>(() => props.page.children.length > 0);
 
 const isCurrent = computed<boolean>(() => props.currentId === props.page.id);
 
-/** Whether the page being read is somewhere underneath this one. */
 const holdsCurrent = (node: PageNode): boolean =>
     node.children.some((child) => child.id === props.currentId || holdsCurrent(child));
 
-/*
- * Open by default — a tree that hides what is in it makes somebody click to find out it is empty
- * — and forced open when the page being read is inside it, because a reader should never have to
- * find their own position.
- */
 const expanded = ref(true);
 
 watch(
@@ -117,9 +99,6 @@ const canMove = computed<boolean>(
                 >{{ page.excerpt }}</span>
             </Link>
 
-            <!-- The controls appear on hover and on focus. Focus is the half usually forgotten,
-                 and without it the menu is unreachable from the keyboard. They stay visible on
-                 the row being read, which is the one a person is most likely to act on. -->
             <div
                 class="flex shrink-0 items-center transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
                 :class="isCurrent ? 'opacity-100' : 'opacity-0'"
@@ -147,10 +126,6 @@ const canMove = computed<boolean>(
                             Rename
                         </DropdownMenuItem>
 
-                        <!-- Moving lives in the menu because dragging cannot be the only way:
-                             every drag in this application has a keyboard route to the same
-                             result (`docs/ui/design-system.md`). An option that cannot apply is
-                             absent rather than present and refused. -->
                         <template v-if="can.updatePage && canMove">
                             <DropdownMenuSeparator />
 

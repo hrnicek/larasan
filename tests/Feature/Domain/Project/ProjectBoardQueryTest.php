@@ -29,9 +29,6 @@ function boardOf(Project $project, User $actor, array $expanded = []): array
     return app(ProjectBoardQuery::class)($project, $actor, $expanded);
 }
 
-/**
- * `$count` cards in one column, titled by their position so the order reads.
- */
 function fill(Workspace $workspace, Project $project, ?Section $section, int $count, string $prefix = 'Card'): void
 {
     foreach (range(1, $count) as $slot) {
@@ -66,8 +63,6 @@ it('stops at a page and says how many it did not draw', function (): void {
 
     $board = boardOf($project, $actor);
 
-    // The count is the whole column and the page is what a reader gets: "load more" is a fact
-    // the server states, not a guess the client makes from a page size.
     expect($board['columns'][0]['tasks'])->toHaveCount(ProjectBoardQuery::PER_COLUMN)
         ->and($board['columns'][0]['count'])->toBe(ProjectBoardQuery::PER_COLUMN + 5)
         ->and($board['columns'][0]['hasMore'])->toBeTrue()
@@ -84,7 +79,6 @@ it('pages each column separately rather than the board as a whole', function ():
 
     $board = boardOf($project, $actor);
 
-    // A board-wide limit would have swallowed the short column behind the long one.
     expect($board['columns'][0]['tasks'])->toHaveCount(ProjectBoardQuery::PER_COLUMN)
         ->and($board['columns'][1]['tasks'])->toHaveCount(2)
         ->and($board['columns'][1]['hasMore'])->toBeFalse();
@@ -159,7 +153,6 @@ it('counts a column the same way it fills it', function (): void {
 
     $board = boardOf($project, $actor);
 
-    // A soft-deleted task cannot leave a count of three above two cards (TASK-050-013).
     expect($board['columns'][0]['count'])->toBe(2)
         ->and($board['columns'][0]['tasks'])->toHaveCount(2);
 });
@@ -195,14 +188,7 @@ it('reads a wide board without a query per column or per card', function (): voi
 
     $board = boardOf($project, $actor);
 
-    /*
-     * Four columns, twenty-four cards: the counts, the paged ids, the placements, the tasks,
-     * the assignees, the sections, the actor's memberships, and the covers. A bound rather than
-     * an exact figure, because the membership lookups are memoised per request (TASK-040-020).
-     *
-     * The bound moved from nine to ten for the covers (TASK-250-005), and only for that: one
-     * `DISTINCT ON` for the whole page, never one per card.
-     */
+    // A bound rather than an exact count, because membership lookups are memoised per request.
     expect($board['columns'])->toHaveCount(4)
         ->and(count($queries))->toBeLessThanOrEqual(10);
 });
@@ -245,9 +231,6 @@ it('counts the comments on a card without a query per card', function (): void {
 
         Comment::factory()->on($task)->count($index % 3)->create();
 
-        // Removed comments are not counted: the thread shows them so the conversation still
-        // reads correctly, and a card that counted them would promise something that is not
-        // there.
         Comment::factory()->on($task)->create()->delete();
     }
 
@@ -256,8 +239,6 @@ it('counts the comments on a card without a query per card', function (): void {
     $queries = DB::getQueryLog();
     DB::disableQueryLog();
 
-    // A subquery per count, not a query per card — the bound this query has asserted since
-    // Phase 090 does not move because a column was added to it.
     expect(array_column($board['columns'][0]['tasks'], 'comments'))
         ->toBe([1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
         ->and(count($queries))->toBeLessThanOrEqual(10);
@@ -281,7 +262,6 @@ it('draws the first image of a task as the card\'s cover', function (): void {
 
     $board = boardOf($project, $actor);
 
-    // The document is not a cover, and the second picture is not the first one.
     expect($board['columns'][0]['tasks'][0]['cover'])->toBe([
         'id' => $first->id,
         'width' => 900,
@@ -300,7 +280,6 @@ it('follows the order somebody put the files in', function (): void {
 
     app(MoveAttachment::class)->handle($second, $actor, null);
 
-    // Which picture a card draws is the same decision the grid makes, not a second one.
     expect($board = boardOf($project, $actor))
         ->and($board['columns'][0]['tasks'][0]['cover']['id'])->toBe($second->id)
         ->and($first->refresh()->position)->toBeGreaterThan($second->refresh()->position);
@@ -324,7 +303,5 @@ it('takes the cover off the card when the file is removed', function (): void {
 
     $file->delete();
 
-    // A soft-deleted file has stopped being reachable, which is the point of removing it that
-    // way (TASK-120-007) — the card must not go on drawing it.
     expect(boardOf($project, $actor)['columns'][0]['tasks'][0]['cover'])->toBeNull();
 });

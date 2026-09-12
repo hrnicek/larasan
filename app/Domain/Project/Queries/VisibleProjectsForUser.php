@@ -12,13 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * The projects a person may see in one workspace, as one query.
- *
- * The same rule as `Project::isVisibleTo()`, expressed in SQL rather than per row: an
- * explicit membership always counts, `visibility = workspace` counts for workspace members
- * without one, and never for a guest. It lives here rather than in each caller because a
- * listing that forgets the guest clause leaks a project list, and a listing that asks the
- * model per row is an N+1 (ADR-0005: the scope is proven inside the query).
+ * Query counterpart of Project::isVisibleTo(); keep the rules in sync.
  */
 final readonly class VisibleProjectsForUser
 {
@@ -42,11 +36,6 @@ final readonly class VisibleProjectsForUser
         $query = Project::query()->where('workspace_id', $workspace->id);
 
         if ($membership?->status->grantsAccess() !== true) {
-            /*
-             * Not a member of the workspace at all: no project in it is visible, whatever
-             * a stale project_memberships row might say. Returning an impossible query
-             * rather than an empty collection keeps the return type one thing.
-             */
             return $query->whereRaw('1 = 0');
         }
 
@@ -58,7 +47,6 @@ final readonly class VisibleProjectsForUser
             ->whereHas('memberships', fn (Builder $memberships): Builder => $memberships->where('user_id', $user->id));
 
         if ($membership->role->isGuest()) {
-            // A guest sees exactly what they were given. Visibility grants them nothing.
             return $query->where($explicit);
         }
 

@@ -22,8 +22,6 @@ class UpdateCommentRequest extends FormRequest
      */
     public function rules(): array
     {
-        // The same bound as writing one: an edit that could grow past what a comment may be is
-        // a way around the rule rather than an exception to it.
         return [
             'body' => ['required', 'string', 'max:5000'],
         ];

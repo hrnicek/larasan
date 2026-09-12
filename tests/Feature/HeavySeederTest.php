@@ -12,16 +12,9 @@ use Database\Seeders\HeavySeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 
-/**
- * The seeder runs at a fraction of its real scale here — the invariants it has to hold are
- * the same at forty tasks as at six thousand, and a suite that seeded six thousand would be
- * paying a minute a run to prove it twice.
- */
 function seedHeavily(): void
 {
-    // Bound rather than constructed: `db:seed` resolves the class from the container and
-    // hands it the console command it reports through, so the seeder runs here exactly as
-    // it runs from the terminal — only smaller.
+    // `db:seed` resolves the seeder from the container, so a smaller instance is bound rather than constructed.
     app()->bind(HeavySeeder::class, fn (): HeavySeeder => new HeavySeeder(peopleCount: 8, projectCount: 4, taskCount: 60));
 
     Artisan::call('db:seed', ['--class' => HeavySeeder::class]);

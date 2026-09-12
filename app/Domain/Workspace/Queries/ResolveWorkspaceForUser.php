@@ -10,9 +10,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Which workspace a request is operating in. The membership check is part of the query
- * rather than a policy the caller must remember (ADR-0005): an id the actor has no
- * active membership for resolves to null, and the middleware turns that into a 404.
+ * Scoped to active memberships, so an inaccessible workspace resolves to null. See ADR-0005.
  */
 final readonly class ResolveWorkspaceForUser
 {
@@ -22,26 +20,17 @@ final readonly class ResolveWorkspaceForUser
             return $this->membershipsOf($user)->where('slug', $slug)->first();
         }
 
-        /*
-         * `created_at` is `timestamp(0)`, so two workspaces joined in the same second tie
-         * and PostgreSQL may answer either first — a user with no remembered workspace
-         * could land somewhere different on consecutive requests. The key is UUIDv7, so
-         * ordering by it breaks the tie in the same direction time would.
-         */
-        // A null remembered id is not a lookup: `whereKey(null)` is a query that cannot
-        // match, and every first request of a session would pay for it.
         $remembered = $user->current_workspace_id === null
             ? null
             : $this->membershipsOf($user)->whereKey($user->current_workspace_id)->first();
 
+        // created_at is timestamp(0), so the UUIDv7 key breaks same-second ties in creation order.
         return $remembered
             ?? $this->membershipsOf($user)->oldest('created_at')->orderBy('id')->first();
     }
 
     /**
-     * A fresh builder per call. Reusing one would carry the remembered workspace's id
-     * into the fallback, and a user who had left that workspace would resolve to nothing
-     * while still being a member of others.
+     * A fresh builder per call, so constraints never leak from one lookup into the next.
      *
      * @return Builder<Workspace>
      */

@@ -63,8 +63,6 @@ it('lists the projects the task appears in, with their columns', function (): vo
     $detail = detailOf($task, $actor);
     $names = array_column(array_column($detail['placements'], 'project'), 'name');
 
-    // This is where multi-project membership becomes visible to a person (ADR-0003). Sorted
-    // on both sides: the factory names a project randomly, and the order is not the claim.
     $expected = [$project->name, 'Release'];
     sort($names);
     sort($expected);
@@ -86,8 +84,6 @@ it('hides a project the actor was never given', function (): void {
 
     $names = array_column(array_column(detailOf($task, $actor)['placements'], 'project'), 'name');
 
-    // A task can appear in a project somebody was never given, and its name is not theirs to
-    // read through a task they may (ADR-0006).
     expect($names)->toBe([$project->name]);
 });
 
@@ -140,9 +136,6 @@ it('tells a guest what they may not do', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // A guest given the project reads the task and edits nothing; commenting is the one thing
-    // their role does carry (ADR-0010), and adding documents or words to the vocabulary is not
-    // part of it.
     expect(detailOf($task, $guest)['can'])
         ->toBe(['update' => false, 'assign' => false, 'delete' => false, 'comment' => true, 'attach' => false, 'manageTags' => false]);
 });
@@ -166,26 +159,7 @@ it('reads a task with several subtasks and placements without a query per row', 
 
     $detail = detailOf($task, $actor);
 
-    /*
-     * Five subtasks and two placements: the task, the assignee, the creator, the parent, the
-     * children, the placements, their projects, the column each sits in, the columns each
-     * project offers, and the memberships the permissions ask for. A bound rather than an exact
-     * number, because those membership lookups are memoised per request (TASK-040-020).
-     *
-     * The bound went 19 → 20 with TASK-200-027: every project's sections are one read for the
-     * page, which is the point — the panel moves a task between columns without asking again.
-     * It went 20 → 21 with TASK-200-042: whether this reader starred the task is a row nothing
-     * else on the panel already reads, and it is the reader's own rather than the task's.
-     *
-     * It went 21 → 23 with TASK-260-001, and this is the one to understand. The panel asks four
-     * permissions of one task, and each now asks the boards it sits on as well as the workspace.
-     * `TaskPolicy` memoises within the request, so what is left is the smallest set of distinct
-     * questions there are: the boards themselves, then whether any is readable, whether any is
-     * editable and whether any is commentable. Four reads, whatever the task is on and however
-     * many subtasks hang under it — which is what this test is really guarding.
-     *
-     * 23 → 24 with TASK-310-004: the task's collaborators, one read however many there are.
-     */
+    // A bound rather than an exact count, because membership lookups are memoised per request.
     expect($detail['subtasks'])->toHaveCount(5)
         ->and($detail['placements'])->toHaveCount(2)
         ->and(count($queries))->toBeLessThanOrEqual(24);
@@ -196,9 +170,6 @@ it('carries nothing it cannot yet know about', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // The comment thread and the activity feed are the deferred region rather than part of this
-    // read. Attachments joined the list in TASK-120-008, tags in TASK-140-004 and custom fields
-    // in TASK-150-007, each the moment their tables existed — which is what the list is for.
     expect(array_keys(detailOf($task, $actor)))
         ->toBe([
             'task',
@@ -248,8 +219,6 @@ it('offers only the projects the actor may add the task to', function (): void {
 
     $offered = array_column(detailOf($task, $actor)['availableProjects'], 'name');
 
-    // Not the one it is already in, not one they may only read, and never one they were never
-    // given.
     expect($offered)->toBe(['Editable']);
 });
 
@@ -266,18 +235,11 @@ it('lists what is attached, with the permissions the controls render from', func
 
     $attachments = detailOf($task, $actor)['attachments'];
 
-    // The stored path is generated and is nobody's business outside its table: a download goes
-    // through the endpoint that asks a question first (ADR-0007).
     expect(array_column($attachments, 'name'))->toBe(['mine.pdf', 'theirs.pdf'])
         ->and($attachments[0]['size'])->toBe(1024)
         ->and($attachments[0]['uploader']['id'])->toBe($actor->id)
         ->and($attachments[0])->not->toHaveKey('path');
 
-    /*
-     * `file.delete` is every full member's under ADR-0010, the same shape as `comment.delete`,
-     * so a member and an admin may both remove anybody's. A guest holds neither that nor an
-     * upload of their own, and may remove nothing.
-     */
     expect(array_column($attachments, 'canDelete'))->toBe([true, true])
         ->and(array_column(detailOf($task, $moderator)['attachments'], 'canDelete'))->toBe([true, true])
         ->and(array_column(detailOf($task, $guest)['attachments'], 'canDelete'))->toBe([false, false]);
@@ -299,10 +261,6 @@ it('reads a task s attachments without a query per file', function (): void {
 
     $detail = detailOf($task, $actor);
 
-    // Six files by six different people cost the same three reads one would: the attachments,
-    // their files, and the uploaders. The bound went 19 → 20 with the star (TASK-200-042), and
-    // 20 → 22 with TASK-260-001, where each of the panel's four permissions began asking the
-    // task's boards as well as the workspace — a fixed cost, not one that grows with the files.
     expect($detail['attachments'])->toHaveCount(6)
         ->and(count($queries))->toBeLessThanOrEqual(22);
 });
@@ -323,10 +281,7 @@ it('offers each placement the columns of its own project, in order', function ()
     $placements = detailOf($task, $actor)['placements'];
     $byProject = array_combine(array_column(array_column($placements, 'project'), 'id'), $placements);
 
-    // Position order, so the menu reads the way the board does.
     expect(array_column($byProject[$project->id]['sections'], 'name'))->toBe(['To do', 'Doing'])
         ->and(array_column($byProject[$other->id]['sections'], 'name'))->toBe([$elsewhere->name])
-        // A column of another project would be a card in two boards at once; the menu must not
-        // be able to offer it in the first place.
         ->and(array_column($byProject[$project->id]['sections'], 'id'))->not->toContain($elsewhere->id);
 });

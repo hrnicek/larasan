@@ -3,17 +3,9 @@ import { Check, CircleAlert, Loader2, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import type { SaveState } from '@/modules/page/composables/usePageAutosave';
 
-/**
- * What the person writing is told about their own words.
- *
- * `aria-live="polite"`, because the sentence changes while somebody is typing and a screen
- * reader should mention it between thoughts rather than interrupt one.
- */
 const props = defineProps<{ state: SaveState }>();
 
 const wording = computed(() => ({
-    // Nothing has been typed yet, so there is nothing to report. A screen that opens saying
-    // "All changes saved" is answering a question nobody asked.
     idle: null,
     pending: { label: 'Unsaved changes', icon: Loader2, tone: 'text-muted-foreground' },
     saving: { label: 'Saving…', icon: Loader2, tone: 'text-muted-foreground' },

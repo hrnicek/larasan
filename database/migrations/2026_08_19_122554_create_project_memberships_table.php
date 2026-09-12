@@ -17,22 +17,12 @@ return new class extends Migration
             $table->foreignUuid('project_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-            /*
-             * No database default. Access level is an authorization decision, and a
-             * default would make it silently — the same reason workspace_memberships.role
-             * has none (ADR-0006, ADR-0010).
-             */
             $table->string('access_level');
 
             $table->timestamps();
 
             $table->unique(['project_id', 'user_id']);
 
-            /*
-             * "Which projects may this person see" runs on every project listing, and
-             * PostgreSQL does not index the referencing side of a foreign key. The unique
-             * index already covers lookups that start from the project.
-             */
             $table->index('user_id');
         });
 

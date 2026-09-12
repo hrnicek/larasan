@@ -8,15 +8,6 @@ use Illuminate\Http\Request;
 
 abstract class Controller
 {
-    /**
-     * The signed-in account, as a `User` rather than a `User|null`.
-     *
-     * Every route that reaches a controller here is behind `auth`, so the null is a shape the
-     * type system knows about and the application does not — and fourteen controllers had each
-     * written this method out to say so. A 403 rather than a 404: the framework has already
-     * decided somebody is signed in, and if that stops being true it is a broken assumption
-     * rather than a missing page.
-     */
     protected function actor(Request $request): User
     {
         $user = $request->user();
@@ -25,11 +16,7 @@ abstract class Controller
     }
 
     /**
-     * One read behind several lazy props: done the first time any of them is resolved, and not at
-     * all for a partial reload that asks for none of them.
-     *
-     * Held by the closure rather than by Laravel's `once()`, which keys its memo on the calling
-     * object — and the route keeps the controller between requests.
+     * Not `once()`: it memoizes per object, and the route reuses the controller instance.
      *
      * @template TRead of array
      *
@@ -40,8 +27,7 @@ abstract class Controller
     {
         $value = null;
 
-        // No native return type: `array` would be wider than `TRead`, and the shape of what was
-        // read is what the props built on it are typed from.
+        // No native return type, which would widen `TRead` to `array`.
         return function () use ($read, &$value) {
             return $value ??= $read();
         };

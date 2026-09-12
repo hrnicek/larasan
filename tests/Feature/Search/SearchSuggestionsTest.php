@@ -106,8 +106,6 @@ it('answers tasks from PostgreSQL when the engine cannot be reached', function (
     Task::factory()->in($workspace)->create(['title' => 'Invoice the client']);
     Project::factory()->in($workspace)->create(['name' => 'Invoice rewrite']);
 
-    // A real engine at an address nothing answers on, rather than a mock: the failure this
-    // guards against is a service being down, and that is what a service being down looks like.
     config(['scout.driver' => 'meilisearch', 'scout.meilisearch.host' => 'http://127.0.0.1:9']);
     app()->forgetInstance(EngineManager::class);
 
@@ -120,12 +118,7 @@ it('answers tasks from PostgreSQL when the engine cannot be reached', function (
         ->json();
 
     expect($answer['results']['tasks'][0]['title'])->toBe('Invoice the client');
-    /*
-     * One per kind, matched by message rather than by a total: the engine is caught per kind so
-     * that one index missing — a deployment that has not imported yet — does not take the others
-     * down with it. Counting every warning instead would also count the one the degraded path
-     * logs on its own way to PostgreSQL, and would then have to move whenever either changed.
-     */
+    // Matched by message: each kind falls back separately, and the degraded path logs a warning of its own.
     $log->shouldHaveReceived('warning')
         ->withArgs(fn (string $message): bool => $message === 'Search fell back for one kind.')
         ->times(count(SearchKind::cases()));
@@ -162,7 +155,7 @@ it('answers the empty field the palette opens with', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 
-    // `?q=` reaches the request as null, which is the shape the palette's first request has.
+    // `?q=` reaches the request as null.
     $this->actingAs($actor)
         ->getJson(route('search.suggestions').'?q=&kind=')
         ->assertOk()

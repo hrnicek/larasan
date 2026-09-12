@@ -22,10 +22,8 @@ return [
     | Horizon Operators
     |--------------------------------------------------------------------------
     |
-    | Email addresses that may open the dashboard outside local and testing. Job
-    | payloads are serialised domain objects spanning every workspace, so access is
-    | deliberately not a workspace capability — see docs/adr/0011. An empty list
-    | denies everyone.
+    | Email addresses allowed to open the dashboard outside local and testing.
+    | An empty list denies everyone. See ADR-0011.
     |
     */
 
@@ -114,25 +112,10 @@ return [
     */
 
     'waits' => [
-        /*
-         * Every configured queue, with the threshold each one's contents deserve — a queue
-         * nobody watches is a queue nobody notices stopping (TASK-170-013).
-         *
-         * Ten seconds for broadcasts, because a board update that has waited ten seconds has
-         * stopped being an update: the person it was for has already scrolled past, clicked
-         * something else, or reloaded. Sixty for the other two, where lateness is an
-         * inconvenience rather than a wrong screen.
-         */
         'redis:broadcasts' => 10,
         'redis:notifications' => 60,
         'redis:default' => 60,
-        // Indexing that has waited a minute is a palette answering from a stale index.
         'redis:search' => 60,
-        /*
-         * Longer, because a late thumbnail is the only lateness on this list nobody sees: a
-         * preview falls back to the original until the derivative exists, so the page is heavy
-         * rather than wrong. Two minutes is a queue that has stopped, not one that is busy.
-         */
         'redis:media' => 120,
     ],
 
@@ -248,11 +231,7 @@ return [
         ],
     ],
 
-    /*
-     * Every `APP_ENV` this application runs under. An environment missing from here leaves
-     * Horizon with no supervisor at all and nothing said about it — the queue simply stops being
-     * worked (TASK-170-013).
-     */
+    // Every APP_ENV must be listed: Horizon starts no supervisor for an environment missing here.
     'environments' => [
         'production' => [
             'supervisor-1' => [
@@ -268,8 +247,6 @@ return [
             ],
         ],
 
-        // The suite queues synchronously and never starts Horizon, but an environment with no
-        // supervisor is a silent failure everywhere else, so it is named rather than omitted.
         'testing' => [
             'supervisor-1' => [
                 'maxProcesses' => 1,

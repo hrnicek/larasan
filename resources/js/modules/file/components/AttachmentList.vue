@@ -10,36 +10,19 @@ import AttachmentLightbox from '@/modules/file/components/AttachmentLightbox.vue
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskAttachment } from '@/modules/task/types';
 
-/**
- * What is attached to this task.
- *
- * Two kinds of thing, drawn two ways. A photograph is looked at, so it is a thumbnail that opens
- * (TASK-250-004); a document is read by name, so it stays the row it has always been. Which is
- * which is the server's `kind` (`FileKind`), never a MIME string parsed in this template.
- *
- * Every URL here is an endpoint rather than an address on the disk: a storage path is never a
- * capability (ADR-0007), and the server asks whether this reader may open the task before it
- * sends a byte.
- */
+// Files are served through authorized endpoints, never storage paths. See ADR-0007.
 const props = defineProps<{
     taskId: string;
     attachments: TaskAttachment[];
     canAttach: boolean;
-    /** Rearranging the files is editing the task, so it is the task's own permission. */
     canReorder: boolean;
 }>();
 
 const images = computed((): TaskAttachment[] => props.attachments.filter((file) => file.kind === 'image'));
 const documents = computed((): TaskAttachment[] => props.attachments.filter((file) => file.kind !== 'image'));
 
-/** Which photograph is open, if any. Local state: a lightbox is a way of looking, not a place. */
 const opened = ref<string | null>(null);
 
-/*
- * A batch, always — one file is a batch of one. The server validates the whole choice before it
- * stores any of it, so a folder with one refused file in it attaches nothing and says which file
- * it was, rather than leaving somebody to work out how far it got.
- */
 const form = useForm<{ files: File[] }>({ files: [] });
 const input = ref<HTMLInputElement | null>(null);
 
@@ -55,8 +38,6 @@ const upload = (event: Event): void => {
     form.post(AttachmentController.store.url(props.taskId), {
         preserveScroll: true,
         forceFormData: true,
-        // Cleared only on success. A refused upload keeps the choice so the message says what
-        // was wrong with *these* files rather than about nothing at all.
         onSuccess: () => {
             form.reset('files');
 
@@ -67,7 +48,7 @@ const upload = (event: Event): void => {
     });
 };
 
-/** Errors arrive per file (`files.0`), so the block draws every one it was given, not the first. */
+// Errors arrive per file as `files.N`.
 const uploadErrors = computed((): string[] =>
     Object.entries(form.errors as Record<string, string | undefined>)
         .filter(([key]) => key === 'files' || key.startsWith('files.'))
@@ -75,16 +56,10 @@ const uploadErrors = computed((): string[] =>
         .filter((message): message is string => typeof message === 'string'),
 );
 
-/** The percentage is worth saying once a batch is big enough for *Uploading…* to sit there. */
 const uploadLabel = computed((): string =>
     form.progress === null || form.progress === undefined ? 'Uploading…' : `Uploading ${form.progress.percentage ?? 0}%…`,
 );
 
-/*
- * Removing a file is asked about first (ADR-0013). The bytes survive the request — `files:sweep`
- * is the only place they are destroyed — but the person clicking cannot know that, and a file
- * that disappears without a question is a file they will assume is gone.
- */
 const removing = ref<TaskAttachment | null>(null);
 
 const remove = (): void => {
@@ -102,11 +77,6 @@ const remove = (): void => {
 <template>
     <section class="flex flex-col gap-1">
         <TaskSectionHeading title="Attachments" :count="attachments.length ? String(attachments.length) : null">
-            <!-- The input is the hidden half of the control. A bare file input draws the browser's
-                 own text — in the reader's locale, not the application's — beside a button nobody
-                 styled; the visible half is the `+` every other block on this screen adds with. -->
-            <!-- Only once there is a list to add to. With none, the row below already says
-                 *Add a file* in words, and two controls doing one thing is one too many. -->
             <template v-if="canAttach && attachments.length" #add>
                 <label
                     class="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-within:ring-2 focus-within:ring-primary-ring"
@@ -170,8 +140,6 @@ const remove = (): void => {
             </ul>
         </div>
 
-        <!-- Hidden rather than disabled where somebody may not upload: an affordance that leads
-             nowhere is worse than none, and the server refuses either way. -->
         <label
             v-else-if="canAttach"
             class="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md px-1 text-sm text-muted-foreground transition-colors hover:text-foreground focus-within:ring-2 focus-within:ring-primary-ring md:min-h-8"

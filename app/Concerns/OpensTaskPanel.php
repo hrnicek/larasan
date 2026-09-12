@@ -14,27 +14,10 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
-/**
- * The task detail panel, for the four screens that can open one.
- *
- * The panel is an address — `?task=` on whichever screen it was opened from — so every screen
- * that offers it answers the same three props. Written once because the rule underneath them is
- * a security rule, and a security rule copied four times is a security rule that will differ in
- * one of them: a panel is not a way around the fact that a task in a project somebody was never
- * given is not theirs to read (TASK-070-017).
- */
 trait OpensTaskPanel
 {
     use RemembersWhatWasOpened;
 
-    /**
-     * The task whose panel is open, if the URL names one the actor may read.
-     *
-     * Resolved inside the workspace and then through the policy, exactly as `tasks.show` does.
-     * A 404 rather than a redirect or an empty panel: an id that names a task out of reach must
-     * be answered the same way as an id that names nothing, or the difference between the two
-     * answers is itself the leak.
-     */
     protected function openTaskPanel(Request $request, Workspace $workspace, User $actor): ?Task
     {
         $id = $request->string('task')->value() ?: null;
@@ -45,6 +28,7 @@ trait OpensTaskPanel
 
         $task = $workspace->tasks()->whereKey($id)->first();
 
+        // A 404 so a task out of reach is indistinguishable from one that does not exist.
         if (! $task instanceof Task || $actor->cannot('view', $task)) {
             abort(404);
         }
@@ -55,12 +39,6 @@ trait OpensTaskPanel
     }
 
     /**
-     * The props the panel needs, on any screen that can open one.
-     *
-     * `taskDetail` is `null` rather than absent so a partial reload can tell "no panel" from
-     * "not sent this time". `activity` is deferred and only when there is a panel — the same
-     * region the task's own page defers (TASK-100-011).
-     *
      * @return array<string, mixed>
      */
     protected function taskPanelProps(
@@ -72,22 +50,12 @@ trait OpensTaskPanel
         $task = $this->openTaskPanel($request, $workspace, $actor);
 
         return [
-            /*
-             * Read only for a response that carries it: a board refreshing under an open panel
-             * asks for the board alone. Reach is settled above either way — `openTaskPanel` runs
-             * on every request that names a task, asked for or not.
-             */
+            // Null rather than absent so a partial reload can tell "no panel" from "not requested".
             'taskDetail' => $task === null ? null : fn (): array => $detail($task, $actor),
-            /*
-             * The task's history and its conversation, deferred — the same region the task's own
-             * page defers, answered by the same query. It was a stub returning `[]`, so a panel
-             * opened from a list showed an empty thread however much had been said on the task.
-             */
             'activity' => $task === null
                 ? null
                 : Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor)),
             'priorities' => array_column(TaskPriority::cases(), 'value'),
-            // Who a card can be handed to, for the pickers — a closure for the same reason.
             'members' => fn (): array => $workspace->members()->orderBy('name')->get(PersonSummary::columns('users'))
                 ->map(PersonSummary::from(...))
                 ->values()

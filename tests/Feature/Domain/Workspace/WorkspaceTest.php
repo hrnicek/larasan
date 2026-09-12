@@ -54,11 +54,6 @@ it('refuses to delete a user who owns a workspace', function (): void {
 });
 
 it('counts past every slug that is already taken', function (): void {
-    /*
-     * The first version returned one unchecked random suffix, so a second collision
-     * handed back a slug the unique index would reject. Counting is checked at each
-     * step and terminates; a random suffix pinned for a test would not.
-     */
     Workspace::factory()->create(['slug' => 'acme']);
     Workspace::factory()->create(['slug' => 'acme-2']);
 

@@ -31,13 +31,6 @@ class AttachmentFactory extends Factory
         ];
     }
 
-    /**
-     * The position cannot be a value in `definition()`: it depends on what is already attached to
-     * the subject, which is only known once the other attributes have been resolved. Appending
-     * here is what `AttachFile` does, so a factory-built list reads in the same order a real one
-     * does — and `UNIQUE(attachable_type, attachable_id, position)` means guessing would fail
-     * loudly on the second row.
-     */
     public function configure(): static
     {
         return $this->afterMaking(function (Attachment $attachment): void {
@@ -54,10 +47,6 @@ class AttachmentFactory extends Factory
         });
     }
 
-    /**
-     * A file attached to a subject, both in the same workspace — a file in one workspace hanging
-     * from a subject in another is a row the domain will never create.
-     */
     public function attaching(File $file, Model&Attachable $subject): self
     {
         return $this->state(fn (): array => [

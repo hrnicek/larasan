@@ -4,18 +4,7 @@ import { defineAsyncComponent, ref, watch } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * What a task is about, written where it is read.
- *
- * Rich text, so two things are true that were not true of the plain field this replaces. The
- * editor is loaded only when somebody starts writing — it is a hundred kilobytes nobody reading a
- * list of tasks needs — and what comes back is **markup**, which is rendered here only because
- * `RichText` has already reduced it to an allowlist on the way in. Nothing else in this
- * application draws `v-html`, and nothing else should without that guarantee.
- *
- * The rule that matters is still the failure one `TaskTextField` established: **a failed save
- * never discards what was typed.** The field keeps the text, says so, and stays open.
- */
+/** `v-html` is safe here only because `RichText` sanitizes descriptions to an allowlist on save. */
 const props = defineProps<{
     taskId: string;
     value: string | null;
@@ -31,8 +20,6 @@ const saving = ref(false);
 const failed = ref(false);
 const wrapper = ref<HTMLElement | null>(null);
 
-// The server's value wins whenever it changes — unless this field is being written in, which is
-// the one time the local text is the more recent truth.
 watch(
     () => props.value,
     (value) => {
@@ -48,10 +35,7 @@ const start = (): void => {
     }
 };
 
-/**
- * Quill's empty document is `<p><br></p>`, so "unchanged" cannot be decided by comparing strings
- * with the stored value — which is `null` when nothing was ever written.
- */
+/** Quill's empty document is `<p><br></p>`, so emptiness is judged on the text content. */
 const blank = (html: string): boolean => html.replace(/<[^>]*>/g, '').trim() === '';
 
 const save = (): void => {
@@ -85,19 +69,9 @@ const save = (): void => {
     );
 };
 
-/**
- * Saved when the writing is over rather than on a button, which is what the reference does. The
- * check is whether focus left the block at all: Quill's toolbar and its link prompt are separate
- * elements, and treating a click on *bold* as leaving the field would close the editor every time
- * somebody used it.
- */
+/** Saves once focus leaves the block; Quill's toolbar and link prompt are separate elements. */
 const onFocusOut = (): void => {
-    /*
-     * Asked after the browser has settled rather than during the event. Two things move focus
-     * through the document on the way *in*: the control that opened the editor is replaced by
-     * it, and the editor itself arrives a chunk-load later — both look like leaving if the
-     * question is asked from `relatedTarget`.
-     */
+    // Checked after focus settles; opening the editor moves focus in ways `relatedTarget` misreads.
     window.setTimeout(() => {
         if (!editing.value || wrapper.value?.contains(document.activeElement) === true) {
             return;
@@ -110,11 +84,6 @@ const onFocusOut = (): void => {
 
 <template>
     <div ref="wrapper" class="flex flex-col gap-1" @focusout="onFocusOut">
-        <!--
-            Reversed, so the toolbar is drawn under the words the way the reference has it. Only
-            the drawing is reversed: Quill emits the toolbar first, and the editor is focused as
-            soon as it is ready, so the caret starts in the text either way.
-        -->
         <div
             v-if="editing"
             class="flex flex-col-reverse rounded-lg border border-input transition-colors focus-within:border-ring"
@@ -131,10 +100,6 @@ const onFocusOut = (): void => {
             </Suspense>
         </div>
 
-        <!--
-            Read mode is a button rather than a div with a click handler: it is the control that
-            opens the editor, and a keyboard has to be able to reach it.
-        -->
         <button
             v-else-if="editable"
             type="button"

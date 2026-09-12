@@ -16,11 +16,6 @@ use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The endpoints arrive with TASK-040-013. Probe routes let the requests be asserted for
- * what they are — validation and authorization — before a controller exists to confuse
- * a failure with a routing one.
- */
 beforeEach(function (): void {
     Route::middleware('web')->post('project-request-probe/{workspace}', function (StoreProjectRequest $request) {
         $data = CreateProjectData::fromRequest($request);
@@ -36,8 +31,7 @@ beforeEach(function (): void {
         ]);
     });
 
-    // The project is type-hinted so implicit binding runs: without it the request sees a
-    // string in the route and refuses every actor.
+    // Type-hinted so implicit binding runs; a string parameter makes the request refuse every actor.
     Route::middleware('web')->put('project-request-probe/{workspace}/{project}', function (UpdateProjectRequest $request, string $workspace, Project $project) {
         $data = UpdateProjectData::fromRequest($request);
 

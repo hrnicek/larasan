@@ -10,17 +10,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * The pages a term finds.
- *
- * Reach is the project's, and nothing else: a page is inside a project, so the rows are hydrated
- * through `VisibleProjectsForUser` exactly as the tree and the project screen are (ADR-0016). A
- * page in a private project the actor was never given stays out of the answer even when the
- * index holds it — a stale index can make this answer shorter, never wider.
- *
- * Each result carries the project it was written in, because "Brief" is a title several projects
- * will have and the project is what tells them apart.
- */
 final readonly class PageResults
 {
     /** @see TaskResults::CANDIDATES_PER_RESULT */

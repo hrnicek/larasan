@@ -76,8 +76,6 @@ export default defineConfigWithVueTs(
         ignores: [
             'vendor',
             'node_modules',
-            // Git worktrees live here. Their `vendor/` is a second copy of the one above, and
-            // linting it fails on packages this configuration was never pointed at.
             '.claude/**',
             'public',
             'bootstrap/ssr',

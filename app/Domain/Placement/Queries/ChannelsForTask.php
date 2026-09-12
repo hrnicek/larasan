@@ -6,18 +6,6 @@ namespace App\Domain\Placement\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 
-/**
- * Which channels may hear that a task changed.
- *
- * **Placement decides**, which is the whole security content of task broadcasting: a task
- * that sits in projects is announced on those projects' channels and nowhere else, because
- * a private project's task on the workspace channel would tell every member that the task
- * exists — the thing the private project was for. A task in no project is announced on the
- * workspace channel, where the people who can see loose tasks are.
- *
- * It lives in the placement context because that is what it reads and what it means: the
- * question "where does this task appear" is the same question the board asks.
- */
 final readonly class ChannelsForTask
 {
     /**
@@ -32,6 +20,7 @@ final readonly class ChannelsForTask
             ->pluck('project_id')
             ->all();
 
+        // A placed task is never announced on the workspace channel, or a private project's task would leak to every member.
         if ($projectIds === []) {
             return ["workspace.{$workspaceId}"];
         }

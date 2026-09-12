@@ -5,17 +5,8 @@ import { foldForSearch } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
 import type { TaskAssignee } from '@/modules/task/types';
 
-/**
- * A comment's textarea that can name people.
- *
- * `@` and a few letters offer the people who match; choosing one writes `@Name` into the text and
- * adds them to `named`, which is what turns the name into a mention when the comment is sent
- * (`toStorage`). An `@` typed without choosing anybody stays text.
- *
- * The keys the list needs are taken while it is open, so the caller listens for `submit` and
- * `cancel` rather than binding Enter and Escape itself — Escape closing the list must not also
- * abandon an edit.
- */
+// Callers listen for `submit` and `cancel` rather than binding Enter and Escape, so Escape closing
+// the list does not also abandon an edit.
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps<{ people: TaskAssignee[] }>();
@@ -58,14 +49,8 @@ const close = (): void => {
     query.value = null;
 };
 
-/*
- * The text is read from the element, never from the model. With a `v-model` on the parent,
- * `defineModel` answers with the parent's prop, which only catches up once the parent re-renders —
- * so inside an input event it is one keystroke behind, and a mention chosen straight after typing
- * was spliced into text that no longer existed.
- */
-
-/** What is being typed after an `@` at the caret: a word, or two for somebody's full name. */
+// The text is read from the element, never the model: inside an input event `defineModel` is one
+// keystroke behind. Up to two words after the `@` are matched, for full names.
 const detect = (): void => {
     const element = field.value;
 
@@ -106,8 +91,6 @@ const choose = (person: TaskAssignee): void => {
         inserted +
         current.slice(element.selectionStart);
 
-    // Written to the element as well, so a key pressed before the parent re-renders lands in
-    // this text rather than in the one it replaces.
     element.value = next;
     element.setSelectionRange(position, position);
     text.value = next;
@@ -171,7 +154,6 @@ const onKeydown = (event: KeyboardEvent): void => {
     }
 };
 
-/** The caret moved without typing, so whatever it now sits after decides the list. */
 const onKeyup = (event: KeyboardEvent): void => {
     if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
         detect();
@@ -199,8 +181,6 @@ const onKeyup = (event: KeyboardEvent): void => {
             @blur="close"
         />
 
-        <!-- Above the box rather than below: the composer sits at the foot of the panel, and a
-             list that opened downwards would open off the screen. -->
         <ul
             v-if="open"
             :id="listId"

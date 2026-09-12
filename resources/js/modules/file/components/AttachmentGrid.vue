@@ -5,21 +5,7 @@ import { ref, watch } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import type { TaskAttachment } from '@/modules/task/types';
 
-/**
- * The task's pictures, as pictures.
- *
- * Two things are true of this list that are not true of the rows beside it: it is looked at
- * rather than read, and its order is a decision — the board card draws the *first* image of a
- * task (TASK-250-005), so dragging a photograph to the front is how somebody chooses the cover.
- *
- * Pointer events rather than HTML5 drag and drop, for the reasons `useBoardDragAndDrop` gives:
- * the native API cannot be driven by a synthetic pointer, so a drag could never be honestly
- * demonstrated, and it has no touch support at all.
- *
- * The move is optimistic and rolls back, which is the one place this application allows that
- * (ADR-0013): nothing is destroyed, the tile has to follow the finger to be worth dragging, and
- * a refusal puts the order back exactly as it was.
- */
+// The first image is the board card's cover, so the order here is meaningful.
 const props = defineProps<{
     images: TaskAttachment[];
     canReorder: boolean;
@@ -27,7 +13,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ open: [string]; remove: [TaskAttachment] }>();
 
-/** The order being drawn: the server's, except while a drag is rearranging it. */
 const order = ref<TaskAttachment[]>([...props.images]);
 
 watch(
@@ -41,13 +26,10 @@ watch(
 
 const dragging = ref<string | null>(null);
 
-/*
- * A drag ends with a `click` on the tile it was released over, because that is what a pointer
- * release is. Without this, letting go of a photograph would open it.
- */
+// A drag ends with a `click` on the tile it is released over, which must not open it.
 const dragged = ref(false);
 
-/** Below this the pointer was a click on a tile, not a drag of it. */
+/** Pixels of pointer travel below which a press is a click, not a drag. */
 const THRESHOLD = 4;
 
 let origin: { x: number; y: number } | null = null;
@@ -133,11 +115,7 @@ const onPointerUp = (): void => {
         return;
     }
 
-    /*
-     * An anchor, never a position (ADR-0009). The tile this one now sits behind is what the
-     * server is told; an index would be a number computed from a screen that may be seconds out
-     * of date, and two people rearranging at once is exactly when it would be wrong.
-     */
+    // An anchor, never an index. See ADR-0009.
     const after = index === 0 ? null : order.value[index - 1].id;
     const restore = [...rollback];
 
@@ -171,9 +149,6 @@ const onPointerUp = (): void => {
                 @pointerdown="pickUp($event, image)"
                 @click="! dragged && emit('open', image.id)"
             >
-                <!-- The thumbnail, not the original: a grid of twenty photographs would otherwise
-                     be twenty full-size downloads. The aspect ratio is fixed rather than the
-                     picture's own, so the block below does not move as the tiles arrive. -->
                 <img
                     :src="AttachmentController.preview.url(image.id, { query: { size: 'thumb' } })"
                     :alt="image.name"

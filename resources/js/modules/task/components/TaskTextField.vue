@@ -3,29 +3,12 @@ import { router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 
-/**
- * A task's title, edited where it is read — as the task's own heading, and inside a list row.
- *
- * The description left this component when it became rich text (`TaskDescriptionField`): an
- * allowlist, an editor loaded on demand and markup on the way back are three concerns a plain
- * text field has none of.
- *
- * The rule that matters is the failure one: **a failed save never discards what was typed.**
- * The field keeps the text, says so, and offers to try again — an editor that throws away a
- * paragraph because the network blinked is one people copy out of before using.
- *
- * Only the title is sent. `tasks.update` treats an absent field as untouched
- * (TASK-080-008), so renaming a task cannot clear its description.
- */
+/** Sends only `title`; `tasks.update` leaves absent fields untouched. */
 const props = defineProps<{
     taskId: string;
     value: string | null;
     editable: boolean;
     placeholder?: string;
-    /**
-     * `title` is the task's own heading in the panel and on its page; `row` is the same field
-     * inside a list line, where it has to sit at the row's weight and not look like a form.
-     */
     size?: 'title' | 'row';
 }>();
 
@@ -33,8 +16,6 @@ const draft = ref(props.value ?? '');
 const saving = ref(false);
 const failed = ref(false);
 
-// The server's value wins whenever it changes — unless this field is mid-edit, which is the
-// one time the local text is the more recent truth.
 watch(() => props.value, (value) => {
     if (!saving.value && !failed.value) {
         draft.value = value ?? '';
@@ -73,22 +54,8 @@ const save = (): void => {
 <template>
     <div class="flex flex-col gap-1" :class="size === 'row' ? 'min-w-24 shrink @lg:min-w-32' : 'min-w-0'">
         <!--
-            In a row the field is only as wide as what is written in it: the rest of the cell
-            belongs to the row, which opens the task. An input will not size itself to its value,
-            so a hidden twin of the text does the measuring and both share one grid cell.
-
-            The floor is the other half of that rule. What is beside the field in a row — the
-            comment count, the button that opens the task — used to be able to take every pixel of
-            it, and a title measured at zero is a row with no name on it. So the field is the one
-            thing in the cell that gives way, and it gives way down to a floor: 6rem in a narrow
-            name cell, 8rem once that cell is wide enough to afford it — the cell is the container
-            these widths answer to, because a project's field columns decide how much of the window
-            the name ever sees. An input cannot draw an ellipsis, so what it had to cut is in the
-            tooltip.
-
-            The twin carries the input's transparent border as well as its padding: without it the
-            input's text box is 2px narrower than the text it was measured from, and every title
-            loses the edge of its last letter.
+            An input cannot size itself to its value, so a hidden twin measures the text in the
+            same grid cell. It copies the input's border and padding, or the last letter is clipped.
         -->
         <div class="grid min-w-0 max-w-full">
             <span

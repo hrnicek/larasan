@@ -29,12 +29,7 @@ final readonly class RemoveWorkspaceMember
             throw WorkspaceMembershipException::roleRequiresCapability($membership->role);
         }
 
-        /*
-         * An admin holds workspace.members.manage, but an owner is not theirs to remove:
-         * ownership cannot be granted back by any code path, so this would be permanent
-         * and would also strand the `owner_id` holder, whose account cannot be deleted
-         * while they own a workspace.
-         */
+        // Owner can never be granted back, so only an owner may remove an owner.
         if ($membership->role->isOwner() && ! $actorMembership->role->isOwner()) {
             throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
         }
@@ -53,10 +48,8 @@ final readonly class RemoveWorkspaceMember
     }
 
     /**
-     * An invitation nobody has claimed is deleted rather than revoked. There is no person
-     * for the row to be a record of, and a revoked unclaimed row would go on occupying the
-     * address in `workspace_memberships_workspace_id_email_unique` — so taking an
-     * invitation back would quietly refuse the next one to the same address.
+     * Deleted rather than revoked, since a revoked unclaimed row would keep blocking the address
+     * in workspace_memberships_workspace_id_email_unique.
      */
     private function cancel(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
     {
@@ -74,12 +67,7 @@ final readonly class RemoveWorkspaceMember
 
     private function revoke(Workspace $workspace, User $actor, WorkspaceMembership $membership): WorkspaceMembership
     {
-        /*
-         * Revoked, not deleted. The row is the record that this person was here, the
-         * unique index means a re-invitation reuses it (TASK-030-004), and a deleted row
-         * would take the activity trail with it. `joined_at` stays: it is when they
-         * joined, which remains true.
-         */
+        // Revoked, not deleted, so the activity trail survives and a re-invitation reuses the row.
         $this->revokeProjectAccess($workspace, $membership);
 
         $membership->forceFill([
@@ -99,26 +87,10 @@ final readonly class RemoveWorkspaceMember
         return $membership;
     }
 
-    /**
-     * Work assigned to somebody who has been removed goes back to the project — on a queue.
-     *
-     * The alternative — leaving it assigned to a person who can no longer open it — makes work
-     * nobody sees: it is in no list, and the only trace of it is a name on a card that leads
-     * nowhere. Unassigning used to be the harder choice because it threw away the answer to
-     * "who had this?"; since Phase 110 the activity table keeps that answer, so nothing is lost
-     * (`docs/architecture/domains.md`).
-     *
-     * Through `AssignTask` rather than a mass update, so each task produces the same
-     * `TaskAssigned` event any other unassignment does and the history reads as one thing — and
-     * through a job rather than this request, because that is four queries per task and somebody
-     * leaving may be holding hundreds (TASK-180-019). The revocation above is the security
-     * answer and stays here; this is bookkeeping and can arrive a moment later.
-     */
     private function releaseTheirWork(Workspace $workspace, User $actor, WorkspaceMembership $membership): void
     {
         $removed = $membership->user_id;
 
-        // An invitation nobody ever claimed was never assigned anything.
         if ($removed === null) {
             return;
         }
@@ -127,15 +99,7 @@ final readonly class RemoveWorkspaceMember
     }
 
     /**
-     * The workspace membership is the ground the project grants stand on, so removing
-     * somebody takes their project access with it, in the same transaction. Leaving the rows
-     * behind would mean a re-invitation silently restored access to every project they were
-     * ever in — and until then, a revoked membership with live `project_memberships` rows is
-     * a grant nothing enforces and every future reader has to remember to ignore.
-     *
-     * Deleted, unlike the workspace membership itself: a project membership records access
-     * rather than history, and the workspace membership is where the record of the person
-     * being here lives.
+     * Otherwise a re-invitation would silently restore access to every project they were in.
      */
     private function revokeProjectAccess(Workspace $workspace, WorkspaceMembership $membership): void
     {
@@ -144,7 +108,7 @@ final readonly class RemoveWorkspaceMember
             ->where('user_id', $membership->user_id)
             ->delete();
 
-        // A mass delete fires no model events, so the request-scoped memo cannot notice it.
+        // A mass delete fires no model events, so the registry must be flushed by hand.
         app(MembershipRegistry::class)->flush();
     }
 }

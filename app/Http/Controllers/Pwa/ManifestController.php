@@ -7,13 +7,6 @@ namespace App\Http\Controllers\Pwa;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 
-/**
- * The web app manifest, generated rather than kept as a file in `public/`.
- *
- * A static manifest would carry a second copy of the application's name, and the first time
- * `APP_NAME` changed an installed app would keep showing the old one — the kind of drift nobody
- * looks for because nobody remembers the file exists.
- */
 class ManifestController extends Controller
 {
     public function __invoke(): JsonResponse
@@ -22,19 +15,10 @@ class ManifestController extends Controller
             ->json([
                 'name' => config('app.name'),
                 'short_name' => config('app.name'),
-                /*
-                 * The dashboard, which redirects to login when nobody is signed in. An installed
-                 * app that opens on a 404 is one nobody opens twice.
-                 */
                 'start_url' => '/dashboard',
                 'scope' => '/',
                 'display' => 'standalone',
-                /*
-                 * The splash screen is the canvas, and the browser's own chrome is painted the
-                 * application's chrome — which ADR-0014 keeps dark in both themes, so one value
-                 * is the honest answer here. The pair that follows the reader's theme is in the
-                 * root template, where `prefers-color-scheme` can express it.
-                 */
+                // One value for both themes; the theme-aware pair lives in the root template. See ADR-0014.
                 'background_color' => '#ffffff',
                 'theme_color' => '#16161d',
                 'icons' => [

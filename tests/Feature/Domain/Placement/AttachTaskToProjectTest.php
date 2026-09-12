@@ -18,8 +18,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Event;
 
 /**
- * A workspace, a project in it, and somebody who may edit that project.
- *
  * @return array{Workspace, Project, User}
  */
 function placeableProject(
@@ -56,7 +54,6 @@ it('attaches a task ungrouped', function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 
-    // In the project, in no column: dropping it into one is a separate decision (ADR-0004).
     expect(attach($task, $project, $actor)->isUngrouped())->toBeTrue();
 });
 
@@ -77,7 +74,6 @@ it('treats a second attach as the same attach', function (): void {
     $first = attach($task, $project, $actor);
     $second = attach($task, $project, $actor);
 
-    // Not a second card, and not an error: the same request arriving twice.
     expect($second->id)->toBe($first->id)
         ->and($project->placements()->count())->toBe(1);
 });
@@ -95,10 +91,7 @@ it('refuses a task from another workspace', function (): void {
     [, $project, $actor] = placeableProject();
     $elsewhere = Task::factory()->create();
 
-    /*
-     * Both ids are valid, and both rows exist. Only the pair is wrong, which is why no
-     * foreign key can refuse it and the Action has to (ADR-0003).
-     */
+    // Both rows exist, so no foreign key can refuse the pair; the Action has to. See ADR-0003.
     expect(fn (): TaskProjectMembership => attach($elsewhere, $project, $actor))
         ->toThrow(PlacementException::class, 'That task is not in this workspace.');
 
@@ -119,7 +112,6 @@ it('refuses a guest who cannot reach the project at all', function (): void {
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
     $task = Task::factory()->in($workspace)->create();
 
-    // Workspace visibility never reaches a guest (ADR-0006): they see what they were given.
     expect(fn (): TaskProjectMembership => attach($task, $project, $guest))
         ->toThrow(PlacementException::class);
 });
@@ -156,8 +148,6 @@ it('says nothing when the task was already there', function (): void {
     Event::fake();
     attach($task, $project, $actor);
 
-    // Nothing changed, so nothing happened: a listener that emails or broadcasts would
-    // otherwise fire on every repeated request.
     Event::assertNotDispatched(TaskAttachedToProject::class);
 });
 

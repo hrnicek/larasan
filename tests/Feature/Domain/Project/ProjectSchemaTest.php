@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the
- * database's behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertProject(Workspace $workspace, array $overrides = []): string
@@ -43,8 +40,7 @@ it('scopes slug uniqueness to the workspace, not the installation', function ():
     insertProject($mine);
     insertProject($theirs);
 
-    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (docs/conventions/testing.md).
+    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement.
     expect(fn (): string => DB::transaction(fn (): string => insertProject($mine)))
         ->toThrow(QueryException::class);
 

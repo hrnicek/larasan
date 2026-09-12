@@ -2,13 +2,6 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 
-/**
- * A project's view while its payload is on the way: the sections of a list, the columns of a
- * board, the month of a calendar, the table of files or the tree of pages.
- *
- * Drawn to each view's own proportions, so the screen that arrives replaces it in place. A
- * skeleton of the wrong shape is a layout jump with an extra step.
- */
 defineProps<{ view: string }>();
 
 const sectionRows = [5, 3];

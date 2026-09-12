@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * What a column looks like while its rows are on their way. The header is already drawn by
- * the group around it, so this stands in for the rows only.
- */
 withDefaults(defineProps<{ rows?: number }>(), { rows: 5 });
 </script>
 

@@ -10,11 +10,6 @@ use App\Http\Requests\Section\StoreSectionRequest;
 use App\Http\Requests\Section\UpdateSectionRequest;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The endpoints arrive with TASK-050-009. Probe routes assert the requests for what they
- * are — validation and authorization — before a controller exists to confuse a failure
- * with a routing one.
- */
 beforeEach(function (): void {
     Route::middleware('web')->post('section-probe/{project}', fn (StoreSectionRequest $request, Project $project) => response()->json([
         'name' => $request->string('name')->toString(),
@@ -41,8 +36,6 @@ it('accepts a section a project editor asked for', function (): void {
 
 it('refuses creation to someone who may not shape the project', function (): void {
     [$project, $editor] = projectEditableBy();
-    // Restricted on purpose. A workspace member without a row of their own is an editor by the
-    // project's default now, so "may not shape the project" has to be said explicitly.
     $stranger = viewerOf($project);
     expect($editor->id)->not->toBe($stranger->id);
 

@@ -10,12 +10,6 @@ use App\Domain\Workspace\Queries\CurrentWorkspace;
 use Illuminate\Notifications\DatabaseNotification;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * The two personal screens, per role and across a workspace switch. They are personal rather
- * than shared, so what changes with the role is not whether somebody may open them — everybody
- * may — but what is in them.
- */
-
 it('opens both personal screens for every role', function (WorkspaceRole $role): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, $role);
@@ -26,7 +20,6 @@ it('opens both personal screens for every role', function (WorkspaceRole $role):
     'owner' => [WorkspaceRole::Owner],
     'admin' => [WorkspaceRole::Admin],
     'member' => [WorkspaceRole::Member],
-    // A guest can be given work and told about it, so both screens are theirs to read.
     'guest' => [WorkspaceRole::Guest],
 ]);
 
@@ -34,8 +27,6 @@ it('turns away a revoked membership at both screens', function (WorkspaceRole $r
     $workspace = Workspace::factory()->create();
     $revoked = memberOf($workspace, $role, WorkspaceMembershipStatus::Revoked);
 
-    // No live membership is no current workspace, and a personal screen without a workspace is
-    // not a screen at all.
     $this->actingAs($revoked)->get(route('my-tasks.index'))->assertNotFound();
     $this->actingAs($revoked)->get(route('inbox.index'))->assertNotFound();
 })->with([
@@ -53,7 +44,6 @@ it('keeps one person s notifications out of everybody else s reach', function (W
     assignTo($workspace, $actor, $reader);
     $notification = DatabaseNotification::query()->where('notifiable_id', $reader->id)->sole();
 
-    // Reading it, marking it, and clearing everything: none of them reaches another inbox.
     $this->actingAs($other)
         ->get(route('inbox.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('notifications', 0));
@@ -97,7 +87,7 @@ it('changes both screens when the workspace changes', function (): void {
 
     $reader->forceFill(['current_workspace_id' => $elsewhere->id])->save();
 
-    // The memo is per request; a test makes several through one container (TASK-130-002).
+    // `CurrentWorkspace` memoises per request, and a test makes several requests through one container.
     app(CurrentWorkspace::class)->flush();
 
     $this->actingAs($reader->refresh())

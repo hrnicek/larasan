@@ -15,10 +15,6 @@ import { create as createWorkspace, members } from '@/routes/workspaces';
 
 const page = usePage();
 
-/*
- * The server sends the capabilities; this only renders them. An entry the actor cannot use is
- * absent rather than disabled — a menu is a list of what you can do.
- */
 const capabilities = computed<string[]>(() => page.props.auth.capabilities);
 const canCreateTask = computed(() => capabilities.value.includes('task.create'));
 const canCreateProject = computed(() => capabilities.value.includes('project.create'));

@@ -9,12 +9,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-/**
- * Invariants an Action refuses regardless of who calls it. Transport layers translate
- * these into their own vocabulary — a FormRequest rejects most of them before the Action
- * is reached, and the Action still checks, because a console command or a queued job
- * arrives without one.
- */
 final class WorkspaceMembershipException extends DomainException implements DomainRefusal
 {
     public static function alreadyAMember(): self

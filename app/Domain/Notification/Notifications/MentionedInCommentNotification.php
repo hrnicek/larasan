@@ -9,9 +9,6 @@ use App\Domain\Notification\Contracts\WorkspaceNotification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
-/**
- * Somebody named you in a comment.
- */
 final class MentionedInCommentNotification extends Notification implements DeduplicatesNotifications, WorkspaceNotification
 {
     use BroadcastsToInbox;
@@ -48,10 +45,6 @@ final class MentionedInCommentNotification extends Notification implements Dedup
         ];
     }
 
-    /**
-     * One per comment, so an edit that keeps a name — or adds it back — does not tell the same
-     * person again.
-     */
     public function deduplicationKey(): string
     {
         return 'comment.mentioned:'.$this->commentId;

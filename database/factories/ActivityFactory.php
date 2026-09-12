@@ -23,9 +23,6 @@ class ActivityFactory extends Factory
     protected $model = Activity::class;
 
     /**
-     * The subject is a task in the activity's own workspace: a line of history about a subject
-     * somewhere else is a row the domain will never write.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

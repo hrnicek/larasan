@@ -14,17 +14,6 @@ use App\Domain\Task\Data\CreateTaskData;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Adding a task from a board: the task and the card it appears as, created together.
- *
- * A task is still not created into a project (ADR-0003) — it is created into the workspace
- * and then placed. What this Action adds is that the two halves cannot half-happen: a task
- * with no card is a task nobody looking at the board can find, and the person who typed a
- * name into a column meant both.
- *
- * It composes the existing Actions rather than repeating them, so the workspace check, the
- * cross-workspace refusal, the append and every event stay in one place each.
- */
 final readonly class CreateTaskInProject
 {
     public function __construct(

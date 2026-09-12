@@ -56,11 +56,6 @@ const props = defineProps<{
     can: ProjectAbilities;
 }>();
 
-/*
- * The fields drawn with something other than a plain input keep their draft here, and reach the
- * server through a hidden input or a radio of their own. Everything else belongs to the DOM,
- * which is what lets `<Form>` report whether anything has been touched.
- */
 const color = ref<string>(props.project.color ?? '');
 const icon = ref<string>(props.project.icon ?? '');
 const visibility = ref<string>(props.project.visibility);
@@ -69,10 +64,6 @@ const startDate = ref<string>(props.project.start_date ?? '');
 const dueDate = ref<string>(props.project.due_date ?? '');
 const confirmation = ref('');
 
-/*
- * Typing the name is the confirmation step for a state change that removes the project
- * from everyone's sidebar. The server authorizes regardless of what this button does.
- */
 const confirmed = computed(() => confirmation.value.trim() === props.project.name);
 
 type Choice = { label: string; hint: string; icon: Component };
@@ -96,10 +87,6 @@ const views: Record<string, Choice> = {
     calendar: { label: 'Calendar', hint: 'Tasks by due date', icon: CalendarDays },
 };
 
-/*
- * The enums come from the server, so a case added later reaches the screen without a second list
- * to remember. A case this file has no words for is still drawn, under its own name.
- */
 function choice(known: Record<string, Choice>, option: string): Choice {
     return known[option] ?? { label: option, hint: '', icon: Eye };
 }
@@ -112,10 +99,7 @@ const days = computed<number | null>(() => {
     return Math.round((Date.parse(dueDate.value) - Date.parse(startDate.value)) / 86_400_000);
 });
 
-/*
- * `<Form>` reads dirtiness from the events its inputs fire, and a hidden field written by a
- * picker fires none. The two fields the pickers own are compared against the project instead.
- */
+// `<Form>` derives dirtiness from input events, which hidden fields written by a picker never fire.
 const appearanceChanged = computed(
     () => color.value !== (props.project.color ?? '') || icon.value !== (props.project.icon ?? ''),
 );
@@ -147,8 +131,6 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
     {
         label: 'Structure',
         items: [
-            // Sections are not here: a column is added, renamed, coloured, moved and deleted from
-            // the board and the list, which is where somebody is looking at it (TASK-250-007).
             { id: 'fields', label: 'Fields', icon: ListChecks },
         ],
     },
@@ -168,10 +150,7 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
         : []),
 ]);
 
-/**
- * The form's own reset returns the inputs the DOM owns; the drafts above belong to this
- * component and have to be put back by hand, or the hidden inputs would write them straight back.
- */
+// `<Form>` reset only restores DOM-owned inputs; the local drafts would otherwise be resubmitted via hidden inputs.
 function discard(reset: () => void): void {
     reset();
 
@@ -188,8 +167,6 @@ function discard(reset: () => void): void {
     <div class="flex flex-col">
         <Head :title="`${props.project.name} settings`" />
 
-        <!-- The way back is part of the header: settings are a detour from the project, and a
-             detour needs a door at both ends. -->
         <header class="border-b border-border">
             <div class="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
                 <ProjectTile
@@ -221,8 +198,6 @@ function discard(reset: () => void): void {
         </header>
 
         <div class="mx-auto w-full max-w-5xl px-4 py-8 md:px-6">
-            <!-- Tight inside a group, generous between them: the column and the rail are divided
-                 the same way, so the eye and the pointer agree about where one concern ends. -->
             <div class="flex flex-col gap-8 lg:flex-row lg:gap-12">
                 <aside class="lg:w-44 lg:shrink-0">
                     <div class="lg:sticky lg:top-6">
@@ -239,12 +214,7 @@ function discard(reset: () => void): void {
                         v-slot="{ errors, processing, isDirty, reset }"
                     >
                         <input type="hidden" name="id" :value="props.project.id" />
-                        <!--
-                            `projects.update` reads an absent nullable field as a deliberate
-                            clearing, so a field drawn with something other than an input still
-                            has to be sent — a save that omitted the icon would quietly take it
-                            away.
-                        -->
+                        <!-- `projects.update` treats an absent nullable field as cleared, so these must always be sent. -->
                         <input type="hidden" name="color" :value="color" />
                         <input type="hidden" name="icon" :value="icon" />
 
@@ -299,9 +269,6 @@ function discard(reset: () => void): void {
                                 title="Appearance"
                                 description="How this project is recognised in the sidebar and in a list of them"
                             >
-                                <!-- The tile follows the draft rather than the saved project:
-                                     this is the one place where the choice is worth seeing
-                                     before it is sent. -->
                                 <template #aside>
                                     <div class="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
                                         <ProjectTile
@@ -455,9 +422,6 @@ function discard(reset: () => void): void {
                             </ProjectSettingsSection>
                         </section>
 
-                        <!-- The bar is drawn only when there is something to save. A permanent
-                             strip saying nothing has changed reads as one more card in a column
-                             that already has enough of them. -->
                         <div
                             v-if="hasChanges(isDirty)"
                             class="sticky bottom-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-md backdrop-blur"

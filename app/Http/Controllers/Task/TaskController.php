@@ -38,22 +38,10 @@ use Inertia\Inertia;
 use Inertia\Response;
 use InertiaUI\Modal\Modal;
 
-/**
- * Tasks are created and edited in place — in a list, on a board, in the detail panel — so
- * every method answers with a redirect back. The screens that render them arrive in Phases
- * 080 to 100; these endpoints exist so those screens have something to call, and so the
- * console and the future API share exactly one path into the domain.
- */
 class TaskController extends Controller
 {
     use RemembersWhatWasOpened;
 
-    /**
-     * One task, at a real and addressable URL.
-     *
-     * The same payload the panel renders, because the panel and this page are one component
-     * (TASK-100-003): two would drift, and the second would be the one nobody tests.
-     */
     public function show(Request $request, Task $task, TaskDetailQuery $detail): Response
     {
         Gate::authorize('view', $task);
@@ -64,11 +52,6 @@ class TaskController extends Controller
 
         return Inertia::render('tasks/Show', [
             ...$detail($task, $actor),
-            /*
-             * The same two lists the project screen sends, because the panel's field controls
-             * are the same components the list row uses — a second copy of either list would
-             * be the one that goes stale.
-             */
             'members' => $task->workspace->members()->orderBy('name')->get()
                 ->map(PersonSummary::from(...))
                 ->values()
@@ -78,27 +61,11 @@ class TaskController extends Controller
         ]);
     }
 
-    /**
-     * The task's history and its conversation, deferred.
-     *
-     * The only deferred region in the application: activity and comments are secondary and can
-     * be slow, while the fields above them are worth reading immediately. The region has been
-     * answering with an empty array since TASK-100-011; TASK-110-009 gives it the thread.
-     */
     private function activity(Task $task, User $actor): DeferProp
     {
         return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor));
     }
 
-    /**
-     * The form behind every way of adding a task that is not a row in a list.
-     *
-     * A project is a required field here rather than an optional one, which is the difference
-     * between this and the inline row: the row already knows where it is, and somebody adding a
-     * task from the topbar has told us nothing yet. `project` and `section` prefill it when the
-     * caller knows them, and stay editable — a prefilled field the person cannot see is a field
-     * they will fight.
-     */
     public function create(Request $request, VisibleProjectsForUser $visibleProjects): Modal
     {
         $workspace = $this->currentWorkspace($request);
@@ -106,18 +73,8 @@ class TaskController extends Controller
 
         Gate::authorize(Capability::TaskCreate->value, $workspace);
 
-        /*
-         * Only the projects this person may add to. Visibility is not the question — being able
-         * to read a project is not being able to put work in it — so the policy decides each one
-         * after the query has narrowed them to the ones they can see at all.
-         */
         $projects = $visibleProjects($workspace, $actor)
-            /*
-             * The workspace is handed to each project rather than loaded: the query is already
-             * scoped to this one, so every row belongs to it, and the policy below reads
-             * `$project->workspace` for each. Without this it is a lazy-load violation on the
-             * first row and an N+1 the moment the guard is off.
-             */
+            // Set rather than lazy loaded, since the policy below reads each project's workspace.
             ->each(fn (Project $project) => $project->setRelation('workspace', $workspace))
             ->filter(fn (Project $project): bool => $actor->can('createTask', $project))
             ->values();
@@ -125,9 +82,7 @@ class TaskController extends Controller
         $selected = $projects->firstWhere('id', $request->string('project')->value());
 
         return Inertia::modal('tasks/Create', [
-            // Named apart from the shared `projects` prop: a page prop of the same name replaces
-            // it, and the sidebar would render this narrower list — only what you may add to —
-            // for as long as the dialog is open.
+            // Not `projects`: a page prop of that name would replace the shared sidebar prop.
             'targetProjects' => $projects
                 ->map(fn (Project $project): array => [
                     'id' => $project->id,
@@ -136,8 +91,6 @@ class TaskController extends Controller
                 ])
                 ->all(),
             'project' => $selected?->id,
-            // Only the chosen project's columns, and only when one is chosen. A section list for
-            // a project nobody selected is a list of somewhere else's columns.
             'sections' => $selected instanceof Project
                 ? $selected->sections()->orderBy('position')->get(['id', 'name'])
                     ->map(fn (Section $section): array => ['id' => $section->id, 'name' => $section->name])
@@ -165,12 +118,6 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Task $task, UpdateTask $updateTask): RedirectResponse
     {
-        /*
-         * The request scopes the parent to this workspace and refuses the task itself; it
-         * cannot walk the chain, so a longer loop reaches the Action. Translated here
-         * because a refusal the user can act on belongs on the field they chose, and the
-         * Action does not know it is being called over HTTP.
-         */
         $this->translating(
             fn () => $updateTask->handle($task, $this->actor($request), UpdateTaskData::fromRequest($request)),
             'parent_id',
@@ -221,10 +168,6 @@ class TaskController extends Controller
         return back();
     }
 
-    /**
-     * Domain refusals become validation errors on the field the user can act on, the way
-     * `WorkspaceMemberController` already translates them.
-     */
     private function translating(callable $operation, string $field): void
     {
         try {

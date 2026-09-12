@@ -52,7 +52,6 @@ it('removes the file once nothing points at it any more', function (): void {
 
     detachFile($first, $uploader);
 
-    // One document can hang from two tasks, and removing it from one is not removing it.
     expect(File::query()->whereKey($file->id)->exists())->toBeTrue();
 
     detachFile($second, $uploader);
@@ -71,11 +70,7 @@ it('leaves the object on the disk alone', function (): void {
 
     detachFile($attachment, $uploader);
 
-    /*
-     * Deleting bytes inside a request is the one part of this that cannot be undone, and the
-     * row being unreachable is what the reader experiences either way. Sweeping orphaned
-     * objects is TASK-120-012 — a separate job, reversible until it runs.
-     */
+    // Orphaned objects are removed later by the sweep job, never inside the request.
     Storage::disk($file->disk)->assertExists($file->path);
 });
 
@@ -105,7 +100,7 @@ it('lets a moderator remove somebody else s file', function (): void {
     $file = File::factory()->in($workspace)->create();
     $attachment = Attachment::factory()->attaching($file, $task)->create();
 
-    // `file.delete` is a full member's under ADR-0010, the same shape as `comment.delete`.
+    // file.delete is held by every full member. See ADR-0010.
     detachFile($attachment, $admin);
 
     expect($task->attachments()->count())->toBe(0);
@@ -131,7 +126,6 @@ it('refuses an uploader whose membership is no longer live', function (): void {
     $file = File::factory()->in($workspace)->by($revoked)->create();
     $attachment = Attachment::factory()->attaching($file, $task)->create();
 
-    // Having uploaded something is not a way back into a workspace somebody was removed from.
     expect(fn () => detachFile($attachment, $revoked))->toThrow(FileException::class);
 });
 

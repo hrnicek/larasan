@@ -28,12 +28,7 @@ final readonly class InviteWorkspaceMember
         $this->guard($workspace, $actor, $data, $existing);
 
         $membership = DB::transaction(function () use ($workspace, $actor, $data, $invitee, $existing): WorkspaceMembership {
-            /*
-             * The row is reused rather than added to. UNIQUE(workspace_id, user_id) means a
-             * user who declined, was revoked or let an invitation lapse already has one, and
-             * an address invited before it had an account has one keyed by the address —
-             * inviting either again is a new invitation on that row, not a second membership.
-             */
+            // Reuses the existing row: memberships are unique per user and per unclaimed address.
             $membership = $existing ?? new WorkspaceMembership;
 
             $membership->forceFill([
@@ -63,10 +58,6 @@ final readonly class InviteWorkspaceMember
         return $membership;
     }
 
-    /**
-     * The row this invitation would land on: the account's, or the one the address holds
-     * while nobody has registered under it.
-     */
     private function existing(Workspace $workspace, string $email, ?User $invitee): ?WorkspaceMembership
     {
         if ($invitee instanceof User) {
@@ -100,20 +91,12 @@ final readonly class InviteWorkspaceMember
             throw WorkspaceMembershipException::alreadyAMember();
         }
 
-        /*
-         * The row is rewritten, so inviting a *revoked owner* would demote them permanently
-         * — Owner is never granted again — and strand the `owner_id` holder. Same rule as
-         * removal and demotion: an owner's row takes an owner.
-         */
+        // Re-inviting rewrites the role, which would permanently demote a revoked owner.
         if ($existing?->role->isOwner() === true && ! $actorMembership->role->isOwner()) {
             throw WorkspaceMembershipException::onlyAnOwnerActsOnAnOwner();
         }
 
-        /*
-         * A live invitation is not re-sent by inviting again. Without this the endpoint
-         * mails the same address on every call — the throttle caps the rate, not the total.
-         * Sending it again on purpose is `ResendWorkspaceInvitation`.
-         */
+        // Otherwise every submission would mail the address again; see ResendWorkspaceInvitation.
         if ($existing?->status === WorkspaceMembershipStatus::Invited && ! $existing->hasExpired()) {
             throw WorkspaceMembershipException::alreadyInvited();
         }

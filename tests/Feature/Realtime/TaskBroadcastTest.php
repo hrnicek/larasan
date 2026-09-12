@@ -26,8 +26,7 @@ function looseTask(): array
 {
     $workspace = Workspace::factory()->create();
 
-    // An actor who belongs here, because the other listeners on these events run for real
-    // and a stranger assigning a task is refused by the domain before broadcasting matters.
+    // A member, because the other listeners run for real and the domain refuses a stranger.
     $actor = memberOf($workspace);
 
     return [$workspace, Task::factory()->in($workspace)->create(), $actor];

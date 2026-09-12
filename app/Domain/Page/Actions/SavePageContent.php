@@ -14,17 +14,6 @@ use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Write the document.
- *
- * The save carries the version the writer's editor last read. A save carrying an older number
- * is refused rather than applied: until pages are edited together (ADR-0017), the honest
- * failure is telling somebody their copy is stale, and the dishonest one is quietly replacing
- * the paragraph a colleague wrote thirty seconds ago.
- *
- * The comparison and the increment happen in one transaction with the row locked, so two saves
- * arriving together cannot both read the same version and both think they won.
- */
 final readonly class SavePageContent
 {
     public function __construct(private Dispatcher $events) {}

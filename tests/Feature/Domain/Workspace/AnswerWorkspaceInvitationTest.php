@@ -22,8 +22,6 @@ function pendingInvitation(?CarbonImmutable $expiresAt = null, WorkspaceRole $ro
     $workspace = Workspace::factory()->create();
     $invitee = User::factory()->create();
 
-    // Always with an inviter who still may invite: that is what the Action produces, and
-    // an invitation with nobody behind it is refused on purpose.
     $inviter = memberOf($workspace, WorkspaceRole::Admin);
 
     $membership = WorkspaceMembership::factory()->invited($inviter, $expiresAt)->create([
@@ -120,11 +118,7 @@ it('lets a lapsed invitation be declined', function (): void {
 });
 
 it('refuses an invitation whose sender can no longer invite', function (): void {
-    /*
-     * An admin on their way out could otherwise invite an account they control, lose
-     * their membership, and have it accepted afterwards — a back door that survives
-     * their removal.
-     */
+    // Otherwise a departing admin could invite an account they control and accept it after removal.
     $workspace = Workspace::factory()->create();
     $inviter = memberOf($workspace, WorkspaceRole::Admin);
     $invitee = User::factory()->create();
@@ -161,11 +155,7 @@ it('still lets it be declined once the sender has gone', function (): void {
 });
 
 it('refuses an invitation with nobody behind it', function (): void {
-    /*
-     * `invited_by` is null-on-delete and a non-owner admin may delete their own account,
-     * which would otherwise revive the invitation this guard exists to kill. A
-     * legitimately null inviter belongs to a workspace creator, and those rows are Active.
-     */
+    // invited_by is nulled when the inviter deletes their account, which must not revive the invitation.
     $workspace = Workspace::factory()->create();
     $invitee = User::factory()->create();
 

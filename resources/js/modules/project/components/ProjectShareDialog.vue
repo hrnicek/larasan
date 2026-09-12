@@ -18,13 +18,6 @@ import UserAvatar from '@/components/UserAvatar.vue';
 import { reloadOptional } from '@/lib/optionalProps';
 import type { ProjectMember, ProjectShare } from '@/modules/project/types';
 
-/**
- * Who may reach this project, and how somebody else gets a look at it.
- *
- * Access here is not membership of the workspace (ADR-0006): everybody offered below is already in
- * the workspace, and giving them a level changes what they may do *in this project* and nothing
- * else. Bringing somebody into the workspace at all is a different errand, in workspace settings.
- */
 const props = defineProps<{
     projectId: string;
     projectName: string;
@@ -36,11 +29,7 @@ const chosen = ref<string>('');
 const level = ref('editor');
 const copied = ref(false);
 
-/*
- * The contents are `Inertia::optional`, asked for when the dialog opens rather than sent to
- * everybody who opens a project — and again after every write, because a redirect does not carry
- * an optional prop and the list would otherwise be the one from before the change.
- */
+// `share` is an optional prop: reload it on open and after every write, since redirects omit it.
 watch(open, (isOpen) => {
     if (isOpen) {
         reload();
@@ -53,16 +42,11 @@ watch(open, (isOpen) => {
 });
 
 function reload(): void {
-    // Deferred, and `reloadOptional` says why: a visit started from inside the write's own
-    // callbacks is aborted before it answers.
+    // `reloadOptional` defers the visit; one started inside a write's callbacks would be aborted.
     reloadOptional(['share']);
 }
 
-/*
- * The last answer the server sent, kept while the next one is on its way — the redirect after a
- * write does not carry an optional prop, so reading the prop directly would blank the list every
- * time somebody is added.
- */
+// Last server copy, kept because redirects omit the optional prop.
 const share = ref<ProjectShare | null>(props.share ?? null);
 
 watch(
@@ -123,11 +107,6 @@ function revoke(member: ProjectMember): void {
     );
 }
 
-/**
- * The link is the address of the project, copied rather than navigated to. Nothing is granted by
- * copying it: a private project still refuses everybody without a membership row, which is why
- * this sits beside the visibility rather than instead of it.
- */
 async function copyLink(): Promise<void> {
     const link = share.value?.link;
 
@@ -139,8 +118,6 @@ async function copyLink(): Promise<void> {
         await navigator.clipboard.writeText(link);
         copied.value = true;
     } catch {
-        // A browser that refuses the clipboard is not an error worth a dialog: the address bar
-        // already holds the same link.
         copied.value = false;
     }
 }
@@ -169,13 +146,7 @@ async function copyLink(): Promise<void> {
             </div>
 
             <template v-else>
-                <!--
-                    `min-w-0` twice, and `w-full` on the select. The dialog is a grid, so its single
-                    implicit track is sized to the widest child's *min-content* and overflows the
-                    box rather than being clipped by it — and a `select`'s min-content is its
-                    longest option, which here is somebody's name and their whole email address.
-                    Without this the dialog draws 200px wider than it is.
-                -->
+                <!-- `min-w-0` and `w-full` stop long select options from widening the dialog's grid track. -->
                 <div v-if="share.canManage" class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
                     <div class="grid min-w-0 flex-1 gap-2">
                         <Label for="share-person">Add someone from this workspace</Label>
@@ -238,8 +209,6 @@ async function copyLink(): Promise<void> {
                             <p class="text-muted-foreground truncate text-xs">{{ member.email }}</p>
                         </div>
 
-                        <!-- The last owner's level is not offered: managing a project needs an
-                             owner row, and a project without one is one nobody can manage. -->
                         <span
                             v-if="!share.canManage || member.isLastOwner"
                             class="text-muted-foreground shrink-0 text-sm"

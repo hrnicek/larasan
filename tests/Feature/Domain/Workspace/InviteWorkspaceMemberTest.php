@@ -51,12 +51,7 @@ it('queues the invitation notification rather than sending it inline', function 
 
     invite($workspace, $admin, $invitee);
 
-    /*
-     * The class implements ShouldQueue, so asserting that adds nothing PHPStan does not
-     * already know. What is worth pinning is the queue: ADR-0008 has Horizon supervising
-     * `notifications`, and a notification landing on `default` would make that quietly
-     * false.
-     */
+    // Horizon only supervises the notifications queue. See ADR-0008.
     Notification::assertSentTo(
         $invitee,
         WorkspaceInvitationSent::class,
@@ -144,11 +139,7 @@ it('does not let an invitation from one workspace grant anything in another', fu
 });
 
 it('refuses to rewrite a revoked owner through an invitation', function (): void {
-    /*
-     * The invitation rewrites the row, so inviting a revoked owner as a member would
-     * demote them permanently — Owner is never granted again — and strand the owner_id
-     * holder, whose account cannot be deleted while they own a workspace.
-     */
+    // Re-inviting rewrites the row, which would permanently demote a revoked owner.
     $workspace = Workspace::factory()->create();
     memberOf($workspace, WorkspaceRole::Owner);
     $formerOwner = memberOf($workspace, WorkspaceRole::Owner, WorkspaceMembershipStatus::Revoked);

@@ -55,7 +55,7 @@ it('lets the database refuse the duplicate the check cannot', function (): void 
     $actor = memberOf($workspace);
     SavedSearch::factory()->ownedBy($actor)->in($workspace)->create(['name' => 'Open invoices']);
 
-    // Validation loses to concurrency; the unique index is what makes the rule true.
+    // Validation loses to concurrency; the unique index enforces the rule.
     expect(fn () => DB::transaction(fn () => SavedSearch::factory()
         ->ownedBy($actor)
         ->in($workspace)

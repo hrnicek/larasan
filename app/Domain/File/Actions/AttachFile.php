@@ -21,19 +21,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-/**
- * Put a file somewhere, and say what it belongs to.
- *
- * The two questions Phase 110 established, asked again because they are the same two: the
- * `file.upload` capability in the **subject's** workspace, and the subject's own policy saying
- * the actor can reach it. Attaching a document to something somebody cannot open is putting it
- * where they will never see it.
- *
- * Everything about the object goes through a **disk name** (ADR-0007), never a provider, and
- * the stored path is generated rather than derived from what was uploaded: a path built from a
- * filename is a path the person uploading chooses, and one of them will eventually choose
- * `../`.
- */
 final readonly class AttachFile
 {
     public function __construct(private Dispatcher $events) {}
@@ -52,9 +39,6 @@ final readonly class AttachFile
 
         $disk = (string) config('filesystems.attachments');
 
-        // Read from the temporary upload rather than from the stored object: the checksum is
-        // what arrived, and computing it after a store would only prove the disk can read back
-        // what it just wrote.
         $checksum = (string) hash_file('sha256', $upload->getRealPath());
 
         $path = $this->pathFor($workspace, $subject, $upload);
@@ -85,8 +69,6 @@ final readonly class AttachFile
             $attachment->file_id = $file->id;
             $attachment->attachable_type = $type;
             $attachment->attachable_id = $id;
-            // At the end of what is already there (ADR-0009). The order is somebody's to change
-            // afterwards; arriving in the middle of it is not something an upload gets to decide.
             $attachment->position = SparsePosition::append($this->lastPosition($type, $id));
             $attachment->save();
 
@@ -103,18 +85,10 @@ final readonly class AttachFile
         });
     }
 
-    /**
-     * The end of the subject's list, read inside the transaction and with the rows locked, so
-     * two uploads landing together queue behind one another instead of computing the same slot.
-     * `UNIQUE(attachable_type, attachable_id, position)` is what would catch them if they did.
-     */
     private function lastPosition(string $type, string $id): ?int
     {
-        /*
-         * The last row rather than `max(position)`: PostgreSQL refuses `FOR UPDATE` alongside an
-         * aggregate, and the lock is the point — it is what makes two uploads landing together
-         * queue behind one another instead of computing the same slot.
-         */
+        // Locked so concurrent uploads cannot compute the same slot. The last row rather than
+        // max(position), because PostgreSQL rejects FOR UPDATE with an aggregate.
         $last = Attachment::query()
             ->where('attachable_type', $type)
             ->where('attachable_id', $id)
@@ -125,12 +99,7 @@ final readonly class AttachFile
         return $last === null ? null : (int) $last;
     }
 
-    /**
-     * Generated, and readable enough to be swept by workspace: the tenant, the subject, and a
-     * uuid. The extension is kept because some object stores serve by it, and it is taken from
-     * the upload rather than from the name — an upload calling itself `.pdf` does not make it
-     * one, and nothing here trusts it beyond this string.
-     */
+    /** Generated rather than derived from the client filename, so an upload cannot choose its path. */
     private function pathFor(Workspace $workspace, Model&Attachable $subject, UploadedFile $upload): string
     {
         $type = (string) Relation::getMorphAlias($subject::class);

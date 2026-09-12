@@ -21,8 +21,6 @@ class UpdatePageTitleRequest extends FormRequest
      */
     public function rules(): array
     {
-        // Present but allowed to be blank: clearing the title is how a page goes back to
-        // being Untitled, and the Action is what decides what that means.
         return ['title' => ['present', 'nullable', 'string', 'max:255']];
     }
 }

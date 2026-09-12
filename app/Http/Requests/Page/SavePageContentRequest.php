@@ -22,16 +22,10 @@ class SavePageContentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            /*
-             * The shape only. What the document may contain is `PageDocument`'s answer, not
-             * a validation rule — the rules would be a second copy of the allowlist, and the
-             * copy that goes out of date.
-             */
+            // Shape only; the allowed content is enforced by `PageDocument`.
             'content' => ['required', 'array'],
             'content.type' => ['required', 'string', 'in:doc'],
 
-            // What the editor last read. The Action refuses a save that carries an older
-            // number rather than overwriting whatever arrived in the meantime.
             'version' => ['required', 'integer', 'min:1'],
         ];
     }

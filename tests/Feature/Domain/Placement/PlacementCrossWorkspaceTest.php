@@ -8,15 +8,6 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Task\Models\Task;
 
-/**
- * The boundary no foreign key can express. Every id here points at a real row; what is wrong
- * is the combination, so the database accepts each one and the domain has to refuse the pair
- * (ADR-0003, ADR-0005).
- *
- * The cross-workspace attach is proven in `AttachTaskToProjectTest`, including by mutation.
- * What is added here is the other two ends of the same boundary — the column and the anchor
- * — and the endpoints, where the same refusals have to survive routing.
- */
 it('refuses a column from another workspace', function (): void {
     [$workspace, $project, $actor] = placeableProject();
     [, $elsewhere] = placeableProject();
@@ -45,8 +36,6 @@ it('refuses a column from another workspace over http', function (): void {
     $foreign = Section::factory()->in($elsewhere)->create();
     $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
 
-    // A validation error rather than a domain exception: the request layer is where a stale
-    // or hostile id is supposed to stop.
     $this->actingAs($actor)
         ->from(route('dashboard'))
         ->put(route('placements.move', $placement), ['section' => $foreign->id])
@@ -74,8 +63,6 @@ it('refuses to attach a task from another workspace through the action itself', 
     [$otherWorkspace] = placeableProject();
     $foreign = Task::factory()->in($otherWorkspace)->create();
 
-    // The endpoint stops this with validation; the Action stops it for the console command,
-    // the queued job and the future API, which never pass a FormRequest.
     expect(fn (): TaskProjectMembership => attach($foreign, $project, $actor))
         ->toThrow(PlacementException::class, 'That task is not in this workspace.');
 });

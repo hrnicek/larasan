@@ -6,12 +6,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * A wrong address and a refusal are answered by this application rather than by the framework
- * (TASK-180-009). The framework's own pages are a different application to look at, and they say
- * nothing about where to go next — the only thing somebody who has landed there wants.
- */
-
 it('answers an address that leads nowhere with its own page', function (): void {
     [$workspace, $actor] = workspaceWith(WorkspaceRole::Member);
 
@@ -29,7 +23,6 @@ it('answers a refusal with its own page', function (): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
 
-    // A guest may not create a project, and the request is refused rather than redirected.
     $this->actingAs($guest)
         ->get(route('projects.create'))
         ->assertForbidden()
@@ -75,9 +68,4 @@ it('answers a stranger the same way, with nothing it cannot render', function ()
     outside the shell — the sidebar would have nothing to put in it',
 ]);
 
-/*
- * 419 is deliberately not on the list. An expired page is not an error to read about, it is a
- * form to send again, and Laravel already answers it by redirecting back with a message. It is
- * not asserted here because the test environment bypasses CSRF verification, so a genuine 419
- * cannot be produced by a request — recorded rather than faked.
- */
+// 419 is left to Laravel's redirect-back handling and cannot be produced here, since tests bypass CSRF.

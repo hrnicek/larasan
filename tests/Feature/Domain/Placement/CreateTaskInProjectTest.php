@@ -33,8 +33,6 @@ it('creates the task and the card it appears as', function (): void {
     expect($placement->section_id)->toBe($section->id)
         ->and($placement->task->title)->toBe('Write it down')
         ->and($placement->task->workspace_id)->toBe($workspace->id)
-        // Created into the workspace and then placed: the task still carries no project
-        // (ADR-0003).
         ->and($placement->task->created_by)->toBe($actor->id);
 });
 
@@ -64,8 +62,6 @@ it('writes both halves or neither', function (): void {
     [, $project, $actor] = placeableProject();
     $section = Section::factory()->in($project)->create();
 
-    // The card cannot be written, so the task must not survive either: a task with no card is
-    // one nobody looking at the board can find.
     DB::table('task_project_memberships')->insert([
         'id' => (string) Str::uuid7(),
         'task_id' => Task::factory()->in($project->workspace)->create()->id,
@@ -108,8 +104,6 @@ it('refuses an archived project', function (): void {
     [, $project, $actor] = placeableProject();
     $project->forceFill(['archived_at' => now()])->save();
 
-    // Read-only means read-only: an archived board cannot be rearranged and cannot be added
-    // to either (TASK-050-013).
     expect(fn (): TaskProjectMembership => addTask($project->refresh(), $actor, 'Too late'))
         ->toThrow(PlacementException::class);
 });

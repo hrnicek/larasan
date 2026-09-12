@@ -7,13 +7,6 @@ import { Button } from '@/components/ui/button';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
-/**
- * A task's children: how many are finished, what they are called, and a way to add one.
- *
- * The depth limit is `CreateTask`'s to enforce (`ParentChain::MAX_DEPTH`), and this surfaces its
- * refusal rather than pre-empting it: a client that counted depth itself would be a second copy
- * of the rule, and the second copy is the one that drifts.
- */
 const props = defineProps<{
     parentId: string;
     subtasks: TaskDetail['subtasks'];
@@ -65,10 +58,6 @@ const submit = (): void => {
     );
 };
 
-/**
- * A subtask is finished where it is read. Called on the router rather than pulled off it: a
- * method in a variable loses its receiver, and Inertia's methods reach for `this`.
- */
 const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
     if (!props.editable) {
         return;

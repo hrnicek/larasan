@@ -22,13 +22,6 @@ class CommentFactory extends Factory
     protected $model = Comment::class;
 
     /**
-     * Every nullable column is set explicitly: strict Eloquent throws on an attribute the
-     * model never retrieved, so a factory that omits one hands each test a model that fails on
-     * first read.
-     *
-     * The subject is a task in the comment's own workspace, because a comment in one workspace
-     * about a subject in another is a row the domain will never create.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -39,8 +32,6 @@ class CommentFactory extends Factory
             'commentable_id' => fn (array $attributes): string => Task::factory()
                 ->create(['workspace_id' => $attributes['workspace_id']])
                 ->id,
-            // An author who is actually in the workspace. A factory that builds a comment by
-            // a stranger hands every test a row the domain would have refused to create.
             'author_id' => fn (array $attributes): int => $this->member((string) $attributes['workspace_id'])->id,
             'body' => fake()->sentence(),
             'edited_at' => null,

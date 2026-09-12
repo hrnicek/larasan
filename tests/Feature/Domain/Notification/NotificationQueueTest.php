@@ -18,10 +18,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
-/**
- * Asserted from the push rather than from the configuration — a queue name read back out of
- * config proves only that the file says what the file says.
- */
 function assertQueued(string $listener, string $queue): void
 {
     Queue::assertPushed(
@@ -35,8 +31,7 @@ it('sends notification work to the notifications queue', function (): void {
 
     event(new TaskAssigned((string) Str::uuid7(), (string) Str::uuid7(), 2, 1));
 
-    // Below `broadcasts` in Horizon's order (ADR-0008): a slow inbox must never delay a board
-    // update, and no request should wait on somebody else's notification.
+    // Queued below broadcasts so a slow inbox never delays a board update. See ADR-0008.
     assertQueued(NotifyAssignee::class, 'notifications');
 });
 
@@ -71,8 +66,6 @@ it('keeps recording history on the request that caused it', function (): void {
 
     event(new TaskAssigned((string) Str::uuid7(), (string) Str::uuid7(), 2, 1));
 
-    // History is one insert beside the thing that happened. A task whose history arrives when a
-    // worker comes back is not a history (TASK-110-008).
     Queue::assertNotPushed(
         CallQueuedListener::class,
         fn (CallQueuedListener $job): bool => $job->class === RecordTaskAssigned::class,
@@ -80,11 +73,6 @@ it('keeps recording history on the request that caused it', function (): void {
 });
 
 it('does not deliver a notification before the work it describes is committed', function (): void {
-    /*
-     * `after_commit` is true on the redis connection (TASK-080-006), so a queued listener never
-     * sees a task that the transaction still holds — which for a notification would be a row
-     * pointing at something the reader gets a 404 for.
-     */
     expect(config('queue.connections.redis.after_commit'))->toBeTrue();
 });
 
@@ -93,8 +81,7 @@ it('still writes the notification when the queue runs it', function (): void {
     $assignee = memberOf($workspace);
     $task = Task::factory()->in($workspace)->create();
 
-    // The suite runs the sync connection, so this is the queued listener actually executing
-    // rather than a job object being inspected.
+    // The test suite uses the sync queue, so the queued listener runs inline.
     app(AssignTask::class)->handle($task, $actor, $assignee);
 
     expect(DB::table('notifications')->count())->toBe(1);

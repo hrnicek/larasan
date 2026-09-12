@@ -16,10 +16,6 @@ use App\Http\Requests\Search\StoreSavedSearchRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
-/**
- * Keeping and forgetting a search. Redirects rather than JSON: these are form posts from a
- * screen, and the palette reads the chips from the props it is already given.
- */
 class SavedSearchController extends Controller
 {
     public function store(StoreSavedSearchRequest $request, SaveSearch $save): RedirectResponse

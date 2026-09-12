@@ -11,11 +11,6 @@ use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use Carbon\CarbonImmutable;
 
-/**
- * Ownership and workspace are absent by design: moving a project between workspaces would
- * strand every task in it, and transferring it is a different operation with a different
- * authorization question.
- */
 final readonly class UpdateProjectData
 {
     public function __construct(

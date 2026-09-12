@@ -12,11 +12,7 @@ use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
 /**
- * The title, on its own.
- *
- * Separate from the document deliberately. The title is renamed from the tree while somebody
- * else may have the page open, and a rename that touched `version` would refuse that person's
- * next autosave over a change that did not touch a word they wrote.
+ * Does not touch `version`, so a rename never rejects a concurrent content save.
  */
 final readonly class RenamePage
 {
@@ -30,7 +26,6 @@ final readonly class RenamePage
 
         $title = trim($title);
 
-        // A page with no name is `Untitled`, not an empty row in the tree.
         $page->forceFill([
             'title' => $title === '' ? Page::UNTITLED : $title,
             'updated_by' => $actor->id,

@@ -32,29 +32,15 @@ class UpdateTaskRequest extends FormRequest
         $task = $this->task();
 
         return [
-            /*
-             * `sometimes`, so a row editing one field does not have to send the whole task
-             * back — and `required` when it is there, because a title is not something that
-             * can be blanked.
-             */
             'title' => ['sometimes', 'required', 'string', 'max:255'],
-            /*
-             * Rich text, so the ceiling is on markup rather than on prose: the same paragraph
-             * that fitted in 5,000 characters as plain text carries tags now, and the limit is
-             * meant to stop a payload rather than a description somebody meant to write.
-             */
+            // The limit counts rich-text markup, not only prose.
             'description' => ['nullable', 'string', 'max:20000'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],
             'parent_id' => [
                 'nullable', 'uuid',
-                /*
-                 * Scoped to the tasks this actor can actually reach, and never the task
-                 * itself. The workspace alone was not enough: a task inside a private project
-                 * is in the same workspace, and naming one as a parent read its title back
-                 * through the panel's breadcrumb. A longer loop is still the Action's to
-                 * refuse — it needs the chain, not one comparison.
-                 */
+                // Reachable tasks only, so a task in a private project cannot be exposed as a parent.
+                // Longer cycles are refused by the Action.
                 Rule::exists('tasks', 'id')->where(
                     fn (Builder $query): Builder => $query
                         ->where('workspace_id', $task?->workspace_id)
@@ -78,8 +64,6 @@ class UpdateTaskRequest extends FormRequest
     }
 
     /**
-     * The ids of the tasks this actor may reach, for a rule that has to check a reference.
-     *
      * @return EloquentBuilder<Task>
      */
     private function reachableTaskIds(?Workspace $workspace): EloquentBuilder
@@ -87,8 +71,6 @@ class UpdateTaskRequest extends FormRequest
         $user = $this->user();
 
         if (! $workspace instanceof Workspace || ! $user instanceof User) {
-            // Nothing is reachable when there is nobody to reach it, and `authorize()` has
-            // already refused by the time this could matter.
             return Task::query()->whereRaw('1 = 0')->select('tasks.id');
         }
 

@@ -23,14 +23,6 @@ return new class extends Migration
             $table->string('color')->nullable();
             $table->string('icon')->nullable();
 
-            /*
-             * Both nullable and nulled on delete. A project outlives the person who made
-             * it: cascading would destroy a team's work because one account closed, and
-             * restricting would block that account's deletion with no transfer flow to
-             * unblock it — the workspace already restricts for the one case where
-             * ownership must be handed over deliberately. A project with no owner is still
-             * administered through the workspace capability.
-             */
             $table->foreignId('owner_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
 
@@ -44,25 +36,14 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Per workspace, not global: two tenants may both have a project called "Web".
             $table->unique(['workspace_id', 'slug']);
 
-            // What the project list filters on.
             $table->index(['workspace_id', 'archived_at']);
 
-            /*
-             * PostgreSQL does not index the referencing side of a foreign key, so without
-             * these an account deletion scans every project (Phase 020 database review).
-             */
             $table->index('owner_id');
             $table->index('created_by');
         });
 
-        /*
-         * Enum columns carry their constraint in the database, as workspace_memberships
-         * does: a value outside the enum is accepted silently and then fails at read time
-         * inside the cast, on every request that touches the row.
-         */
         DB::statement($this->checkConstraint('default_view', ProjectDefaultView::cases()));
         DB::statement($this->checkConstraint('visibility', ProjectVisibility::cases()));
     }

@@ -16,18 +16,10 @@ class PageFactory extends Factory
 {
     protected $model = Page::class;
 
-    /**
-     * Positions are unique among siblings, so a factory that always wrote the same one could
-     * not make two pages in a project without a collision. Every page a run creates gets the
-     * next slot; `at()` overrides it where a test cares about the exact number.
-     */
+    // Positions are unique among siblings, so every created page takes the next slot.
     private static int $slot = 0;
 
     /**
-     * Every nullable column is set explicitly: strict Eloquent throws on an attribute the
-     * model never retrieved, so a factory that omits one hands each test a model that fails
-     * on first read.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

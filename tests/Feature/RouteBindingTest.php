@@ -5,17 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The bindings in `RouteBindingServiceProvider` are load-bearing security: each resolves its
- * model inside the workspace the actor is currently in, so another tenant's row is a 404 rather
- * than a 403 — and `inbox.read` has no authorization of its own beyond the binding.
- *
- * `php artisan route:cache`, which every production deployment runs, never reads the route files.
- * A binding declared in one therefore stops existing in production and Laravel falls back to
- * implicit binding by primary key. Measured before the move (TASK-180-001): 79 tests failed with
- * routes cached, two of them because one account could mark another's notification read and reach
- * another workspace's custom field.
- */
+// Bindings scope models to the current workspace, and `route:cache` never reads route files, so they live in a provider.
 it('declares no binding where route caching would lose it', function (): void {
     $offenders = collect(File::files(base_path('routes')))
         ->filter(fn (SplFileInfo $file): bool => str_contains((string) file_get_contents($file->getPathname()), 'Route::bind('))

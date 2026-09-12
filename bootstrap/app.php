@@ -19,12 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    /*
-     * Subscribing is reached through the same coarse gate the screens are: `auth` and
-     * `verified`. The framework's default registers `broadcasting/auth` behind `web`
-     * alone, which would let an account that has never confirmed its address open a
-     * socket to data every HTTP route refuses it (TASK-170-002).
-     */
+    // The default guards broadcasting/auth with `web` alone, which would let unverified accounts subscribe.
     ->withBroadcasting(
         __DIR__.'/../routes/channels.php',
         attributes: ['middleware' => ['web', 'auth', 'verified']],
@@ -45,16 +40,7 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        /*
-         * A domain refusal is a "no", not a crash. Actions throw rather than calling
-         * `abort()` because only the transport layer knows what a refusal should look like
-         * — and until this existed, the refusals a FormRequest cannot pre-check (an
-         * assignee who cannot reach the task, a slot that closed between the read and the
-         * write) reached the browser as a 500.
-         *
-         * The message is the sentence the named constructor wrote, which is why those
-         * constructors write sentences.
-         */
+        // Refusal messages are shown to the user verbatim.
         $exceptions->render(function (DomainRefusal $refusal, Request $request) {
             $message = $refusal instanceof Throwable ? $refusal->getMessage() : '';
 

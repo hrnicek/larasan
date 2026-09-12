@@ -15,12 +15,7 @@ function attachTagRow(Task $task, Tag $tag): void
 }
 
 it('carries no workspace of its own', function (): void {
-    /*
-     * Both sides already have one, and scoping is by joining the aggregate (ADR-0005). What the
-     * schema cannot express is that the two must be the *same* workspace — a foreign key proves
-     * each row exists, never that they belong together — so that check is the Action's
-     * (TASK-140-003).
-     */
+    // Scoped through its task and tag; the Action ensures both share a workspace. See ADR-0005.
     expect(Schema::hasColumn('task_tag', 'workspace_id'))->toBeFalse();
 });
 
@@ -31,7 +26,6 @@ it('refuses the same tag on the same task twice', function (): void {
 
     attachTagRow($task, $tag);
 
-    // Attaching twice is the same tag, not two of them.
     expect(fn () => DB::transaction(fn () => attachTagRow($task, $tag)))->toThrow(QueryException::class);
 });
 
@@ -53,7 +47,6 @@ it('goes when the tag goes', function (): void {
 
     $tag->delete();
 
-    // Deleting a tag removes it from the work it was on; the work itself is untouched.
     expect(DB::table('task_tag')->count())->toBe(0)
         ->and(Task::query()->whereKey($task->id)->exists())->toBeTrue();
 });
@@ -65,7 +58,6 @@ it('stays while the task is only soft-deleted', function (): void {
 
     $task->delete();
 
-    // A soft-deleted task can come back, and it should come back with what it was about.
     expect(DB::table('task_tag')->count())->toBe(1);
 });
 
@@ -77,15 +69,13 @@ it('reads a task s tags in a stable order', function (): void {
         attachTagRow($task, Tag::factory()->in($workspace)->named($name)->create());
     }
 
-    // By name, so a card's chips do not reshuffle between requests for no reason anybody sees.
     expect($task->tags()->pluck('name')->all())->toBe(['Bug', 'Docs', 'Urgent']);
 });
 
 it('indexes the side the primary key does not lead with', function (): void {
     $indexes = collect(Schema::getIndexes('task_tag'))->pluck('columns');
 
-    // Without this, deleting a tag scans the table: PostgreSQL does not index the referencing
-    // side of a foreign key, and the primary key leads with `task_id`.
+    // PostgreSQL does not index the referencing side of a foreign key; the primary key leads with task_id.
     expect($indexes)->toContain(['task_id', 'tag_id'])
         ->and($indexes)->toContain(['tag_id']);
 });

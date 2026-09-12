@@ -53,8 +53,6 @@ it('answers each role the same way at every ability', function (WorkspaceRole $r
     'member assigns' => [WorkspaceRole::Member, 'assign', true],
     'member deletes' => [WorkspaceRole::Member, 'delete', true],
 
-    // A guest reaches only what they were explicitly given, and until Phase 070 attaches
-    // tasks to projects there is nothing that could have been given to them.
     'guest views' => [WorkspaceRole::Guest, 'view', false],
     'guest updates' => [WorkspaceRole::Guest, 'update', false],
     'guest completes' => [WorkspaceRole::Guest, 'complete', false],
@@ -83,8 +81,6 @@ it('denies every ability to somebody from another workspace', function (string $
 it('answers the same way for the Actions and the gate', function (): void {
     [$task, $member] = taskFor(WorkspaceRole::Member);
 
-    // The Actions ask the membership row directly; the policy asks it through the same
-    // method. A difference between the two is how a UI offers a button the server refuses.
     expect(Gate::forUser($member)->allows('update', $task))
         ->toBe($task->workspace->membershipFor($member)?->allows(Capability::TaskUpdate) === true);
 });
@@ -95,8 +91,6 @@ it('lets a guest read a task that appears in a project they were given', functio
     ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // The question TASK-060-012 left open, answered in TASK-070-017: a guest reaches a task
-    // exactly when it appears in a project they hold (ADR-0003 with ADR-0006).
     expect(Gate::forUser($guest)->allows('view', $task))->toBeTrue();
 });
 
@@ -105,7 +99,6 @@ it('keeps a guest out of a task in a project they were not given', function (): 
     $project = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Workspace]);
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Workspace visibility never reaches a guest, so neither does a card on that board.
     expect(Gate::forUser($guest)->allows('view', $task))->toBeFalse();
 });
 
@@ -114,8 +107,6 @@ it('keeps a member out of a task that lives only in a private project they are n
     $private = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    // Being in the workspace is not being in the room. Without this, a private project's
-    // cards were readable — and editable — through the task endpoints (ADR-0006).
     expect(Gate::forUser($member)->allows('view', $task))->toBeFalse()
         ->and(Gate::forUser($member)->allows('update', $task))->toBeFalse()
         ->and(Gate::forUser($member)->allows('delete', $task))->toBeFalse();
@@ -128,7 +119,6 @@ it('lets a member read a task that is also on a board they can open', function (
     TaskProjectMembership::factory()->placing($task, $private)->create();
     TaskProjectMembership::factory()->placing($task, $open)->create();
 
-    // One task, two boards (ADR-0003): reaching either is reaching the task.
     expect(Gate::forUser($member)->allows('view', $task))->toBeTrue()
         ->and(Gate::forUser($member)->allows('update', $task))->toBeTrue();
 });
@@ -136,7 +126,6 @@ it('lets a member read a task that is also on a board they can open', function (
 it('lets a member read a task that is on no board at all', function (): void {
     [$task, $member] = taskFor(WorkspaceRole::Member);
 
-    // The inbox case: a quick capture nobody has filed yet is workspace work.
     expect(Gate::forUser($member)->allows('view', $task))->toBeTrue()
         ->and($task->placements()->count())->toBe(0);
 });

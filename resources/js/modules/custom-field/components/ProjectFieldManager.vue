@@ -8,13 +8,6 @@ import { typeLabels } from '@/modules/custom-field/fieldTypes';
 import type { CustomFieldType } from '@/modules/custom-field/types';
 import { index as workspaceFields } from '@/routes/custom-fields';
 
-/**
- * Which of the workspace's fields this project shows.
- *
- * Attaching and detaching, and nothing else: what a field *is* — its name, its type, its choices —
- * is a workspace decision made on `/settings/fields`, and offering half of it here would be two
- * screens disagreeing about the same object.
- */
 const props = defineProps<{
     projectId: string;
     attached: { id: string; name: string; type: CustomFieldType }[];
@@ -22,14 +15,9 @@ const props = defineProps<{
     canManage: boolean;
 }>();
 
-/**
- * A write finished. The settings screen has no use for it — its props come back with the redirect
- * — but the *Customize* drawer's list is `Inertia::optional` and is not in that response, so it
- * asks for its own again.
- */
+// The Customize drawer's list is an optional prop the redirect does not carry, so it reloads on `changed`.
 const emit = defineEmits<{ changed: [] }>();
 
-/** Which row is mid-request, so a slow network is not mistaken for a control that did nothing. */
 const pending = ref<string | null>(null);
 
 function attach(id: string): void {
@@ -46,11 +34,7 @@ function attach(id: string): void {
     );
 }
 
-/*
- * Not confirmed, and deliberately: taking a column off a board keeps every answer, so putting the
- * field back brings them with it. Deleting the field is the operation that does not, and that one
- * asks (ADR-0013 — a modal never holds an unconfirmed destructive operation).
- */
+// Unconfirmed because detaching keeps every recorded value; deleting the field is what asks. See ADR-0013.
 function detach(id: string): void {
     pending.value = id;
 
@@ -108,7 +92,6 @@ function detach(id: string): void {
             <p class="text-muted-foreground text-xs">
                 Removing a field here keeps every answer already recorded in it — putting it back
                 brings them with it.
-                <!-- The link is where fields are made, so an empty picker is not a dead end. -->
                 <a :href="workspaceFields.url()" class="underline underline-offset-2">
                     Fields are defined in workspace settings.
                 </a>

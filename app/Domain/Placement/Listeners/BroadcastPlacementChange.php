@@ -12,14 +12,6 @@ use App\Domain\Shared\Broadcasting\ViewInvalidated;
 use App\Domain\Task\Models\Task;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * A card arrived, left, or changed place.
- *
- * The project the placement names is always told, including on a detach — the column it
- * left has to lose the card. Where the task lives **now** is told as well, so a task that
- * has just become loose reaches the workspace channel and appears in the list of tasks that
- * belong to no project.
- */
 final readonly class BroadcastPlacementChange
 {
     public function __construct(
@@ -43,6 +35,7 @@ final readonly class BroadcastPlacementChange
 
         $workspaceId = Task::withTrashed()->whereKey($event->taskId)->value('workspace_id');
 
+        // The event's project is always included: after a detach it is no longer among the task's current channels.
         $channels = array_values(array_unique([
             "project.{$event->projectId}",
             ...(is_string($workspaceId) ? ($this->channels)($event->taskId, $workspaceId) : []),

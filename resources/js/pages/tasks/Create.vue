@@ -10,16 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
 
-/**
- * Adding a task from somewhere that is not a row in a list.
- *
- * The three entry points differ only in how much they already know: the topbar knows nothing, a
- * project's *Add task* knows the project, and a section's `+` knows both. What they know is
- * **prefilled and still editable** — a hidden prefill is a field somebody fights when it turns
- * out to be wrong.
- */
 const props = defineProps<{
-    /** The projects this person may add work to. Not the sidebar's `projects` — see the controller. */
+    /** Distinct from the shared sidebar `projects` prop. */
     targetProjects: { id: string; name: string; color: string | null }[];
     project: string | null;
     sections: { id: string; name: string }[];
@@ -36,10 +28,6 @@ const form = useForm<{ title: string; section: string | null }>({
 
 const selected = computed(() => props.targetProjects.find((project) => project.id === chosenProject.value) ?? null);
 
-/*
- * The sections belong to the chosen project, so choosing a different one asks the server again
- * rather than the client guessing. Partial, because nothing else on this modal changes.
- */
 watch(chosenProject, (id) => {
     chosenSection.value = null;
     form.section = null;
@@ -88,9 +76,6 @@ function submit(): void {
                     </SelectContent>
                 </Select>
 
-                <!-- Required, and said so before the form is submitted rather than after. A task
-                     with no project is reachable only from My Tasks and from search, which is a
-                     thing this application allows but not a thing to do by accident. -->
                 <p v-if="targetProjects.length === 0" class="text-sm text-muted-foreground">
                     There is no project here you can add to yet.
                 </p>

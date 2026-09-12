@@ -51,10 +51,6 @@ it('unstars, and says nothing when there was no star', function (): void {
     expect(TaskStar::query()->where('task_id', $task->id)->exists())->toBeFalse();
 });
 
-/*
- * A star is a shortcut rather than a change to the task, so the question it asks is `view`. A
- * reader who may not edit the task may still keep it at hand.
- */
 it('lets a reader star a task they may only look at', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     $task = Task::factory()->in($project->workspace)->create();
@@ -83,17 +79,12 @@ it('refuses every caller who cannot reach the task, not only the HTTP one', func
         ->toThrow(TaskException::class);
 });
 
-/*
- * The other direction has no reach check on purpose: somebody who has lost access must still be
- * able to clear the task out of their own tab.
- */
 it('lets somebody unstar a task they can no longer open', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Guest);
     $task = Task::factory()->in($workspace)->create();
     TaskStar::factory()->starring($task, $actor)->create();
 
-    // A guest reaches only what they were given, and this one was given nothing.
     expect($actor->can('view', $task))->toBeFalse();
 
     app(UnstarTask::class)->handle($task, $actor);

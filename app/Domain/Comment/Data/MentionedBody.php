@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Comment\Data;
 
-/**
- * A comment body whose mentions were checked, with the names rewritten as they are now.
- */
 final readonly class MentionedBody
 {
     /**

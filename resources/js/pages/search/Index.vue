@@ -9,20 +9,8 @@ import SaveSearchDialog from '@/modules/search/components/SaveSearchDialog.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
-/*
- * The panel is the heaviest thing this screen can show and most visits never open one, so it is
- * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
- * is idle, which keeps opening a task instant without putting it on the critical path.
- */
 const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
-/**
- * Finding work.
- *
- * The term and the filters live in the URL, so a search is a link somebody can send. Typing is
- * debounced: a request per keystroke is a request per keystroke the server has to answer, and
- * nobody reads the results of the word they are halfway through.
- */
 const props = defineProps<{
     tasks: MyTaskRow[];
     meta: {
@@ -31,18 +19,17 @@ const props = defineProps<{
         perPage: number;
         total: number;
         hasMore: boolean;
-        /** True when the engine was unreachable and this came from the database instead. */
+        /** Served by the database fallback because the search engine was unreachable. */
         degraded: boolean;
-        /** True when the engine had more matches than it was asked for. */
+        /** The engine had more matches than requested, so `total` is a lower bound. */
         capped: boolean;
     };
     filters: { project?: string; assignee?: number; completed?: boolean };
-    /** The projects the filter offers. Not the sidebar's `projects` — see the controller. */
+    /** Distinct from the shared sidebar `projects` prop. */
     filterProjects: { id: string; name: string }[];
     members: TaskAssignee[];
-    /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
     taskDetail?: TaskDetail | null;
-    /** Deferred with the panel: absent until the follow-up request lands. */
+    /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
     priorities: string[];
 }>();
@@ -55,8 +42,6 @@ watch(() => props.tasks, (tasks) => {
 });
 
 watch(() => props.meta.term, (value) => {
-    // The server's term wins whenever it changes: a back button that put an old search in the
-    // address should put it in the box too.
     if (value !== term.value) {
         term.value = value;
     }
@@ -100,8 +85,6 @@ const onTyping = (): void => {
         clearTimeout(pending);
     }
 
-    // Long enough that a word is finished, short enough that nobody wonders whether it is
-    // working.
     pending = setTimeout(() => run(), 250);
 };
 
@@ -117,19 +100,10 @@ const filterBy = (key: 'project' | 'assignee' | 'completed', value: string): voi
     router.get(SearchController.index.url({ query: params }));
 };
 
-/*
- * A result opens the panel at this screen's address, so the term, the filters and the page are
- * still there behind it — and still there when it closes. A search somebody has to retype after
- * reading one result is a search they run once.
- */
 const { open, close: closeTask } = useTaskPanel();
 
 const canKeep = computed(() => props.meta.term !== '');
 
-/**
- * Keeping a search puts it in the palette's chip row, which is where one is opened from. It is
- * made here because this is the screen that has the filters on it.
- */
 const keeping = ref(false);
 </script>
 
@@ -151,8 +125,6 @@ const keeping = ref(false);
                 @keydown.enter.prevent="run()"
             />
 
-            <!-- The filters read as one row of controls at the same height as the box above
-                 them, because narrowing a search is part of running it. -->
             <div class="flex flex-wrap gap-2">
                 <select
                     :value="filters.project ?? ''"
@@ -200,15 +172,11 @@ const keeping = ref(false);
                 </p>
             </div>
 
-            <!-- The engine is a second service and services stop. Saying which half of the
-                 search is answering is the difference between "worse today" and "broken". -->
             <p v-if="meta.degraded && meta.term !== ''" class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 The search engine is unavailable, so these results are matched by whole words and
                 without tolerance for typing mistakes.
             </p>
 
-            <!-- A result is a row, not a sentence: the name leads, where it lives follows it, and
-                 the whole line is the target. -->
             <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-y border-border">
                 <li v-for="task in rows" :key="task.id">
                     <button
@@ -242,8 +210,6 @@ const keeping = ref(false);
                 </li>
             </ul>
 
-            <!-- Two different nothings: nothing typed yet, and nothing found. A search box that
-                 says "no results" before anybody has typed looks broken. -->
             <EmptyState
                 v-else
                 :icon="SearchIcon"

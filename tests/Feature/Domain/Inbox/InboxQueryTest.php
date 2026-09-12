@@ -29,9 +29,6 @@ function inbox(Workspace $workspace, User $reader, int $page = 1, int $perPage =
     return app(InboxQuery::class)($workspace, $reader, $page, $perPage);
 }
 
-/**
- * A real assignment, so what the Inbox reads is what the domain writes.
- */
 function assignTo(Workspace $workspace, User $actor, User $assignee, string $title = 'Fix login'): Task
 {
     $task = Task::factory()->in($workspace)->create(['title' => $title]);
@@ -85,8 +82,6 @@ it('says what the task is called today, not when the notification was written', 
     $task = assignTo($workspace, $actor, $reader, 'Old name');
     $task->forceFill(['title' => 'New name'])->save();
 
-    // The row is rendered from the ids the notification kept, resolved now: a snapshot would
-    // show a name nobody would recognise a week later.
     expect(inbox($workspace, $reader)['notifications'][0]['subject']['title'])->toBe('New name');
 });
 
@@ -99,12 +94,7 @@ it('puts unread first and newest within that', function (): void {
     assignTo($workspace, $actor, $reader, 'Newer unread');
     $read = assignTo($workspace, $actor, $reader, 'Already read');
 
-    /*
-     * Written a minute apart on purpose. `created_at` is `timestamp(0)` and a notification's id
-     * is a UUIDv4 — the framework generates it, not this application — so two notifications in
-     * the same second have no meaningful order between them. The id still breaks the tie, which
-     * is what keeps paging stable; it just does not mean "later".
-     */
+    // created_at is timestamp(0) and notification ids are UUIDv4, so same-second rows are unordered.
     DB::table('notifications')->where('data->task_id', $older->id)->update(['created_at' => now()->subMinute()]);
 
     DB::table('notifications')
@@ -116,7 +106,6 @@ it('puts unread first and newest within that', function (): void {
         inbox($workspace, $reader)['notifications'],
     );
 
-    // What still needs attention comes first; what has been dealt with stays readable below it.
     expect($titles)->toBe(['Newer unread', 'Older unread', 'Already read']);
 });
 
@@ -144,10 +133,6 @@ it('never returns the same person s notifications from another workspace', funct
     assignTo($workspace, $actor, $reader, 'Here');
     assignTo($elsewhere, $actor, $reader, 'There');
 
-    /*
-     * The Inbox is per workspace: somebody in three of them should not have to read three
-     * inboxes at once to find the thing they were told about.
-     */
     expect(array_map(fn (array $row): string => $row['subject']['title'], inbox($workspace, $reader)['notifications']))
         ->toBe(['Here']);
 });
@@ -199,8 +184,6 @@ it('names a notification it does not recognise without showing a class name', fu
         'updated_at' => now(),
     ]);
 
-    // A class name is not something to show anybody, and a kind this query has not met yet is
-    // still a line in somebody's inbox.
     $row = inbox($workspace, $reader)['notifications'][0];
 
     expect($row['type'])->toBe('unknown')
@@ -241,11 +224,7 @@ it('reads a page of notifications from many people about many tasks in a fixed n
 
     $result = inbox($workspace, $reader);
 
-    /*
-     * Ten notifications from ten people about ten tasks: the count, the page, the actors, the
-     * subjects, the projects they live in, and the unread count. A relation per row is at its
-     * worst here, where each line points somewhere different.
-     */
+    // The count, the page, the actors, the subjects, their projects, and the unread count.
     expect($result['notifications'])->toHaveCount(10)
         ->and(count($queries))->toBeLessThanOrEqual(6);
 });
@@ -272,10 +251,6 @@ it('gives a line no address when the reader can no longer reach the task', funct
 
     $project->forceFill(['visibility' => ProjectVisibility::Private])->save();
 
-    /*
-     * They were told about it while they could open it, and the project has since become
-     * private. A link they cannot follow is worse than a sentence they can still read.
-     */
     $subject = inbox($workspace, $reader)['notifications'][0]['subject'];
 
     expect($subject['title'])->toBe('Still mine')
@@ -293,12 +268,6 @@ it('gives a guest an address for what they were given', function (): void {
     TaskProjectMembership::factory()->placing($task, $project)->create();
     app(AssignTask::class)->handle($task, $actor, $guest);
 
-    /*
-     * A guest can only be given work inside a project they hold — `AssignTask` refuses the rest
-     * (TASK-070-017), which is why a guest's inbox never contains a task filed nowhere. The
-     * counts this query reads answer the same question anyway, for the day something else writes
-     * a notification.
-     */
     expect(inbox($workspace, $guest)['notifications'][0]['subject']['url'])
         ->toBe(route('tasks.show', $task->id));
 });
@@ -310,7 +279,6 @@ it('gives a member an address for a task filed nowhere', function (): void {
 
     $task = assignTo($workspace, $actor, $reader, 'Filed nowhere');
 
-    // Workspace work: a member may read it, so the line leads somewhere.
     expect(inbox($workspace, $reader)['notifications'][0]['subject']['url'])
         ->toBe(route('tasks.show', $task->id));
 });

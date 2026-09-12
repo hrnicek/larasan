@@ -10,11 +10,6 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * The `color` column, as an `AccentColor` rather than as a string.
- *
- * Writing accepts a palette case as readily as the value object, because most of the application
- * still thinks in the eight names and should not have to wrap one to save it.
- *
  * @implements CastsAttributes<AccentColor, AccentColor|ProjectColor|string|null>
  */
 class AsAccentColor implements CastsAttributes

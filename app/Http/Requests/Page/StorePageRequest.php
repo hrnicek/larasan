@@ -25,15 +25,9 @@ class StorePageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // Optional: a page is created and then named, so demanding a title first would
-            // make the empty page a form.
             'title' => ['nullable', 'string', 'max:255'],
 
-            /*
-             * The page this one is written inside. Scoped to the project in the URL rather
-             * than validated as a bare uuid: an id from another project is the shape a
-             * cross-tenant write takes, and `exists` alone would accept it.
-             */
+            // Scoped to the project, since `exists` alone would accept a page from another project.
             'parent' => [
                 'nullable', 'uuid',
                 Rule::exists('pages', 'id')->where(

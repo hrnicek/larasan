@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before the model is involved, so what is proven is the
- * database's behaviour rather than an Action's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertPage(Project $project, array $overrides = []): string
@@ -42,9 +39,8 @@ it('refuses two root pages in the same slot of one project', function (): void {
     $project = Project::factory()->create();
     insertPage($project);
 
-    // Savepoint: PostgreSQL aborts the whole transaction on a failed statement, and
-    // RefreshDatabase already holds one (docs/conventions/testing.md). The NULL parent is the point —
-    // without NULLS NOT DISTINCT the constraint would not see these two rows as siblings.
+    // The savepoint keeps PostgreSQL from aborting the test transaction on the failed insert.
+    // Without NULLS NOT DISTINCT, two root pages (NULL parent) would not collide.
     expect(fn (): string => DB::transaction(fn (): string => insertPage($project, ['title' => 'Notes'])))
         ->toThrow(QueryException::class);
 

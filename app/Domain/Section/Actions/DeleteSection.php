@@ -14,16 +14,8 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Deleting a column must never delete what was in it (ADR-0004): the cards move to the
- * ungrouped bucket, and the tasks themselves are untouched — they belong to the workspace,
- * not to a column somebody removed.
- *
- * They are moved rather than left to the foreign key. `section_id` is `nullOnDelete`, which
- * keeps the promise for a delete that never comes through here, but it nulls the column
- * while keeping the position — and a position is only unique within its bucket, so a card
- * carrying `65536` out of a column meets whatever is already sitting at `65536` in the
- * ungrouped bucket. The slot guard then refuses the whole delete. Appending each card to the
- * end of the bucket, in the same transaction, is what makes the operation safe.
+ * Cards are moved explicitly because the nullOnDelete foreign key keeps their positions,
+ * which would collide with cards already in the ungrouped bucket. See ADR-0004.
  */
 final readonly class DeleteSection
 {
@@ -47,19 +39,6 @@ final readonly class DeleteSection
         $this->events->dispatch(new SectionDeleted($sectionId, $projectId, $actor->id));
     }
 
-    /**
-     * The column's cards, in the order they were in, appended to the end of the project's
-     * ungrouped bucket.
-     *
-     * One statement rather than one per card (TASK-180-020). The loop this replaced cost a
-     * write per card in the request — twenty cards were twenty-seven queries and forty were
-     * forty-seven — and a column is exactly the thing a person is allowed to fill.
-     *
-     * The tail is read with a lock so a concurrent append cannot take the slot between the read
-     * and the write; the `UPDATE` locks the rows it touches by itself. `row_number()` carries
-     * the order across, tie-broken by id so two cards that somehow share a position still land
-     * in a defined sequence rather than whichever one PostgreSQL read first.
-     */
     private function emptyIntoTheUngroupedBucket(Section $section): void
     {
         $tail = $section->project->placements()

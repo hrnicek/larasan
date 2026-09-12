@@ -19,35 +19,13 @@ use Illuminate\Support\Collection as Grouped;
 use Illuminate\Support\Facades\DB;
 
 /**
- * A month of the project, by due date: the calendar view's whole data source.
- *
- * Three things it settles, all of them for the same reason the board settled them:
- *
- * - **the grid is whole weeks**, Monday first, so the month is drawn without half a row at
- *   either end. The days that spill in from the neighbouring months carry their tasks — a card
- *   due on the 31st is not hidden because the reader is looking at August.
- * - **a day is bounded.** A page of cards per day and the total it was cut from, so a project
- *   that puts two hundred tasks on one deadline renders like any other. The cut happens in the
- *   database (`row_number() over (partition by …)`), because reading a month in full and
- *   slicing it in PHP is not a bound.
- * - **a task with no due date is not missing**, it is undated. The same reasoning as the
- *   ungrouped bucket (ADR-0004): work that has not been scheduled is still work, so it gets a
- *   count and a tray of its own rather than falling out of the view.
- *
- * Days are grouped by the stored instant's date, unconverted. That is the same day the pickers
- * read back out of `dueAt` (`DueDatePicker` slices the ISO string), so what is stored, what the
- * grid draws and what the picker shows are one answer rather than three.
+ * Days are grouped by the stored instant's date without timezone conversion,
+ * matching how DueDatePicker reads dueAt.
  */
 final readonly class ProjectCalendarQuery
 {
-    /**
-     * As many as a cell shows at a glance without changing height. A calendar whose rows grow
-     * with their busiest day is a calendar where one deadline pushes the rest of the month off
-     * the screen — the cell stays the same size and says how many it did not draw.
-     */
     public const PER_DAY = 4;
 
-    /** The tray is a shortcut for scheduling, not a second list view. */
     public const UNDATED = 50;
 
     /**
@@ -86,8 +64,6 @@ final readonly class ProjectCalendarQuery
             $days[] = [
                 'date' => $date,
                 'inMonth' => $day->month === $first->month,
-                // The count is every card due that day and the page is what the cell draws, so
-                // a cell that says "+3 more" is stating a fact rather than guessing from a size.
                 'count' => $count,
                 'hasMore' => $count > $held->count(),
                 'tasks' => array_values($held->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
@@ -99,11 +75,6 @@ final readonly class ProjectCalendarQuery
 
         return [
             'month' => $first->format('Y-m'),
-            /*
-             * The server's today, so the cell the grid rings and the day the *Today* control
-             * returns to are the same day. Both are read out of one value rather than each
-             * asking a different clock.
-             */
             'today' => CarbonImmutable::now()->toDateString(),
             'perDay' => self::PER_DAY,
             'days' => $days,
@@ -112,11 +83,6 @@ final readonly class ProjectCalendarQuery
                 'hasMore' => $undatedCount > $undated->count(),
                 'tasks' => array_values($undated->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
             ],
-            /*
-             * The permissions the screen renders, answered once for the project rather than per
-             * card (TASK-070-015). Scheduling a task is `task.update` — dragging a card onto a
-             * day is a due date being changed, and nothing else.
-             */
             'can' => [
                 'createTask' => $actor->can('createTask', $project),
                 'updateTask' => $project->allowsChangesBy($actor, Capability::TaskUpdate),
@@ -126,8 +92,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * How many visible cards each day holds, whatever its page shows.
-     *
      * @param  list<string>  $tags
      * @return array<string, int>
      */
@@ -147,11 +111,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * One page of cards per day, cut in the database and keyed by the day it belongs to.
-     *
-     * A day the reader has opened is read in full instead. That is one day, on purpose, rather
-     * than a page size somebody can turn off for the whole month.
-     *
      * @param  list<string>  $tags
      * @param  list<string>  $expanded
      * @return Grouped<string, Collection<int, TaskProjectMembership>>
@@ -192,8 +151,6 @@ final readonly class ProjectCalendarQuery
                     $rows->orWhereBetween('tasks.due_at', [$opened->startOfDay(), $opened->endOfDay()]);
                 }
             })
-            // Ordered by the same two columns the page was cut on, so a cell draws its page in
-            // the order the database chose it rather than in whatever order the ids came back.
             ->join('tasks', 'tasks.id', '=', 'task_project_memberships.task_id')
             ->select('task_project_memberships.*')
             ->orderBy('tasks.due_at')
@@ -205,8 +162,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * The tasks in this project that nobody has scheduled, in the order the project holds them.
-     *
      * @param  list<string>  $tags
      * @return Collection<int, TaskProjectMembership>
      */
@@ -232,8 +187,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * The project's visible cards whose task is due inside the drawn grid.
-     *
      * @param  list<string>  $tags
      * @return Builder<TaskProjectMembership>
      */
@@ -249,8 +202,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * What a chip draws, in one read for the page rather than one per card.
-     *
      * @param  Builder<TaskProjectMembership>  $query
      * @return Builder<TaskProjectMembership>
      */
@@ -264,9 +215,6 @@ final readonly class ProjectCalendarQuery
     }
 
     /**
-     * Listed column by column rather than handed the model, for the reason the other two views
-     * list theirs: a model would ship every column the table grows later as a public API.
-     *
      * @return array<string, mixed>
      */
     private function card(TaskProjectMembership $card): array

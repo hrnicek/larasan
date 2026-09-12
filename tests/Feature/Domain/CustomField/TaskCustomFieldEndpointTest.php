@@ -31,8 +31,6 @@ it('clears a value with the same request and nothing in it', function (): void {
     [$task, $field, $actor] = fieldOnATask();
     $this->actingAs($actor)->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => 'Two days']);
 
-    // Clearing is the same request with nothing in it rather than a DELETE nobody would think
-    // to send.
     $this->actingAs($actor)
         ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => null])
         ->assertRedirect();
@@ -43,7 +41,6 @@ it('clears a value with the same request and nothing in it', function (): void {
 it('refuses a value the field s type cannot hold', function (): void {
     [$task, $field, $actor] = fieldOnATask(CustomFieldType::Number);
 
-    // The rules come from the field's own type, so "what may be written here" is stated once.
     $this->actingAs($actor)
         ->from(route('tasks.show', $task))
         ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => 'not a number'])
@@ -83,7 +80,6 @@ it('refuses a field this task s projects do not show', function (): void {
     [$task, , $actor] = fieldOnATask();
     $unattached = app(DefineCustomField::class)->handle($task->workspace, $actor, 'Risk', CustomFieldType::Text);
 
-    // The refusal is the Action's, rendered as a domain refusal rather than a 500.
     $this->actingAs($actor)
         ->from(route('tasks.show', $task))
         ->put(route('tasks.custom-fields.update', [$task, $unattached]), ['value' => 'High'])

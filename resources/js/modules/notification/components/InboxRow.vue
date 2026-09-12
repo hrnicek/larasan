@@ -7,20 +7,10 @@ import { accentDotClass, accentVars } from '@/lib/accentColor';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import type { InboxNotification } from '@/modules/notification/types';
 
-/**
- * One line of the Inbox: who, did what, to which task, where it lives, when.
- *
- * The whole row is the control, so no word in it has to look like a link — the person and the
- * task carry weight instead of an underline. The second line is what makes a notification
- * triageable without opening it: the project, and for a comment, what was said.
- */
 const props = defineProps<{
     notification: InboxNotification;
-    /** The task this line is about is the one open in the panel. */
     active: boolean;
-    /** Came in while the screen was open, and is drawn once with a highlight that fades. */
     arrived: boolean;
-    /** Under a day's heading the day is already said, so the line gives the hour instead. */
     timeStyle: 'relative' | 'clock';
 }>();
 
@@ -39,7 +29,6 @@ const kinds: Record<InboxNotification['type'], { verb: string; icon: Component }
 
 const kind = computed(() => kinds[props.notification.type] ?? kinds.unknown);
 
-/** The server's answer: null where the task is gone or this reader lost it. */
 const opens = computed<boolean>(() => Boolean(props.notification.subject?.url));
 const lostAccess = computed<boolean>(() => props.notification.subject !== null && !opens.value);
 
@@ -110,8 +99,6 @@ const open = (): void => {
                     <span v-else class="italic">something that has since been removed</span>
                 </span>
 
-                <!-- Below `md` the project and the excerpt stack: side by side at phone width, each
-                     was cut to a word. -->
                 <span
                     v-if="project || notification.excerpt || lostAccess"
                     class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-4 text-muted-foreground md:flex-nowrap"
@@ -148,8 +135,7 @@ const open = (): void => {
             </time>
         </component>
 
-        <!-- A sibling rather than a child: a control inside the row's button would be a button
-             inside a button, which a screen reader cannot reach and a click cannot separate. -->
+        <!-- A sibling rather than a child, so it is not a button nested inside the row's button. -->
         <button
             v-if="!notification.read"
             type="button"
@@ -164,8 +150,6 @@ const open = (): void => {
 </template>
 
 <style scoped>
-/* The one moment this screen animates: something new arrived while it was open. It is drawn
-   where it belongs at once, and the tint says "this one is new" before fading into the row. */
 .inbox-arrived > [data-inbox-row] {
     animation: inbox-arrived 2.4s cubic-bezier(0.16, 1, 0.3, 1);
 }

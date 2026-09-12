@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\HandleInertiaRequests;
 use Inertia\Testing\AssertableInertia;
@@ -33,8 +32,6 @@ it('renders an empty inbox as an empty inbox', function (): void {
     $workspace = Workspace::factory()->create();
     $reader = memberOf($workspace);
 
-    // "You're all caught up" is a state the screen has, not an error it reports
-    // (`docs/ui/inbox.md`).
     $this->actingAs($reader)
         ->get(route('inbox.index'))
         ->assertOk()
@@ -103,8 +100,6 @@ it('says nothing about a task that has since been removed rather than linking no
 
     $task->delete();
 
-    // A notification outlives what it points at, and the screen has to be able to say so
-    // (TASK-130-008 renders it as text rather than a link).
     $this->actingAs($reader)
         ->get(route('inbox.index'))
         ->assertOk()

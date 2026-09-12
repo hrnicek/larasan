@@ -64,8 +64,6 @@ it('announces a new follow and says nothing the second time', function (): void 
     Event::fake();
     follow($task, $actor);
 
-    // Nothing changed, so nothing happened: a listener that emailed would otherwise fire on
-    // every repeated request.
     Event::assertNotDispatched(TaskFollowed::class);
 });
 
@@ -77,8 +75,6 @@ it('lets anybody who can read the task follow it', function (): void {
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // Watching is not editing: a guest who was given the project may follow what is in it,
-    // even though they may not change it.
     expect(follow($task, $guest)->exists)->toBeTrue();
 });
 
@@ -89,10 +85,6 @@ it('refuses to subscribe somebody who cannot reach the task', function (): void 
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    /*
-     * TASK-070-017's rule, applied to notifications rather than to assignment: an inbox full
-     * of work nobody can open is worse than no notification at all.
-     */
     expect(fn (): TaskFollower => follow($task, $outsider))
         ->toThrow(TaskException::class, 'That person cannot reach this task.');
 
@@ -126,7 +118,6 @@ it('does nothing when they were not watching', function (): void {
     Event::fake();
     unfollow($task, $actor);
 
-    // The outcome they asked for is already true.
     Event::assertNotDispatched(TaskUnfollowed::class);
 });
 
@@ -141,8 +132,6 @@ it('lets somebody stop watching a task they can no longer reach', function (): v
 
     $project->forceFill(['visibility' => ProjectVisibility::Private])->save();
 
-    // No reach check on the way out, deliberately: refusing would leave somebody subscribed to
-    // something they cannot open, which is the exact problem the follow check exists to avoid.
     unfollow($task, $member);
 
     expect($task->follows()->count())->toBe(0);

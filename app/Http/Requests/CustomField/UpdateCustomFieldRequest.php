@@ -19,8 +19,7 @@ class UpdateCustomFieldRequest extends FormRequest
     }
 
     /**
-     * The name and nothing else: a field's type decides which column every answer already given
-     * lives in, so changing it is a migration of that data rather than an edit (`CustomField`).
+     * Only the name: changing the type would mean migrating every stored value.
      *
      * @return array<string, list<mixed>>
      */

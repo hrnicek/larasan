@@ -51,8 +51,6 @@ it('finds a word from its beginning', function (): void {
 
     Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
 
-    // People type `log` expecting `login`, and a search that answers as you type has to keep up
-    // (ADR-0012).
     expect(found($workspace, $actor, 'log'))->toBe(['Fix the login screen']);
 });
 
@@ -62,7 +60,6 @@ it('finds a word somebody spelled without its accents', function (): void {
 
     Task::factory()->in($workspace)->create(['title' => 'Ask Hrnčíř about the invoice']);
 
-    // Half the keyboards in this application's first market do not have the accents on them.
     expect(found($workspace, $actor, 'hrncir'))->toBe(['Ask Hrnčíř about the invoice']);
 });
 
@@ -81,10 +78,6 @@ it('returns nothing for an empty term', function (): void {
     $actor = memberOf($workspace);
     Task::factory()->in($workspace)->create(['title' => 'Something']);
 
-    /*
-     * "Everything" is the one answer nobody typed a search box to get, and on a workspace of any
-     * size it is also the most expensive.
-     */
     expect(found($workspace, $actor, ''))->toBe([])
         ->and(found($workspace, $actor, '   '))->toBe([]);
 });
@@ -94,8 +87,7 @@ it('survives punctuation somebody typed', function (): void {
     $actor = memberOf($workspace);
     Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
 
-    // `&`, `!` and a stray quote are all operators to `to_tsquery`, and a search box is not a
-    // place to learn that.
+    // &, ! and a quote are to_tsquery operators and must be neutralised.
     expect(found($workspace, $actor, 'login & !'))->toBe(['Fix the login screen'])
         ->and(found($workspace, $actor, "'"))->toBe([]);
 });
@@ -120,10 +112,6 @@ it('never returns a task in a project the actor was not given', function (): voi
     $hidden = Task::factory()->in($workspace)->create(['title' => 'Secret login work']);
     TaskProjectMembership::factory()->placing($hidden, $private)->create();
 
-    /*
-     * The leak this whole query is shaped around: a row that should not be there looks like a
-     * feature, and nobody reports it.
-     */
     expect(found($workspace, $actor, 'login'))->toBe([]);
 });
 
@@ -146,8 +134,6 @@ it('returns a task filed nowhere to a member and not to a guest', function (): v
 
     Task::factory()->in($workspace)->create(['title' => 'Loose login work']);
 
-    // Workspace work is a member's to find; a guest holds projects, and a task in none was never
-    // given to them.
     expect(found($workspace, $member, 'login'))->toBe(['Loose login work'])
         ->and(found($workspace, $guest, 'login'))->toBe([]);
 });
@@ -227,10 +213,7 @@ it('reads a page of results without a query per row', function (): void {
         ->and(count($queries))->toBeLessThanOrEqual(8);
 });
 
-/*
- * A description holds markup since TASK-200-026, and the generated column search reads strips it
- * before indexing. Without that, `strong` is a term and every emboldened task answers to it.
- */
+// The generated search column strips markup from the description before indexing.
 it('searches the words of a description and not its markup', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
@@ -252,8 +235,7 @@ it('carries the tags a result row draws', function (): void {
     $task = Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
     $task->tags()->attach(Tag::factory()->in($workspace)->named('Billing')->create());
 
-    // A result is drawn by the same row component as My Tasks, and that component draws chips
-    // unconditionally: a row without the key takes the render down with it.
+    // The shared row component renders tags unconditionally, so the key must always be present.
     $rows = app(SearchTasksQuery::class)($workspace, $actor, 'login', 1)['tasks'];
 
     expect($rows[0]['tags'])->toBe([[

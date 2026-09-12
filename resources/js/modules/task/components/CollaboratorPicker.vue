@@ -11,20 +11,12 @@ import {
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
-/**
- * The people working on this task beside its assignee (TASK-310-004).
- *
- * One list of the workspace's members, toggled: ticking somebody puts them on the task, ticking
- * them again takes them off. The assignee is listed and cannot be ticked — they already own the
- * task, and the server refuses them as a collaborator.
- */
 const props = defineProps<{
     taskId: string;
     collaborators: TaskAssignee[];
     assigneeId: number | null;
     members: TaskAssignee[];
     editable: boolean;
-    /** Whether the reader is one of them — the server's answer, like `following`. */
     collaborating: boolean;
 }>();
 
@@ -39,7 +31,6 @@ const viewerId = computed<number | null>(
     () => usePage().props.auth.user?.id ?? null,
 );
 
-/** Four faces and a number, as the watchers' stack keeps three: past that it is a queue. */
 const shown = computed<TaskAssignee[]>(() => props.collaborators.slice(0, 4));
 const hidden = computed<number>(() =>
     Math.max(props.collaborators.length - shown.value.length, 0),
@@ -54,7 +45,6 @@ const summary = computed<string>(() =>
         : `${props.collaborators.length} people`,
 );
 
-/** The rule `AssigneePicker` finds people by: name or email, accents folded. */
 const flatten = (value: string): string =>
     value
         .normalize('NFD')
@@ -88,7 +78,7 @@ watch(open, (isOpen) => {
     void nextTick(() => input.value?.focus());
 });
 
-/** The popover stays open between ticks: putting three people on a task is three clicks, not three trips. */
+/** `preserveState` keeps the popover open between toggles. */
 const visit = {
     preserveScroll: true,
     preserveState: true,
@@ -161,7 +151,7 @@ function onKeydown(event: KeyboardEvent): void {
     }
 }
 
-/** Escape closes the list and nothing else — the panel around it may be a dialog of its own. */
+/** Closes only the popover, not a dialog that may contain it. */
 function onEscape(event: KeyboardEvent): void {
     event.preventDefault();
     open.value = false;
@@ -310,10 +300,7 @@ function onEscape(event: KeyboardEvent): void {
             </span>
         </template>
 
-        <!--
-            Stepping off is open to a collaborator who may not assign anybody; the server allows it
-            for the person themselves and nobody else.
-        -->
+        <!-- A collaborator without edit rights may still remove themselves. -->
         <button
             v-if="!editable && collaborating"
             type="button"

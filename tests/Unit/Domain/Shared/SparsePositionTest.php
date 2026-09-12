@@ -30,7 +30,7 @@ it('refuses a midpoint that would sit on top of its neighbour', function (?int $
 it('reports room before handing out a position', function (): void {
     expect(SparsePosition::hasRoomBetween(1000, 1001))->toBeFalse()
         ->and(SparsePosition::hasRoomBetween(1000, 1000 + SparsePosition::MINIMUM_GAP * 2))->toBeTrue()
-        // The end of the set always has room: appending cannot run out.
+        // Appending after the last row always has room.
         ->and(SparsePosition::hasRoomBetween(PHP_INT_MAX - SparsePosition::GAP, null))->toBeTrue();
 });
 
@@ -46,6 +46,6 @@ it('parks rows outside the range it is rewriting', function (): void {
     $parking = array_map(SparsePosition::parking(...), [0, 1, 2]);
 
     expect($parking)->toBe([-1, -2, -3])
-        // Nothing a spread produces can collide with a parked row mid-rewrite.
+        // Parked positions must never collide with a spread mid-rewrite.
         ->and(array_intersect($parking, SparsePosition::spread(3)))->toBe([]);
 });

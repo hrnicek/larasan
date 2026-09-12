@@ -15,13 +15,6 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Sending an invitation again — because it lapsed, or because the first mail went unread.
- *
- * Separate from `InviteWorkspaceMember`, which refuses a live invitation on purpose: without
- * that refusal the invite form mails the same address on every submission. Saying *send it
- * again* is a decision, and this is where it is made.
- */
 final readonly class ResendWorkspaceInvitation
 {
     public function __construct(private Dispatcher $events) {}
@@ -38,12 +31,7 @@ final readonly class ResendWorkspaceInvitation
             'status' => WorkspaceMembershipStatus::Invited,
             'joined_at' => null,
             'expires_at' => $expiresAt ?? CarbonImmutable::now()->addWeek(),
-            /*
-             * The resender becomes the inviter. Acceptance asks whether `invited_by` still may
-             * invite, so an invitation whose original sender has since been removed would be
-             * dead on arrival — and re-sending it is precisely somebody with the capability
-             * saying it stands.
-             */
+            // Acceptance re-checks the inviter's authority, so the resender becomes the inviter.
             'invited_by' => $actor->id,
         ])->save();
 
@@ -72,11 +60,6 @@ final readonly class ResendWorkspaceInvitation
             throw WorkspaceMembershipException::alreadyAMember();
         }
 
-        /*
-         * Only what is still an invitation. A declined or revoked row is a decision somebody
-         * made, and overturning it is inviting them again — which the invite form does, and
-         * which says so on the screen.
-         */
         if (! in_array($membership->status, [WorkspaceMembershipStatus::Invited, WorkspaceMembershipStatus::Expired], true)) {
             throw WorkspaceMembershipException::invitationNotPending($membership->status);
         }

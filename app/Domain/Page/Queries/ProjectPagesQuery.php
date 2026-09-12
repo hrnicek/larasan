@@ -11,20 +11,6 @@ use App\Models\User;
 use App\Models\User as Actor;
 use Illuminate\Database\Eloquent\Collection;
 
-/**
- * A project's documents, as the tree they are.
- *
- * One query, not one per level: every page of the project is read once and assembled in memory,
- * because a tree bounded at `Page::MAX_DEPTH` is small and a query per level is a depth-shaped
- * N+1 (the shape TASK-070-015 took off the board).
- *
- * The documents themselves are not read. A tree draws titles and the first line of each page,
- * and `content` is the one column here that can be a hundred kilobytes — selecting it to render
- * a sidebar would make the list cost what the pages cost.
- *
- * Authorization is computed once, from the project, rather than asked per row: every page in a
- * project answers the same way, so `PagePolicy` per row would be an N+1 with a different name.
- */
 final readonly class ProjectPagesQuery
 {
     /**

@@ -20,10 +20,7 @@ final readonly class AnswerWorkspaceInvitation
     {
         $this->guard($membership, $actor);
 
-        /*
-         * Expiry is checked on acceptance only. Declining an invitation that lapsed is
-         * harmless and refusing it would leave the row pending until a sweep runs.
-         */
+        // Only acceptance checks expiry; declining a lapsed invitation is harmless.
         if ($membership->hasExpired()) {
             throw WorkspaceMembershipException::invitationExpired();
         }
@@ -47,14 +44,12 @@ final readonly class AnswerWorkspaceInvitation
         $membership->forceFill([
             'status' => $answer,
             'joined_at' => $answer->grantsAccess() ? now() : null,
-            // The deadline belonged to the invitation, and the invitation is over.
             'expires_at' => null,
         ])->save();
 
         $this->events->dispatch(new WorkspaceInvitationAnswered(
             $membership->id,
             $membership->workspace_id,
-            // The guard has already established that these are the same person.
             $actor->id,
             $answer,
         ));
@@ -74,18 +69,11 @@ final readonly class AnswerWorkspaceInvitation
     }
 
     /**
-     * An invitation is only as good as the authority behind it. Without this, an admin
-     * about to be removed could invite an account they control, lose their membership,
-     * and have it accepted afterwards — a back door that survives their removal.
+     * Stops a removed admin's pending invitation from being accepted as a back door.
      */
     private function inviterStillMayInvite(WorkspaceMembership $membership): bool
     {
-        /*
-         * `invited_by` is null-on-delete, and a non-owner admin may delete their own
-         * account — which would otherwise revive exactly the invitation this check
-         * exists to kill. A legitimately null inviter belongs to a workspace creator,
-         * and those rows are Active, never Invited.
-         */
+        // invited_by is null-on-delete; a creator's null inviter never appears on an Invited row.
         if ($membership->invited_by === null) {
             return false;
         }

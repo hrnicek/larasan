@@ -13,18 +13,6 @@ import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 
-/**
- * The screen that makes a project, with the project beside it.
- *
- * The three things asked for here are the three a project cannot open without an answer to:
- * what it is called, who may reach it, and how it is recognised in a sidebar of them.
- * Everything else a project carries — its description, its dates, its default view, its
- * address — is on the settings screen, because none of it is needed before the first task.
- *
- * The panel on the right is the project as it will open: the tile and the name being typed,
- * and the one section `CreateProject` gives it. It is decorative and marked as such, and its
- * point is that a colour is a colour on a screen rather than a swatch in a form.
- */
 const props = defineProps<{
     options: { visibilities: string[] };
 }>();
@@ -36,15 +24,10 @@ const color = ref<string | null>(null);
 const icon = ref<string | null>(null);
 const visibility = ref(props.options.visibilities[0] ?? 'workspace');
 
-/** What the preview calls the project before it is called anything. */
 const previewName = computed(() => name.value.trim() || 'Untitled project');
 
 type Choice = { label: string; hint: string; icon: Component };
 
-/*
- * The workspace-wide option is named after the workspace: "Everyone in the workspace" is a
- * rule, and the name of the place is what somebody choosing between the two recognises.
- */
 const visibilities = computed<Record<string, Choice>>(() => ({
     workspace: {
         label: workspace.value?.name ?? 'Everyone in the workspace',
@@ -58,10 +41,6 @@ const visibilities = computed<Record<string, Choice>>(() => ({
     },
 }));
 
-/*
- * The enum comes from the server, so a case this file has no words for is still offered, under
- * its own name — the same rule the settings form follows.
- */
 function choice(option: string): Choice {
     return visibilities.value[option] ?? { label: option, hint: '', icon: Users };
 }
@@ -113,10 +92,6 @@ function choice(option: string): Choice {
                         <InputError :message="errors.visibility" />
                     </div>
 
-                    <!-- Drawn in the form rather than behind a popover: the swatches fit, and a
-                         floating layer inside a native `<dialog>` is a portal that has to be aimed
-                         back into it (`composables/useModalPortalTarget.ts`) — one moving part this
-                         form does not need. -->
                     <div class="grid gap-4 rounded-lg border border-border p-3">
                         <AccentColorGrid v-model="color" />
                         <ProjectIconGrid v-model="icon" />
@@ -134,8 +109,6 @@ function choice(option: string): Choice {
                     </div>
                 </div>
 
-                <!-- Decorative: every line of it is drawn again for real once the project exists,
-                     and a screen reader that read it would be reading the future. -->
                 <aside class="hidden overflow-hidden rounded-xl border border-border bg-muted/30 lg:block" aria-hidden="true">
                     <div class="flex items-center gap-3 border-b border-border bg-background/60 px-5 py-4">
                         <ProjectTile :name="previewName" :color="color" :icon="icon" size="lg" />

@@ -10,16 +10,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
-/**
- * The projects a term finds, for the palette.
- *
- * Reach is `VisibleProjectsForUser` and nothing else — the same query the sidebar, the project
- * list and every task's chips already ask. A private project a non-member has never been given
- * is not returned even when the index holds it (ADR-0016).
- *
- * Archived projects are found and say so: a search that hid them would be hiding work rather
- * than tidying it, and "where did that project go" is a question people type into a search box.
- */
 final readonly class ProjectResults
 {
     /** @see TaskResults::CANDIDATES_PER_RESULT */

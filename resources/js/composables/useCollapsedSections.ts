@@ -14,17 +14,10 @@ function read(projectId: string): string[] {
 
         return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
     } catch {
-        // A corrupt entry is a collapsed column, not a broken page.
         return [];
     }
 }
 
-/**
- * Which columns this person has collapsed, per project.
- *
- * Local, never sent to the server: it is how one person is reading a board right now, not
- * something about the project, and syncing it would make one person's view everybody's.
- */
 export function useCollapsedSections(projectId: string): {
     collapsed: Ref<string[]>;
     isCollapsed: (sectionId: string | null) => boolean;
@@ -38,7 +31,6 @@ export function useCollapsedSections(projectId: string): {
         }
     }, { deep: true });
 
-    // The ungrouped bucket has no id of its own and still collapses like any other column.
     const key = (sectionId: string | null) => sectionId ?? 'ungrouped';
 
     return {

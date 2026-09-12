@@ -47,15 +47,7 @@ it('leaves every workspace with an active owner membership', function (): void {
 });
 
 it('breaks a created_at tie by key, so the fallback is the earlier workspace', function (): void {
-    /*
-     * `created_at` is timestamp(0), so two workspaces joined in the same second tie and
-     * PostgreSQL may answer either first. The key is UUIDv7, which sorts in creation
-     * order, so the expectation is the smaller id — not merely "the same one twice",
-     * which the pointer would satisfy on its own.
-     *
-     * This cannot be shown to fail against the previous code: unordered was unspecified,
-     * not reliably wrong. It pins the intended answer from here on.
-     */
+    // created_at has second precision, so a tie is broken by the UUIDv7 key.
     $user = User::factory()->create();
     $first = Workspace::factory()->create(['slug' => 'first']);
     $second = Workspace::factory()->create(['slug' => 'second']);

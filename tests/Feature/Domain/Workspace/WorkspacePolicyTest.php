@@ -67,11 +67,7 @@ it('lets a guest view and nothing more', function (): void {
 });
 
 it('enforces the policy through an authorized endpoint, not only in isolation', function (): void {
-    /*
-     * Keyed by slug, not id: the resolution middleware reads the `workspace` route
-     * parameter as a slug, and a route that used the id would 404 in the middleware
-     * before the policy was ever consulted.
-     */
+    // Keyed by slug: the resolution middleware reads the workspace parameter as a slug.
     Route::middleware('web')->get('workspace-policy-probe/{workspace}', function (string $workspace) {
         $model = Workspace::query()->where('slug', $workspace)->firstOrFail();
 

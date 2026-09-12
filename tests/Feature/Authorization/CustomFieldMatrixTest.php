@@ -21,15 +21,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Two permissions again, and this time they differ from tags: `custom_field.manage` is an
- * owner's and an admin's, because a field is a column on everybody's screens, while a value is
- * an edit of one task. Outcomes are written out rather than derived from the code.
- */
-
 /**
- * A field on a project, and a task in it, with somebody holding the given access.
- *
  * @return array{Task, CustomField, User}
  */
 function matrixFieldTask(
@@ -79,19 +71,11 @@ it('answers defining, renaming, attaching and deleting by role', function (Works
         expect($operation)->toThrow(CustomFieldException::class);
     }
 
-    /*
-     * The end state rather than a placeholder: allowed means the new field exists and the one
-     * that was renamed, attached and then deleted is gone; forbidden means the workspace's
-     * vocabulary is exactly what the owner left.
-     */
     expect(CustomField::query()->pluck('name')->all())
         ->toBe($outcome === 'allowed' ? ['Estimate'] : ['Existing'])
         ->and($project->customFields()->count())->toBe(0);
 })->with([
-    /*
-     * A field is a column on everybody's screens, so ADR-0010 keeps this with owners and admins
-     * — unlike `tag.manage`, which every full member holds.
-     */
+    // `custom_field.manage` belongs to owners and admins only, unlike `tag.manage`. See ADR-0010.
     'owner' => [WorkspaceRole::Owner, 'allowed'],
     'admin' => [WorkspaceRole::Admin, 'allowed'],
     'member' => [WorkspaceRole::Member, 'forbidden'],
@@ -117,9 +101,7 @@ it('answers setting a value by role and project access', function (
 
     expect(TaskCustomFieldValue::query()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
-    // Filling a field in is editing the task, so this is `task.update` — reach, the capability
-    // and the board's own answer. "Whatever their project access" is what it used to be, and it
-    // is what let a Viewer rewrite every answer on a project they were restricted from.
+    // Setting a value is a task update, so the project access level applies.
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
     'admin as commenter' => [WorkspaceRole::Admin, ProjectAccessLevel::Commenter, 'forbidden'],
     'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'forbidden'],
@@ -147,13 +129,7 @@ it('hides a field from another workspace behind a 404 for every role', function 
     [$task, , $actor] = matrixFieldTask($role, ProjectAccessLevel::Editor);
     $elsewhere = CustomField::factory()->create();
 
-    /*
-     * 404 for everybody, a guest included: `{field}` is a route binding scoped to the current
-     * workspace, so it answers before any permission is asked. The tag matrix records the other
-     * shape — there the tag is looked up inside the controller, after the Gate, so a guest gets
-     * a 403. Both are right; the difference is where the lookup happens, and writing both down
-     * is what keeps that a decision rather than an accident.
-     */
+    // The `{field}` binding is workspace-scoped and resolves before any permission check, so even a guest gets 404.
     $this->actingAs($actor)
         ->put(route('tasks.custom-fields.update', [$task, $elsewhere]), ['value' => 'x'])
         ->assertNotFound();
@@ -170,7 +146,6 @@ it('keeps one workspace s answers out of another s reach', function (): void {
 
     $stranger = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
-    // The answers ride on the task, so another tenant cannot read them without reading the task.
     $this->actingAs($stranger)->get(route('tasks.show', $task))->assertNotFound();
 });
 

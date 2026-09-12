@@ -82,8 +82,6 @@ it('refuses an account from another workspace', function (): void {
     [$task, $actor] = taskEditableBy();
     $stranger = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
-    // A user id is global. Without this check any account in the installation could be
-    // handed work inside a tenant it has never been part of.
     expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $stranger))
         ->toThrow(TaskException::class, 'active member');
 });
@@ -99,11 +97,6 @@ it('refuses a guest who cannot reach the task', function (): void {
     [$task, $actor] = taskEditableBy();
     $guest = memberOf($task->workspace, WorkspaceRole::Guest);
 
-    /*
-     * The question TASK-060-012 deferred until a task had places, answered in
-     * TASK-070-017: a guest holds the projects they were given, and this task is in none of
-     * them. Work nobody can open is not work anybody can do.
-     */
     expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $guest))
         ->toThrow(TaskException::class, 'That person cannot reach this task.');
 
@@ -128,8 +121,6 @@ it('refuses a member for a task that lives only in a private project they are no
     $private = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    // Being in the workspace is not being in the room: the card is on a board they cannot
-    // open, so its title is not theirs to read either.
     expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $outsider))
         ->toThrow(TaskException::class, 'That person cannot reach this task.');
 });

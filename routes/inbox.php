@@ -12,7 +12,5 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('notification')
         ->name('inbox.read');
 
-    // One request rather than one per row: a full inbox is exactly when a request per line is
-    // most expensive and least useful.
     Route::put('inbox/read', [InboxController::class, 'readAll'])->name('inbox.read-all');
 });

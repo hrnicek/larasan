@@ -3,25 +3,13 @@ import { onBeforeUnmount, ref } from 'vue';
 import PageContentController from '@/actions/App/Http/Controllers/Page/PageContentController';
 import type { PageDocument } from '@/modules/page/types';
 
-/**
- * What the person writing is told about their own words.
- *
- * `conflict` is the one that matters: the page moved on without them, and the honest answer is
- * to stop saving and say so rather than to retry — a retry would overwrite whatever the other
- * person wrote (ADR-0017).
- */
+// On `conflict` saving stops rather than retrying, which would overwrite the other writer. See ADR-0017.
 export type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'conflict' | 'failed';
 
-/** How long after the last keystroke a save goes out. Long enough to be a sentence, not a word. */
+/** Milliseconds after the last keystroke before a save goes out. */
 const QUIET_PERIOD = 900;
 
-/**
- * Saving a page while somebody writes in it.
- *
- * Debounced rather than per keystroke, and never two in flight: a save that arrives while one is
- * running is held and sent afterwards, because the version the second one carries is the one the
- * first is about to change.
- */
+// Never two saves in flight: the next one must carry the version the running one returns.
 export function usePageAutosave(pageId: string, initialVersion: number) {
     const version = ref(initialVersion);
     const state = ref<SaveState>('idle');
@@ -35,12 +23,8 @@ export function usePageAutosave(pageId: string, initialVersion: number) {
         state.value = 'saving';
 
         try {
-            /*
-             * Inertia's own XHR client rather than a visit: this endpoint answers with JSON, and
-             * a visit would try to render the reply over the editor somebody is typing in. The
-             * client is used directly rather than through `useHttp`, whose form typing cannot
-             * describe a document that nests arbitrarily.
-             */
+            // Not a visit, since the endpoint answers with JSON; not `useHttp`, whose form typing
+            // cannot describe an arbitrarily nested document.
             const answer = await http.getClient().request({
                 method: 'put',
                 url: PageContentController.update.url(pageId),
@@ -51,11 +35,6 @@ export function usePageAutosave(pageId: string, initialVersion: number) {
             version.value = (JSON.parse(answer.data) as { version: number }).version;
             state.value = 'saved';
         } catch (failure: unknown) {
-            /*
-             * 409 is the page having changed elsewhere, and it is the end of this editor's
-             * usefulness until it is reloaded — anything else is a save that may be worth
-             * trying again, so the queue is kept and the state says so.
-             */
             const status = (failure as { response?: { status?: number } })?.response?.status;
 
             state.value = status === 409 ? 'conflict' : 'failed';
@@ -75,7 +54,6 @@ export function usePageAutosave(pageId: string, initialVersion: number) {
         }
     };
 
-    /** Write this document, once the typing stops. */
     const save = (document: PageDocument): void => {
         if (state.value === 'conflict') {
             return;
@@ -100,14 +78,8 @@ export function usePageAutosave(pageId: string, initialVersion: number) {
         }, QUIET_PERIOD);
     };
 
-    /** Whether anything is written that the server has not been told about. */
     const unsaved = (): boolean => state.value === 'pending' || state.value === 'saving';
 
-    /*
-     * A page with a save still waiting is a page with words only this browser knows. The prompt
-     * is the browser's own — there is no other honest way to hold a tab open — and it appears
-     * only while something is genuinely outstanding.
-     */
     const guard = (event: BeforeUnloadEvent): void => {
         if (unsaved()) {
             event.preventDefault();

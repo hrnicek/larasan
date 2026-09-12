@@ -12,13 +12,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-/**
- * Starring a project, and stopping.
- *
- * The actor stars on their own behalf and nobody else's. Both methods answer with a redirect
- * back, because a star changes a control and the sidebar beside it rather than a screen — and
- * with no toast, because the row moving to the top says it happened.
- */
 class ProjectStarController extends Controller
 {
     public function store(Request $request, Project $project, StarProject $starProject): RedirectResponse
@@ -31,8 +24,7 @@ class ProjectStarController extends Controller
     }
 
     /**
-     * No `view` check here: somebody who has lost access must still be able to clear the project
-     * out of their own sidebar, which is the Action's rule.
+     * No `view` check: someone who has lost access must still be able to unstar.
      */
     public function destroy(Request $request, Project $project, UnstarProject $unstarProject): RedirectResponse
     {

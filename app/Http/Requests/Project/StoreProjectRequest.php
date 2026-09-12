@@ -17,10 +17,6 @@ use Illuminate\Validation\Rule;
 
 class StoreProjectRequest extends FormRequest
 {
-    /**
-     * A project is created **in** a workspace, so the capability is asked of the workspace
-     * the request is in. There is no project yet for a project policy to judge.
-     */
     public function authorize(): bool
     {
         $workspace = ResolveCurrentWorkspace::from($this);
@@ -38,12 +34,7 @@ class StoreProjectRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            /*
-             * Unique within the workspace, matching the composite index — two tenants may
-             * both have a project called Web. The rule queries the table rather than the
-             * model, so a soft-deleted project still holds its slug, which is what the
-             * index says and what `Project::slugFor()` assumes.
-             */
+            // Checks the table, not the model, so soft-deleted projects still hold their slugs.
             'slug' => [
                 'nullable', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 Rule::unique('projects', 'slug')->where(

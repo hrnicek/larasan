@@ -139,14 +139,12 @@ it('refuses to demote the last owner, even to another owner', function (): void 
     $target = memberOf($workspace, WorkspaceRole::Owner);
     $other = memberOf($workspace, WorkspaceRole::Owner);
 
-    // The second owner is revoked, so the target is the last active one.
     $workspace->membershipFor($other)?->forceFill(['status' => WorkspaceMembershipStatus::Revoked])->save();
     $reinstated = memberOf($workspace, WorkspaceRole::Owner);
 
     expect(fn (): WorkspaceMembership => changeRole($workspace, $reinstated, $workspace->membershipFor($target), WorkspaceRole::Member))
         ->not->toThrow(WorkspaceMembershipException::class);
 
-    // Now the reinstated owner is the only active one and cannot be demoted.
     expect(fn (): WorkspaceMembership => changeRole($workspace, $target->refresh(), $workspace->membershipFor($reinstated), WorkspaceRole::Member))
         ->toThrow(WorkspaceMembershipException::class);
 });
@@ -208,11 +206,7 @@ it('takes their project access with them', function (): void {
 
     remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
 
-    /*
-     * The workspace membership is the ground a project grant stands on. Left behind, the row
-     * would be a grant nothing enforces — and a re-invitation would silently restore access
-     * to every project the person was ever in.
-     */
+    // A leftover project grant would silently restore access if the person were re-invited.
     expect($project->memberships()->where('user_id', $member->id)->exists())->toBeFalse()
         ->and($project->isVisibleTo($member))->toBeFalse();
 });
@@ -246,7 +240,6 @@ it('does not touch their access in another workspace', function (): void {
 
     remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
 
-    // Removal is per tenant. The same account is a stranger here and a colleague there.
     expect($here->memberships()->count())->toBe(0)
         ->and($theirOtherProject->memberships()->where('user_id', $member->id)->exists())->toBeTrue();
 });
@@ -264,8 +257,7 @@ it('takes access to an archived or deleted project too', function (): void {
 
     remove($workspace, $owner, $workspace->membershipFor($member) ?? throw new RuntimeException('missing membership'));
 
-    // A soft-deleted project can be restored, and it must not come back with a stranger on
-    // it — which is why the delete reaches through `withTrashed()`.
+    // A soft-deleted project can be restored, so its grants are removed as well.
     expect(ProjectMembership::query()->where('user_id', $member->id)->count())->toBe(0);
 });
 
@@ -280,12 +272,6 @@ it('gives the work back to the project when somebody is removed', function (): v
 
     remove($workspace, $admin, $workspace->membershipFor($leaving));
 
-    /*
-     * The decision TASK-070-018 was opened for, now recorded in
-     * `docs/architecture/domains.md`: leaving a task assigned to somebody who can no longer
-     * open it makes work nobody sees — it is in no list, and the only trace is a name on a card
-     * that leads nowhere.
-     */
     expect($theirs->map(fn (Task $task): ?int => $task->fresh()?->assignee_id)->all())->toBe([null, null])
         ->and($somebodyElses->fresh()?->assignee_id)->toBe($staying->id);
 });
@@ -300,12 +286,6 @@ it('keeps the answer to who was holding it', function (): void {
 
     remove($workspace, $admin, $workspace->membershipFor($leaving));
 
-    /*
-     * Unassigning used to be the harder choice because it discarded who had the task. Since
-     * Phase 110 the history keeps it, which is what makes this rule safe — and the unassignment
-     * goes through `AssignTask` so it reads as one thing rather than as a mass update nothing
-     * recorded.
-     */
     expect(Activity::query()->where('subject_id', $task->id)->pluck('properties')->all())
         ->toBe([['assignee_id' => $leaving->id], ['assignee_id' => null]]);
 });
@@ -321,6 +301,5 @@ it('does not touch tasks in another workspace', function (): void {
 
     remove($workspace, $admin, $workspace->membershipFor($leaving));
 
-    // They were removed from one workspace, not from the installation.
     expect($stillTheirs->fresh()?->assignee_id)->toBe($leaving->id);
 });

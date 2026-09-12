@@ -6,10 +6,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const page = usePage();
 
-/*
- * The shell's badge is the same count the Inbox reports, so its sentence can be written before
- * the list arrives and the header does not change height when it does.
- */
 const unread = computed<number>(() => page.props.unreadNotifications);
 const workspaceName = computed<string>(
     () => page.props.workspace?.name ?? 'this workspace',

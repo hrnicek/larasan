@@ -31,11 +31,7 @@ it('denies an unauthenticated visitor', function (): void {
 });
 
 it('denies a workspace owner in production, however capable they are in their own workspace', function (): void {
-    /*
-     * The point of ADR-0011: workspace.manage is held by the owner of any workspace, and
-     * anyone can create one. Job payloads span every tenant, so the capability is the
-     * wrong question.
-     */
+    // Anyone can create and own a workspace, while job payloads span every tenant. See ADR-0011.
     $workspace = Workspace::factory()->create();
     $owner = memberOf($workspace, WorkspaceRole::Owner);
 
@@ -54,11 +50,7 @@ it('denies everyone when no operator is configured', function (): void {
 });
 
 it('denies someone who merely claims an operator address', function (): void {
-    /*
-     * Registration does not prove mailbox control, and settings/profile lets any account
-     * change its address. An unregistered ops alias would otherwise be a free pass to
-     * every tenant's job payloads.
-     */
+    // Registration does not prove mailbox control, so an unverified address is never an operator.
     $claimant = User::factory()->unverified()->create(['email' => 'ops@example.com']);
 
     horizonGateIn('production', ['ops@example.com']);

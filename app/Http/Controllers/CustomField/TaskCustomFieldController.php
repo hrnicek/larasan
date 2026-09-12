@@ -10,13 +10,7 @@ use App\Domain\Task\Models\Task;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CustomField\SetCustomFieldValueRequest;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
-/**
- * One field's answer on one task. A `PUT` because setting a value twice is the same request
- * twice — and clearing it is the same request with nothing in it, rather than a `DELETE` nobody
- * would think to send.
- */
 class TaskCustomFieldController extends Controller
 {
     public function update(

@@ -53,27 +53,6 @@ use App\Domain\Workspace\Listeners\ClaimInvitationsForNewAccount;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
-/**
- * Every listener the domain has, written out.
- *
- * Explicit rather than discovered: a listener nobody can see registering is one nobody can
- * prove runs, and the failure mode of discovery is silence — a renamed method or a moved class
- * stops recording history and nothing says so.
- *
- * Not queued. Recording what happened is one insert in the same transaction as the thing that
- * happened; deferring it would mean a task whose history arrives later, or not at all when a
- * worker is down. Notifications, which are slow and external, are queued instead
- * (TASK-110-016).
- *
- * The broadcast listeners are not queued either, and for a different reason: the channels a
- * change may go to depend on where the task is placed **now**, and a listener that ran a second
- * later could answer for a placement that has since changed. They resolve the channels and hand
- * the slow half — the broadcast itself — to the `broadcasts` queue (TASK-170-003).
- *
- * Comments are absent on purpose: the feed reads the `comments` table directly (TASK-110-009),
- * so recording an activity for each one would show every comment twice. So is `TaskDeleted` —
- * a deleted task's history has nobody left to read it.
- */
 class DomainEventServiceProvider extends ServiceProvider
 {
     /**
@@ -98,8 +77,6 @@ class DomainEventServiceProvider extends ServiceProvider
         ],
         TaskCollaboratorRemoved::class => [RecordTaskCollaboratorRemoved::class, BroadcastTaskChange::class],
 
-        // No activity for a deleted task — its history has nobody left to read it — but the
-        // boards showing the card have to lose it.
         TaskDeleted::class => [BroadcastTaskChange::class],
 
         TaskAttachedToProject::class => [RecordTaskAttachedToProject::class, BroadcastPlacementChange::class],
@@ -119,29 +96,20 @@ class DomainEventServiceProvider extends ServiceProvider
         ProjectUpdated::class => [BroadcastProjectChange::class],
         ProjectArchived::class => [BroadcastProjectChange::class],
 
-        // No activity for a comment — the feed reads that table directly — but the people
-        // watching still have to hear about it.
+        // No activity is recorded for comments: the feed reads the comments table directly.
         CommentCreated::class => [
-            // Following first, so the author is watching before anybody is told about the
-            // comment — and never notified about their own, which `NotifyWatchersOfComment`
-            // already refuses.
+            // Must run before the notifiers so the author is already following the task.
             FollowCommentedTask::class,
             NotifyWatchersOfComment::class,
             NotifyMentionedPeople::class,
             BroadcastCommentChange::class,
         ],
 
-        // A name added by an edit is somebody pulled into the thread all the same.
         CommentEdited::class => [NotifyMentionedPeople::class],
 
-        // The one framework event in this map: an invitation sent to an address before it had
-        // an account is waiting for the moment it does.
         Registered::class => [ClaimInvitationsForNewAccount::class],
     ];
 
-    /**
-     * Discovery would undo the point of the map above.
-     */
     public function shouldDiscoverEvents(): bool
     {
         return false;

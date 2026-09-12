@@ -64,9 +64,6 @@ class WorkspaceMembershipFactory extends Factory
         ]);
     }
 
-    /**
-     * An invitation as the domain produces one: not joined, and with a deadline.
-     */
     public function invited(?User $invitedBy = null, ?CarbonImmutable $expiresAt = null): self
     {
         return $this->state(fn (): array => [
@@ -77,10 +74,6 @@ class WorkspaceMembershipFactory extends Factory
         ]);
     }
 
-    /**
-     * An invitation to an address nobody has registered under. The row names no user, which
-     * is what every authorization path filters on.
-     */
     public function unclaimed(string $email): self
     {
         return $this->state(fn (): array => [

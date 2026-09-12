@@ -42,11 +42,7 @@ class AppServiceProvider extends ServiceProvider
         // Scoped, not singleton: the memo must not survive the request that filled it.
         $this->app->scoped(MembershipRegistry::class);
         $this->app->scoped(CurrentWorkspace::class);
-        /*
-         * The Gate resolves a policy through the container on every ask, so a policy that
-         * memoises anything has to be scoped or it memoises nothing. `TaskPolicy` is asked four
-         * times about one task by the detail panel alone (TASK-260-001).
-         */
+        // The Gate resolves policies per check, so a memoising policy must be scoped to be effective.
         $this->app->scoped(TaskPolicy::class);
     }
 
@@ -63,13 +59,7 @@ class AppServiceProvider extends ServiceProvider
         $this->answerModalsWithTheirOwnUrl();
     }
 
-    /**
-     * `Inertia::modal()` builds this application's modal response rather than the package's.
-     *
-     * The package registers the macro in its own service provider; replacing it here is what
-     * makes every modal route in the application deep-linkable, without a fork or a patch file.
-     * `App\Http\Responses\ModalResponse` says what the difference is and why it exists.
-     */
+    /** Replaces the `modal` macro registered by the package's own service provider. */
     private function answerModalsWithTheirOwnUrl(): void
     {
         ResponseFactory::macro(
@@ -78,17 +68,6 @@ class AppServiceProvider extends ServiceProvider
         );
     }
 
-    /**
-     * A refusal or a wrong address is answered by this application rather than by the framework.
-     *
-     * `local` is left alone deliberately: Inertia's development modal says far more about what
-     * went wrong than a page ever should, and the person reading it is the one who broke it.
-     * `testing` is **not** excluded, because a page nobody can test is a page nobody knows works.
-     *
-     * A request that asked for JSON keeps getting JSON — `shouldRenderJsonWhen` in
-     * `bootstrap/app.php` decides that, and an error page would be a surprising answer to an
-     * `Accept: application/json` (TASK-180-009).
-     */
     private function renderErrorsAsThisApplication(): void
     {
         Inertia::handleExceptionsUsing(function (ExceptionResponse $response): ?ExceptionResponse {
@@ -104,33 +83,15 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Short names for the models a polymorphic column can point at.
-     *
-     * Enforced rather than merely registered: a class name written into `commentable_type` is
-     * a rename waiting to break a table, and `enforceMorphMap()` turns an unmapped model into
-     * an error at the moment somebody writes one instead of a silent row nobody can read back.
-     */
     protected function enforceMorphAliases(): void
     {
         Relation::enforceMorphMap([
             'task' => Task::class,
-            // A project is a morph subject too, since `recent_items` remembers both kinds of
-            // thing somebody opened (TASK-210-008).
             'project' => Project::class,
-            // A notification is addressed to an account, and `notifiable_type` is a morph
-            // column like any other.
             'user' => User::class,
         ]);
     }
 
-    /**
-     * Every database notification carries the workspace it came from.
-     *
-     * The channel is replaced rather than the row written by hand, so everything else the
-     * framework does — the id, the morph, `read_at`, the `Notifiable` relation — keeps working
-     * and only the extra column is this application's business.
-     */
     protected function writeNotificationsWithTheirWorkspace(): void
     {
         Notification::resolved(function (ChannelManager $channels): void {
@@ -138,13 +99,6 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * An authorization answer must never outlive the row it came from.
-     * `MembershipRegistry` memoises the two membership lookups for the length of one
-     * request, and `TaskPolicy` memoises the boards a task sits on; these events are what stop
-     * either from answering with a row that has since changed — including inside an Action that
-     * reads it again after writing it.
-     */
     protected function forgetMembershipsWhenTheyChange(): void
     {
         $flushMemberships = function (): void {
@@ -157,12 +111,7 @@ class AppServiceProvider extends ServiceProvider
             $model::deleted($flushMemberships);
         }
 
-        /*
-         * `TaskPolicy` memoises more than a membership, so it is emptied by more than one.
-         * A placement decides which boards answer for a task; and a project's own row carries
-         * its visibility, its default access level and whether it is archived — all three of
-         * which change who may do what, without a membership anywhere being touched.
-         */
+        // TaskPolicy also depends on placements and on each project's visibility, access and archive state.
         $flushTaskAccess = function (): void {
             $this->app->make(TaskPolicy::class)->flush();
         };
@@ -173,13 +122,7 @@ class AppServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * A notification is addressed to one person, so it means nothing without them.
-     *
-     * `notifiable_id` is a morph column and cannot carry a foreign key, so the cleanup is the
-     * domain's. Comments and activities deliberately do the opposite and outlive their author:
-     * other people took part in those, and deleting somebody must not rewrite what happened.
-     */
+    /** `notifiable_id` is a morph column and cannot carry a foreign key, so the cleanup happens here. */
     protected function removeNotificationsWithTheAccount(): void
     {
         User::deleted(function (User $user): void {
@@ -190,62 +133,26 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    /**
-     * Named rather than `throttle:10,1`: an unnamed limiter shares one bucket across every
-     * route that uses the same numbers, so creating workspaces would eat the invitation
-     * budget. Keyed by user — both routes are behind `auth`.
-     */
+    /** Named limiters, because inline `throttle:x,y` middleware shares one per-user bucket across routes. */
     protected function configureRateLimiting(): void
     {
         RateLimiter::for('workspace-invitations', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
         RateLimiter::for('workspace-creation', fn (Request $request): Limit => Limit::perMinute(10)->by((string) $request->user()?->id));
         RateLimiter::for('project-creation', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
 
-        /*
-         * Moving a card or a column locks the whole column for the length of its transaction
-         * (ADR-0009), and the board sends one request per drop — the first endpoints in this
-         * application that are both frequent and expensive (TASK-070-016).
-         *
-         * Sixty a minute is one drag a second, sustained, which is faster than a person
-         * dragging as fast as they can and far below what a stuck client would produce. It is
-         * a rate, not a round number: the point is to bound a loop, not to ration a user.
-         */
+        // Each move locks its column for the transaction; the limit bounds a runaway client. See ADR-0009.
         RateLimiter::for('task-moves', fn (Request $request): Limit => Limit::perMinute(60)->by((string) $request->user()?->id));
 
-        /*
-         * Writing a comment is cheap for the server and expensive for everybody else: each one
-         * notifies every follower and the assignee (TASK-110-011), so a loop here fills other
-         * people's inboxes rather than a table. Thirty a minute is faster than anybody types
-         * and far below what a stuck client produces.
-         */
-        /*
-         * The palette debounces, so a person types perhaps two searches a second at the very
-         * worst; this is high enough never to be reached by somebody using the application and
-         * low enough that a held-down key is not a query per keystroke against a search engine.
-         */
         RateLimiter::for('search', fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->user()?->id));
 
-        /*
-         * A page is cheap to create and each one appears in a tree other people read; the
-         * saves are the editor's own pace, which is a request every few seconds at most while
-         * somebody is writing, and a loop above that.
-         */
         RateLimiter::for('page-creation', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
         RateLimiter::for('page-saves', fn (Request $request): Limit => Limit::perMinute(120)->by((string) $request->user()?->id));
 
         RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
 
-        // An upload writes bytes and is the most expensive thing a member can ask for without
-        // anybody approving it. Twenty a minute is faster than anybody picks files.
         RateLimiter::for('attachments', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
     }
 
-    /**
-     * One Gate ability per capability, so any policy, controller, console command or
-     * queued job asks the same question — `$user->can(Capability::TaskCreate, $workspace)`
-     * — and the answer always comes from the membership row rather than from a role
-     * string somebody compared by hand (ADR-0010).
-     */
     protected function registerCapabilityGates(): void
     {
         foreach (Capability::cases() as $capability) {
@@ -264,12 +171,7 @@ class AppServiceProvider extends ServiceProvider
         Model::preventLazyLoading(! app()->isProduction());
         Model::preventAccessingMissingAttributes(! app()->isProduction());
 
-        /*
-         * Deliberately unconditional, unlike the two guards above. A missed with() or a
-         * missing column should degrade in production rather than return a 500, but an
-         * attribute silently dropped by fill() loses user data with no trace, and this
-         * project ranks data integrity above the framework default.
-         */
+        // Unconditional, unlike the guards above: a silently discarded attribute loses data without a trace.
         Model::preventSilentlyDiscardingAttributes();
 
         DB::prohibitDestructiveCommands(

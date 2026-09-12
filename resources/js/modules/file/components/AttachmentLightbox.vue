@@ -7,17 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { formatFileSize } from '@/lib/fileSize';
 import type { TaskAttachment } from '@/modules/task/types';
 
-/**
- * One picture, large, with the rest of the task's pictures a key away.
- *
- * Not a routed modal (ADR-0013). What is open here is a way of looking at the page behind it
- * rather than a place on it: closing leaves nothing behind, and an address that reopened a
- * particular photograph would be a second thing to keep in step with an order somebody can
- * change.
- *
- * The full image is the original — the derivative exists to keep a grid cheap, and this is the
- * one moment somebody is actually looking closely.
- */
 const props = defineProps<{
     images: TaskAttachment[];
     openId: string | null;
@@ -33,8 +22,6 @@ const step = (by: number): void => {
         return;
     }
 
-    // Wraps, because a gallery that stops at the end makes somebody drag the pointer back to a
-    // control they have just walked away from.
     const next = (index.value + by + props.images.length) % props.images.length;
 
     emit('update:openId', props.images[next].id);
@@ -50,10 +37,7 @@ const onKeydown = (event: KeyboardEvent): void => {
     }
 };
 
-/*
- * On the window rather than on the dialog: the arrows have to work wherever focus landed, and
- * reka-ui puts that on the close button. Escape is the dialog's own and is not touched here.
- */
+// On the window because reka-ui moves focus to the close button; Escape is left to the dialog.
 watch(
     () => props.openId,
     (openId) => {
@@ -86,8 +70,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     </DialogDescription>
                 </div>
 
-                <!-- Named, not an icon. It sat beside the dialog's own close cross as a glyph
-                     nobody read as a control, and `mr-8` is the room that cross occupies. -->
+                <!-- `mr-8` leaves room for the dialog's close button. -->
                 <Button
                     as="a"
                     variant="outline"
@@ -102,8 +85,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
             </div>
 
             <div class="relative flex min-h-0 items-center justify-center">
-                <!-- The shape is reserved from what the server measured, so the dialog does not
-                     resize under the pointer when the bytes arrive. -->
                 <img
                     :key="current.id"
                     :src="AttachmentController.preview.url(current.id)"

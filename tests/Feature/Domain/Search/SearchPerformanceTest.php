@@ -9,10 +9,6 @@ use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/**
- * Thirty thousand tasks in one workspace: more than anybody has typed by hand, and the size at
- * which a sequential scan stops being invisible.
- */
 function seedTasks(Workspace $workspace, int $count): void
 {
     $rows = [];
@@ -57,18 +53,7 @@ it('can search thirty thousand tasks on the index rather than by reading them al
 
     DB::statement('ANALYZE tasks');
 
-    /*
-     * Index-ability rather than a forced plan, and the term on its own rather than the whole
-     * `where`. At thirty thousand rows in a single workspace, `workspace_id = ?` matches every
-     * row, so that column's index is a second path the planner may legitimately take — it did,
-     * reading 30,000 rows and discarding 29,940 in 3ms, which at this size is a defensible
-     * choice and at a real size is not. Pricing out sequential scans did not remove that second
-     * path, so the assertion was still flaky; naming both conditions was the mistake.
-     *
-     * The question this test exists to answer is narrower: **is the vector index-able at all**.
-     * What the planner prefers once a workspace filter is beside it is a cost decision that
-     * changes with the data, and the timings the next tests record are how that is watched.
-     */
+    // Only the term is filtered, because in a single workspace workspace_id matches every row.
     $sql = <<<'SQL'
         select id, title from tasks
         where search_vector @@ to_tsquery('simple', immutable_unaccent(?))
@@ -111,16 +96,8 @@ it('can still answer on the index once reach is joined in', function (): void {
         limit 25
     SQL;
 
-    /*
-     * Recorded rather than forced: with the reach condition in place the planner estimates far
-     * more matches than there are — the `OR` between two subplans is opaque to it — and at
-     * thirty thousand rows it prefers to read the table, which takes single-digit milliseconds.
-     * That is the right choice at this size and the wrong one at ten times it.
-     *
-     * So what this asserts is that the query is still **index-able**: with sequential scans
-     * priced out of the way, the planner reaches for the GIN index rather than having no way to
-     * use it. The day a workspace is large enough, that is the plan it will pick on its own.
-     */
+    // The OR between two subplans hides selectivity, so at this size the planner rightly prefers a scan.
+    // Sequential scans are disabled to prove the GIN index is still usable.
     DB::statement('SET LOCAL enable_seqscan = off');
 
     $plan = searchPlanOf($sql, [$workspace->id, 'login:*', $project->id]);
@@ -141,12 +118,7 @@ it('answers a search of thirty thousand tasks quickly enough to type into', func
     $result = app(SearchTasksQuery::class)($workspace, $actor, 'login');
     $elapsed = (microtime(true) - $started) * 1000;
 
-    /*
-     * A number to compare against rather than a promise: on the machine this was written on, a
-     * search of thirty thousand tasks answered in single-digit milliseconds — whether the planner
-     * chose the index or read the table. The bound is loose enough not to fail on a slower
-     * machine and tight enough to catch the day this becomes something else entirely.
-     */
+    // A loose bound that catches an order-of-magnitude regression, not a benchmark.
     expect($result['tasks'])->not->toBeEmpty()
         ->and($elapsed)->toBeLessThan(500);
 });

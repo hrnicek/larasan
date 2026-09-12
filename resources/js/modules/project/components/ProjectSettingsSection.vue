@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
 
-/**
- * One concern on the project settings screen, as a card with a name of its own.
- *
- * The `id` is what the rail beside it scrolls to and what its scroll-spy reports, so it is
- * required rather than optional. The heading is an `h3`: the page's `h1` is the project and the
- * group this card sits in carries the `h2`.
- *
- * Only the danger card draws an icon. Every card carrying one turned the column into a row of
- * identical badges, and the rail already says which card is which.
- */
 withDefaults(
     defineProps<{
         id: string;

@@ -44,9 +44,7 @@ it('tells both the column a card left and the workspace it fell back to', functi
     $task = Task::factory()->in($workspace)->create();
     $project = Project::factory()->in($workspace)->create();
 
-    // The row is already gone by the time the event is dispatched, which is exactly the case
-    // this listener has to answer: the column has to lose the card, and the loose list has to
-    // gain it.
+    // The placement row is already deleted by the time the event is dispatched.
     event(new TaskDetachedFromProject($task->id, $project->id, $actor->id));
 
     Event::assertDispatched(ViewInvalidated::class, function (ViewInvalidated $broadcast) use ($project, $workspace): bool {

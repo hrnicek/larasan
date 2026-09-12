@@ -11,18 +11,11 @@ import { initializeOfflineNotice } from '@/lib/offlineNotice';
 configureModalLayer();
 
 createInertiaApp({
-    /*
-     * The name comes from the page rather than from a build-time environment variable, so
-     * `APP_NAME` is the only place it is written and renaming the product does not need a
-     * rebuild to reach the browser tab.
-     */
+    // Read from page props rather than a VITE_ variable so renaming APP_NAME needs no rebuild.
     title: (title, page) => (title ? `${title} — ${page.props.name}` : String(page.props.name)),
     withApp: applyModalLayer,
     layout: (name) => {
         switch (true) {
-            // The error page and the marketing page both stand on their own: an error is often
-            // an answer to somebody who is not signed in, and the shell would have nothing to
-            // put in its sidebar.
             case name === 'Welcome':
             case name === 'Error':
                 return null;
@@ -46,11 +39,7 @@ initializeFlashToast();
 initializeReachability();
 initializeOfflineNotice();
 
-/*
- * The service worker caches the app shell — hashed build assets and fonts, never a page (see
- * `public/sw.js`). It is registered in production only: in development a cached asset is a
- * debugging session nobody enjoys, and Vite is already serving from memory.
- */
+// Caches hashed build assets and fonts only (see public/sw.js); skipped in development to avoid stale assets.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         void navigator.serviceWorker.register('/sw.js');

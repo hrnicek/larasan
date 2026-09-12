@@ -4,17 +4,7 @@ import { onBeforeUnmount, ref, watch } from 'vue';
 import PageTitleController from '@/actions/App/Http/Controllers/Page/PageTitleController';
 import { UNTITLED } from '@/modules/page/lib/untitled';
 
-/**
- * A page's title, typed where it is read.
- *
- * A field rather than a heading with a pencil beside it: renaming a document is the most ordinary
- * thing somebody does to one, and a dialog for it is a dialog in the way. The heading structure
- * survives because the field is inside the `h1` — `input` is phrasing content, so the outline
- * still says what this page is called.
- *
- * Saved through `pages.title.update`, which carries no version: a rename touches no word anybody
- * wrote, so it must not refuse a colleague's next autosave (ADR-0017).
- */
+// The title endpoint carries no version, so a rename never conflicts with a document autosave. See ADR-0017.
 const props = defineProps<{
     pageId: string;
     title: string;
@@ -28,7 +18,6 @@ const draft = ref(props.title === UNTITLED ? '' : props.title);
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 
-/** A different page arrived under the same component. */
 watch(
     () => props.pageId,
     () => (draft.value = props.title === UNTITLED ? '' : props.title),
@@ -39,12 +28,7 @@ const send = (): void => {
         return;
     }
 
-    /*
-     * A visit rather than a raw request: the title appears in the tree beside the document and in
-     * the browser's own tab, and the server is what decides what an empty title is called. The
-     * visit is partial and preserves state, so the editor underneath is not rebuilt and the caret
-     * in it survives a rename.
-     */
+    // A partial visit that preserves state, so the tree and tab update without rebuilding the editor.
     router.put(
         PageTitleController.update.url(props.pageId),
         { title: draft.value },
@@ -69,7 +53,6 @@ const flush = (): void => {
     send();
 };
 
-/** Enter is not submit here: it is the end of the title and the start of the document. */
 const leave = (): void => {
     flush();
     emit('done');

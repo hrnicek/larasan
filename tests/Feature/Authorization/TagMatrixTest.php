@@ -15,15 +15,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Two permissions, asserted apart: `tag.manage` makes and unmakes the workspace's vocabulary,
- * and `task.update` decides who may put a word on a piece of work. Outcomes are written out
- * rather than derived from the code.
- */
-
 /**
- * A task in one project, and somebody with the given access to it.
- *
  * @return array{Task, User, Tag}
  */
 function matrixTagTask(
@@ -62,10 +54,7 @@ it('answers making, renaming and deleting a tag by role', function (WorkspaceRol
         default => throw new InvalidArgumentException("Unknown outcome [{$outcome}]."),
     };
 })->with([
-    /*
-     * `tag.manage` is every full member's under ADR-0010: a workspace names its own work rather
-     * than waiting for an administrator. A guest holds only `comment.create`.
-     */
+    // `tag.manage` belongs to every full member; guests hold only `comment.create`. See ADR-0010.
     'owner' => [WorkspaceRole::Owner, 'allowed'],
     'admin' => [WorkspaceRole::Admin, 'allowed'],
     'member' => [WorkspaceRole::Member, 'allowed'],
@@ -89,8 +78,7 @@ it('answers applying a tag by role and project access', function (
 
     expect($task->tags()->count())->toBe($outcome === 'allowed' ? 1 : 0);
 })->with([
-    // Putting a word on a piece of work is editing that work, so this is `task.update` — and it
-    // gives the same answer every other edit gives, the board's access level included.
+    // Applying a tag is a task update, so the project access level applies.
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'allowed'],
     'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'forbidden'],
     'admin as editor' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'allowed'],
@@ -127,11 +115,7 @@ it('hides a tag from another workspace behind a 404 for every role', function (
     $this->actingAs($actor)->put(route('tags.update', $elsewhere), ['name' => 'Mine'])->assertNotFound();
     $this->actingAs($actor)->delete(route('tags.destroy', $elsewhere))->assertNotFound();
 
-    /*
-     * Applying it answers 404 for anybody who may edit the task and 403 for a guest, who may
-     * not — because permission is asked before the tag is looked up. A guest therefore never
-     * learns whether that id is a tag at all, which is the stronger of the two answers.
-     */
+    // Permission is checked before the tag lookup, so a guest gets 403 and never learns whether the id exists.
     $this->actingAs($actor)
         ->post(route('tasks.tags.store', $task), ['tag' => $elsewhere->id])
         ->assertStatus($applying);
@@ -148,7 +132,7 @@ it('refuses everybody whose membership is no longer live', function (WorkspaceRo
     $tag = Tag::factory()->in($workspace)->create();
     $task = Task::factory()->in($workspace)->create();
 
-    // No live membership is no current workspace, so the binding answers before the policy does.
+    // A revoked member has no current workspace, so bound routes answer 404 before the policy runs.
     $this->actingAs($revoked)->post(route('tags.store'), ['name' => 'Bug'])->assertForbidden();
     $this->actingAs($revoked)->put(route('tags.update', $tag), ['name' => 'Mine'])->assertNotFound();
     $this->actingAs($revoked)->post(route('tasks.tags.store', $task), ['tag' => $tag->id])->assertNotFound();
@@ -165,8 +149,6 @@ it('keeps a task s followers out of another tenant s reach', function (): void {
 
     app(FollowTask::class)->handle($task, $actor);
 
-    // The follower list rides on the task, so another tenant cannot read it without reading the
-    // task — which is a 404.
     $this->actingAs($stranger)->get(route('tasks.show', $task))->assertNotFound();
     $this->actingAs($stranger)->post(route('tasks.follow', $task))->assertNotFound();
 });

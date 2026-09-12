@@ -17,9 +17,6 @@ class TaskCustomFieldValueFactory extends Factory
     protected $model = TaskCustomFieldValue::class;
 
     /**
-     * Every value column is set explicitly to null: strict Eloquent throws on an attribute the
-     * model never retrieved, and the CHECK allows at most one of them to be filled anyway.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array
@@ -37,9 +34,6 @@ class TaskCustomFieldValueFactory extends Factory
         ];
     }
 
-    /**
-     * The answer, written to the column the field's type says it belongs in.
-     */
     public function answering(Task $task, CustomField $field, string|float|bool|null $value): self
     {
         return $this->state(fn (): array => [

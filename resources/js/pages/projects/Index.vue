@@ -7,15 +7,8 @@ import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { ProjectSummary } from '@/modules/project/types';
 import { create, edit, show } from '@/routes/projects';
 
-/**
- * Every project this person can reach, as rows they can open.
- *
- * The row opens the project, not its settings: somebody arriving here is looking for their work,
- * and the settings are one deliberate click away at the end of the line — the same shape the task
- * list uses, where the row is the thing and the control beside it is the exception.
- */
 defineProps<{
-    /** Every project this actor can reach. Not the sidebar's capped `projects` prop. */
+    /** Uncapped, unlike the shared sidebar `projects` prop. */
     allProjects: ProjectSummary[];
     can: { create: boolean };
 }>();
@@ -53,7 +46,6 @@ defineProps<{
 
                     <span class="truncate font-medium">{{ project.name }}</span>
 
-                    <!-- Visibility is said once, where it changes what other people can see. -->
                     <span
                         v-if="project.visibility === 'private'"
                         class="inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"

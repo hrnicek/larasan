@@ -30,14 +30,7 @@ import {
 } from '@lucide/vue';
 import type { Component } from 'vue';
 
-/**
- * The library `App\Domain\Shared\Enums\ProjectIcon` closes over, as components.
- *
- * Written out rather than looked up dynamically for the same reason `accentColor.ts` writes its
- * classes out: a name resolved at runtime cannot be bundled, and `import(`@lucide/vue/${name}`)`
- * would ship the whole icon set to fetch one glyph. The order here is the order the picker draws,
- * so it is grouped by what a project tends to be — a way of working, then a subject.
- */
+// Imported statically so only these icons are bundled; the order is the picker's display order.
 const projectIcons = {
     list: List,
     kanban: Kanban,
@@ -73,17 +66,11 @@ export type ProjectIconName = keyof typeof projectIcons;
 
 export const projectIconNames = Object.keys(projectIcons) as ProjectIconName[];
 
-/**
- * The component for a stored name, or null for a project that has no icon — the caller draws the
- * first letter of the name instead. Null rather than a fallback glyph: a project the server says
- * has no icon and one whose icon this build no longer knows are the same thing to a reader, and
- * both are better identified by their initial than by a shared placeholder.
- */
+/** Null for no icon or an unknown one; the caller draws the name's initial instead. */
 export function projectIconComponent(icon: string | null): Component | null {
     return icon === null ? null : (projectIcons[icon as ProjectIconName] ?? null);
 }
 
-/** How each icon is written in the picker's tooltip and its accessible name. */
 export function projectIconLabel(icon: string): string {
     return icon.replace(/-/g, ' ').replace(/^./, (character) => character.toUpperCase());
 }

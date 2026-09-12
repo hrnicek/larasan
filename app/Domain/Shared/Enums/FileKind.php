@@ -6,17 +6,6 @@ namespace App\Domain\Shared\Enums;
 
 use Illuminate\Support\Str;
 
-/**
- * What kind of thing a file is, for a reader scanning a column of them.
- *
- * Derived rather than stored: it is a reading of `mime_type`, and a stored copy would be a
- * second answer to drift away from the first. Derived here rather than in the screen so the
- * vocabulary is one list — a filter over kinds later asks the database this same question.
- *
- * The MIME type is what the upload was sniffed as, never the extension it called itself
- * (ADR-0007); the extension is consulted only where a type is honest but useless, which
- * `application/octet-stream` and the zipped office formats both are.
- */
 enum FileKind: string
 {
     case Image = 'image';
@@ -48,10 +37,6 @@ enum FileKind: string
         };
     }
 
-    /**
-     * The fallback, and only the fallback. An extension is a claim the uploader made, so it
-     * decides nothing while the MIME type is still saying something.
-     */
     private static function fromExtension(string $extension): self
     {
         return match (Str::lower($extension)) {

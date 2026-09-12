@@ -18,9 +18,6 @@ class CustomFieldFactory extends Factory
     protected $model = CustomField::class;
 
     /**
-     * The name is unique per workspace and case-insensitively so, which is why it carries a
-     * random suffix rather than a word a second field would collide with.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

@@ -20,8 +20,6 @@ it('writes a comment about a task', function (): void {
         ->post(route('tasks.comments.store', $task), ['body' => '  Looks right to me  '])
         ->assertRedirect(route('tasks.show', $task));
 
-    // Trimmed by the Action, not by the controller: the endpoint is a transport and nothing
-    // more.
     expect($task->comments()->pluck('body')->all())->toBe(['Looks right to me']);
 });
 
@@ -84,8 +82,6 @@ it('hides a comment in another workspace behind a 404', function (): void {
     $comment = Comment::factory()->create();
     $stranger = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 
-    // Another tenant's comment is not theirs to know about at all, so the binding answers
-    // before the policy does.
     $this->actingAs($stranger)->put(route('comments.update', $comment), ['body' => 'Rewritten'])->assertNotFound();
     $this->actingAs($stranger)->delete(route('comments.destroy', $comment))->assertNotFound();
 });
@@ -96,7 +92,6 @@ it('cannot address a comment that has already been removed', function (): void {
     $comment = Comment::factory()->on($task)->by($actor)->create();
     $comment->delete();
 
-    // A removed comment can be read in a thread; there is nothing left to address.
     $this->actingAs($actor)->put(route('comments.update', $comment), ['body' => 'Rewritten'])->assertNotFound();
     $this->actingAs($actor)->delete(route('comments.destroy', $comment))->assertNotFound();
 });

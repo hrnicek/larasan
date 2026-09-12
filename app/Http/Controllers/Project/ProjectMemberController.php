@@ -18,13 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
-/**
- * Who may reach this project, and what they may do here.
- *
- * Access inside a project is not the same question as membership of the workspace (ADR-0006), so
- * these are the project's own routes rather than a variant of `WorkspaceMemberController`: adding
- * somebody here gives them a level in one project and changes nothing about the workspace.
- */
 class ProjectMemberController extends Controller
 {
     public function store(
@@ -50,8 +43,6 @@ class ProjectMemberController extends Controller
         string $membership,
         GrantProjectAccess $grantAccess,
     ): RedirectResponse {
-        // Granting and changing are the same sentence — *this person has this access here* — so
-        // they are the same Action, reached by a different verb.
         $grantAccess->handle(
             $project,
             $this->actor($request),
@@ -81,12 +72,7 @@ class ProjectMemberController extends Controller
     }
 
     /**
-     * Resolved inside the project the route already proved the actor may reach, never by implicit
-     * binding: a membership id from another project would otherwise resolve by primary key alone,
-     * and a leaked id would be worth something. A 404 rather than a 403, because confirming the
-     * other id exists is not something the actor is entitled to.
-     *
-     * `WorkspaceMemberController` resolves its own the same way and for the same reason.
+     * Resolved within the project rather than by implicit binding, so another project's id is a 404.
      */
     private function membership(Project $project, string $id): ProjectMembership
     {

@@ -15,15 +15,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/*
- * The listeners that send these are queued and are retried up to three times by the worker, so a
- * job that failed after its insert used to leave a second line in somebody's Inbox for the same
- * comment (TASK-180-021).
- *
- * The tests run the listener twice for the same event, which is what a retry is, rather than
- * simulating a failure — a fake failure proves the fake, and the second run is the part that has
- * to be safe.
- */
+// Queued listeners are retried, so each test runs a listener twice for the same event.
 
 it('writes one line however many times the listener runs', function (): void {
     $workspace = Workspace::factory()->create();

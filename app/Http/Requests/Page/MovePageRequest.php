@@ -25,12 +25,7 @@ class MovePageRequest extends FormRequest
     {
         $page = $this->page();
 
-        /*
-         * Both ids are scoped to the page's own project and neither may be the page itself.
-         * The Action refuses all of this again — it also refuses a parent from inside the
-         * page's own subtree, which no `exists` rule can express — but a stale tree deserves
-         * a validation error rather than a domain exception.
-         */
+        // The Action also refuses a parent inside the page's own subtree, which `exists` cannot express.
         $inTheSameProject = [
             'nullable', 'uuid',
             Rule::exists('pages', 'id')->where(

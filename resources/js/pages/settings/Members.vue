@@ -28,10 +28,7 @@ const props = defineProps<{
 const removing = ref<WorkspaceMember | null>(null);
 const cancelling = ref<WorkspacePendingInvitation | null>(null);
 
-/*
- * Only an owner may act on an owner (ADR-0010). The server refuses regardless; this
- * keeps the screen from offering a button whose failure has nowhere to render.
- */
+// Only an owner may act on an owner; the server enforces this too. See ADR-0010.
 const viewerIsOwner = computed(
     () => props.members.find((member) => member.isYou)?.role === 'owner',
 );

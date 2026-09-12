@@ -18,10 +18,7 @@ class ResolveCurrentWorkspace
     public function __construct(private readonly CurrentWorkspace $workspaces) {}
 
     /**
-     * The `workspace` route parameter is a **slug**, not an id. Routes that key a
-     * workspace by id resolve to nothing here and 404 before their controller or policy
-     * runs — which is the right answer for an unknown slug and a confusing one for a
-     * misrouted id, so the convention is stated rather than discovered.
+     * The `workspace` route parameter is a slug; a route keyed by id resolves nothing and 404s.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -34,11 +31,7 @@ class ResolveCurrentWorkspace
         $slug = $request->route('workspace');
         $workspace = $this->workspaces->for($user, is_string($slug) ? $slug : null);
 
-        /*
-         * A workspace the actor has no active membership for is indistinguishable from
-         * one that does not exist. 403 would confirm the id, which is what makes a leaked
-         * UUID worth something.
-         */
+        // 404 rather than 403, so an inaccessible workspace looks the same as a missing one.
         if ($workspace === null && is_string($slug)) {
             abort(404);
         }

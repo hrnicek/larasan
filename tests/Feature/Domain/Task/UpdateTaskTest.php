@@ -59,7 +59,6 @@ it('clears a nullable field the caller emptied and keeps what null cannot descri
 
     expect($fresh?->description)->toBeNull()
         ->and($fresh?->due_at)->toBeNull()
-        // Priority is not nullable, so a null says nothing about it.
         ->and($fresh?->priority)->toBe(TaskPriority::Urgent);
 });
 
@@ -162,8 +161,6 @@ it('refuses a chain deeper than the stated maximum', function (): void {
 
     $orphan = Task::factory()->in($root->workspace)->create();
 
-    // The limit is a stated rule, not a discovery: without one a chain grows until whatever
-    // walks it becomes the slowest page in the product.
     expect(fn (): Task => app(UpdateTask::class)->handle($orphan, $actor, new UpdateTaskData(title: $orphan->title, parentId: $deepest->id)))
         ->toThrow(TaskException::class, 'nested that deeply');
 });
@@ -195,8 +192,6 @@ it('leaves alone the fields a payload never mentioned', function (): void {
         'priority' => TaskPriority::High,
     ])->save();
 
-    // A row editing one field sends one field. Without the third state — absent, as opposed
-    // to null — this would clear the description, because null on a nullable column clears.
     app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(
         priority: TaskPriority::Low,
         fields: ['priority'],

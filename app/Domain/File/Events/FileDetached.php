@@ -12,7 +12,7 @@ final readonly class FileDetached
         public string $subjectType,
         public string $subjectId,
         public int $actorId,
-        /** True when that was the last thing pointing at the file, which is now soft-deleted. */
+        /** The file had no other attachments and was soft-deleted. */
         public bool $fileRemoved,
     ) {}
 }

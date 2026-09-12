@@ -7,15 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { accentChipClass, accentVars } from '@/lib/accentColor';
 import type { TaskTag } from '@/modules/task/types';
 
-/**
- * What a task is about, as a field rather than as a section: a label on the left, its chips on
- * the right, aligned with the assignee and the due date above it.
- *
- * Applying a tag is editing the task, so the control follows `editable` — the same flag every
- * other field on this screen follows. Inventing one is `tag.manage` and is a decision about
- * everybody's filters, which is why it is a separate flag and a separate row in the picker
- * rather than something that happens by accident when a search finds nothing.
- */
 const props = defineProps<{
     taskId: string;
     tags: TaskTag[];
@@ -42,11 +33,7 @@ const matches = computed<TaskTag[]>(() => {
         : unused.value.filter((tag) => tag.name.toLowerCase().includes(needle));
 });
 
-/**
- * Whether the typed word is one the workspace does not have yet. Compared against the whole
- * vocabulary rather than against what is left to apply: a word already on this task is not a
- * word to invent, it is one to see is already there.
- */
+// Checked against every tag, so one already on the task is not offered for creation.
 const isNew = computed(() => {
     const needle = query.value.trim().toLowerCase();
 
@@ -70,7 +57,6 @@ function attach(payload: { tag: string } | { name: string }): void {
     router.post(TaskTagController.store.url(props.taskId), payload, { preserveScroll: true });
 }
 
-/** Enter takes the obvious answer: the only match if there is one, otherwise the new word. */
 function confirm(): void {
     if (matches.value.length === 1) {
         attach({ tag: matches.value[0].id });
@@ -110,11 +96,6 @@ const remove = (tag: TaskTag): void => {
             </button>
         </span>
 
-        <!--
-            Empty is a target rather than a gap, the way the assignee and the due date are: the
-            dashed outline says something goes here instead of leaving a word to aim at. It opens
-            even when every tag is already applied, because the next word may not exist yet.
-        -->
         <Popover v-if="editable" :open="picking" @update:open="open">
             <PopoverTrigger
                 class="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/50 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
@@ -154,8 +135,6 @@ const remove = (tag: TaskTag): void => {
                     </li>
                 </ul>
 
-                <!-- The new word, said as the word rather than as an instruction: what the button
-                     reads is what the chip will read. -->
                 <button
                     v-if="canInvent"
                     type="button"

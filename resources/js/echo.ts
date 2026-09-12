@@ -8,14 +8,7 @@ declare global {
     }
 }
 
-/**
- * Realtime is a collaboration layer, never the source of truth: the server stays
- * authoritative and a client that misses an event refetches rather than replaying.
- * See docs/adr/0008-realtime-architecture.md.
- *
- * Deliberately not imported from app.ts — Echo and pusher-js add roughly 70 kB to the
- * entry chunk, so the first screen that actually subscribes calls this (TASK-170-005).
- */
+// Loaded lazily by the first subscribing screen to keep Echo and pusher-js (~70 kB) out of the entry chunk. See ADR-0008.
 export function initializeEcho(): Echo<'reverb'> {
     if (window.Echo) {
         return window.Echo;

@@ -21,11 +21,7 @@ final readonly class UpdateWorkspace
             'timezone' => $data->timezone,
         ], fn (?string $value): bool => $value !== null));
 
-        /*
-         * A slug the caller did not supply stays as it is. Re-deriving it from a renamed
-         * workspace would break every link anyone had saved, which is a decision for the
-         * person renaming it rather than a side effect of renaming.
-         */
+        // The slug is never re-derived on rename, so saved links keep working.
         $changed = array_keys($workspace->getDirty());
 
         if ($changed === []) {

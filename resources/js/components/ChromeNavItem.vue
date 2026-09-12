@@ -11,12 +11,7 @@ const props = defineProps<{
     icon?: Component;
     active?: boolean;
     badge?: number;
-    /**
-     * The page component the link opens. Named, the visit is instant — the screen is drawn at
-     * once, as its skeleton until its own props land (`usePendingScreen`) — and the request leaves
-     * on press rather than on release. Never for the screen already open: that would blank it only
-     * to draw what is there again.
-     */
+    /** Page component for an instant visit; ignored while the link is active. */
     component?: string;
 }>();
 
@@ -24,7 +19,6 @@ const collapsed = useCollapsed();
 
 const instant = computed<string | undefined>(() => (props.active ? undefined : props.component));
 
-/* The page's own chunk, fetched while the pointer is still on its way to a press. */
 const warm = (): void => {
     if (instant.value !== undefined) {
         void router.resolveComponent(instant.value);
@@ -52,10 +46,6 @@ const warm = (): void => {
                 <span v-if="!collapsed" class="truncate">{{ label }}</span>
                 <span v-else class="sr-only">{{ label }}</span>
 
-                <!--
-                    The count is a number and a word, never a coloured dot on its own: a badge that
-                    says only "something" is a badge nobody can act on.
-                -->
                 <span
                     v-if="badge"
                     class="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-chrome-primary px-1.5 text-[11px] font-semibold text-chrome-primary-foreground"

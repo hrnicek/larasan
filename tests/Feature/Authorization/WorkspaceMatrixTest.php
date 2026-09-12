@@ -8,15 +8,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 
-/*
- * The matrix: every role against every protected workspace operation, over HTTP, allowed
- * and denied. The Action and Gate tests prove the rules; this proves the endpoints ask
- * them. A row here failing while those pass means a controller stopped checking.
- *
- * Statuses are covered by their own row set rather than multiplied into the matrix: a
- * non-active membership is refused everything, which is one fact, not sixteen.
- */
-
 /**
  * @return array{Workspace, User, WorkspaceMembership}
  */
@@ -25,7 +16,6 @@ function matrixWorkspace(WorkspaceRole $role, WorkspaceMembershipStatus $status 
     $workspace = Workspace::factory()->create(['slug' => 'acme', 'name' => 'Acme']);
     $actor = memberOf($workspace, $role, $status);
 
-    // A second member the actor can act on, so removal and role changes have a target.
     $target = memberOf($workspace, WorkspaceRole::Guest);
 
     return [$workspace, $actor, $workspace->membershipFor($target)];
@@ -43,8 +33,6 @@ function matrixOperation(string $operation, Workspace $workspace, WorkspaceMembe
         'invite member' => ['post', route('workspaces.members.store'), ['email' => 'invitee@example.com', 'role' => 'member']],
         'change role' => ['put', route('workspaces.members.update', $target->id), ['role' => 'member']],
         'remove member' => ['delete', route('workspaces.members.destroy', $target->id), []],
-        // A dataset row naming an operation this function does not know is a typo, and a
-        // typo that silently ran nothing would look like a passing matrix.
         default => throw new InvalidArgumentException("Unknown matrix operation [{$operation}]."),
     };
 }
@@ -104,11 +92,7 @@ it('refuses every operation on a membership that is not active', function (Works
 
     $response = $this->actingAs($actor)->{$method}($url, $payload);
 
-    /*
-     * Reads 404 because resolution finds no workspace; writes 403 because the request is
-     * authorized before the controller resolves anything. Both refuse; the codes differ
-     * because they are answering different questions.
-     */
+    // Reads 404 because no workspace resolves; writes 403 because authorization runs before resolution.
     expect($response->status())->toBeIn([403, 404]);
 
     expect($workspace->fresh()?->name)->toBe('Acme')
@@ -132,11 +116,7 @@ it('refuses every operation to someone from another workspace', function (string
 
     $response = $this->actingAs($outsider)->{$method}($url, $payload);
 
-    /*
-     * The outsider owns a workspace of their own, so reads resolve *their* workspace
-     * rather than 404 — which is why the assertion is that Acme did not move, not merely
-     * that the status code was unfriendly.
-     */
+    // The outsider's requests resolve their own workspace, so the status code alone proves nothing.
     expect($workspace->fresh()?->name)->toBe('Acme')
         ->and($target->fresh()?->role)->toBe(WorkspaceRole::Guest)
         ->and($target->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active)

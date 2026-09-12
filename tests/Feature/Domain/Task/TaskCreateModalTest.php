@@ -11,20 +11,12 @@ use App\Domain\Workspace\Models\Workspace;
 use Inertia\Testing\AssertableInertia;
 use InertiaUI\Modal\Modal;
 
-/*
- * The form behind the topbar's Create → Task, and behind the `+` on a section header. Its job is
- * to offer exactly the projects this person may put work into — which is a narrower question than
- * the projects they may read.
- */
-
 it('offers only the projects the actor may add to', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
 
-    // Visible but read-only: a viewer may open this project and may not put work in it.
     $readable = Project::factory()->in($project->workspace)->create(['name' => 'Read only']);
     ProjectMembership::factory()->in($readable)->forUser($actor)->withAccess(ProjectAccessLevel::Viewer)->create();
 
-    // Another tenant's project, which must not appear at all.
     Project::factory()->create(['name' => 'Somebody else']);
 
     $this->actingAs($actor)
@@ -33,9 +25,6 @@ it('offers only the projects the actor may add to', function (): void {
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('tasks/Create')
             ->has('targetProjects', 1)
-            // `targetProjects`, not the shared `projects`: that prop carries both projects the
-            // actor can see, ordered by name — and the factory's name is random, so which of the
-            // two is first was chance rather than the answer this test is asking for.
             ->where('targetProjects.0.id', $project->id));
 });
 

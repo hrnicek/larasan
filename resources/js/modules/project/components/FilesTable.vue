@@ -25,21 +25,6 @@ import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import { formatFileSize } from '@/lib/fileSize';
 import type { ProjectFile, ProjectFiles } from '@/modules/project/types';
 
-/**
- * Everything attached to this project's tasks, in one table.
- *
- * A **table** rather than a grid of rows, because that is what it is: the same facts about each
- * file in the same order, and a screen reader announces which column it is in only if the markup
- * says there are columns.
- *
- * The project has no files of its own — a file hangs from a task — so there is nothing to upload
- * here and no control that pretends there is. This view finds what has already been attached; the
- * task's own panel is where a file arrives.
- *
- * A **pager**, not an endless list: the server sends one page and this says which one. Appending
- * page after page into a table nobody has scrolled to the bottom of is a way to make the browser
- * slow at the exact moment somebody is looking for one row.
- */
 const props = defineProps<{
     files: ProjectFiles;
     loading?: boolean;
@@ -47,10 +32,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ open: [taskId: string] }>();
 
-/**
- * The word for a kind and the mark beside it. Both are presentation: the server decided *which*
- * kind this file is, from the type the upload was sniffed as.
- */
 const kinds: Record<string, { label: string; icon: Component }> = {
     image: { label: 'Image', icon: FileImage },
     video: { label: 'Video', icon: Film },
@@ -66,13 +47,6 @@ const kinds: Record<string, { label: string; icon: Component }> = {
 
 const kindOf = (file: ProjectFile) => kinds[file.kind] ?? kinds.other;
 
-/**
- * The header row, in order, and which of its cells can be ordered by.
- *
- * Three can: the name, the size and the moment. Uploader, kind and task cannot — ordering by one
- * of those sorts the table into groups without labelling them, which is what a grouping control
- * would be for and this is not.
- */
 const columns: { key: string | null; label: string; cell: string }[] = [
     { key: 'name', label: 'File name', cell: 'py-2 pr-3' },
     { key: 'size', label: 'Size', cell: 'px-3 py-2' },
@@ -89,7 +63,6 @@ const descending = computed<boolean>(
     () => props.files.meta.direction === 'desc',
 );
 
-/** What a screen reader is told about a column, on the header rather than the button inside it. */
 const ariaSort = (
     key: string | null,
 ): 'ascending' | 'descending' | 'none' | undefined => {
@@ -105,13 +78,8 @@ const ariaSort = (
 };
 
 /**
- * Clicking a column orders by it; clicking the one already in force turns it round. Always back to
- * the first page — page five of one ordering is not page five of another.
- *
- * The address is rebuilt rather than merged into, because a column being ordered by for the first
- * time has to send **no** direction: which way round each column reads first is the server's
- * answer (`ProjectFileSort`), and a `direction` left over from the previous column would override
- * it. Merging can add a parameter and cannot remove one.
+ * Rebuilds the query rather than merging into it: a newly sorted column must send no `direction`,
+ * so the server applies that column's default (`ProjectFileSort`).
  */
 const orderBy = (key: string | null): void => {
     if (key === null) {
@@ -136,7 +104,6 @@ const orderBy = (key: string | null): void => {
     );
 };
 
-/** Which rows of the whole are on the screen — the sentence a pager exists to be able to say. */
 const range = computed<string>(() => {
     const { page, perPage, total } = props.files.meta;
     const first = (page - 1) * perPage + 1;
@@ -148,10 +115,6 @@ const goTo = (page: number): void => {
     router.reload({ only: ['files'], data: { page } });
 };
 
-/*
- * Removing is asked about first (ADR-0013), and through the endpoint the task's own panel uses:
- * this screen is a second way into the same attachments, not a second set of rules about them.
- */
 const removing = ref<ProjectFile | null>(null);
 
 const remove = (): void => {
@@ -168,9 +131,6 @@ const remove = (): void => {
 
 <template>
     <div class="flex flex-col gap-3 px-4 pt-4 md:px-6">
-        <!-- The table scrolls sideways on a narrow screen rather than reflowing: a row stacked
-             into six lines is not a table any more, and the columns are what makes this view
-             worth having over the list. -->
         <div
             v-if="files.files.length"
             class="[scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] overflow-x-auto"
@@ -199,8 +159,6 @@ const remove = (): void => {
                                 @click="orderBy(column.key)"
                             >
                                 {{ column.label }}
-                                <!-- The arrow marks the column in force and no other: six arrows
-                                     say nothing about which one the table is ordered by. -->
                                 <component
                                     :is="descending ? ArrowDown : ArrowUp"
                                     v-if="orderedBy(column.key)"
@@ -261,8 +219,6 @@ const remove = (): void => {
                                     file.uploader.name
                                 }}</span>
                             </span>
-                            <!-- A file outlives the account that uploaded it, and the column says
-                                 so rather than inventing a name for it. -->
                             <span v-else class="text-muted-foreground"
                                 >Someone who has left</span
                             >

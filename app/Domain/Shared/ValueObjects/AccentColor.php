@@ -8,23 +8,10 @@ use App\Domain\Shared\Enums\ProjectColor;
 use InvalidArgumentException;
 use Stringable;
 
-/**
- * The accent a project, a column, a tag or a field's option is drawn in.
- *
- * Two kinds of value in one column, deliberately: one of the eight palette *names*, or a hex
- * somebody chose. A name is re-tuned globally without a data migration and is guaranteed
- * readable on both themes, which is why it stays the default and why every seeded and generated
- * colour is one — a hex is what somebody asks for when the eight are not the eight they wanted
- * (ADR-0021).
- *
- * Normalised on the way in: a hex is stored lower-case with its `#`, so `#AABBCC` and `#aabbcc`
- * are one colour rather than two rows that look identical.
- */
 final readonly class AccentColor implements Stringable
 {
     private const HEX = '/^#[0-9a-f]{6}$/';
 
-    /** A palette name (`slate`), or a hex in lower case (`#3f7d5a`). */
     public string $value;
 
     public function __construct(string $value)
@@ -43,11 +30,6 @@ final readonly class AccentColor implements Stringable
         return new self($color->value);
     }
 
-    /**
-     * The colour a request or a database row meant, or null where it named none. Null rather than
-     * an exception, because "no colour" is a value this column carries and every caller has to
-     * handle it anyway.
-     */
     public static function tryFrom(?string $value): ?self
     {
         if ($value === null) {
@@ -65,7 +47,6 @@ final readonly class AccentColor implements Stringable
             || preg_match(self::HEX, $value) === 1;
     }
 
-    /** The palette case this is, or null where it is a colour the palette does not have. */
     public function paletteColor(): ?ProjectColor
     {
         return ProjectColor::tryFrom($this->value);

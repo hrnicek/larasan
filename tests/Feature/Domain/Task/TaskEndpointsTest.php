@@ -111,8 +111,6 @@ it('answers a domain refusal for a loop the validator cannot see', function (): 
     $child = Task::factory()->childOf($task)->create();
     $grandchild = Task::factory()->childOf($child)->create();
 
-    // The request cannot walk the chain, so this one reaches the Action. It comes back as
-    // an error on the field the user chose, not as a stack trace.
     $this->actingAs($actor)
         ->from(route('dashboard'))
         ->put(route('tasks.update', $task), ['title' => 'Renamed', 'parent_id' => $grandchild->id])

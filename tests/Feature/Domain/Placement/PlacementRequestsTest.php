@@ -12,11 +12,6 @@ use App\Http\Requests\Placement\MovePlacementRequest;
 use App\Http\Requests\Placement\StorePlacementRequest;
 use Illuminate\Support\Facades\Route;
 
-/**
- * The endpoints arrive with TASK-070-011. Probe routes assert the requests for what they
- * are — validation and authorization — before a controller exists to confuse a failure with
- * a routing one.
- */
 beforeEach(function (): void {
     Route::middleware('web')->post('placement-probe/{project}', fn (StorePlacementRequest $request, Project $project) => response()->json([
         'task' => $request->string('task')->toString(),
@@ -52,8 +47,6 @@ it('rejects a task from another workspace with a validation error', function ():
     [, $project, $actor] = placeableProject();
     $elsewhere = Task::factory()->create();
 
-    // A valid id from another tenant is a bad request, not a domain exception — and the
-    // scoped `exists` rule is what keeps it from confirming that the task is real.
     $this->actingAs($actor)
         ->postJson("placement-probe/{$project->id}", ['task' => $elsewhere->id])
         ->assertJsonValidationErrorFor('task')
@@ -76,8 +69,6 @@ it('rejects a task that has been deleted', function (): void {
     $task = Task::factory()->in($workspace)->create();
     $task->delete();
 
-    // Soft-deleted is deleted as far as a board is concerned: a card for it would be a card
-    // for something the workspace no longer has.
     $this->actingAs($actor)
         ->postJson("placement-probe/{$project->id}", ['task' => $task->id])
         ->assertJsonValidationErrorFor('task');
@@ -98,7 +89,6 @@ it('accepts a null section as the ungrouped bucket', function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
 
-    // Null is a column, not a missing answer (ADR-0004).
     $this->actingAs($actor)
         ->putJson("placement-probe/{$placement->id}/move", ['section' => null])
         ->assertOk()
@@ -109,8 +99,6 @@ it('requires the section field to be sent at all', function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
 
-    // An omitted section and an explicit null are different requests: one says "put it
-    // nowhere", the other says nothing.
     $this->actingAs($actor)
         ->putJson("placement-probe/{$placement->id}/move", [])
         ->assertJsonValidationErrorFor('section');
@@ -146,8 +134,6 @@ it('rejects an anchor sitting in another column', function (): void {
     $ungrouped = attach(Task::factory()->in($workspace)->create(), $project, $actor);
     $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
 
-    // "After" is only meaningful among neighbours: the anchor is in the project but not in
-    // the column the card is moving into.
     $this->actingAs($actor)
         ->putJson("placement-probe/{$placement->id}/move", ['section' => $section->id, 'after' => $ungrouped->id])
         ->assertJsonValidationErrorFor('after')
@@ -191,8 +177,6 @@ it('rejects an end sent alongside an anchor', function (): void {
     $anchor = attach(Task::factory()->in($workspace)->create(), $project, $actor);
     $placement = attach(Task::factory()->in($workspace)->create(), $project, $actor);
 
-    // Meaningless together, so sending both is a mistake rather than a precedence rule
-    // nobody would remember.
     $this->actingAs($actor)
         ->putJson("placement-probe/{$placement->id}/move", [
             'section' => null,
@@ -219,8 +203,6 @@ it('refuses a move to a guest who was given editor access to the project', funct
         ->placing(Task::factory()->in($workspace)->create(), $project)
         ->create();
 
-    // Both halves have to pass: the project says yes, the workspace role does not carry
-    // `task.update` (ADR-0006 with ADR-0010).
     $this->actingAs($guest)
         ->putJson("placement-probe/{$placement->id}/move", ['section' => null])
         ->assertForbidden();

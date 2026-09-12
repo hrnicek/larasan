@@ -7,13 +7,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-/**
- * One field, because keeping a search is one decision: what to call it.
- *
- * The term and the filters ride along in hidden inputs rather than being read again on the
- * server — what is kept has to be what the screen was showing when somebody decided to keep it,
- * not what the URL happens to say by the time the request lands.
- */
 const props = defineProps<{
     open: boolean;
     term: string;

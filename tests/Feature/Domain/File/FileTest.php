@@ -21,11 +21,6 @@ it('hangs from its workspace and the account that uploaded it', function (): voi
 });
 
 it('refuses to have its location or its size mass assigned', function (): void {
-    /*
-     * Every one of these is a statement about bytes that exist (ADR-0007). A payload that could
-     * set `path` could point a row at somebody else's object; one that could set `size` or
-     * `checksum` could make a row lie about what is there.
-     */
     foreach (['disk', 'path', 'size', 'checksum', 'workspace_id', 'uploaded_by'] as $attribute) {
         expect(fn (): File => (new File)->fill([$attribute => 'anything']))
             ->toThrow(MassAssignmentException::class);
@@ -41,8 +36,6 @@ it('reads a task s attachments oldest first', function (): void {
         Attachment::factory()->attaching($file, $task)->create();
     }
 
-    // Oldest first, then by key: `created_at` is `timestamp(0)`, so two uploads in the same
-    // second would otherwise come back in whichever order PostgreSQL chose that day.
     expect($task->attachments()->with('file')->get()->map(fn (Attachment $a): string => $a->file->original_name)->all())
         ->toBe(['First', 'Second', 'Third']);
 });
@@ -67,8 +60,6 @@ it('writes a short name into the type column, never a class name', function (): 
 });
 
 it('refuses to have its file or its subject mass assigned', function (): void {
-    // Which file and which subject are decided by the Action from what was uploaded and what it
-    // was uploaded to, never by a payload.
     expect(fn (): Attachment => (new Attachment)->fill(['file_id' => 'anything']))
         ->toThrow(MassAssignmentException::class);
 });
@@ -80,8 +71,6 @@ it('hides a soft-deleted file without losing the object behind it', function ():
 
     $file->delete();
 
-    // The row stops being reachable before the bytes are removed — the one part of this that
-    // cannot be undone inside a request (TASK-120-007).
     expect(File::query()->count())->toBe(0)
         ->and(DB::table('files')->where('id', $file->id)->value('path'))->toBe($path);
 });
@@ -97,8 +86,6 @@ it('generates a path rather than deriving one from the name', function (): void 
 
     $file = File::factory()->in($workspace)->create(['original_name' => 'quarterly plan.pdf']);
 
-    // ADR-0007: the original name is metadata for display and the download header. A path built
-    // from it is a path somebody else chooses.
     expect($file->path)->toStartWith("workspaces/{$workspace->id}/")
         ->and($file->path)->not->toContain('quarterly');
 });

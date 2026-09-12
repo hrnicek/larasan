@@ -22,21 +22,13 @@ use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Uploading a file, and getting it back.
- *
- * The download is a controller rather than a URL from the disk. `Storage::url()` on the local
- * disk would hand out an address that answers to anybody holding it — the disk is configured
- * with `serve => true` — and ADR-0007 is explicit that a storage path is never a capability.
+ * Files are streamed here rather than linked via `Storage::url()`, so every read is authorized.
+ * See ADR-0007.
  */
 class AttachmentController extends Controller
 {
     /**
-     * What this application is willing to render on its own origin.
-     *
-     * Narrower than the upload allow-list and narrower on purpose. An inline response is a
-     * document served from this domain, so the question is not "is this an image" but "can this
-     * run". SVG is the one that cannot be here: it is XML with script in it, and an inline SVG
-     * would execute against this origin's cookies. It stays downloadable, like every other type.
+     * SVG is excluded: served inline, it would execute script against this origin.
      *
      * @var list<string>
      */
@@ -47,14 +39,6 @@ class AttachmentController extends Controller
         'image/webp',
     ];
 
-    /**
-     * A batch, always — one file is a batch of one.
-     *
-     * The files are attached in the order they were chosen, so the list they arrive in is the
-     * list somebody sees afterwards (ADR-0009). Validation is what makes the batch all-or-nothing:
-     * a request holding one refused file never reaches this method, so nobody ends up with half a
-     * folder attached and a message about the rest.
-     */
     public function store(StoreAttachmentRequest $request, Task $task, AttachFile $attachFile): RedirectResponse
     {
         $uploads = array_values((array) $request->file('files', []));
@@ -75,10 +59,6 @@ class AttachmentController extends Controller
         return back();
     }
 
-    /**
-     * Reach, not knowledge of an id. Somebody who has the address of an attachment inside a
-     * project they were never given is exactly the person this check exists for.
-     */
     public function download(Request $request, Attachment $attachment): StreamedResponse
     {
         $subject = $attachment->attachable;
@@ -97,22 +77,9 @@ class AttachmentController extends Controller
             abort(404);
         }
 
-        // The name people recognise, not the path it was stored under — which is generated and
-        // is nobody's business outside this table.
         return $disk->download($file->path, $file->original_name);
     }
 
-    /**
-     * The same object, drawn rather than saved.
-     *
-     * A separate endpoint from `download` because the two differ in the header that matters:
-     * this one says `inline`, which is what an `<img>` needs and what a filing cabinet must not
-     * say. The authorization is identical — reach, never knowledge of an id.
-     *
-     * The bytes behind an attachment never change, so the response is cached hard and
-     * revalidated against the checksum the file already stores. A board redrawing forty cards
-     * asks for forty images and is answered from the cache.
-     */
     public function preview(Request $request, Attachment $attachment): Response|StreamedResponse
     {
         $subject = $attachment->attachable;
@@ -131,12 +98,6 @@ class AttachmentController extends Controller
 
         $disk = Storage::disk($file->disk);
 
-        /*
-         * `?size=thumb` is a request for the derivative, and it falls back to the original in
-         * both directions it can fail: the job has not run yet, or the derivative was swept.
-         * A grid drawn while the queue is behind is heavier than it should be, which is a great
-         * deal better than a grid of broken images.
-         */
         $thumbnail = $request->query('size') === 'thumb' ? $file->thumbnail() : null;
 
         if ($thumbnail !== null && ! $disk->exists($thumbnail['path'])) {
@@ -146,8 +107,7 @@ class AttachmentController extends Controller
         $path = $thumbnail === null ? $file->path : $thumbnail['path'];
         $mimeType = $thumbnail === null ? $file->mime_type : 'image/webp';
 
-        // The two sizes are two different responses at one address, so they cannot share a
-        // validator: a cached thumbnail must not satisfy a request for the full picture.
+        // Distinct validators, so a cached thumbnail never satisfies a request for the original.
         $etag = '"'.$file->checksum.($thumbnail === null ? '' : '-thumb').'"';
 
         if (trim((string) $request->headers->get('If-None-Match')) === $etag) {
@@ -161,10 +121,6 @@ class AttachmentController extends Controller
         return $disk->response($path, $file->original_name, $this->previewHeaders($mimeType, $etag));
     }
 
-    /**
-     * Reordering, as an anchor rather than a position (ADR-0009). The board card draws the first
-     * image of a task, so which file is first is a decision somebody makes here.
-     */
     public function move(MoveAttachmentRequest $request, Attachment $attachment, MoveAttachment $moveAttachment): RedirectResponse
     {
         $after = $request->string('after')->value();
@@ -190,10 +146,6 @@ class AttachmentController extends Controller
     }
 
     /**
-     * The type is the one recorded when the upload was sniffed, never anything the request
-     * offered, and `nosniff` stops the browser from making up a different one — between them
-     * they are what keeps a text file from being rendered as something else.
-     *
      * @return array<string, string>
      */
     private function previewHeaders(string $mimeType, string $etag): array

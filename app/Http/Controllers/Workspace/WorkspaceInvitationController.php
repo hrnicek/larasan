@@ -16,11 +16,6 @@ use Inertia\Inertia;
 
 class WorkspaceInvitationController extends Controller
 {
-    /**
-     * The link in the invitation mail, which is signed and outside the auth group: following
-     * it is how somebody with no account arrives at all. It answers nothing — it establishes
-     * who is holding the link and sends them to the list where the invitation waits.
-     */
     public function show(Request $request, string $membership, ClaimWorkspaceInvitations $claim): RedirectResponse
     {
         $invitation = WorkspaceMembership::query()->whereKey($membership)->firstOrFail();
@@ -32,11 +27,6 @@ class WorkspaceInvitationController extends Controller
         }
 
         if (mb_strtolower($actor->email) === mb_strtolower($address)) {
-            /*
-             * The row may still be addressed to nobody: an account invited before it existed
-             * is claimed on `Registered`, and one that arrived here some other way — an
-             * address changed after the invitation was sent — is claimed now.
-             */
             $claim->handle($actor);
 
             return to_route('workspaces.index');
@@ -60,8 +50,6 @@ class WorkspaceInvitationController extends Controller
 
         $answer->accept($invitation, $actor);
 
-        // They land in the workspace they have just joined rather than in whichever one the
-        // stored choice still names.
         $actor->forceFill(['current_workspace_id' => $invitation->workspace_id])->save();
 
         Inertia::flash('toast', [
@@ -84,10 +72,7 @@ class WorkspaceInvitationController extends Controller
     }
 
     /**
-     * Scoped to the actor's own rows, so an invitation addressed to somebody else is a 404
-     * rather than a permission error — the same answer an id that does not exist gets. The
-     * Action refuses it as well; this is what keeps the refusal from naming a stranger's
-     * invitation.
+     * Scoped to the actor, so another person's invitation is indistinguishable from a missing one.
      */
     private function pending(User $actor, string $id): WorkspaceMembership
     {
@@ -100,9 +85,7 @@ class WorkspaceInvitationController extends Controller
     }
 
     /**
-     * A guest holding an invitation link needs an account before they can answer. Which of
-     * the two screens depends on whether the address already has one — and `guest()` records
-     * the invitation as the intended destination, so both Fortify responses come back here.
+     * `redirect()->guest()` stores the intended URL, so login and registration return here.
      */
     private function towardsAnAccount(Request $request, string $address): RedirectResponse
     {
@@ -112,8 +95,6 @@ class WorkspaceInvitationController extends Controller
             return redirect()->guest(route('login'));
         }
 
-        // Prefilled rather than merely suggested: an invitation is only claimed by the address
-        // it was sent to, and registering under another one silently loses it.
         $request->session()->flash('invitation_email', $address);
 
         return redirect()->guest(route('register'));

@@ -10,16 +10,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * The matrix: every workspace role against every project access level at every protected
- * project endpoint, allowed and denied. `ProjectPolicyTest` proves the rules; this proves
- * the endpoints ask them, and that a refusal is the right *kind* of refusal — 404 where
- * the actor may not know the project exists, 403 where they may see it but not act.
- *
- * The expected outcome of every row is written out rather than derived. Deriving it from
- * `isManageableBy()` would assert that the code agrees with itself.
- */
-
 /**
  * @return array{Project, User}
  */
@@ -49,8 +39,6 @@ function matrixProjectOperation(string $operation, Project $project): array
         'update' => ['put', route('projects.update', $project), ['id' => $project->id, 'name' => 'Renamed']],
         'archive' => ['put', route('projects.archive', $project), []],
         'restore' => ['delete', route('projects.restore', $project), []],
-        // A dataset row naming an operation this function does not know is a typo, and a
-        // typo that silently ran nothing would look like a passing matrix.
         default => throw new InvalidArgumentException("Unknown matrix operation [{$operation}]."),
     };
 }
@@ -146,10 +134,6 @@ it('hides a private project from a workspace member who was never given it', fun
 
     [$method, $url, $payload] = matrixProjectOperation($operation, $project);
 
-    /*
-     * The workspace owner, on a private project in their own workspace. Private means
-     * private: ownership of the workspace is not a key to every room in it.
-     */
     $this->actingAs($actor)->{$method}($url, $payload)->assertNotFound();
 
     expect($project->fresh()?->name)->toBe('Untouched');
@@ -158,13 +142,12 @@ it('hides a private project from a workspace member who was never given it', fun
 it('denies a guest by visibility as well as by access level', function (): void {
     [$project, $guest] = matrixProject(WorkspaceRole::Guest, null);
 
-    // The project is workspace-visible, which grants a guest nothing at all.
+    // Workspace visibility grants a guest nothing.
     $this->actingAs($guest)->get(route('projects.edit', $project))->assertNotFound();
 
     ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Owner)->create();
 
-    // Given the project explicitly, the guest may read it — and still may not manage it,
-    // because the workspace half of the answer says a guest never updates a project.
+    // An explicit grant lets a guest read, but the guest role never updates a project.
     $this->actingAs($guest)->get(route('projects.edit', $project))->assertOk();
     $this->actingAs($guest)
         ->put(route('projects.update', $project), ['id' => $project->id, 'name' => 'Renamed'])

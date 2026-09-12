@@ -25,8 +25,6 @@ class UpdateTagRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // `sometimes`, so recolouring does not have to resend the name and renaming does not
-            // have to resend the colour.
             'name' => ['sometimes', 'required', 'string', 'max:40'],
             'color' => ['sometimes', 'nullable', new IsAccentColor],
         ];

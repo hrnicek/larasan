@@ -17,20 +17,10 @@ import type { Editor } from '@tiptap/vue-3';
 import type { Component } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
 
-/**
- * What can be done to what is selected, where it is selected.
- *
- * One surface with three modes rather than three floating things: a run of text offers its marks,
- * a code block offers the one thing a code block has to say about itself, and a table offers its
- * structure. Which mode is showing is decided by where the caret is, never by a control somebody
- * has to find first.
- *
- * Every button prevents the default on `mousedown`. A control that takes the focus takes the
- * selection with it, and a bold button that unbolds nothing is worse than no bold button.
- */
+// Buttons prevent the default on `mousedown`, so taking focus does not clear the editor's selection.
 const props = defineProps<{
     editor: Editor;
-    /** What the toolbar hangs off: the selection's own rectangle, in viewport coordinates. */
+    /** Viewport coordinates. */
     anchor: { top: number; left: number } | null;
     mode: 'marks' | 'code' | 'table';
 }>();
@@ -79,11 +69,7 @@ const marks = computed<Mark[]>(() => [
     },
 ]);
 
-/**
- * The languages a code block may claim. A short list on purpose: this is a document, not an IDE,
- * and a list of two hundred is a list nobody reads. `PageDocument` accepts any short token, so
- * adding one here is the only change needed.
- */
+// The server accepts any short language token, so a language is added here only.
 const languages: { value: string; label: string }[] = [
     { value: '', label: 'Plain text' },
     { value: 'bash', label: 'Shell' },
@@ -150,11 +136,7 @@ const openLink = async (): Promise<void> => {
     hrefField.value?.focus();
 };
 
-/**
- * A link goes somewhere on the web, to an inbox, or somewhere in this application. The same three
- * schemes `PageDocument` keeps, checked here so a refusal is a message rather than a mark that
- * quietly disappears on save.
- */
+// Mirrors the schemes the server keeps, so a refused link is not silently dropped on save.
 const allowed = (candidate: string): boolean => {
     const trimmed = candidate.trim();
     const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(trimmed)?.[1]?.toLowerCase();
@@ -178,7 +160,6 @@ const removeLink = (): void => {
     linking.value = false;
 };
 
-/** A toolbar that moved has a different job than the one that was open on it. */
 watch(
     () => [props.anchor, props.mode],
     () => {

@@ -17,10 +17,6 @@ class SectionFactory extends Factory
     protected $model = Section::class;
 
     /**
-     * Every nullable column is set explicitly: strict Eloquent throws on an attribute the
-     * model never retrieved, so a factory that omits one hands each test a model that
-     * fails on first read.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

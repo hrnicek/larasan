@@ -15,11 +15,6 @@ class BackfillThumbnails extends Command
 
     protected $description = 'Derive the missing thumbnails of images attached before they existed';
 
-    /**
-     * Synchronous on purpose. This is an operator running a one-off over a known set, watching a
-     * progress bar; queueing it would hand back a prompt and a question about whether it worked.
-     * The per-file work is the same Action the upload listener calls.
-     */
     public function handle(MakeThumbnail $makeThumbnail): int
     {
         $made = 0;

@@ -27,11 +27,7 @@ class StorePlacementRequest extends FormRequest
         $project = $this->project();
 
         return [
-            /*
-             * Scoped to the project's workspace. A valid id from another tenant deserves a
-             * validation error rather than a domain exception — and without the scope,
-             * `exists` would happily confirm that somebody else's task exists.
-             */
+            // Scoped to the workspace, so `exists` cannot confirm another tenant's tasks.
             'task' => [
                 'required', 'uuid',
                 Rule::exists('tasks', 'id')->where(

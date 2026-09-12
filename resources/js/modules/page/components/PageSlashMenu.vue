@@ -8,14 +8,7 @@ export type SlashCommand = {
     icon: Component;
 };
 
-/**
- * The list a slash opens.
- *
- * Positioned against the caret rather than anchored to a control, because that is where the
- * person is looking. It is a `listbox` and not a menu: the field being typed into keeps the
- * focus, and what moves is the selection inside this list — which is what `aria-activedescendant`
- * on the editor is for.
- */
+// A listbox rather than a menu: the editor keeps focus and points at the option via `aria-activedescendant`.
 defineProps<{
     commands: SlashCommand[];
     selected: number;

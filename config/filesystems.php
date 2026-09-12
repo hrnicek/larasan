@@ -30,21 +30,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Attachments Disk
+    | Attachment and Avatar Disks
     |--------------------------------------------------------------------------
     |
-    | Domain code resolves the attachment disk through this key rather than
-    | naming a driver, so moving attachments between local storage and any
-    | S3-compatible bucket is configuration only. See ADR-0007.
+    | The disks attachments and uploaded avatars are stored on. See ADR-0007.
     |
     */
 
     'attachments' => env('FILESYSTEM_ATTACHMENTS_DISK', 'attachments'),
-
-    /*
-    | Uploaded profile pictures, resolved the same way. The shipped illustrations
-    | are static files in public/img/avatars and are not on any disk.
-    */
 
     'avatars' => env('FILESYSTEM_AVATARS_DISK', 'avatars'),
 
@@ -58,13 +51,7 @@ return [
             'report' => false,
         ],
 
-        /*
-         * Attachments live on their own disk rather than on `local`, which is registered with
-         * `serve => true` and therefore has a framework route into it. That route is signature
-         * gated, so it is not a hole today — but a disk the framework can serve is one signed
-         * URL away from bypassing the reach check every download goes through (ADR-0007,
-         * TASK-120-010). This disk has no route at all.
-         */
+        // Not served by the framework, so every download goes through an authorizing controller.
         'attachments' => [
             'driver' => 'local',
             'root' => storage_path('app/attachments'),
@@ -73,7 +60,6 @@ return [
             'report' => false,
         ],
 
-        // No route either, for the same reason: `UserAvatarController` is the only way in.
         'avatars' => [
             'driver' => 'local',
             'root' => storage_path('app/avatars'),

@@ -16,8 +16,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A search somebody kept.
- *
  * @property string $id
  * @property int $user_id
  * @property string $workspace_id
@@ -33,10 +31,6 @@ class SavedSearch extends Model
     /** @use HasFactory<SavedSearchFactory> */
     use HasFactory, HasUuids;
 
-    /**
-     * The owner and the workspace are absent: they are decided by who is asking and where they
-     * are, never by a payload.
-     */
     protected $fillable = ['name', 'term', 'kind', 'filters'];
 
     /** @return BelongsTo<User, $this> */

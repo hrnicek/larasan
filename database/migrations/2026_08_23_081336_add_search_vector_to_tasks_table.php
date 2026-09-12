@@ -6,27 +6,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * What search reads (ADR-0012).
- *
- * A **stored generated column** rather than a trigger: it cannot drift from the row it
- * describes, and nothing has to remember to update it.
- *
- * `unaccent` is wrapped in an IMMUTABLE function because the extension's own is only STABLE —
- * PostgreSQL refuses a generated column built from a function it cannot promise will give the
- * same answer tomorrow. The wrapper names the dictionary explicitly, which is what makes that
- * promise true.
- *
- * The `simple` configuration, not a language's: a workspace writing in one language should not
- * have its search shaped by a stemmer chosen for another, and prefix matching (`term:*`) is what
- * this application uses instead of stemming (ADR-0012).
- */
 return new class extends Migration
 {
     public function up(): void
     {
         DB::statement('CREATE EXTENSION IF NOT EXISTS unaccent');
 
+        // unaccent() is only STABLE, and a generated column requires an IMMUTABLE function.
         DB::statement(<<<'SQL'
             CREATE OR REPLACE FUNCTION immutable_unaccent(text)
             RETURNS text

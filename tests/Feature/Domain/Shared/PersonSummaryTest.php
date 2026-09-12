@@ -31,11 +31,7 @@ it('withholds the address from a face', function (): void {
     ]);
 });
 
-/*
- * The narrow select the project header reads with. Strict Eloquent throws on an attribute the
- * model never retrieved, so a `face()` that reached for the address — or a select that forgot the
- * avatar — would fail here rather than on the screen.
- */
+// Strict Eloquent throws on attributes that were not selected, so a missing column fails here.
 it('reads only the columns a header list selects', function (): void {
     $person = User::factory()->withAvatarPreset(12)->create();
 

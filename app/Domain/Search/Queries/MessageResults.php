@@ -15,23 +15,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 /**
- * The messages a term finds, for the palette.
- *
- * A comment has no reach of its own: it is readable exactly when the thing it was said on is
- * (ADR-0006). So the hydration query asks `ReachableTasks` about the subject, which means a
- * comment on a task in a private project is not returned even when the index holds it — and it
- * stops being returned the moment the project changes, without anything being reindexed.
- *
- * Tasks are the only thing that can be commented on today (`Commentable`), and the query says so
- * rather than assuming it: a second subject type would need its own reach, and answering with
- * the wrong one is how a leak gets written.
+ * Only task comments are searched; another commentable type would need its own reach constraint. See ADR-0006.
  */
 final readonly class MessageResults
 {
     /** @see TaskResults::CANDIDATES_PER_RESULT */
     private const CANDIDATES_PER_RESULT = 4;
 
-    /** What a palette row can show of a message before it stops being a row. */
     private const EXCERPT = 160;
 
     public function __construct(private ReachableTasks $reachable) {}
@@ -83,8 +73,6 @@ final readonly class MessageResults
                 'name' => $author->name,
                 'email' => $author->email,
             ],
-            // The task is how a message is opened: a comment on its own is a line with no
-            // context, and the palette row is that context.
             'task' => $task instanceof Task ? ['id' => $task->id, 'title' => $task->title] : null,
         ];
     }

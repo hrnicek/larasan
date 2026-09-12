@@ -27,12 +27,6 @@ class MoveAttachmentRequest extends FormRequest
         $attachment = $this->attachment();
 
         return [
-            /*
-             * "Place this after that one" (ADR-0009): there is no position field to send, and
-             * the anchor must hang from the same subject and not be the file being moved. The
-             * Action refuses both again — a console command arrives without a request — but a
-             * stale screen deserves a validation error rather than a domain exception.
-             */
             'after' => [
                 'nullable', 'uuid',
                 Rule::exists('attachments', 'id')->where(

@@ -8,14 +8,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * The choices a `select` field offers.
- *
- * Scoped by joining its field (ADR-0005) rather than carrying a workspace of its own. The
- * position is a plain integer with a unique constraint: an option list is short and reordered
- * whole, so the sparse-position machinery tasks and sections need would be weight for nothing
- * (ADR-0009 is about lists people drag one item at a time).
- */
 return new class extends Migration
 {
     public function up(): void
@@ -28,8 +20,6 @@ return new class extends Migration
             $table->unsignedInteger('position');
             $table->timestamps();
 
-            // Two options cannot claim one slot, so the order a screen draws is the order the
-            // table states rather than whichever row PostgreSQL returned first.
             $table->unique(['custom_field_id', 'position']);
         });
 

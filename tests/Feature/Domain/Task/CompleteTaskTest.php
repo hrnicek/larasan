@@ -33,8 +33,6 @@ it('reopens by clearing both columns', function (): void {
 
     $fresh = $task->fresh();
 
-    // Leaving completed_by behind would make a reopened task look done to anything that
-    // reads the column instead of the timestamp.
     expect($fresh?->isCompleted())->toBeFalse()
         ->and($fresh?->completed_by)->toBeNull();
 });
@@ -68,8 +66,6 @@ it('never consults a section to decide what completion means', function (): void
     $project = Project::factory()->in($task->workspace)->create();
     Section::factory()->in($project)->create(['name' => 'Done']);
 
-    // A column called "Done" is a name somebody chose (ADR-0004). Nothing here reads it,
-    // and a project that renames it must not reopen anybody's work.
     expect($task->fresh()?->isCompleted())->toBeFalse();
 
     app(CompleteTask::class)->complete($task, $actor);
@@ -84,8 +80,6 @@ it('leaves subtasks alone', function (): void {
 
     app(CompleteTask::class)->complete($parent, $actor);
 
-    // Whether completing a parent should close its children is a product decision nobody
-    // has made; doing nothing is the reversible half of it.
     expect($child->fresh()?->isCompleted())->toBeFalse();
 });
 

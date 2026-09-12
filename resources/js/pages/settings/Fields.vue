@@ -13,14 +13,6 @@ import { Label } from '@/components/ui/label';
 import { typeHints, typeLabels } from '@/modules/custom-field/fieldTypes';
 import type { CustomFieldType, WorkspaceCustomField } from '@/modules/custom-field/types';
 
-/**
- * What this workspace records about its work.
- *
- * The screen a field could not be made from until now: Phase 150 built the Actions and never gave
- * them a transport, so a field could only be brought into being by a seeder. Defining one is
- * `custom_field.manage`, an owner's and an admin's (ADR-0010) — which project shows it is the
- * other half of the decision and is made on the project's own settings screen.
- */
 const props = defineProps<{
     fields: WorkspaceCustomField[];
     types: CustomFieldType[];
@@ -35,7 +27,7 @@ const form = useForm<{ name: string; type: CustomFieldType; options: string[] }>
 
 const isChoice = computed(() => form.type === 'select');
 
-/** Errors on the choices arrive keyed by index (`options.0`), which no typed form object has. */
+// Array errors arrive keyed by index (`options.0`), which the typed form errors do not model.
 const optionError = (index: number): string | undefined =>
     (form.errors as Record<string, string | undefined>)[`options.${index}`];
 
@@ -44,7 +36,6 @@ const choiceInputs = ref<HTMLInputElement[]>([]);
 function addChoice(): void {
     form.options.push('');
 
-    // The new box takes the caret: adding a choice is one gesture, not one gesture and a click.
     void nextTick(() => choiceInputs.value[form.options.length - 1]?.focus());
 }
 
@@ -58,11 +49,7 @@ function removeChoice(index: number): void {
 
 function submit(): void {
     form
-        /*
-         * A field that is not a choice sends no choices at all rather than an empty list: the
-         * server reads an absent key as "this type has none", and an empty array as a choice
-         * field somebody emptied.
-         */
+        // The server reads an absent `options` key as "none" but an empty array as an emptied choice field.
         .transform((data) => (data.type === 'select' ? data : { name: data.name, type: data.type }))
         .post(CustomFieldController.store.url(), {
             preserveScroll: true,
@@ -76,11 +63,6 @@ function submit(): void {
 const renaming = ref<string | null>(null);
 const deleting = ref<WorkspaceCustomField | null>(null);
 
-/**
- * What deleting a field costs, said before it is agreed to. Detaching from a project keeps the
- * answers; deleting the field is the operation that does not, and the difference is the whole
- * reason the two exist separately.
- */
 const deletionCost = computed(() => {
     const field = deleting.value;
 
@@ -111,11 +93,7 @@ function confirmDeletion(): void {
     });
 }
 
-/*
- * The choices of a field that already exists. The list is edited and sent whole — an entry with an
- * id is kept, one without is created, an id left out is removed — because that is what the server
- * reconciles, and because an option list is short enough to be read as one thing.
- */
+// Sent whole: entries with an id are kept, entries without one are created, omitted ids are removed.
 const editingChoices = ref<string | null>(null);
 
 const choices = useForm<{ options: { id: string | null; label: string }[] }>({ options: [] });
@@ -126,7 +104,6 @@ function editChoices(field: WorkspaceCustomField): void {
     choices.options = field.options.map((option) => ({ id: option.id, label: option.label }));
 }
 
-/** Errors on the choices arrive keyed by index, which no typed form object has. */
 function choiceError(index: number): string | undefined {
     return (choices.errors as Record<string, string | undefined>)[`options.${index}.label`];
 }
@@ -190,8 +167,6 @@ function summary(field: WorkspaceCustomField): string {
 
             <p class="text-muted-foreground text-xs">{{ typeHints[form.type] }}</p>
 
-            <!-- A choice field is created with its choices in one request, because a choice field
-                 with no choices is a control nobody can use. -->
             <fieldset v-if="isChoice" class="space-y-2 border-t pt-4">
                 <legend class="sr-only">Choices</legend>
 
@@ -277,8 +252,6 @@ function summary(field: WorkspaceCustomField): string {
                 </template>
                 </div>
 
-                <!-- Sent whole and reconciled: what is here when Save is pressed is what the field
-                     offers afterwards. -->
                 <div v-if="editingChoices === field.id" class="space-y-2 border-t pt-4">
                     <div
                         v-for="(choice, index) in choices.options"

@@ -13,21 +13,13 @@ const collapsed = useCollapsed();
 const projects = computed<SidebarProject[]>(() => page.props.projects);
 const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
 
-/*
- * Two groups from one prop. The server sends the starred rows first — the list is capped, and a
- * project somebody pinned themselves must not be the one the cap cuts off — so this splits what
- * it was given rather than sorting it again.
- */
+// The server orders starred rows first so the capped list never drops them; split, do not re-sort.
 const starred = computed<SidebarProject[]>(() => projects.value.filter((project) => project.starred));
 const rest = computed<SidebarProject[]>(() => projects.value.filter((project) => !project.starred));
 </script>
 
 <template>
     <div class="space-y-1">
-        <!--
-            Starred is a group somebody made themselves, so it is drawn only once they have. An
-            empty "Starred" heading is a promise of a feature rather than a place to look.
-        -->
         <template v-if="starred.length">
             <h2
                 v-if="!collapsed"
@@ -38,7 +30,6 @@ const rest = computed<SidebarProject[]>(() => projects.value.filter((project) =>
 
             <ProjectNavRow v-for="project in starred" :key="project.id" :project="project" />
 
-            <!-- Collapsed there are no headings, so the rule is what says the group ended. -->
             <hr v-if="collapsed" class="my-1 border-chrome-border" />
         </template>
 
@@ -55,19 +46,8 @@ const rest = computed<SidebarProject[]>(() => projects.value.filter((project) =>
             </Link>
         </div>
 
-        <!--
-            A project in the sidebar opens the project, not its settings. A right click on the row
-            opens what else can be done to it, which is where somebody reaches for those actions —
-            the alternative is navigating away from what they were looking at first.
-        -->
         <ProjectNavRow v-for="project in rest" :key="project.id" :project="project" />
 
-        <!--
-            The empty state names the next action rather than the absence. Somebody who cannot
-            create one is told why the list is empty instead of being offered a control that
-            would refuse them. It answers for the whole list, not for this group: somebody whose
-            only project is starred has projects.
-        -->
         <template v-if="!projects.length && !collapsed">
             <Link
                 v-if="canCreate"

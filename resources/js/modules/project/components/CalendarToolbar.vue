@@ -7,18 +7,9 @@ import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue'
 import type { CalendarCardData, ProjectCalendar } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
-/**
- * Which month you are looking at, and the work that is not in any month.
- *
- * The month lives in the URL rather than in local state, for the reason the view does: a reload
- * and a shared link should both show what the sender was looking at. Every control here is a
- * real link, so a middle-click opens next month in a tab and the back button walks back through
- * the months somebody paged through.
- */
 const props = defineProps<{
     projectId: string;
     calendar: ProjectCalendar;
-    /** Carried through every link, so paging months does not silently drop the tag filter. */
     tags: string[];
     editable: boolean;
     draggingId: string | null;
@@ -32,7 +23,6 @@ const emit = defineEmits<{
 const address = (month: string): string =>
     show(props.projectId, { query: { view: 'calendar', month, tags: props.tags } }).url;
 
-/** `YYYY-MM`, moved by whole months — the string the URL carries and the server validates. */
 const shifted = (months: number): string => {
     const [year, month] = props.calendar.month.split('-').map(Number);
     const moved = new Date(year, month - 1 + months, 1);
@@ -44,7 +34,6 @@ const label = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
 );
 
-/** The month today falls in, so *Today* is a link like the arrows rather than a special case. */
 const thisMonth = computed<string>(() => props.calendar.today.slice(0, 7));
 
 const undated = computed(() => props.calendar.undated);
@@ -52,8 +41,6 @@ const undated = computed(() => props.calendar.undated);
 
 <template>
     <div class="flex flex-wrap items-center gap-2">
-        <!-- The three month controls are one segmented group: they do one job between them, and a
-             row of separately floating buttons reads as three unrelated ones. -->
         <div class="inline-flex items-center overflow-hidden rounded-md border border-border">
             <Link
                 :href="address(shifted(-1))"
@@ -95,11 +82,6 @@ const undated = computed(() => props.calendar.undated);
 
         <h2 class="text-base font-semibold text-foreground first-letter:uppercase">{{ label }}</h2>
 
-        <!--
-            Work with no due date. Counted rather than hidden: a month that draws only what is
-            scheduled would quietly answer "this project has nothing left" while the tray holds
-            seventeen things nobody has dated.
-        -->
         <Popover v-if="undated.count > 0">
             <PopoverTrigger
                 class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 md:ml-auto text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"

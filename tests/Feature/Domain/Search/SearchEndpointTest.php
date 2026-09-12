@@ -20,7 +20,6 @@ it('finds tasks from the query string', function (): void {
     Task::factory()->in($workspace)->create(['title' => 'Fix the login screen']);
     Task::factory()->in($workspace)->create(['title' => 'Write the changelog']);
 
-    // A search is a link: the term lives in the address, so a reload lands on the same results.
     $this->actingAs($actor)
         ->get(route('search.index', ['q' => 'login']))
         ->assertOk()
@@ -64,7 +63,7 @@ it('narrows by project, assignee and completion from the URL', function (): void
         ->get(route('search.index', ['q' => 'login', 'assignee' => $assignee->id]))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->has('tasks', 1));
 
-    // `completed=0` is the half people use most, and it must not be dropped as "empty".
+    // completed=0 must not be treated as an absent filter.
     $this->actingAs($actor)
         ->get(route('search.index', ['q' => 'login', 'completed' => '0']))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
@@ -79,8 +78,6 @@ it('offers only the projects this actor can open as filters', function (): void 
     Project::factory()->in($workspace)->create(['name' => 'Open']);
     Project::factory()->in($workspace)->create(['name' => 'Private', 'visibility' => ProjectVisibility::Private]);
 
-    // A filter that named a project search would never return anything from would be a menu
-    // entry that leaks a name.
     $this->actingAs($actor)
         ->get(route('search.index', ['q' => 'anything']))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page

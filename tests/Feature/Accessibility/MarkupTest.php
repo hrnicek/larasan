@@ -5,18 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
-/*
- * The parts of an accessibility review a machine can hold on to (TASK-180-007). The keyboard
- * walkthrough is a person's job and belongs to the browser pass; these three are the rules that
- * quietly break when somebody adds a screen or a control, and nobody notices until it is used.
- */
-
 /**
- * A component's source, and the source of every `@/` component it imports one level down.
- *
- * One level, not the whole tree: a heading two components deep is a heading nobody would find
- * when reading either file, and the check would stop meaning anything.
- *
  * @return list<string>
  */
 function componentWithItsImports(string $path): array
@@ -44,7 +33,7 @@ function componentWithItsImports(string $path): array
 }
 
 /**
- * The layouts `app.ts` gives a page, by the same rule it uses.
+ * Mirrors the layout resolution in `app.ts`.
  *
  * @return list<string>
  */
@@ -62,18 +51,7 @@ function layoutsFor(string $page): array
 }
 
 /**
- * Whether a source renders the top of a screen's outline.
- *
- * Four shapes, because the application has four: a literal `<h1>`, the shared `Heading`
- * component in its default variant — which renders `h1` — `Heading` told explicitly which
- * level it is, which is how a page whose title is set small still opens the outline, and
- * `ModalShell` with a title.
- *
- * A modal is the fourth because it is named differently. It renders over a page that already
- * opens an outline, so a second `<h1>` would give a reader two level-one headings in one
- * document. What names a dialog is `aria-labelledby`, and `ModalShell` is the one component
- * that wires it — so requiring the shell and its title is the same guarantee, expressed the way
- * a dialog expresses it.
+ * A titled `ModalShell` counts because a dialog is named by `aria-labelledby`, not a second `<h1>`.
  */
 function opensAnOutline(string $source): bool
 {
@@ -135,8 +113,6 @@ it('names every control that is only an icon', function (): void {
 
         $source = (string) File::get($file->getPathname());
 
-        // The icons this file imports, so a component that is only an icon can be told from a
-        // component that renders words.
         preg_match_all("/import \{([^}]+)\} from '@lucide\/vue'/", $source, $iconImports);
         $icons = collect(explode(',', implode(',', $iconImports[1])))
             ->map(fn (string $name): string => trim(Str::after($name, ' as ')))
@@ -176,17 +152,6 @@ it('renders no HTML it did not build, except the one place it does', function ()
         ->values()
         ->all();
 
-    /*
-     * Two, and each one is a decision somebody had to make.
-     *
-     * The two-factor QR code is an SVG the server generates from Fortify's own secret — no part
-     * of it comes from anybody's input.
-     *
-     * A task's description *is* somebody's input, and it is drawn as markup because a person
-     * wrote it in an editor. What makes that safe is upstream and testable: `RichText::sanitize`
-     * reduces it to an allowlist inside `CreateTask` and `UpdateTask`, so the column can only
-     * ever hold tags this application draws (`RichTextTest`). Nothing else may render markup
-     * without the same guarantee, which is what this list is for.
-     */
+    // The QR code is server-generated SVG; descriptions are allowlisted by `RichText::sanitize` on write.
     expect($offenders)->toBe(['TwoFactorSetupModal.vue', 'TaskDescriptionField.vue']);
 });

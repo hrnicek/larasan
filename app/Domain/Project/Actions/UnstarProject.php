@@ -9,11 +9,7 @@ use App\Domain\Project\Models\ProjectStar;
 use App\Models\User;
 
 /**
- * Take a project off the top of one person's sidebar.
- *
- * No reach check, deliberately, as `UnfollowTask` has none: somebody who has lost access to a
- * project must still be able to clear it out of their own sidebar. Unstarring something that is
- * not starred is a no-op, because the outcome they asked for is already true.
+ * No access check: a user who lost access to a project must still be able to unstar it.
  */
 final readonly class UnstarProject
 {

@@ -14,22 +14,8 @@ use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification as Notifications;
 
-/**
- * Tell the people a comment names.
- *
- * On an edit as well as on a write: a name added afterwards is somebody pulled into the thread
- * just the same. The notification's key is the comment, so a name that was there all along is not
- * told twice.
- *
- * The comment is read again rather than trusted from the event, because this runs later: a name
- * edited out, a comment removed or a task the person has since lost all mean there is nobody to
- * tell.
- */
 final readonly class NotifyMentionedPeople implements ShouldQueue
 {
-    /**
-     * The `notifications` queue Horizon already supervises, below `broadcasts` (ADR-0008).
-     */
     public function viaQueue(): string
     {
         return 'notifications';
@@ -39,7 +25,6 @@ final readonly class NotifyMentionedPeople implements ShouldQueue
     {
         $authorId = $event instanceof CommentCreated ? $event->authorId : $event->editorId;
 
-        // Naming yourself is not news.
         $named = array_diff($event->mentionedIds, [$authorId]);
 
         if ($event->subjectType !== 'task' || $named === []) {

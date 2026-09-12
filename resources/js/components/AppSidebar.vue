@@ -19,28 +19,16 @@ const page = usePage();
 const { isCurrentUrl } = useCurrentUrl();
 const { variant = 'rail' } = defineProps<{ variant?: 'rail' | 'drawer' }>();
 
-/*
- * The drawer is 288px wide and has no toggle, so it is never a rail. The fact is overridden for
- * this subtree rather than threaded as a prop through five components, so every row's own logic
- * is unchanged — and it is computed here rather than injected back, because a component does not
- * read its own `provide`.
- */
+// The drawer is never collapsed; computed locally because a component cannot inject its own provide.
 const inherited = useCollapsed();
 const collapsed = computed<boolean>(() => variant !== 'drawer' && inherited.value);
 
 provideCollapsed(collapsed);
 
-/** The badge is the server's count, shared with every screen (TASK-130-009). */
 const unread = computed<number>(() => page.props.unreadNotifications);
 
-/*
- * The shell is the one component on every authenticated screen, so it is where the badge learns
- * about a notification without being asked (TASK-170-005). Echo is imported dynamically inside
- * the composable and is not in the entry chunk.
- */
 useInboxRealtime();
 
-/* Each names the page it opens, so the visit is instant (`ChromeNavItem`). */
 const primary = computed(() => [
     { label: 'Home', href: dashboard().url, icon: Home, component: 'Dashboard' },
     { label: 'My Tasks', href: MyTasksController.index.url(), icon: CheckSquare, component: 'my-tasks/Index' },

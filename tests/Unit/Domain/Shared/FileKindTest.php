@@ -22,8 +22,7 @@ it('reads the kind from the type the upload was sniffed as', function (string $m
 ]);
 
 it('ignores the extension while the type is still saying something', function (): void {
-    // A PNG that calls itself a spreadsheet is a PNG (ADR-0007): the extension is a claim the
-    // person uploading made, and nothing here trusts it while there is a better answer.
+    // The extension is only the uploader's claim, so a meaningful MIME type wins. See ADR-0007.
     expect(FileKind::fromMime('image/png', 'xlsx'))->toBe(FileKind::Image);
 });
 

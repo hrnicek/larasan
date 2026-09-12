@@ -9,10 +9,6 @@ import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
-/**
- * One column. It scrolls on its own, so a long column does not push the board's other columns
- * off the screen, and it says what it is not showing rather than pretending to be complete.
- */
 const props = defineProps<{
     column: BoardColumnData;
     projectId: string;
@@ -21,17 +17,12 @@ const props = defineProps<{
     loading: boolean;
     draggingId: string | null;
     over: boolean;
-    /** Where a drop would land right now, drawn as a line in the gap the card would take. */
+    /** `before` is the placement the drop lands above; null means the end of the column. */
     dropTarget?: { key: string; before: string | null } | null;
-    /** What may be done to the column itself, decided by the server (ADR-0010). */
     canSection?: { create: boolean; update: boolean; delete: boolean };
     columns: BoardColumnData[];
 }>();
 
-/**
- * Whether the line belongs in this gap: the pointer is over this column, and the card after the
- * gap is the one the dragged card would sit above. `null` is the gap at the end.
- */
 const isDropSlot = (placementId: string | null): boolean =>
     props.dropTarget != null
     && props.dropTarget.key === (props.column.id ?? 'ungrouped')
@@ -57,10 +48,7 @@ function saveRename(): void {
         return;
     }
 
-    /*
-     * The colour goes with the name. `PUT /sections/{section}` replaces both columns and reads an
-     * absent colour as "clear it", so a rename carrying only the name silently blanks the colour.
-     */
+    // The update replaces both fields and reads an absent colour as "clear", so resend the colour.
     router.put(
         SectionController.update.url(props.column.id),
         { name: next, color: props.column.color },
@@ -94,8 +82,6 @@ const emit = defineEmits<{
                 @keydown.enter.prevent="saveRename"
                 @keydown.esc.prevent="renaming = false"
             />
-            <!-- The colour, on the header of the column it belongs to. The band says it across the
-                 whole width; the dot is what survives a tint too pale to read as a background. -->
             <span
                 v-else
                 class="size-2 shrink-0 rounded-full"
@@ -122,7 +108,7 @@ const emit = defineEmits<{
             />
         </header>
 
-        <!-- The drop target. `data-column-key` is what the drag reads back from the pointer. -->
+        <!-- The board's drag handler reads `data-column-key` from the element under the pointer. -->
         <div
             class="flex max-h-[60vh] min-h-24 flex-col gap-2 overflow-y-auto border-t border-border p-2 [scrollbar-width:thin]"
             :class="over ? 'bg-accent/40' : ''"
@@ -151,7 +137,6 @@ const emit = defineEmits<{
                 />
             </template>
 
-            <!-- The end of the column is a slot too, and the only one with no card after it. -->
             <div v-if="isDropSlot(null)" class="relative h-0">
                 <span class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary" aria-hidden="true" />
             </div>

@@ -7,8 +7,7 @@ namespace App\Domain\Page\Events;
 final readonly class PageDeleted
 {
     /**
-     * @param  list<string>  $descendantIds  the subtree that went with it, so a screen holding
-     *                                       any of them knows it is looking at something gone
+     * @param  list<string>  $descendantIds
      */
     public function __construct(
         public string $pageId,

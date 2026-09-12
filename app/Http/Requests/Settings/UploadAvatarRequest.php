@@ -11,9 +11,6 @@ use Illuminate\Http\UploadedFile;
 class UploadAvatarRequest extends FormRequest
 {
     /**
-     * `mimetypes` rather than `mimes`, as for attachments: the first reads the file, the second
-     * believes the extension.
-     *
      * @return array<string, list<string>>
      */
     public function rules(): array

@@ -10,9 +10,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the database's
- * behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertFile(Workspace $workspace, ?User $uploader = null, array $overrides = []): string
@@ -40,11 +37,7 @@ function insertFile(Workspace $workspace, ?User $uploader = null, array $overrid
 }
 
 it('records the disk beside the path', function (): void {
-    /*
-     * The disk a file was written to is a fact about that file rather than about today's
-     * configuration (ADR-0007), so changing `FILESYSTEM_ATTACHMENTS_DISK` moves new uploads
-     * without stranding old ones.
-     */
+    // Stored per file so changing the attachments disk does not strand earlier uploads. See ADR-0007.
     expect(Schema::hasColumn('files', 'disk'))->toBeTrue()
         ->and(Schema::hasColumn('files', 'path'))->toBeTrue();
 });
@@ -65,8 +58,6 @@ it('survives the account that uploaded it', function (): void {
 
     $uploader->delete();
 
-    // A file other people are still working with must not disappear because the person who
-    // uploaded it left.
     $file = DB::table('files')->where('id', $id)->first();
 
     expect($file)->not->toBeNull()
@@ -80,10 +71,6 @@ it('refuses two rows pointing at one object', function (): void {
 
     insertFile($workspace, null, ['path' => $path]);
 
-    /*
-     * Two rows on one path would make deleting either of them delete the other's bytes — the
-     * kind of bug that is only ever found by losing somebody's file.
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertFile($workspace, null, ['path' => $path])))
         ->toThrow(QueryException::class);
 });
@@ -95,7 +82,6 @@ it('lets the same path exist on a different disk', function (): void {
     insertFile($workspace, null, ['path' => $path, 'disk' => 'attachments']);
     insertFile($workspace, null, ['path' => $path, 'disk' => 's3']);
 
-    // The pair identifies an object; the path alone does not.
     expect(DB::table('files')->where('path', $path)->count())->toBe(2);
 });
 
@@ -116,8 +102,6 @@ it('starts undeleted and can be hidden without losing the object', function (): 
 
     DB::table('files')->where('id', $id)->update(['deleted_at' => now()]);
 
-    // The row stops being reachable before the bytes are removed: deleting bytes inside a
-    // request is the one part of this that cannot be undone (TASK-120-007).
     $file = DB::table('files')->where('id', $id)->first();
 
     expect($file?->deleted_at)->not->toBeNull()

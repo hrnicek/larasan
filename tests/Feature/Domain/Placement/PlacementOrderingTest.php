@@ -11,16 +11,10 @@ use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * A column with `$count` cards in it, titled 'A', 'B', 'C'… so the order reads.
- *
- * A list rather than a collection: every test here indexes it by position, and an offset on a
- * collection is a `TaskProjectMembership|null` that none of them mean.
- *
  * @return array{Section, list<TaskProjectMembership>, User, Project}
  */
 function column(int $count = 3): array
@@ -62,7 +56,6 @@ function orderIn(Section $section): array
 it('places a card after the one the user dropped it on', function (): void {
     [$section, $cards, $actor] = column();
 
-    // C goes between A and B, expressed as "after A" — the client sends an id, not a number.
     moveTo($cards[2], $actor, $section, PlacementTarget::after($cards[0]));
 
     expect(orderIn($section))->toBe(['A', 'C', 'B']);
@@ -90,7 +83,6 @@ it('writes one row for a move', function (): void {
 
     moveTo($cards[2], $actor, $section, PlacementTarget::front());
 
-    // Sparse positions exist so a drag does not rewrite the tail (ADR-0009).
     expect([$cards[0]->refresh()->position, $cards[1]->refresh()->position])->toBe($untouched);
 });
 
@@ -116,8 +108,6 @@ it('does nothing when the card is already in that slot', function (): void {
 it('normalises the column when the neighbours have closed up', function (): void {
     [$section, $cards, $actor] = column();
 
-    // Two cards one apart: there is no midpoint left between them, which is the case
-    // `SparsePosition::MINIMUM_GAP` exists to notice before the sequence corrupts.
     $cards[0]->forceFill(['position' => 10])->save();
     $cards[1]->forceFill(['position' => 11])->save();
 
@@ -125,9 +115,7 @@ it('normalises the column when the neighbours have closed up', function (): void
 
     $positions = $section->placements()->pluck('position')->all();
 
-    // The column was respread and the card then took a midpoint inside it, so the result is
-    // not the even spread itself — what matters is that every neighbour is far enough apart
-    // for the next drag to have a midpoint of its own.
+    // The column is respread first, then the moved card takes the midpoint of the first gap.
     expect(orderIn($section))->toBe(['A', 'C', 'B'])
         ->and($positions)->toBe([SparsePosition::GAP, 98304, 2 * SparsePosition::GAP])
         ->and(SparsePosition::hasRoomBetween($positions[0], $positions[1]))->toBeTrue()
@@ -143,11 +131,7 @@ it('keeps every card while it normalises', function (): void {
 
     moveTo($cards[3], $actor, $section, PlacementTarget::after($cards[0]->refresh()));
 
-    /*
-     * Rows are parked in negative space before being written to their final positions: a
-     * rewrite that wrote final positions directly would collide with a row it had not moved
-     * yet, and the slot guard would abort the whole move.
-     */
+    // Normalising parks rows at negative positions first, or the slot guard would abort the move.
     expect($section->placements()->count())->toBe(4)
         ->and(orderIn($section))->toBe(['A', 'D', 'B', 'C']);
 });
@@ -209,12 +193,7 @@ it('moves a card into another column at a chosen place', function (): void {
 it('recovers when the slot it computed was taken between the read and the write', function (): void {
     [$section, $cards, $actor, $project] = column();
 
-    /*
-     * Stand-in for the concurrent case, which a single-process test cannot stage: the moment
-     * before the move writes its position, somebody else takes that exact slot. The slot
-     * guard turns it into an error and `handle()` retries — without the retry the exception
-     * escapes and this test fails.
-     */
+    // Simulates a concurrent writer taking the computed slot, which handle() must retry past.
     $injected = false;
 
     TaskProjectMembership::updating(function (TaskProjectMembership $placement) use (&$injected, $project, $section): void {
@@ -239,11 +218,7 @@ it('recovers when the slot it computed was taken between the read and the write'
 
     $positions = $section->placements()->pluck('position')->all();
 
-    /*
-     * The squatter row goes down with the transaction the unique violation aborted, so what
-     * survives is the retry's work: three cards, three distinct slots, in the order asked
-     * for. Without the retry, the violation escapes and nothing survives at all.
-     */
+    // The squatter is rolled back with the aborted transaction, so only the retry's writes survive.
     expect($injected)->toBeTrue()
         ->and(orderIn($section))->toBe(['A', 'C', 'B'])
         ->and(array_unique($positions))->toHaveCount(3);

@@ -1,15 +1,4 @@
 <script setup lang="ts">
-/**
- * The top of a screen that is not a project: My Tasks, the Inbox, Search.
- *
- * Built to the same shape as `ProjectHeader` — a title row, then a row of tabs sitting on the
- * border — so the application reads as one place rather than as several screens that happen to
- * share a sidebar.
- *
- * The title is drawn rather than hidden. The sidebar says which screen you chose; a heading says
- * what you are looking at, and the two are not the same job — a person arriving from a link never
- * saw the sidebar highlight.
- */
 defineProps<{
     title: string;
     description?: string;

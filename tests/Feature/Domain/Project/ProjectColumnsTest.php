@@ -17,14 +17,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * The order the list draws its columns in. Stored as a wish rather than a fact: a field named in
- * it may since have been detached, and one attached afterwards is named nowhere.
- */
-
 /**
- * A project with two fields on it, and the owner who may reorder them.
- *
  * @return array{Project, User, string, string}
  */
 function projectWithColumns(): array
@@ -44,8 +37,6 @@ function projectWithColumns(): array
 it('draws the order it always drew until somebody changes it', function (): void {
     [$project, , $estimate, $client] = projectWithColumns();
 
-    // Null is a project nobody has reordered, not a project with no columns — which is what keeps
-    // this feature from changing a single existing screen.
     expect($project->list_columns)->toBeNull()
         ->and(ListColumns::for($project, $project->customFields))
         ->toBe([$estimate, $client, 'assignee', 'due', 'priority']);
@@ -75,11 +66,7 @@ it('stores nothing when the order is put back the way it was', function (): void
         'columns' => [$estimate, $client, 'assignee', 'due', 'priority'],
     ]);
 
-    /*
-     * A project put back the way it was should read as one nobody has reordered — otherwise a
-     * field attached later lands behind an order that happens to name everything, rather than at
-     * the end where it belongs.
-     */
+    // Storing the default order would pin later-attached fields behind it instead of at the end.
     expect($project->fresh()?->list_columns)->toBeNull();
 });
 
@@ -102,8 +89,6 @@ it('puts a field attached later at the end, and lets a detached one go', functio
     app(DetachFieldFromProject::class)->handle($project, CustomField::query()->findOrFail($estimate), $owner);
     $project->refresh()->load('customFields');
 
-    // The stored order still names it; it is dropped on the way out rather than drawn as an empty
-    // column, and the rest of the order is untouched.
     expect(ListColumns::for($project, $project->customFields))
         ->toBe([$client, 'priority', 'assignee', 'due', $stage->id]);
 });
@@ -157,8 +142,6 @@ it('sends the same order to the drawer that reorders it', function (): void {
         ])
         ->assertOk();
 
-    // The drawer opens over the board and the calendar too, so it carries the order itself rather
-    // than reading the list view's.
     $response->assertJsonPath('props.customize.columns.0.key', 'priority')
         ->assertJsonPath('props.customize.columns.1.key', $estimate)
         ->assertJsonPath('props.customize.columns.4.key', 'due');
@@ -168,8 +151,6 @@ it('refuses somebody without custom_field.manage', function (): void {
     [$project, $owner, $estimate, $client] = projectWithColumns();
     $member = memberOf($project->workspace, WorkspaceRole::Member);
 
-    // The same permission attaching a field asks for: it is one drawer and one kind of decision
-    // about everybody's board (ADR-0010).
     $this->actingAs($member)
         ->put(route('projects.columns.update', $project), ['columns' => ['due', $client, 'assignee', $estimate, 'priority']])
         ->assertForbidden();
@@ -205,7 +186,6 @@ it('leaves the lists that belong to no project alone', function (): void {
     [$workspace, $actor] = workspaceWith(WorkspaceRole::Owner);
     Workspace::query()->whereKey($workspace->id)->exists();
 
-    // My Tasks has no project and therefore nothing to reorder; its rows draw the default.
     $this->actingAs($actor)
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page) => $page->missing('columns'));

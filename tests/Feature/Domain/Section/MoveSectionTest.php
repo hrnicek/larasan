@@ -103,7 +103,6 @@ it('normalises when the neighbours have closed up, and still lands in the right 
     $b = addSection($project, $actor, 'B');
     $c = addSection($project, $actor, 'C');
 
-    // A gap of one: there is no midpoint left between A and B.
     $a->forceFill(['position' => 1000])->save();
     $b->forceFill(['position' => 1001])->save();
     $c->forceFill(['position' => 5000])->save();
@@ -113,7 +112,6 @@ it('normalises when the neighbours have closed up, and still lands in the right 
     expect(order($project))->toBe(['A', 'C', 'B'])
         ->and($project->sections()->pluck('position')->all())->each->toBeGreaterThan(0);
 
-    // Everything is spread again, so the next insertion has room.
     $positions = $project->sections()->pluck('position')->all();
     expect($positions[1] - $positions[0])->toBeGreaterThanOrEqual(SparsePosition::MINIMUM_GAP * 2);
 });

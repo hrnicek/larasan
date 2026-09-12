@@ -15,16 +15,6 @@ import { accentDotClass, accentVars } from '@/lib/accentColor';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
-/**
- * Where this task appears, and the only screen where a person can change it.
- *
- * Removing the last project is allowed (ADR-0003): a task with no project is still a task. The
- * warning is honest about what changes — it becomes reachable from My Tasks and search rather
- * than from a board — instead of pretending the task is about to be lost.
- *
- * The block holds whatever a project asks of this task, which is why the fields render inside it
- * rather than under a heading of their own: a custom field exists because a project defines it.
- */
 const props = defineProps<{
     taskId: string;
     placements: TaskDetail['placements'];
@@ -34,16 +24,7 @@ const props = defineProps<{
 
 const working = ref(false);
 
-/**
- * Which column of that project the task sits in.
- *
- * The move endpoint takes a section and, optionally, where in it — this sends only the section,
- * so the card lands at the end of the column. Dropping it at a chosen place between two cards is
- * the board's job and the board already does it (ADR-0009).
- *
- * A null section is the ungrouped bucket rather than the absence of an answer (ADR-0004), which
- * is why the menu offers it as an entry of its own.
- */
+/** Sends no position, so the task lands at the end of the section; `null` is the ungrouped bucket. */
 const move = (placementId: string, sectionId: string | null): void => {
     working.value = true;
 
@@ -76,11 +57,6 @@ const attach = (projectId: string): void => {
     );
 };
 
-/*
- * Taking a task out of its last project does not delete it — it stays reachable from My Tasks and
- * from search — but from this screen it looks like disappearance, which is exactly the case worth
- * asking about (ADR-0013).
- */
 const detaching = ref<{ placementId: string; name: string } | null>(null);
 
 const detach = (): void => {
@@ -202,8 +178,6 @@ const detach = (): void => {
             In no project — reachable from My Tasks and search.
         </p>
 
-        <!-- What the projects above ask of this task. Empty is said rather than left blank: a gap
-             here reads as a screen that failed to draw something. -->
         <div class="py-2">
             <slot name="fields" />
         </div>

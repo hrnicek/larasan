@@ -59,11 +59,6 @@ it('gives a card a new slot instead of carrying its old number over', function (
 
     moveInto($moving->fresh() ?? $moving, $actor, $to);
 
-    /*
-     * A position means something only inside one `(project, section)` pair (ADR-0009).
-     * Carrying the old number over is how two cards end up in one slot — and the slot guard
-     * would refuse the write rather than let it happen quietly.
-     */
     expect($to->placements()->pluck('position')->all())
         ->toBe([SparsePosition::GAP, 2 * SparsePosition::GAP])
         ->and($from->placements()->count())->toBe(0);
@@ -77,7 +72,6 @@ it('drags a card out of a column into the ungrouped bucket', function (): void {
 
     moveInto($placement->fresh() ?? $placement, $actor, null);
 
-    // Null is a place, not an absence: the card is still in the project (ADR-0004).
     expect($placement->fresh()?->section_id)->toBeNull()
         ->and($project->placements()->count())->toBe(1)
         ->and($section->placements()->count())->toBe(0);
@@ -118,8 +112,6 @@ it('does nothing when the card is already in that column', function (): void {
     Event::fake();
     moveInto($moved->fresh() ?? $moved, $actor, $section);
 
-    // Ordering inside a column is a different request: rewriting the position here would
-    // move a card the user did not move.
     expect($placement->fresh()?->position)->toBe($moved->fresh()?->position);
     Event::assertNotDispatched(TaskPlacementMoved::class);
 });
@@ -173,7 +165,6 @@ it('leaves the same task in another project alone', function (): void {
 
     moveInto($here, $actor, $section);
 
-    // One task, two placements, two independent positions (ADR-0003).
     expect($there->fresh()?->section_id)->toBeNull()
         ->and($there->fresh()?->position)->toBe($there->position);
 });

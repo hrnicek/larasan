@@ -13,15 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One person's shortcut to one task.
- *
- * Not a follow: following decides who a notification reaches, and starring decides nothing for
- * anybody but the person who did it. The two are separate rows for that reason — a task somebody
- * is watching is rarely the same set as the handful they want at hand.
- *
- * No `workspace_id`: the table is scoped by joining the task that owns it, and a denormalised
- * copy would be the one that drifts (ADR-0005).
- *
  * @property string $id
  * @property string $task_id
  * @property int $user_id
@@ -34,7 +25,6 @@ class TaskStar extends Model
     /** @use HasFactory<TaskStarFactory> */
     use HasFactory, HasUuids;
 
-    /** A star is created and deleted, never edited. */
     public const UPDATED_AT = null;
 
     protected $fillable = ['task_id', 'user_id'];

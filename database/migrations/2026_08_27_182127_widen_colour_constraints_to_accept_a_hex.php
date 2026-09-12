@@ -6,15 +6,7 @@ use App\Domain\Shared\Enums\ProjectColor;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
-/**
- * A colour is one of the eight names or a hex somebody chose (ADR-0021).
- *
- * The four constraints existed for one reason — a value outside the enum was accepted silently by
- * the column and then threw inside the cast on every request that read the row — and that reason
- * is unchanged. What widens is the set: the names, or `#rrggbb` in lower case. Case is the
- * application's job on the way in, and the pattern refuses upper case so a row that skipped
- * `AccentColor` cannot make two colours out of one.
- */
+// Hex colours must be lower case so one colour cannot be stored under two spellings. See ADR-0021.
 return new class extends Migration
 {
     /** @var list<string> */
@@ -32,8 +24,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Every hex becomes no colour rather than an invalid one: the constraint below would
-        // refuse the row, and a colour is the one thing here that can be lost without losing work.
         foreach (self::TABLES as $table) {
             DB::table($table)->where('color', 'like', '#%')->update(['color' => null]);
 

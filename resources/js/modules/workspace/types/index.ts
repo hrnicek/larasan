@@ -24,11 +24,11 @@ export type WorkspaceMember = {
     isLastOwner: boolean;
 };
 
-/** A membership that has been offered and not yet answered. Managers only. */
+/** Managers only. */
 export type WorkspacePendingInvitation = {
     id: string;
     email: string;
-    /** The invitee's name once an account holds the invitation, and null while none does. */
+    /** Null until an account holds the invitation. */
     name: string | null;
     role: string;
     invitedBy: string | null;
@@ -39,7 +39,7 @@ export type WorkspacePendingInvitation = {
 
 export type WorkspaceInvitation = {
     id: string;
-    /** The workspace's name — an invitee is not a member and gets no more of it than that. */
+    /** Only the name, since an invitee is not yet a member. */
     workspace: string;
     role: string;
     invitedBy: string | null;

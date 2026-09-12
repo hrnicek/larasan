@@ -43,10 +43,6 @@ it('refuses the same tag twice, whatever case somebody types', function (): void
     $workspace = Workspace::factory()->create();
     insertTag($workspace, 'Bug');
 
-    /*
-     * "Bug" and "bug" are one tag to everybody except a database, and a workspace holding both
-     * has a filter that quietly finds half the work.
-     */
     expect(fn (): string => DB::transaction(fn (): string => insertTag($workspace, 'bug')))
         ->toThrow(QueryException::class);
 
@@ -61,18 +57,13 @@ it('lets two workspaces use the same word', function (): void {
     insertTag($first, 'Bug');
     insertTag($second, 'Bug');
 
-    // A tag is a workspace's own vocabulary, not the installation's.
     expect(DB::table('tags')->where('name', 'Bug')->count())->toBe(2);
 });
 
 it('refuses a colour that is not in the palette', function (): void {
     $workspace = Workspace::factory()->create();
 
-    /*
-     * The column is cast to an enum, and a value outside it is accepted silently and then throws
-     * inside the cast on every request that reads the row — the same reason `projects.color`
-     * carries this constraint.
-     */
+    // An invalid value would otherwise be stored and then throw in the cast on every read.
     expect(fn (): string => DB::transaction(fn (): string => insertTag($workspace, 'Chartreuse', ['color' => 'chartreuse'])))
         ->toThrow(QueryException::class);
 });
@@ -97,7 +88,6 @@ it('reads its colour back as the accent it is, palette or chosen', function (): 
     $workspace = Workspace::factory()->create();
     $tag = Tag::factory()->in($workspace)->create(['color' => ProjectColor::Teal]);
 
-    // A palette case can be written straight in; what comes back is the value object either way.
     expect($tag->fresh()?->color?->paletteColor())->toBe(ProjectColor::Teal)
         ->and($tag->fresh()?->color?->isCustom())->toBeFalse();
 
@@ -108,8 +98,6 @@ it('reads its colour back as the accent it is, palette or chosen', function (): 
 });
 
 it('refuses to have its workspace mass assigned', function (): void {
-    // Which workspace a tag belongs to is decided by the Action from where the request was made,
-    // never by a payload.
     expect(fn (): Tag => (new Tag)->fill(['name' => 'Bug', 'workspace_id' => 'anything']))
         ->toThrow(MassAssignmentException::class);
 });
@@ -121,8 +109,7 @@ it('stores a hex colour and refuses anything the palette and the pattern both re
 
     expect(DB::table('tags')->where('name', 'Chosen')->value('color'))->toBe('#3f7d5a');
 
-    // Upper case is refused on purpose: the application lower-cases on the way in, so a row that
-    // skipped `AccentColor` cannot make two colours out of one (ADR-0021).
+    // The application lower-cases hex colours, so the constraint rejects upper case. See ADR-0021.
     expect(fn () => insertTag($workspace, 'Shouty', ['color' => '#3F7D5A']))
         ->toThrow(QueryException::class);
 

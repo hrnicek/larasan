@@ -55,9 +55,6 @@ final readonly class CreateTask
     }
 
     /**
-     * Resolves parents one row at a time, memoised for the walk — the chain is bounded by
-     * `ParentChain::MAX_DEPTH`, so this is a handful of primary-key lookups.
-     *
      * @return callable(string): ?string
      */
     private function parentResolver(string $workspaceId): callable
@@ -77,11 +74,6 @@ final readonly class CreateTask
         };
     }
 
-    /**
-     * The parent, proven to be in this workspace. A self-referencing foreign key cannot
-     * express "the same workspace", so nothing but an Action can refuse a parent from
-     * another tenant — `TaskSchemaTest` records that the database will happily accept one.
-     */
     private function parentIn(Workspace $workspace, ?string $parentId): ?Task
     {
         if ($parentId === null) {
@@ -90,15 +82,11 @@ final readonly class CreateTask
 
         $parent = Task::query()->whereKey($parentId)->first();
 
+        // The self-referencing foreign key cannot enforce that the parent is in the same workspace.
         if ($parent === null || $parent->workspace_id !== $workspace->id) {
             throw TaskException::parentBelongsToAnotherWorkspace();
         }
 
-        /*
-         * The same depth limit `UpdateTask` applies. Enforcing it on one path only would
-         * mean a chain that cannot be built by moving a task can still be built by creating
-         * one under its deepest end.
-         */
         if (ParentChain::depthOf($parent->id, $this->parentResolver($workspace->id)) + 1 >= ParentChain::MAX_DEPTH) {
             throw TaskException::parentChainTooDeep();
         }

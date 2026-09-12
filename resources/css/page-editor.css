@@ -1,13 +1,3 @@
-/*
- * The document, drawn.
- *
- * Scoped to `.page-document` and reachable by both the editor and any read-only rendering of the
- * same JSON, so a page looks the same whether or not the reader may change it.
- *
- * Tailwind's typography plugin is not installed and is not wanted here: a page's blocks are the
- * application's own type scale (`DESIGN.md`), and a second scale that only applies inside pages
- * is how two products end up in one screen.
- */
 .page-document {
     color: var(--color-foreground);
     font-size: 0.9375rem;
@@ -93,7 +83,6 @@
     margin: 1.5rem 0;
 }
 
-/* A task list is a list of decisions, not of bullets: the marker is the checkbox. */
 .page-document ul[data-type='taskList'] {
     list-style: none;
     padding-left: 0;
@@ -133,7 +122,6 @@
     font-weight: 600;
 }
 
-/* The column being dragged wider, while it is being dragged. */
 .page-document .column-resize-handle {
     background: var(--color-primary);
     bottom: -2px;
@@ -153,8 +141,6 @@
     z-index: 2;
 }
 
-/* A link is drawn as one. Colour is not the only carrier — the underline is what survives a
-   theme, a screenshot and a person who does not see the hue. */
 .page-document a {
     color: var(--color-primary);
     text-decoration: underline;
@@ -165,15 +151,11 @@
     color: var(--color-primary-hover);
 }
 
-/* A table wider than the page scrolls inside its own wrapper rather than pushing the document
-   sideways. Tiptap draws the wrapper; this is what makes it useful. */
 .page-document .tableWrapper {
     overflow-x: auto;
     scrollbar-width: thin;
 }
 
-/* What an empty line says. The placeholder extension marks the line the caret is on, so this is
-   a hint where somebody is about to type rather than a page full of grey suggestions. */
 .page-document .is-empty::before,
 .page-document p.is-editor-empty:first-child::before {
     color: var(--color-muted-foreground);
@@ -183,8 +165,6 @@
     pointer-events: none;
 }
 
-/* A page somebody may only read is not a form: no placeholder, and a caret that does not pretend
-   to be an insertion point. */
 .page-document[contenteditable='false'] .is-empty::before {
     content: none;
 }

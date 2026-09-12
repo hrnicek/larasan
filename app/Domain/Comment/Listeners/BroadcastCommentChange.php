@@ -9,11 +9,7 @@ use App\Domain\Placement\Queries\ChannelsForTask;
 use App\Domain\Shared\Broadcasting\ViewInvalidated;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * A comment arrived on a task, so the task's detail panel is out of date wherever it is open.
- * The comment's own text is not broadcast — the panel refetches, and a channel is a wider
- * audience than a comment's thread.
- */
+/** Broadcasts no comment text: a channel's audience is wider than the thread's. */
 final readonly class BroadcastCommentChange
 {
     public function __construct(

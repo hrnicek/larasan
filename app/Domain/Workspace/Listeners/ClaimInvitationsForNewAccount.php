@@ -9,12 +9,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 
 /**
- * Somebody invited before they had an account finds the invitation waiting the moment they
- * have one.
- *
- * Not queued: the account is registered and the next screen already asks what this account
- * has been invited to. A worker deciding that a second later is a screen that says *nothing
- * here* to somebody who followed an invitation link to get to it.
+ * Not queued, because the next screen after registration lists the account's invitations.
  */
 final readonly class ClaimInvitationsForNewAccount
 {

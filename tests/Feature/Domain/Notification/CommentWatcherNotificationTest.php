@@ -50,7 +50,6 @@ it('tells somebody once when they are both the assignee and a follower', functio
 
     commentOn($task, $author);
 
-    // Two reasons to hear about something is not two notifications.
     expect(notifiedAbout())->toBe([$assignee->id]);
 });
 
@@ -79,11 +78,6 @@ it('says nothing to somebody who can no longer reach the task', function (): voi
 
     app(FollowTask::class)->handle($task, $watcher);
 
-    /*
-     * They followed it while they could open it, and the project has since become private. This
-     * is the other half of the rule `FollowTask` enforces on the way in: an inbox full of work
-     * nobody can open is worse than no notification at all (TASK-070-017).
-     */
     $project->forceFill(['visibility' => ProjectVisibility::Private])->save();
 
     commentOn($task, $author);
@@ -100,7 +94,6 @@ it('says nothing to an assignee who cannot reach the task either', function (): 
     $task = Task::factory()->in($workspace)->create(['assignee_id' => $assignee->id]);
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    // A guest reaches only what they were given, and nobody gave them this project.
     commentOn($task, $author);
 
     expect(notifiedAbout())->toBe([]);

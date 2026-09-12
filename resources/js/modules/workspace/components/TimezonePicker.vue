@@ -7,20 +7,10 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 
-/**
- * A time zone chosen from a list rather than typed from memory.
- *
- * The identifiers are the server's — the same `DateTimeZone::listIdentifiers()` the `timezone`
- * rule checks — so nothing offered here can fail validation. The offset beside each is the
- * browser's arithmetic, drawn for recognition only: most people know their offset before they
- * know which city their zone is filed under.
- */
+// Zones come from the server's `DateTimeZone::listIdentifiers()`, so every option passes the `timezone` rule.
 const props = defineProps<{
     timezones: string[];
-    /**
-     * The id of the visible label. Not an `id` for the trigger: reka-ui writes its own onto the
-     * button to wire `aria-controls`, so a `<label for>` would point at nothing.
-     */
+    /** reka-ui sets its own `id` on the trigger, so a `<label for>` cannot target it. */
     labelledby?: string;
     invalid?: boolean;
 }>();
@@ -81,10 +71,7 @@ function describe(zone: string): Zone {
     };
 }
 
-/*
- * Built the first time the list opens, not on mount: four hundred formatters are cheap once and
- * wasted on everybody who keeps the zone they were given.
- */
+// Built on first open rather than on mount, since it creates a formatter per zone.
 const zones = computed<Zone[]>(() =>
     opened.value ? props.timezones.map(describe) : [],
 );
@@ -181,8 +168,7 @@ function onKeydown(event: KeyboardEvent): void {
             <ChevronsUpDown class="size-3.5 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
 
-        <!-- The list sits inside a native <dialog>, where the Escape that closes it would also
-             cancel the dialog and throw the form away. Prevented here, it closes the list alone. -->
+        <!-- Inside a native <dialog>, Escape would also cancel the dialog, so it closes only the list. -->
         <PopoverContent
             align="start"
             class="w-(--reka-popover-trigger-width) min-w-72 p-0"

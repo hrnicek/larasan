@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the database's
- * behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertComment(Workspace $workspace, Task $task, ?User $author = null, array $overrides = []): string
@@ -37,11 +34,7 @@ function insertComment(Workspace $workspace, Task $task, ?User $author = null, a
 }
 
 it('carries its own workspace rather than joining for one', function (): void {
-    /*
-     * The exception ADR-0005 allows. A comment is polymorphic, so there is no single aggregate
-     * to join through, and a scoped read would otherwise need a union over every commentable
-     * table.
-     */
+    // Comments are polymorphic, so there is no single parent to scope through. See ADR-0005.
     expect(Schema::hasColumn('comments', 'workspace_id'))->toBeTrue();
 });
 
@@ -61,8 +54,6 @@ it('survives the account that wrote it', function (): void {
 
     $author->delete();
 
-    // A comment outlives its author, the way `tasks.completed_by` does: deleting a person must
-    // not rewrite a conversation other people took part in.
     $comment = DB::table('comments')->where('id', $id)->first();
 
     expect($comment)->not->toBeNull()
@@ -99,11 +90,7 @@ it('starts unedited and undeleted', function (): void {
 it('indexes the feed read, in the feed order, and nothing that is a prefix of it', function (): void {
     $indexes = collect(Schema::getIndexes('comments'))->pluck('columns');
 
-    /*
-     * One composite index, not two. `uuidMorphs()` would have added its own
-     * `(commentable_type, commentable_id)` — a prefix of this one, paid for on every write and
-     * never chosen, which is the shape TASK-070-002 found on the placement table.
-     */
+    // uuidMorphs() would add a redundant prefix index of the composite one.
     expect($indexes)->toContain(['commentable_type', 'commentable_id', 'created_at'])
         ->and($indexes)->not->toContain(['commentable_type', 'commentable_id'])
         ->and($indexes)->toContain(['author_id']);
@@ -113,11 +100,7 @@ it('plans a task s comments as an ordered index scan', function (): void {
     $workspace = Workspace::factory()->create();
     $author = memberOf($workspace);
 
-    /*
-     * Three thousand comments across twenty tasks, `ANALYZE`d, so the planner is choosing from
-     * statistics and a sequential scan is a plan it could reasonably prefer. An index the
-     * planner ignores is not an index the query has (TASK-070-002).
-     */
+    // Enough analysed rows that a sequential scan is a plan the planner could reasonably choose.
     $rows = [];
 
     foreach (range(1, 20) as $ignored) {
@@ -146,9 +129,7 @@ it('plans a task s comments as an ordered index scan', function (): void {
 
     $subject = (string) $rows[0]['commentable_id'];
 
-    // The feed's real read: one page, in order. Without the limit the planner reads 150 of
-    // 3000 rows and prefers a bitmap scan plus a sort, which is the right plan for that shape
-    // and not the one a paginated feed issues.
+    // Without the limit the planner rightly prefers a bitmap scan plus a sort.
     $query = DB::table('comments')
         ->where('commentable_type', 'task')
         ->where('commentable_id', $subject)
@@ -161,8 +142,6 @@ it('plans a task s comments as an ordered index scan', function (): void {
     $json = ((array) $explained[0])['QUERY PLAN'];
     $plan = (string) json_encode(json_decode($json, true, 512, JSON_THROW_ON_ERROR));
 
-    // The ordering falls out of the index as well: a `Sort` node would mean the column order
-    // was wrong and every feed read paid for it.
     expect($plan)->toContain('comments_commentable_type_commentable_id_created_at_index')
         ->and($plan)->not->toContain('Seq Scan')
         ->and($plan)->not->toContain('"Node Type":"Sort"');

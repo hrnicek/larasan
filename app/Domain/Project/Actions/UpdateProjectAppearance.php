@@ -12,16 +12,6 @@ use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * How a project looks, and nothing else.
- *
- * `UpdateProject` takes the whole settings form and reads a missing nullable field as
- * "clear this", which is right for a form that renders every field and wrong for a
- * control that renders two: picking a colour from the project header through that Action
- * would erase the description, the start date and the due date nobody touched. So the
- * two appearance columns are their own operation, and null here still means clear —
- * a project must be able to lose its colour or its icon.
- */
 final readonly class UpdateProjectAppearance
 {
     public function __construct(private Dispatcher $events) {}

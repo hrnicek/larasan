@@ -12,11 +12,7 @@ use Illuminate\Support\Str;
 use Laravel\Scout\Jobs\MakeSearchable;
 
 /**
- * A person whose name and email cannot collide with the term a test searches for.
- *
- * Faker generates both, and the collection engine the suite runs on matches substrings — a
- * random `janae@example.org` is enough to make "find one colleague" find two, on one run in
- * fifty and never again.
+ * The collection engine matches substrings, so Faker names and emails could collide with the search term.
  */
 function pinnedMemberOf(Workspace $workspace, string $name): User
 {
@@ -125,8 +121,7 @@ it('does not queue an indexing job when only the current workspace changed', fun
 
     Queue::fake();
 
-    // Freshly loaded, the way a later request sees them: `wasRecentlyCreated` is what marks the
-    // row that has to be indexed once, and it stays true on the instance that created it.
+    // Reloaded because `wasRecentlyCreated` stays true on the creating instance and forces indexing.
     $person = User::findOrFail($person->id);
 
     $person->forceFill(['current_workspace_id' => $workspace->id])->save();

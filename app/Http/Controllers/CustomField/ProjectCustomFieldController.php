@@ -16,14 +16,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 
-/**
- * Which of the workspace's fields a project shows.
- *
- * The other half of `CustomFieldController`: a workspace defines more than any one board wants on
- * its screen, so attaching is a decision per project. Detaching takes the column off and **keeps
- * the answers** — deleting the field is what removes them, and the two operations differ in
- * exactly that.
- */
 class ProjectCustomFieldController extends Controller
 {
     public function store(

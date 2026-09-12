@@ -13,19 +13,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * Every workspace role against every project access level at the task detail, and at each
- * thing the detail can do. The policy tests prove the rules; this proves the screen and its
- * endpoints ask them, and that a refusal is the right kind — 404 where the actor may not know
- * the task exists, 403 where they may know and still not act.
- *
- * Outcomes are written out rather than derived from the policy, which would assert only that
- * the code agrees with itself.
- */
-
 /**
- * A task that lives in one project, and somebody with the given access to it.
- *
  * @return array{Task, User, Project}
  */
 function matrixDetailTask(
@@ -84,8 +72,6 @@ it('answers each role and access level the same way at the detail', function (
         expect($task->fresh()?->title)->toBe('Untouched');
     }
 })->with([
-    // A workspace member reaches a workspace-visible project, so reading is theirs whatever
-    // their project access; what changes with the role is what they may do to it.
     'owner reads' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'read', 'allowed'],
     'owner renames' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'rename', 'allowed'],
     'owner completes' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, 'complete', 'allowed'],
@@ -96,17 +82,12 @@ it('answers each role and access level the same way at the detail', function (
     'admin deletes' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, 'delete', 'allowed'],
 
     'member renames' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, 'rename', 'allowed'],
-    // A Viewer reads the panel and finishes nothing in it (ADR-0006). Following is still
-    // theirs: it is a subscription to what they may already read.
+    // Following only subscribes to what the actor can already read, so a Viewer may follow. See ADR-0006.
     'member completes' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'complete', 'forbidden'],
     'member follows' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'follow', 'allowed'],
     'member with no project membership reads' => [WorkspaceRole::Member, null, 'read', 'allowed'],
 
-    /*
-     * A guest reaches only what they were given. Given the project they read the task and
-     * follow it — watching is reading — and everything that changes the task is refused,
-     * because `task.update` and `task.delete` are not a guest's (ADR-0010).
-     */
+    // Guests hold neither `task.update` nor `task.delete`, whatever their project access. See ADR-0010.
     'guest given the project reads' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'read', 'allowed'],
     'guest given the project follows' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'follow', 'allowed'],
     'guest given the project renames' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'rename', 'forbidden'],
@@ -123,8 +104,7 @@ it('refuses a task that lives only in a private project the actor was not given'
 
     [$method, $url, $payload] = matrixDetailOperation($operation, $task);
 
-    // A 403 rather than a 404: they can see the workspace, so what is refused is the access
-    // and not the task's existence (TASK-070-017).
+    // 403, not 404: the task belongs to the actor's own workspace.
     $this->actingAs($actor)->{$method}($url, $payload)->assertForbidden();
 
     expect($task->fresh()?->title)->toBe('Untouched');
@@ -143,7 +123,6 @@ it('hides a task in another workspace behind a 404 for every role', function (Wo
     [$task] = matrixDetailTask(WorkspaceRole::Owner, ProjectAccessLevel::Owner);
     $stranger = memberOf(Workspace::factory()->create(), $role);
 
-    // Another tenant's task is not theirs to know about at all.
     $this->actingAs($stranger)->get(route('tasks.show', $task))->assertNotFound();
 })->with([
     'owner' => [WorkspaceRole::Owner],
@@ -171,9 +150,6 @@ it('sends the flags the detail renders from, and they match what the actions ans
 })->with([
     'owner as project owner' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, true, true, true],
     'member as editor' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, true, true, true],
-    // The panel drew every control for a Viewer and the endpoints behind them accepted the
-    // request, which is what TASK-260-001 was about. Commenting goes with them: a Viewer is
-    // the level below Commenter.
     'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, false, false, false],
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, false, false, true],
 ]);

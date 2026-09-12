@@ -29,7 +29,6 @@ it('tells somebody who joined the conversation about the next comment', function
 
     app(CreateComment::class)->handle($task, $first, new CreateCommentData(body: 'What about this?'));
 
-    // They became a follower by speaking (TASK-140-006), so the reply reaches them.
     app(CreateComment::class)->handle($task, $second, new CreateCommentData(body: 'Good point'));
 
     expect(notifiedIds())->toBe([$first->id]);
@@ -59,7 +58,6 @@ it('tells nobody twice for being both the assignee and a follower', function ():
 
     app(CreateComment::class)->handle($task, $actor, new CreateCommentData(body: 'Any progress?'));
 
-    // Two reasons to hear about something is still one notification (TASK-110-011).
     expect(notifiedIds())->toBe([$assignee->id]);
 });
 
@@ -69,10 +67,7 @@ it('never tells the author about their own comment, even though they now follow 
 
     app(CreateComment::class)->handle($task, $author, new CreateCommentData(body: 'Thinking out loud'));
 
-    /*
-     * The follow listener runs first, so the author *is* watching by the time the notifier runs
-     * — and the notifier still refuses to tell somebody about their own comment.
-     */
+    // The follow listener runs first, so the author is already a follower when the notifier runs.
     expect(notifiedIds())->toBe([])
         ->and($task->followers()->count())->toBe(1);
 });
@@ -88,7 +83,6 @@ it('stops telling somebody who stopped watching', function (): void {
 
     app(CreateComment::class)->handle($task, $second, new CreateCommentData(body: 'Second'));
 
-    // Automatic following does not take the button away.
     expect(notifiedIds())->toBe([]);
 });
 

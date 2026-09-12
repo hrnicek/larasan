@@ -11,16 +11,6 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Every workspace role against every project access level at every section endpoint. The
- * policy tests prove the rules; this proves the endpoints ask them, and that a refusal is
- * the right kind — 404 where the actor may not know the project exists, 403 where they may
- * see it but not shape it.
- *
- * Outcomes are written out rather than derived from `allowsChangesBy()`, which would
- * assert only that the code agrees with itself.
- */
-
 /**
  * @return array{Section, User, Project}
  */
@@ -97,13 +87,7 @@ it('answers each role and access level the same way at every section endpoint', 
     'owner as viewer rename' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'rename', 'forbidden'],
     'owner as viewer move' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'move', 'forbidden'],
     'owner as viewer delete' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'delete', 'forbidden'],
-    /*
-     * No membership row, on a project the whole workspace can open. These were refused until
-     * TASK-260-001: `visibility` had answered only the read half of ADR-0006, so a board
-     * everybody could see was one nobody but its named members could shape — the workspace
-     * owner included. The project's `default_access_level` answers now, and it is `editor`.
-     * A guest is still refused: they hold projects, never a default.
-     */
+    // Without a membership row the project's default access level, `editor`, applies; guests get no default. See ADR-0020.
     'owner as no member add' => [WorkspaceRole::Owner, null, 'add', 'allowed'],
     'owner as no member rename' => [WorkspaceRole::Owner, null, 'rename', 'allowed'],
     'owner as no member move' => [WorkspaceRole::Owner, null, 'move', 'allowed'],

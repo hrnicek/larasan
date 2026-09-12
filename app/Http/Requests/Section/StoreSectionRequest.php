@@ -24,8 +24,6 @@ class StoreSectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // The name is user content and nothing reads it back (ADR-0004), so it is
-            // bounded and otherwise unconstrained — "Done" and "done ✅" are both columns.
             'name' => ['required', 'string', 'max:255'],
             'color' => ['nullable', new IsAccentColor],
         ];

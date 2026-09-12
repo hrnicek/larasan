@@ -4,17 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Account\Support;
 
-/**
- * The faces somebody can pick instead of uploading one: the illustrations in
- * `public/img/avatars`, numbered from one.
- *
- * Static files rather than stored objects, because they are the application's own artwork and
- * nobody's personal data — the reason an uploaded picture goes through an authorized controller
- * (ADR-0007) does not apply to a drawing every installation ships. `users_avatar_preset_known`
- * holds the same bound, so adding an illustration is a file, this number and a migration.
- */
 final class AvatarPresets
 {
+    // Mirrors the users_avatar_preset_known check constraint, so raising it needs a migration.
     public const int COUNT = 26;
 
     /**

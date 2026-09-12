@@ -1,9 +1,3 @@
-/**
- * What the palette's endpoint answers with (`search.suggestions`).
- *
- * One named type per kind rather than an index signature: a prop the server stops sending should
- * break `types:check`, which is the whole reason these exist.
- */
 export type SearchKind = 'tasks' | 'projects' | 'people' | 'messages';
 
 export type SearchPerson = {
@@ -71,21 +65,20 @@ export type SavedSearch = {
     };
 };
 
-/** A thing this person had open lately: a task or a project, drawn as its own kind. */
 export type RecentItem =
     | { kind: 'tasks'; id: string; title: string; completed: boolean }
     | { kind: 'projects'; id: string; title: string; color: string | null; icon: string | null; archived: boolean };
 
 export type SearchAnswer = {
     results: SearchResults;
-    /** The chips under the field. Sent on the empty field only, which is where they are drawn. */
+    /** Only sent for an empty term. */
     saved: SavedSearch[];
-    /** What this person had open lately, on the empty field for the same reason. */
+    /** Only sent for an empty term. */
     recents: RecentItem[];
     meta: {
         term: string;
         kind: SearchKind | null;
-        /** True when the engine could not be reached and tasks came from PostgreSQL instead. */
+        /** The engine was unreachable and tasks came from PostgreSQL instead. */
         degraded: boolean;
     };
 };

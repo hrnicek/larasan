@@ -20,28 +20,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
-/**
- * Finding work, without finding work somebody may not see.
- *
- * Search is the one screen where a leak is invisible: a list nobody expected to be complete is a
- * list nobody notices a missing row in, and a row that should not be there looks like a feature.
- * So reach is **part of the query** rather than a filter applied to its results — the same
- * arithmetic `TaskPolicy::view()` states, written once here (ADR-0006, TASK-070-017).
- *
- * The matching is ADR-0012's: a `simple`, unaccented `tsvector` on the task, with the term's
- * last word treated as a prefix so `log` finds `login`.
- */
 final readonly class SearchTasksQuery
 {
     public const PER_PAGE = 25;
 
-    /**
-     * How many keys the engine is asked for.
-     *
-     * The screen pages against PostgreSQL, so the total it shows is exact — for the matches it
-     * was given. A cap is unavoidable (the alternative is asking an engine for every match of
-     * "a"), and `meta.capped` is how the screen says it was reached.
-     */
     public const CANDIDATES = 500;
 
     public function __construct(
@@ -67,11 +49,6 @@ final readonly class SearchTasksQuery
         $query = $this->tsquery($term);
 
         if ($query === null) {
-            /*
-             * An empty term returns nothing rather than everything. "Everything" is the one
-             * answer nobody typed a search box to get, and on a workspace of any size it is also
-             * the most expensive.
-             */
             return $this->empty($term, $page, $perPage);
         }
 
@@ -79,8 +56,6 @@ final readonly class SearchTasksQuery
 
         $results = $this->paginate($workspace, $actor, $query, $matches, $filters, $page, $perPage);
 
-        // Asked once for the page rather than per row: the capability is the actor's, and the
-        // boards are a subquery the rows were already counted against.
         $mayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
 
         return [
@@ -93,39 +68,20 @@ final readonly class SearchTasksQuery
                 'perPage' => $results->perPage(),
                 'total' => $results->total(),
                 'hasMore' => $results->hasMorePages(),
-                /*
-                 * True when the engine could not be reached and this answer came from the
-                 * generated column instead: narrower, no typo tolerance, and the screen says so
-                 * rather than looking quietly worse (ADR-0016).
-                 */
                 'degraded' => $matches === null,
-                /*
-                 * Whether the engine had more matches than it was asked for. The count below is
-                 * exact for what came back, and this is what keeps "1 of 500" from reading as
-                 * "everything there is".
-                 */
                 'capped' => $matches !== null && count($matches) >= self::CANDIDATES,
             ],
         ];
     }
 
     /**
-     * The keys Meilisearch ranks for this term, or null when it cannot be reached.
-     *
-     * Ids rather than rows: what may be *seen* is decided by the query below, in PostgreSQL,
-     * against the same reach rule every other list uses. The engine matches and orders; it never
-     * authorizes (ADR-0016).
+     * Keys only: the engine ranks, PostgreSQL authorizes. See ADR-0016.
      *
      * @return list<string>|null
      */
     private function matches(Workspace $workspace, string $term): ?array
     {
-        /*
-         * Meilisearch is the engine this application has (ADR-0016). The other Scout drivers are
-         * not one for this screen's purposes: `collection` matches substrings in memory and
-         * `null` matches nothing, and either would quietly answer a page of results with
-         * semantics no ADR describes. Without an engine, the generated column is the answer.
-         */
+        // The `collection` and `null` Scout drivers do not match like Meilisearch, so they use the PostgreSQL path.
         if (config('scout.driver') !== 'meilisearch') {
             return null;
         }
@@ -145,11 +101,7 @@ final readonly class SearchTasksQuery
     }
 
     /**
-     * The term as PostgreSQL wants it: words joined by AND, the last one a prefix.
-     *
-     * Built rather than passed through, because a raw term is somebody's typing — `&`, `!` and a
-     * stray quote are all operators to `to_tsquery`, and a search box is not a place to learn
-     * that. Returns null when nothing usable is left.
+     * Punctuation is stripped because characters such as `&`, `!` and quotes are `to_tsquery` operators.
      */
     private function tsquery(string $term): ?string
     {
@@ -158,8 +110,6 @@ final readonly class SearchTasksQuery
             fn (string $word): bool => $word !== '',
         ));
 
-        // Only what a word can be made of. Everything else is punctuation somebody typed, and
-        // punctuation has no meaning here.
         $words = array_values(array_filter(array_map(
             fn (string $word): string => (string) preg_replace('/[^\p{L}\p{N}_]+/u', '', $word),
             $words,
@@ -191,13 +141,10 @@ final readonly class SearchTasksQuery
     ): LengthAwarePaginator {
         $visible = $this->reachable->projectIds($workspace, $actor);
 
-        // Reach is `ReachableTasks` and is not restated here: it is the same sentence the
-        // engine-backed path applies in its hydration query (ADR-0016).
         $tasks = $this->reachable
             ->constrain(Task::query(), $workspace, $actor)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
             ->withCount('comments')
-            // The two the row's `canUpdate` is decided from, as subqueries (TASK-260-001).
             ->withCount('placements')
             ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
                 ->whereIn('project_id', $this->changeableProjects
@@ -213,21 +160,13 @@ final readonly class SearchTasksQuery
             ->orderByDesc('id');
 
         if ($matches === null) {
-            // The degraded path: the generated column and its GIN index, which is what this
-            // screen ran on before there was an engine (ADR-0012).
             $tasks
                 ->whereRaw("search_vector @@ to_tsquery('simple', immutable_unaccent(?))", [$query])
-                // Rank first, then the key: `created_at` is `timestamp(0)` and ties are common,
-                // so without a second key a page would reshuffle between requests.
                 ->reorder()
                 ->orderByRaw("ts_rank_cd(search_vector, to_tsquery('simple', immutable_unaccent(?))) desc", [$query])
                 ->orderByDesc('id');
         } else {
-            /*
-             * The engine's own order, kept: `array_position` puts the rows back in the order
-             * Meilisearch ranked them, which is the ordering the palette shows and the reason
-             * a misspelt term finds anything at all.
-             */
+            // `array_position` restores the engine's ranking order.
             $tasks
                 ->whereIn('tasks.id', $matches)
                 ->reorder()
@@ -258,8 +197,6 @@ final readonly class SearchTasksQuery
         }
 
         if (isset($filters['completed'])) {
-            // Two states rather than three: "finished" and "still open" are what people mean,
-            // and the absence of the filter is "either".
             $filters['completed']
                 ? $tasks->whereNotNull('completed_at')
                 : $tasks->whereNull('completed_at');
@@ -286,8 +223,7 @@ final readonly class SearchTasksQuery
     }
 
     /**
-     * Whether one of this task's boards is open to the actor — or it has none at all, which is
-     * workspace work.
+     * A task in no project is workspace-level work and counts as changeable.
      */
     private function onAChangeableBoard(Task $task): bool
     {
@@ -296,8 +232,6 @@ final readonly class SearchTasksQuery
     }
 
     /**
-     * The row the other lists draw, so a result is the same thing here as anywhere else.
-     *
      * @return array<string, mixed>
      */
     private function row(Task $task, bool $canUpdate): array
@@ -306,11 +240,6 @@ final readonly class SearchTasksQuery
 
         return [
             'id' => $task->id,
-            /*
-             * The same key My Tasks sends, because both screens draw the same row component and
-             * a shape that differs by screen is the shape one of the two gets wrong. Results are
-             * read here today; the flag is the truth about the row either way.
-             */
             'canUpdate' => $canUpdate,
             'title' => $task->title,
             'dueAt' => $task->due_at?->toIso8601String(),
@@ -325,7 +254,6 @@ final readonly class SearchTasksQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            // Only the projects this reader can open — the same rule `MyTasksQuery` follows.
             'projects' => array_values($task->placements
                 ->map(fn (TaskProjectMembership $placement): array => [
                     'id' => $placement->project->id,

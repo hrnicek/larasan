@@ -16,19 +16,7 @@ type Level = 'shell' | 'settings';
 
 type Screen = { awaits: string; skeleton: Component; within?: Level };
 
-/**
- * The screens a link opens instantly, each named with the prop that proves its own props landed.
- *
- * An instant visit (Inertia v3) swaps to the next screen before the server has answered, carrying
- * the shared props alone. These screens cannot draw themselves from those, so their skeleton is
- * drawn until the awaited prop arrives. It has to be a prop the server never shares — which is
- * why `settings/Workspace` waits on `can` rather than on its `workspace`, and the workspace list
- * on `invitations` rather than on `workspaces`: both of those names are shared as well.
- * `tests/Feature/Navigation/InstantScreensTest.php` holds the same pairs to that.
- *
- * A settings screen is drawn inside the settings layout, which keeps its navigation on screen and
- * draws the skeleton in the column the screen will fill.
- */
+// An instant visit carries only shared props, so each awaited prop must be one the server never shares.
 const screens: Record<string, Screen> = {
     'projects/Show': { awaits: 'project', skeleton: ProjectScreenSkeleton },
     'projects/Index': { awaits: 'allProjects', skeleton: ProjectIndexSkeleton },
@@ -85,7 +73,6 @@ function waitingFor(component: string, props: object): Screen | null {
     return screen !== undefined && !(screen.awaits in props) ? screen : null;
 }
 
-/** The skeleton the given layout draws instead of its page, or `null` when the page can draw itself. */
 export function usePendingSkeleton(
     level: Level,
 ): ComputedRef<Component | null> {
@@ -100,13 +87,7 @@ export function usePendingSkeleton(
     });
 }
 
-/**
- * The shell's half: its own skeleton, and whether the visit that should have filled a waiting
- * screen — at any level — failed.
- *
- * Called once, by the shell: it is the one component that outlives every screen, so its router
- * listeners see the visit that leaves a screen waiting as well as the one that fills it.
- */
+// Called once, by the shell, which outlives every screen and so sees every visit.
 export function usePendingScreen(): {
     skeleton: ComputedRef<Component | null>;
     failed: Ref<boolean>;
@@ -141,21 +122,13 @@ export function usePendingScreen(): {
                     failed.value = false;
                 }
             }),
-            /*
-             * A visit that ended with the screen still waiting did not bring its props — a network
-             * error, or an answer that was not a page — and nothing else will ask again. A prefetch
-             * finishes before the visit that uses it has drawn anything, so it proves nothing.
-             */
+            // A prefetch finishes before its visit has drawn anything, so it cannot mark a failure.
             router.on('finish', (event) => {
                 if (!event.detail.visit.prefetch && waiting.value) {
                     failed.value = true;
                 }
             }),
-            /*
-             * Back or forward onto an instant visit that was abandoned for another restores a page
-             * that never got its props, and history does not ask the server. A navigation with no
-             * visit behind it is exactly that case.
-             */
+            // History can restore an abandoned instant visit that never received its props.
             router.on('navigate', (event) => {
                 if (event.detail.visitId === undefined && waiting.value) {
                     router.reload();

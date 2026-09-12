@@ -14,15 +14,6 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * Every workspace role against every project access level at the list view. The policy tests
- * prove the rules; this proves the screen asks them — that the page renders at all, and that
- * the flags it renders from say what the Actions would say.
- *
- * Outcomes are written out rather than derived from `allowsChangesBy()`, which would assert
- * only that the code agrees with itself.
- */
-
 /**
  * @return array{Project, User}
  */
@@ -66,8 +57,6 @@ it('answers each role and access level the same way at the list', function (
     }
 
     $response->assertOk()->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-        // Seeing the board and being able to change it are two questions, and the payload
-        // answers both separately.
         ->has('list.sections.0.tasks', 1)
         ->where('list.can.createTask', $mayEdit)
         ->where('list.can.updateTask', $mayEdit)
@@ -77,11 +66,7 @@ it('answers each role and access level the same way at the list', function (
     'owner as editor' => [WorkspaceRole::Owner, ProjectAccessLevel::Editor, 'visible', true],
     'owner as commenter' => [WorkspaceRole::Owner, ProjectAccessLevel::Commenter, 'visible', false],
     'owner as viewer' => [WorkspaceRole::Owner, ProjectAccessLevel::Viewer, 'visible', false],
-    /*
-     * No membership row, on a board the whole workspace can open: the project's
-     * `default_access_level` answers, and it is `editor` (TASK-260-001). A guest is still
-     * refused — they hold projects, never a default.
-     */
+    // Without a membership row the project's default access level, `editor`, applies; guests get no default. See ADR-0020.
     'owner with no project membership' => [WorkspaceRole::Owner, null, 'visible', true],
 
     'admin as project owner' => [WorkspaceRole::Admin, ProjectAccessLevel::Owner, 'visible', true],
@@ -96,9 +81,7 @@ it('answers each role and access level the same way at the list', function (
     'member as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, 'visible', false],
     'member with no project membership' => [WorkspaceRole::Member, null, 'visible', true],
 
-    // A guest reaches what they were given and nothing else — workspace visibility is not a
-    // gift to them (ADR-0006). Given the project, they may read it and still not edit it:
-    // `task.update` is not a capability the guest role holds (ADR-0010).
+    // Workspace visibility grants a guest nothing, and guests never hold `task.update`. See ADR-0010.
     'guest as editor' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, 'visible', false],
     'guest as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'visible', false],
     'guest with no project membership' => [WorkspaceRole::Guest, null, 'missing', false],
@@ -107,7 +90,7 @@ it('answers each role and access level the same way at the list', function (
 it('hides a private project from everybody who was not given it', function (WorkspaceRole $role): void {
     [$project, $actor] = matrixListProject($role, null, ProjectVisibility::Private);
 
-    // A 404, not an empty list: an empty board would confirm the project exists (ADR-0005).
+    // 404 rather than an empty board, which would confirm the project exists.
     $this->actingAs($actor)
         ->get(route('projects.show', $project))
         ->assertNotFound();

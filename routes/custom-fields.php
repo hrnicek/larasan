@@ -9,11 +9,6 @@ use App\Http\Controllers\CustomField\TaskCustomFieldController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    /*
-     * What the workspace records, under `settings/` beside members for the reason those routes
-     * carry no workspace parameter: the screen acts on the workspace the request is already in,
-     * and `ResolveCurrentWorkspace` supplies it.
-     */
     Route::get('settings/fields', [CustomFieldController::class, 'index'])->name('custom-fields.index');
     Route::post('settings/fields', [CustomFieldController::class, 'store'])->name('custom-fields.store');
     Route::put('settings/fields/{field}', [CustomFieldController::class, 'update'])
@@ -23,16 +18,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('field')
         ->name('custom-fields.destroy');
 
-    // The whole list, in the order it should be offered — see the controller.
     Route::put('settings/fields/{field}/options', [CustomFieldOptionController::class, 'update'])
         ->whereUuid('field')
         ->name('custom-fields.options.update');
 
-    /*
-     * Which of them a project shows. On the project, because adding a column to a board is a
-     * decision about that board — the field itself is untouched, and detaching deliberately
-     * keeps the answers.
-     */
     Route::post('projects/{project}/custom-fields', [ProjectCustomFieldController::class, 'store'])
         ->whereUuid('project')
         ->name('projects.custom-fields.store');

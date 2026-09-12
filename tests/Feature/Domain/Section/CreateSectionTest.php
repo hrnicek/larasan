@@ -60,9 +60,6 @@ it('keeps appending past the second section', function (): void {
         addSection($project, $actor, $name);
     }
 
-    // Regression: the relationship orders by position, so an `orderByDesc()` bolted onto
-    // it left the ascending clause first and read the head as the tail. The third append
-    // then computed a slot the second already held.
     expect($project->sections()->pluck('name')->all())->toBe($names)
         ->and($project->sections()->pluck('position')->all())
         ->toBe(SparsePosition::spread(count($names)));
@@ -84,11 +81,6 @@ it('starts a column slate rather than colourless', function (): void {
 
     $section = app(CreateSection::class)->handle($project, $actor, new CreateSectionData(name: 'Blocked'));
 
-    /*
-     * A column with no colour draws no band at all, which reads as one somebody forgot rather
-     * than a neutral one — and beside a coloured column it looks like a bug. The palette can
-     * still clear it afterwards.
-     */
     expect($section->fresh()?->color?->paletteColor())->toBe(ProjectColor::Slate);
 });
 
@@ -109,8 +101,6 @@ it('takes the name as content and reads nothing into it', function (): void {
 
     $section = addSection($project, $actor, 'Done');
 
-    // "Done" is a column somebody named. Completion lives on the task (ADR-0004), and
-    // nothing here may start treating the name as a state.
     expect($section->name)->toBe('Done')
         ->and($section->getAttributes())->not->toHaveKey('completes_tasks');
 });
@@ -152,7 +142,6 @@ it('keeps sections of different projects independent', function (): void {
     addSection($mine, $actor, 'Backlog');
     $other = addSection($theirs, $actor, 'Backlog');
 
-    // Same name, same slot, different projects: the unique constraint is scoped, not global.
     expect($other->position)->toBe(SparsePosition::GAP)
         ->and(Section::query()->count())->toBe(2);
 });

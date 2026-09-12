@@ -17,11 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
- * What a piece of work is about, in one word, for one workspace.
- *
- * The workspace is not fillable: which workspace a tag belongs to is decided by the Action from
- * where the request was made, never by a payload.
- *
  * @property string $id
  * @property string $workspace_id
  * @property string $name

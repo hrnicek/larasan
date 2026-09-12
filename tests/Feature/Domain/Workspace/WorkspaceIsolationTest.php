@@ -11,14 +11,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
-/*
- * No route in this slice lets a caller name another tenant's workspace by id: the
- * settings routes carry no parameter and the switch route takes a slug. Isolation
- * therefore has three handles worth attacking — the ambient pointer, the global slug
- * namespace, and the membership table — and a test that merely posts another tenant's
- * slug to the switch route restates the middleware instead of proving anything.
- */
-
 function forgePointerTo(User $user, Workspace $workspace): void
 {
     $user->forceFill(['current_workspace_id' => $workspace->id])->save();

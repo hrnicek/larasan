@@ -11,10 +11,6 @@ use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * Take a tag off a task. Removing one that is not there is the outcome somebody asked for, so
- * it is silence rather than an error — the same shape `UnfollowTask` has.
- */
 final readonly class DetachTagFromTask
 {
     public function __construct(private Dispatcher $events) {}

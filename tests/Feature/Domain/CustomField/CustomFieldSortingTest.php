@@ -19,8 +19,6 @@ use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
 /**
- * A project with one field on it, and a helper that puts answered tasks in it.
- *
  * @param  list<string>  $options
  * @return array{Project, CustomField, User}
  */
@@ -62,10 +60,6 @@ it('sorts numbers numerically rather than as text', function (): void {
     answeredCard($project, $field, $actor, 'Ten', '10', 2);
     answeredCard($project, $field, $actor, 'Two', '2', 3);
 
-    /*
-     * As text, "10" sorts before "2" — which is the entire reason the values live in typed
-     * columns rather than in a json document.
-     */
     expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field))))
         ->toBe(['Two', 'Nine', 'Ten']);
 });
@@ -96,11 +90,6 @@ it('puts the unanswered rows last, whichever way it sorts', function (): void {
     answeredCard($project, $field, $actor, 'Answered', '5', 1);
     answeredCard($project, $field, $actor, 'Blank', null, 2);
 
-    /*
-     * A row nobody has answered is not the smallest value, it is an absence — and burying it at
-     * the top of an ascending list is how a column of blanks becomes the first thing anybody
-     * sees.
-     */
     expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field))))
         ->toBe(['Answered', 'Blank'])
         ->and(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field, descending: true))))
@@ -143,7 +132,6 @@ it('renders the list when a link names a field the project no longer shows', fun
     [$project, $field, $actor] = projectWithAField(CustomFieldType::Text);
     answeredCard($project, $field, $actor, 'Still here', 'Two days', 1);
 
-    // A stale link renders the list rather than an error, the way a deleted tag does.
     expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], null, [(string) Str::uuid7() => 'anything'])))
         ->toBe(['Still here']);
 });
@@ -151,14 +139,10 @@ it('renders the list when a link names a field the project no longer shows', fun
 it('filters in the database, on the index the values table was built for', function (): void {
     [$project, $field, $actor] = projectWithAField(CustomFieldType::Number);
 
-    /*
-     * Three thousand answers across thirty fields, `ANALYZE`d, so the planner is choosing from
-     * statistics. An index the planner ignores is not an index the query has (TASK-070-002).
-     */
+    // Enough analysed rows that the planner is choosing from statistics.
     $rows = [];
 
-    // A hundred tasks, reused across thirty fields: the pair is what has to be unique, and
-    // three thousand separate tasks would test the factory rather than the index.
+    // Tasks are reused across fields because each (task, field) pair must be unique.
     $tasks = Task::factory()->in($project->workspace)->count(100)->create()->pluck('id')->all();
 
     foreach (range(1, 30) as $index) {
@@ -241,7 +225,6 @@ it('orders by nothing when the link names a field that is gone', function (): vo
     answeredCard($project, $field, $actor, 'First', '20', 1);
     answeredCard($project, $field, $actor, 'Second', '2', 2);
 
-    // A stale ordering falls back to the order somebody put the cards in, rather than 404ing.
     $this->actingAs($actor)
         ->get(route('projects.show', [$project, 'view' => 'list', 'sort' => (string) Str::uuid7()]))
         ->assertOk()

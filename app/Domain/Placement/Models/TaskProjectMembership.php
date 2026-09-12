@@ -17,18 +17,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Where a task appears (ADR-0003). One row is one card: the same task in two projects is
- * two rows and still one task, and detaching it from a project deletes the row and leaves
- * the task alone.
- *
- * No soft deletes. A detached placement is a card nobody can see and a slot nobody can
- * take — `UNIQUE(task_id, project_id)` and the slot guards would both count a hidden row,
- * so re-attaching a task would collide with its own tombstone.
- *
- * The table carries no `workspace_id`, and must not: it is scoped by joining the aggregate
- * that owns it (`docs/architecture/database.md`), which is also the only place the two
- * ends can be proven to be in the *same* workspace.
- *
  * @property string $id
  * @property string $task_id
  * @property string $project_id
@@ -43,42 +31,22 @@ class TaskProjectMembership extends Model
     /** @use HasFactory<TaskProjectMembershipFactory> */
     use HasFactory, HasUuids;
 
-    /** The gap ADR-0009 specifies, defined once in `SparsePosition`. */
     public const POSITION_GAP = SparsePosition::GAP;
 
-    /**
-     * `position` is absent by design: a client never sends one (ADR-0009). A move says
-     * "place this after that one" and the Action computes what that means, so a fillable
-     * position would be a route into the sequence for stale data to corrupt.
-     */
+    // position is computed by the placement Actions and must never be mass assigned. See ADR-0009.
     protected $fillable = ['task_id', 'project_id', 'section_id'];
 
     /**
-     * The cards a column actually draws. A soft-deleted task keeps its placement, so that
-     * restoring the task puts the card back where it was — but until then there is nothing
-     * to render, and a board that drew the row would draw a card with no task on it.
-     *
-     * Counting and rendering must both go through here, or a column's header disagrees with
-     * its contents.
-     *
      * @param  Builder<$this>  $query
      * @return Builder<$this>
      */
     public function scopeVisible(Builder $query): Builder
     {
+        // Excludes soft-deleted tasks, whose placements are kept so a restore puts the card back.
         return $query->whereHas('task');
     }
 
     /**
-     * Cards whose task carries **every** one of these tags.
-     *
-     * All rather than any: a filter that widened as you added terms would be the opposite of
-     * what picking a second tag means. An empty list is no filter at all rather than a filter
-     * nothing matches.
-     *
-     * Counting and rendering must both go through here too, or a column's header disagrees with
-     * its contents — the same rule `visible()` exists for.
-     *
      * @param  Builder<$this>  $query
      * @param  list<string>  $tags
      * @return Builder<$this>
@@ -100,7 +68,6 @@ class TaskProjectMembership extends Model
         );
     }
 
-    /** Ungrouped: in the project, in no column — the list view's default bucket. */
     public function isUngrouped(): bool
     {
         return $this->section_id === null;

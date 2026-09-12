@@ -9,15 +9,6 @@ use App\Domain\Shared\Enums\ActivityType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-/**
- * The one way a line of history is written.
- *
- * No authorization: an activity records something the domain has already allowed and done, and
- * asking again would be asking whether something that happened was permitted.
- *
- * The properties are ids and values, never a serialised model — a feed line rendered from a
- * snapshot would show a name that has since changed as though it never did.
- */
 final readonly class RecordActivity
 {
     /**

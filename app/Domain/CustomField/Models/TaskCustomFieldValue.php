@@ -14,12 +14,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One task's answer for one field.
- *
- * Nothing is fillable: which task, which field and which column the answer belongs in are all
- * decided by the Action from the field's type, never by a payload — a request that could choose
- * the column could write a number into the text column and make sorting lie.
- *
  * @property string $id
  * @property string $task_id
  * @property string $custom_field_id
@@ -57,10 +51,6 @@ class TaskCustomFieldValue extends Model
         return $this->belongsTo(CustomFieldOption::class, 'value_option_id');
     }
 
-    /**
-     * The answer, whichever column it lives in — read through the field's type so no caller has
-     * to know the mapping.
-     */
     public function value(CustomField $field): string|float|bool|CarbonImmutable|null
     {
         /** @var string|float|bool|CarbonImmutable|null $value */

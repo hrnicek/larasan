@@ -13,19 +13,13 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /*
- * A partial reload names the props it wants — a panel opening over a list, a realtime refresh of a
- * board — and Inertia sends only those. What it costs is decided by whether the rest were computed
- * anyway and thrown away: a prop that is a value is read on every request, a prop that is a
- * closure only when a response carries it.
- *
- * Each read is recognised by SQL only it writes: the sidebar's `stars_exists`, the switcher's
- * `"workspaces"."slug"`, the badge's and every paginated list's `as "aggregate"`, the board's
- * column totals, the panel's `"task_followers"`.
+ * Each read is recognised by SQL only it emits: the sidebar's `stars_exists`, the switcher's
+ * `"workspaces"."slug"`, the badge's and paginated lists' `as "aggregate"`, the board's
+ * `count(*) as total` and the panel's `"task_followers"`.
  */
 
 /**
- * The headers of a partial reload, carrying the asset version the middleware expects. The prop
- * tests skip the middleware instead, and that would skip the shared props this file is about.
+ * Sends the asset version so the request passes through the middleware that shares the props under test.
  *
  * @return array<string, string>
  */
@@ -39,9 +33,6 @@ function partialReloadOf(string $component, string ...$props): array
     ];
 }
 
-/**
- * Every statement run while the request is served, as one string to search.
- */
 function sqlOf(Closure $request): string
 {
     DB::flushQueryLog();
@@ -57,8 +48,6 @@ function sqlOf(Closure $request): string
 }
 
 /**
- * A board with a few cards on it and its first task, seen by somebody who may do anything to it.
- *
  * @return array{User, Project, Task}
  */
 function boardToReload(): array

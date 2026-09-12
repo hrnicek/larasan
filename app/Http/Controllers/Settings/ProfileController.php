@@ -59,7 +59,6 @@ class ProfileController extends Controller
 
         Auth::logout();
 
-        // A deleted account's picture is personal data with nobody left to show it to.
         $removeAvatar->handle($user);
 
         $user->delete();

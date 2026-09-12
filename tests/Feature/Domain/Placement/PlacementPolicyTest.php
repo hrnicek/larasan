@@ -15,8 +15,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * A card in a project, and somebody with the given access to that project.
- *
  * @return array{TaskProjectMembership, User, Project}
  */
 function cardSeenBy(
@@ -61,7 +59,6 @@ it('lets a viewer read a card and change nothing', function (): void {
 it('lets a commenter read a card and change nothing', function (): void {
     [$placement, $actor] = cardSeenBy(ProjectAccessLevel::Commenter);
 
-    // Commenting on a task is not rearranging the board.
     expect($actor->can('view', $placement))->toBeTrue()
         ->and($actor->can('update', $placement))->toBeFalse();
 });
@@ -86,7 +83,6 @@ it('refuses a guest with no explicit project membership', function (): void {
         ->placing(Task::factory()->in($workspace)->create(), $project)
         ->create();
 
-    // Workspace visibility never reaches a guest (ADR-0006): they see what they were given.
     expect($guest->can('view', $placement))->toBeFalse()
         ->and($guest->can('update', $placement))->toBeFalse();
 });
@@ -94,8 +90,7 @@ it('refuses a guest with no explicit project membership', function (): void {
 it('refuses a guest even where they are an explicit editor of the project', function (): void {
     [$placement, $guest] = cardSeenBy(ProjectAccessLevel::Editor, WorkspaceRole::Guest);
 
-    // Reading is theirs — the project membership grants it. Moving a card is `task.update`,
-    // which the guest role does not carry at workspace level (ADR-0010).
+    // Moving a card needs task.update, which the guest workspace role does not carry. See ADR-0010.
     expect($guest->can('view', $placement))->toBeTrue()
         ->and($guest->can('update', $placement))->toBeFalse();
 });

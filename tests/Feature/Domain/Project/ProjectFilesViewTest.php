@@ -11,8 +11,6 @@ use App\Domain\Task\Models\Task;
 use Inertia\Testing\AssertableInertia;
 
 /**
- * The URL of the files table, which is the project's own address with a view on it.
- *
  * @param  array<string, mixed>  $query
  */
 function filesUrl(Project $project, array $query = []): string
@@ -99,16 +97,12 @@ it('keeps the files of a project in another workspace out of reach', function ()
         ->attaching(File::factory()->in($elsewhere)->create(), $task)
         ->create();
 
-    // The binding resolves through the projects the actor can see, so a leaked id is a 404
-    // rather than an empty table (ADR-0005).
     $this->actingAs($actor)
         ->get(filesUrl($theirProject))
         ->assertNotFound();
 });
 
 it('still refuses to make files a project default view', function (): void {
-    // Owner access, because changing a project's settings is a manage-level act — the point of
-    // the assertion is the value being refused, not who was asking.
     [, $project, $actor] = placeableProject(ProjectAccessLevel::Owner);
 
     $this->actingAs($actor)
@@ -142,8 +136,6 @@ it('orders the table from the URL, so an ordering is a link somebody can send', 
 it('refuses an ordering it does not understand', function (): void {
     [, $project, $actor] = placeableProject();
 
-    // A fixed vocabulary, so an unknown value is a URL built wrong rather than a stale id to be
-    // kind about — the same reasoning `view` and `month` are validated by.
     $this->actingAs($actor)
         ->get(filesUrl($project, ['sort' => 'uploader']))
         ->assertSessionHasErrors('sort');

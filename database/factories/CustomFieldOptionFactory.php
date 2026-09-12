@@ -22,8 +22,6 @@ class CustomFieldOptionFactory extends Factory
     public function definition(): array
     {
         return [
-            // A `select` field by default: an option on any other type is a row the domain will
-            // never create.
             'custom_field_id' => CustomField::factory()->ofType(CustomFieldType::Select),
             'label' => fake()->unique()->word(),
             'color' => null,

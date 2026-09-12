@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One choice a `select` field offers.
- *
  * @property string $id
  * @property string $custom_field_id
  * @property string $label
@@ -29,7 +27,6 @@ class CustomFieldOption extends Model
     /** @use HasFactory<CustomFieldOptionFactory> */
     use HasFactory, HasUuids;
 
-    // The field an option belongs to is decided by the Action from what is being edited.
     protected $fillable = ['label', 'color', 'position'];
 
     /** @return BelongsTo<CustomField, $this> */

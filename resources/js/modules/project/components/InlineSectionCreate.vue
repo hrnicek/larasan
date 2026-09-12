@@ -3,19 +3,8 @@ import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 
-/**
- * Add a column where the columns are.
- *
- * `SectionMenu` can already add one, but only from a column that exists — a project with one
- * column offered its second one from inside the first, and an empty board offered it nowhere at
- * all. This is the same endpoint with the affordance in the place somebody looks for it.
- *
- * Named on the way in, like a task is: a column called *New section* that has to be renamed
- * afterwards is two errands for one intention.
- */
 const props = defineProps<{
     projectId: string;
-    /** The board draws a column-shaped tile at the end of the row; the list, a row under it. */
     variant: 'board' | 'list';
 }>();
 
@@ -47,8 +36,6 @@ function submit(): void {
         { name: name.value },
         {
             preserveScroll: true,
-            // Focus stays here: somebody laying a board out is usually adding three columns, not
-            // one — the same reason `InlineTaskCreate` keeps its input.
             onSuccess: async () => {
                 name.value = '';
                 await nextTick();

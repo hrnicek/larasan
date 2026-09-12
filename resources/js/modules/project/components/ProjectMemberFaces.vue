@@ -8,16 +8,6 @@ import {
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { ProjectPerson } from '@/modules/project/types';
 
-/**
- * Who is on this project, as a row of faces.
- *
- * The server sends five and the total; what is not drawn is a `+N`. Past five a stack stops being
- * a glance and becomes a queue, and the whole list is one click away in the dialog beside it.
- *
- * The overlap stays inside an initial's margin. Two letters in a small face leave only a few
- * pixels either side, and a neighbour laid over more than that cuts the second letter off — a pile
- * of `C` and `D` names nobody. The name itself is on hover.
- */
 const props = defineProps<{
     members: ProjectPerson[];
     total: number;

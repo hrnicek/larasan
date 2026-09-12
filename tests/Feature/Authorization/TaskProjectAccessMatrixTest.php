@@ -12,21 +12,7 @@ use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 
-/*
- * Project access against every operation that changes a task, over HTTP.
- *
- * `TaskMatrixTest` crosses the workspace roles with the same endpoints, and every task it
- * builds sits in no project at all — so until this file existed, the project half of the rule
- * was never asked about a task. ADR-0006 says an Editor may modify tasks, a Commenter may not
- * and a Viewer may do nothing; the endpoints agreed with none of that.
- *
- * Outcomes are written out rather than derived from the policy, which would assert only that
- * the code agrees with itself.
- */
-
 /**
- * A task that lives in exactly one project, and an actor holding the given access to it.
- *
  * @return array{Task, User, Project}
  */
 function taskInProjectFor(
@@ -101,7 +87,6 @@ it('answers each project access level the same way at every task endpoint', func
     'editor delete' => [ProjectAccessLevel::Editor, 'delete', 'allowed'],
     'editor comment' => [ProjectAccessLevel::Editor, 'comment', 'allowed'],
 
-    // The level that exists to let somebody take part without changing the work.
     'commenter update' => [ProjectAccessLevel::Commenter, 'update', 'forbidden'],
     'commenter complete' => [ProjectAccessLevel::Commenter, 'complete', 'forbidden'],
     'commenter assign' => [ProjectAccessLevel::Commenter, 'assign', 'forbidden'],
@@ -116,12 +101,7 @@ it('answers each project access level the same way at every task endpoint', func
     'viewer delete' => [ProjectAccessLevel::Viewer, 'delete', 'forbidden'],
     'viewer comment' => [ProjectAccessLevel::Viewer, 'comment', 'forbidden'],
 
-    /*
-     * No membership row on a board the whole workspace can open. The project's default access
-     * level answers for them, and it is `editor` — the same default Asana, ClickUp and Jira
-     * ship. Pinned by `TaskPolicyTest` since TASK-070-017, and the reason the rest of this
-     * matrix cannot simply require a row.
-     */
+    // Without a membership row the project's default access level, `editor`, applies. See ADR-0020.
     'workspace default update' => [null, 'update', 'allowed'],
     'workspace default complete' => [null, 'complete', 'allowed'],
     'workspace default comment' => [null, 'comment', 'allowed'],
@@ -132,9 +112,6 @@ it('refuses every change to a task whose only board is archived', function (stri
 
     [$method, $url, $payload] = projectAccessOperation($operation, $task);
 
-    // An archived project is a record of what happened. `Project::allowsChangesBy()` has always
-    // said so, and the placement endpoints have always honoured it; the task endpoints never
-    // asked, so a closed board's cards stayed editable through the panel.
     $this->actingAs($actor)->{$method}($url, $payload)->assertForbidden();
 
     expect($task->fresh()?->title)->toBe('Untouched')
@@ -147,8 +124,6 @@ it('lets a task on a live board be changed while it is also on an archived one',
     $live = Project::factory()->in($archived->workspace)->create(['visibility' => ProjectVisibility::Workspace]);
     TaskProjectMembership::factory()->placing($task, $live)->create();
 
-    // One task, several boards (ADR-0003). Reaching one that is open is enough, the same way
-    // reaching one that is visible is enough to read it.
     $this->actingAs($actor)
         ->put(route('tasks.update', $task), ['title' => 'Renamed'])
         ->assertRedirect();
@@ -180,8 +155,6 @@ it('refuses to attach a file to a task in a project the actor may only read', fu
 it('hides a task whose only board is a private project the actor was not given', function (): void {
     [$task, $actor] = taskInProjectFor(null, ProjectVisibility::Private);
 
-    // Reach is settled before access level is worth asking: this is `TaskPolicy::view()`
-    // refusing, and it must refuse at the write endpoints too.
     $this->actingAs($actor)->put(route('tasks.update', $task), ['title' => 'Renamed'])->assertForbidden();
 
     expect($task->fresh()?->title)->toBe('Untouched');

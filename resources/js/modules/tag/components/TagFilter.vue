@@ -13,25 +13,13 @@ import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { TaskTag } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
-/**
- * Narrowing a board or a list to what it is about.
- *
- * Every option is a real link, for the reason the view switcher's are: a filtered view is
- * something people send each other, so it has to be an address. Picking a second tag narrows
- * rather than widens — the server matches cards carrying *all* of them.
- *
- * A control rather than a row of every tag the workspace has: that row grows with the
- * vocabulary and pushes the content down for everybody, including the people filtering by
- * nothing. Once something is chosen it says so, with the count in the label, and carries its
- * own way out.
- */
+// Each tag added narrows the result: the server matches tasks carrying all of them.
 const props = withDefaults(
     defineProps<{
         projectId: string;
         view: string;
         active: string[];
         available: TaskTag[];
-        /** The calendar's month, carried through so filtering does not page back to this one. */
         month?: string;
     }>(),
     { month: undefined },
@@ -39,7 +27,6 @@ const props = withDefaults(
 
 const count = computed<number>(() => props.active.length);
 
-/** The URL this tag would lead to: on if it is off, off if it is on. */
 const toggled = (tag: TaskTag): string => {
     const next = props.active.includes(tag.id)
         ? props.active.filter((id) => id !== tag.id)
@@ -79,8 +66,6 @@ const cleared = computed<string>(() => show(props.projectId, { query: { view: pr
             </DropdownMenuContent>
         </DropdownMenu>
 
-        <!-- Part of the chip rather than a separate "Clear" elsewhere: the way out belongs to the
-             thing it undoes. -->
         <Link
             v-if="count > 0"
             :href="cleared"

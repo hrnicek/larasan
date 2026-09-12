@@ -14,11 +14,6 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        /*
-         * The seeders below create accounts with a known password. Running them against a
-         * production database would hand anyone who reads this file a way in, so the
-         * refusal is here rather than in a comment asking people not to.
-         */
         if (app()->isProduction()) {
             throw new RuntimeException('Seeding is refused in production: these seeders create accounts with a known password.');
         }

@@ -9,19 +9,11 @@ use App\Domain\Shared\Ordering\SparsePosition;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/*
- * The ordering rules under the conditions that break them: repeated insertion at one point
- * until the gap collapses, a slot already taken by somebody else, and deletion in the
- * middle of a set.
- */
-
 it('survives repeated insertion at the same point', function (): void {
     [$project, $actor] = projectEditableBy();
     $first = addSection($project, $actor, 'First');
     $last = addSection($project, $actor, 'Last');
 
-    // Every round puts a new column immediately after the first one, which is the move
-    // that halves the gap each time.
     foreach (range(1, 20) as $round) {
         $section = addSection($project, $actor, "Round {$round}");
         app(MoveSection::class)->handle($section, $actor, $first);
@@ -44,7 +36,6 @@ it('normalises rather than handing out a colliding position', function (): void 
     $b = addSection($project, $actor, 'B');
     $c = addSection($project, $actor, 'C');
 
-    // Neighbours one apart: there is no midpoint left between A and B.
     $a->forceFill(['position' => 500])->save();
     $b->forceFill(['position' => 501])->save();
     $c->forceFill(['position' => 900])->save();
@@ -64,12 +55,7 @@ it('recovers when the slot it computed was taken between the read and the write'
     addSection($project, $actor, 'B');
     $c = addSection($project, $actor, 'C');
 
-    /*
-     * Stand-in for the concurrent case, which a single-process test cannot stage: the
-     * moment before the move writes its position, somebody else takes that exact slot.
-     * The unique constraint turns it into an error and `handle()` retries — without the
-     * retry the exception escapes and this test fails.
-     */
+    // Simulates a concurrent writer taking the computed slot, which handle() must retry past.
     $injected = false;
 
     Section::updating(function (Section $section) use (&$injected): void {
@@ -121,8 +107,6 @@ it('lets a new section take the slot a deleted one held', function (): void {
     app(DeleteSection::class)->handle($b, $actor);
     $replacement = addSection($project, $actor, 'B again');
 
-    // Sections have no soft deletes, so the slot is genuinely free — unlike a project slug,
-    // which a deleted project keeps.
     expect($replacement->position)->toBe($taken)
         ->and($a->fresh()?->position)->toBeLessThan($replacement->position);
 });

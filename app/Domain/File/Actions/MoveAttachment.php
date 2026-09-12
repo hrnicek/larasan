@@ -13,15 +13,6 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Put this file after that one.
- *
- * An anchor, never a position (ADR-0009), for the reason a section move takes one: a screen that
- * computed positions from what it last saw would write two files into the same slot as soon as
- * somebody else had moved one. Reordering is `task.update` through the subject's own policy —
- * the order of a task's files is part of the task, and a reader who may open it does not get to
- * rearrange it.
- */
 final readonly class MoveAttachment
 {
     /**
@@ -44,9 +35,7 @@ final readonly class MoveAttachment
         try {
             $this->place($attachment, $after);
         } catch (UniqueConstraintViolationException) {
-            // Two moves computed the same midpoint. The constraint made that an error rather
-            // than two files in one slot; this one reads the order again and places itself
-            // relative to the winner.
+            // A concurrent move took the same midpoint; re-read the order and place again.
             $this->place($attachment->fresh() ?? $attachment, $after?->fresh());
         }
 
@@ -73,9 +62,7 @@ final readonly class MoveAttachment
             try {
                 $position = SparsePosition::between($target['before'], $target['after']);
             } catch (PositionsNeedNormalisation) {
-                // The neighbours have closed up, so there is no midpoint left to take. The
-                // subject's whole list is respread inside this transaction and the slot is
-                // recomputed — normalisation is the exception, not the steady state.
+                // No gap left between the neighbours: respread the list and recompute the slot.
                 $ordered = $this->normalise($attachment);
                 $target = $this->slotFor($ordered, $attachment, $after);
 
@@ -91,8 +78,6 @@ final readonly class MoveAttachment
     }
 
     /**
-     * The neighbours the attachment lands between, or null when it is already there.
-     *
      * @param  Collection<int, Attachment>  $ordered
      * @return array{before: int|null, after: int|null}|null
      */
@@ -105,8 +90,7 @@ final readonly class MoveAttachment
         if ($after !== null) {
             $anchor = $others->search(fn (Attachment $candidate): bool => $candidate->is($after));
 
-            // The anchor is not in this subject's order at all — a stale screen, or a file that
-            // has since been removed. Placing "after" it would otherwise mean the front.
+            // A stale or removed anchor must not silently fall back to the front.
             if ($anchor === false) {
                 throw FileException::attachmentBelongsToAnotherSubject();
             }
@@ -119,7 +103,6 @@ final readonly class MoveAttachment
 
         $current = $ordered->search(fn (Attachment $candidate): bool => $candidate->is($attachment));
 
-        // Already in that slot: the same neighbours, in the same order, so nothing to write.
         if ($current !== false && $this->alreadyBetween($ordered, $current, $before, $next)) {
             return null;
         }
@@ -139,9 +122,6 @@ final readonly class MoveAttachment
     }
 
     /**
-     * Everything hanging from the same subject, locked and in order, so a second move waits
-     * instead of reading the same neighbours.
-     *
      * @return Collection<int, Attachment>
      */
     private function lockedOrder(Attachment $attachment): Collection
@@ -155,9 +135,7 @@ final readonly class MoveAttachment
     }
 
     /**
-     * Rewrite the subject's positions to an even spread. Every row is parked in negative space
-     * first, so no write lands on a row that has not moved yet — the unique constraint would
-     * otherwise make the rewrite order load-bearing.
+     * Rows are parked first so the unique position constraint is never hit mid-rewrite.
      *
      * @return Collection<int, Attachment>
      */

@@ -14,7 +14,6 @@ it('accepts a palette name and knows which case it is', function (): void {
 });
 
 it('accepts a hex and lower-cases it', function (): void {
-    // `#AABBCC` and `#aabbcc` are one colour, not two rows that look identical.
     $color = new AccentColor('  #AaBbCc ');
 
     expect($color->value)->toBe('#aabbcc')

@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * An index that exists and an index the planner uses are two different claims. These tests
- * make the second one, against a table large enough that a sequential scan would be the
- * cheaper plan if the index did not fit the read.
- *
  * @return array{project: string, section: string, task: string}
  */
 function seedPlacementBoard(int $projects = 20, int $sections = 5, int $perSection = 30): array
@@ -40,7 +36,6 @@ function seedPlacementBoard(int $projects = 20, int $sections = 5, int $perSecti
             'updated_at' => $now,
         ];
 
-        // The last bucket of every project is the ungrouped one, which is a read of its own.
         for ($s = 0; $s <= $sections; $s++) {
             $sectionId = $s === $sections ? null : (string) Str::uuid7();
 
@@ -159,11 +154,6 @@ function placementIndexDefinition(string $name): ?string
 it('carries exactly the indexes the reads need and no prefix of another', function (): void {
     $names = collect(Schema::getIndexes('task_project_memberships'))->pluck('name')->sort()->values();
 
-    /*
-     * Pinned as a set, because the cost of an index is paid on every write. A plain
-     * `INDEX(task_id)` was here and is not: it is a prefix of the unique index below, and
-     * the lookup it existed for plans identically without it.
-     */
     expect($names->all())->toBe([
         'task_project_memberships_pkey',
         'task_project_memberships_project_id_section_id_position_index',
@@ -177,8 +167,6 @@ it('orders the composite index the way the board reads it', function (): void {
     $index = collect(Schema::getIndexes('task_project_memberships'))
         ->firstWhere('name', 'task_project_memberships_project_id_section_id_position_index');
 
-    // Order, not membership: a leading `position` would index the same three columns and
-    // serve none of the reads below, because every one of them filters on the project first.
     expect($index)->not->toBeNull()
         ->and($index['columns'])->toBe(['project_id', 'section_id', 'position']);
 });
@@ -205,13 +193,8 @@ it('plans a board column read as an ordered index scan', function (): void {
             ->orderBy('position')
     );
 
-    /*
-     * The slot guard is also the read index for a column: it leads with the same three
-     * columns and covers fewer rows, so the planner prefers it to the composite index.
-     */
+    // The slot guard leads with the same columns and covers fewer rows, so the planner prefers it.
     expect($plan['indexes'])->toContain('task_project_memberships_slot_unique')
-        // The ordering comes out of the index. A `Sort` node would mean the column order
-        // was wrong and every board read paid for it.
         ->and($plan['nodes'])->not->toContain('Sort')
         ->and($plan['sequential'])->toBe([]);
 });
@@ -226,8 +209,6 @@ it('plans the ungrouped bucket read as an ordered index scan', function (): void
             ->orderBy('position')
     );
 
-    // The bucket the unique constraint needed a partial index for reads through that same
-    // partial index, ordered, without a sort.
     expect($plan['indexes'])->toContain('task_project_memberships_ungrouped_slot_unique')
         ->and($plan['nodes'])->not->toContain('Sort')
         ->and($plan['sequential'])->toBe([]);
@@ -238,12 +219,7 @@ it('plans a whole project read on the composite index', function (): void {
 
     $plan = planOf(DB::table('task_project_memberships')->where('project_id', $project));
 
-    /*
-     * The read that justifies the composite index existing next to the two partial ones: it
-     * names no section, so neither partial index applies — a partial index can only serve a
-     * query that implies its predicate. Dropping the composite index makes this a sequential
-     * scan, which is how it was verified.
-     */
+    // Names no section, so neither partial index can serve this read.
     expect($plan['indexes'])->toContain('task_project_memberships_project_id_section_id_position_index')
         ->and($plan['sequential'])->toBe([]);
 });
@@ -251,11 +227,7 @@ it('plans a whole project read on the composite index', function (): void {
 it('plans the board read joined to its columns without scanning the placements', function (): void {
     ['project' => $project] = seedPlacementBoard();
 
-    /*
-     * The real board query orders columns by `sections.position`, not by `section_id`, so
-     * the join makes a sort unavoidable. What the index has to do here is find the project's
-     * placements without reading the table.
-     */
+    // Ordering by sections.position forces a sort; only the placement lookup must use the index.
     $plan = planOf(
         DB::table('task_project_memberships as m')
             ->leftJoin('sections as s', 's.id', '=', 'm.section_id')
@@ -273,9 +245,7 @@ it('plans where does this task appear on the unique index', function (): void {
 
     $plan = planOf(DB::table('task_project_memberships')->where('task_id', $task));
 
-    // `UNIQUE(task_id, project_id)` leads with `task_id`, so it is this lookup's index as
-    // well as the constraint — and the index PostgreSQL needs for the cascade when a task
-    // is deleted, since it does not index the referencing side of a foreign key itself.
+    // PostgreSQL does not index foreign keys itself, so this index also serves the task delete cascade.
     expect($plan['indexes'])->toContain('task_project_memberships_task_id_project_id_unique')
         ->and($plan['sequential'])->toBe([]);
 });

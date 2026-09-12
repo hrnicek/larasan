@@ -11,19 +11,9 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * The matrix the guidelines name and nothing covered until Phase 170: a private broadcast
- * channel is a second door into the same data, and a door is only as good as the times it says
- * no. Every role against each of the three channels, with the outcomes written out.
- *
- * A refusal is 403 or 404 depending on how the subject resolves — a workspace binds implicitly
- * and a project goes through the binder in `routes/projects.php` — and `ChannelAuthorizationTest`
- * pins which is which. Here the question is only whether the door opened.
- */
+// A refusal is 403 or 404 depending on how the channel subject binds; `ChannelAuthorizationTest` pins which.
 
 /**
- * Somebody of the given role, and the project described.
- *
  * @return array{Workspace, User, Project}
  */
 function channelSubject(WorkspaceRole $role, string $placement): array
@@ -57,7 +47,7 @@ it('opens the workspace channel to members and to nobody else', function (
     'owner' => [WorkspaceRole::Owner, true],
     'admin' => [WorkspaceRole::Admin, true],
     'member' => [WorkspaceRole::Member, true],
-    // The workspace channel carries tasks that sit in no project, which a guest may not see.
+    // The workspace channel carries tasks outside any project, which guests may not see.
     'guest' => [WorkspaceRole::Guest, false],
 ]);
 
@@ -74,22 +64,14 @@ it('opens a project channel to exactly the people who can open the project', fun
         ? $response->assertOk()
         : expect($response->status())->toBeIn([403, 404]);
 
-    /*
-     * And the callback itself, for the same row. `{project}` resolves through the explicit binder
-     * in `routes/projects.php`, which refuses a project the actor cannot see *before* the channel
-     * callback is reached — so the request above passes even when the rule in
-     * `routes/channels.php` is wrong, and this is the assertion that does not.
-     */
+    // The `{project}` binding refuses unseen projects before the callback runs, so the callback is asserted directly.
     expect(channelCallback('project.{project}')($actor, $project))->toBe($allowed);
 })->with([
-    // A workspace-visible project is reachable by any member whatever their project access; a
-    // guest reaches only what they were given.
     'owner, workspace project' => [WorkspaceRole::Owner, 'workspace', true],
     'admin, workspace project' => [WorkspaceRole::Admin, 'workspace', true],
     'member, workspace project' => [WorkspaceRole::Member, 'workspace', true],
     'guest, workspace project' => [WorkspaceRole::Guest, 'workspace', false],
 
-    // A private project is private to the workspace, owners included.
     'owner, private project they were given' => [WorkspaceRole::Owner, 'private given', true],
     'admin, private project they were given' => [WorkspaceRole::Admin, 'private given', true],
     'member, private project they were given' => [WorkspaceRole::Member, 'private given', true],

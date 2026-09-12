@@ -36,11 +36,7 @@ class WorkspaceMemberController extends Controller
 
         return Inertia::render('settings/Members', [
             ...$members($workspace, $this->actor($request)),
-            /*
-             * Member first, because it is the answer most invitations want and the form
-             * offers the first option by default. Owner is absent: it is transferred, not
-             * assigned.
-             */
+            // Member first as the form's default; Owner is transferred rather than assigned.
             'roles' => [
                 WorkspaceRole::Member->value,
                 WorkspaceRole::Admin->value,
@@ -108,8 +104,6 @@ class WorkspaceMemberController extends Controller
 
         $row = $this->membership($workspace, $membership);
 
-        // Read before the row is acted on: taking back an invitation and removing somebody who
-        // is here are the same endpoint and not the same sentence.
         $wasInvitation = ! $row->status->grantsAccess();
 
         $this->translating(fn () => $remove->handle($workspace, $this->actor($request), $row), 'membership');
@@ -123,9 +117,7 @@ class WorkspaceMemberController extends Controller
     }
 
     /**
-     * The membership is looked up **through the workspace**, so an id belonging to another
-     * tenant is a 404 rather than a permission error — the same answer an id that does not
-     * exist gets.
+     * Resolved through the workspace, so another tenant's id is a 404.
      */
     private function membership(Workspace $workspace, string $id): WorkspaceMembership
     {
@@ -137,11 +129,6 @@ class WorkspaceMemberController extends Controller
         return ResolveCurrentWorkspace::from($request) ?? abort(404);
     }
 
-    /**
-     * Domain refusals become validation errors on the field the user can act on. The
-     * Action does not know it is being called over HTTP, and this is the only place that
-     * does.
-     */
     private function translating(callable $operation, string $field): void
     {
         try {

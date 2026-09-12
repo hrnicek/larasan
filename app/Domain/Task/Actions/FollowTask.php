@@ -12,14 +12,6 @@ use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\UniqueConstraintViolationException;
 
-/**
- * Start watching a task.
- *
- * Watching is not editing: anybody who can **read** the task may follow it, which is why this
- * asks the policy's `view` rather than a capability. What it will not do is subscribe somebody
- * to a task they cannot open — the rule TASK-070-017 settled for assignment, applied to
- * notifications, where the consequence is an inbox full of work nobody can reach.
- */
 final readonly class FollowTask
 {
     public function __construct(private Dispatcher $events) {}
@@ -32,8 +24,6 @@ final readonly class FollowTask
 
         $existing = $task->follows()->where('user_id', $follower->id)->first();
 
-        // Following twice is following once: the same request arriving again, not a second
-        // subscription.
         if ($existing instanceof TaskFollower) {
             return $existing;
         }
@@ -41,10 +31,6 @@ final readonly class FollowTask
         try {
             $follow = $this->follow($task, $follower);
         } catch (UniqueConstraintViolationException) {
-            /*
-             * Two clicks, or two devices, at the same moment. `UNIQUE(task_id, user_id)` made
-             * that an error rather than two rows, and the row that won is the answer.
-             */
             return $task->follows()->where('user_id', $follower->id)->firstOrFail();
         }
 

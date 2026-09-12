@@ -104,8 +104,7 @@ it('respreads the list when the neighbours have closed up', function (): void {
     $task = Task::factory()->in($workspace)->create();
     [$first, $second, $third] = attachmentsOn($task, 3);
 
-    // Two positions with no midpoint left between them: the move has to normalise rather than
-    // invent a slot (ADR-0009).
+    // Too close for a midpoint, so the move must normalise. See ADR-0009.
     $first->forceFill(['position' => 10])->save();
     $second->forceFill(['position' => 12])->save();
 
@@ -122,7 +121,6 @@ it('refuses an anchor attached to something else', function (): void {
     [$attachment] = attachmentsOn($task, 1);
     [$elsewhere] = attachmentsOn($other, 1);
 
-    // Silently ignoring it would put the file at the front, which is not what was asked for.
     expect(fn (): Attachment => moveAttachment($attachment, $actor, $elsewhere))
         ->toThrow(FileException::class);
 });
@@ -145,11 +143,6 @@ it('refuses a reader who may open the task but not change it', function (): void
     TaskProjectMembership::factory()->placing($task, $project)->create();
     [$first, $second] = attachmentsOn($task, 2);
 
-    /*
-     * Order is a property of the task, not of any one file in it, so this asks the subject's
-     * `update` — a guest given the project may open the task and download what is in it, and
-     * `task.update` is not theirs to hold.
-     */
     expect(fn (): Attachment => moveAttachment($second, $viewer, $first))->toThrow(FileException::class);
 
     $this->actingAs($viewer)

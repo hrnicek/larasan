@@ -17,9 +17,6 @@ class ProjectCustomFieldFactory extends Factory
     protected $model = ProjectCustomField::class;
 
     /**
-     * The field is created in the project's own workspace: a project showing a field from
-     * another workspace is a row the domain will never create.
-     *
      * @return array<string, mixed>
      */
     public function definition(): array

@@ -28,11 +28,7 @@ class AssignTaskRequest extends FormRequest
         $task = $this->task();
 
         return [
-            /*
-             * Null unassigns. Anyone else must hold an active membership of this task's
-             * workspace: a user id is global, and an unscoped `exists` would confirm that
-             * any account in the installation exists.
-             */
+            // Scoped to the workspace, so `exists` cannot confirm another tenant's accounts.
             'assignee_id' => [
                 'nullable', 'integer',
                 Rule::exists('workspace_memberships', 'user_id')->where(

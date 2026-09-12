@@ -10,10 +10,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/**
- * Schema-level guarantees, asserted before the model exists so the constraints are shown
- * to be the database's rather than the model's.
- */
 function insertMembership(Workspace $workspace, User $user, ?string $id = null): void
 {
     DB::table('workspace_memberships')->insert([
@@ -68,10 +64,6 @@ it('requires a role and a status to be given explicitly', function (): void {
     ]))->toThrow(QueryException::class);
 });
 
-/**
- * An invitation to an address nobody has registered under, inserted below the model so the
- * rules it breaks are shown to be the database's.
- */
 function insertInvitation(Workspace $workspace, ?string $email): void
 {
     DB::table('workspace_memberships')->insert([
@@ -107,11 +99,7 @@ it('rejects a membership of nobody', function (): void {
 });
 
 it('rejects an address that is not lower case', function (): void {
-    /*
-     * Two cases of one address would be two invitations, and the partial unique index
-     * would allow both — so the case is the database's business, not only the value
-     * object's.
-     */
+    // The partial unique index is case-sensitive, so the database itself must refuse mixed case.
     expect(fn () => insertInvitation(Workspace::factory()->create(), 'Nobody@Example.com'))
         ->toThrow(QueryException::class);
 });

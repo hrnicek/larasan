@@ -13,15 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Somebody working on a task beside its assignee.
- *
- * The assignee is the one person the task belongs to; a collaborator shares the work without
- * owning it, and a task may have any number of them. The two never overlap: `AddTaskCollaborator`
- * refuses the assignee, and `AssignTask` takes the row away from a collaborator it promotes.
- *
- * No `workspace_id`, for the reason `TaskFollower` has none: the table is scoped by joining the
- * task that owns it (`docs/architecture/database.md`).
- *
  * @property string $id
  * @property string $task_id
  * @property int $user_id
@@ -34,7 +25,6 @@ class TaskCollaborator extends Model
     /** @use HasFactory<TaskCollaboratorFactory> */
     use HasFactory, HasUuids;
 
-    /** A collaboration is created and deleted, never edited. */
     public const UPDATED_AT = null;
 
     protected $fillable = ['task_id', 'user_id'];

@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Asserted through raw inserts, before a model exists, so what is proven is the database's
- * behaviour rather than a model's.
- *
  * @param  array<string, mixed>  $overrides
  */
 function insertTask(Workspace $workspace, array $overrides = []): string
@@ -41,7 +38,6 @@ function insertTask(Workspace $workspace, array $overrides = []): string
 }
 
 it('carries no placement columns at all', function (): void {
-    // ADR-0003: a column here would be the second source of truth for where a task sits.
     expect(Schema::hasColumn('tasks', 'project_id'))->toBeFalse()
         ->and(Schema::hasColumn('tasks', 'section_id'))->toBeFalse()
         ->and(Schema::hasColumn('tasks', 'position'))->toBeFalse();
@@ -89,8 +85,6 @@ it('keeps a subtask when its parent is deleted', function (): void {
 
     $subtask = DB::table('tasks')->where('id', $child)->first();
 
-    // Subtasks are tasks in their own right: a cascade would delete work nobody asked to
-    // delete. They become root tasks.
     expect($subtask)->not->toBeNull()
         ->and($subtask?->parent_id)->toBeNull();
 });
@@ -115,7 +109,6 @@ it('keeps a task when the people on it close their accounts', function (): void 
         ->and($task?->assignee_id)->toBeNull()
         ->and($task?->created_by)->toBeNull()
         ->and($task?->completed_by)->toBeNull()
-        // The fact of completion survives the person who did it.
         ->and($task?->completed_at)->not->toBeNull();
 });
 
@@ -124,8 +117,7 @@ it('refuses a parent from another workspace only in the domain, not the database
     $theirs = Workspace::factory()->create();
     $foreignParent = insertTask($theirs);
 
-    // The database cannot express "same workspace" across a self-reference, so the Action
-    // is what refuses it (TASK-060-008). Recorded here so the gap is deliberate.
+    // A self-referencing foreign key cannot enforce the same workspace; the Action refuses it instead.
     $id = insertTask($mine, ['parent_id' => $foreignParent]);
 
     expect(DB::table('tasks')->where('id', $id)->exists())->toBeTrue();

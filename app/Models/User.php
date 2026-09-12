@@ -49,15 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     use HasFactory, Notifiable, PasskeyAuthenticatable, Searchable, TwoFactorAuthenticatable;
 
     /**
-     * What the search engine is told about a person (ADR-0016).
-     *
-     * Name and email, which is what somebody types to find a colleague, and nothing else — a
-     * user row carries a password hash, two-factor secrets and recovery codes, and an index is
-     * a second copy of whatever it is handed.
-     *
-     * There is no `workspace_id` here because a person belongs to several: the index holds every
-     * user in the installation, and `PersonResults` joins `workspace_memberships` to decide who
-     * this actor may be shown. That join is the boundary; nothing in this array is.
+     * Name and email only: the index must never receive credentials or two-factor secrets.
      *
      * @return array<string, mixed>
      */
@@ -70,13 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         ];
     }
 
-    /**
-     * Only a change to what the index holds is worth an indexing job.
-     *
-     * Every workspace switch writes `current_workspace_id` on this row, and without this a
-     * person moving between two workspaces would queue an indexing job per move — for a document
-     * whose two fields did not change.
-     */
+    /** Workspace switches write this row, so only indexed fields trigger a reindex. */
     public function searchIndexShouldBeUpdated(): bool
     {
         return $this->wasChanged(['name', 'email']) || $this->wasRecentlyCreated;
@@ -89,9 +75,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
-     * Projects this user is an explicit member of. Workspace-visible projects they can
-     * also see are not here: that is a visibility rule, answered by a query, not a
-     * relationship (ADR-0006).
+     * Explicit memberships only; workspace-visible projects are resolved by query. See ADR-0006.
      *
      * @return BelongsToMany<Project, $this>
      */
@@ -109,10 +93,6 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
-     * Workspaces this user has an active membership in. Ownership is a separate concept:
-     * an owner also holds a membership row, and a workspace whose owner column points
-     * here without one is a bug the membership tests catch.
-     *
      * @return BelongsToMany<Workspace, $this>
      */
     public function workspaces(): BelongsToMany
@@ -124,10 +104,8 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
-     * ADR-0008 names the user's channel `private-user.{user}`, while Laravel's
-     * notification broadcasting defaults to `App.Models.User.{id}`. Reconciled here in one
-     * direction, so the application has one user channel that `routes/channels.php`
-     * authorizes rather than two half-working ones.
+     * Replaces Laravel's default `App.Models.User.{id}` channel with the `user.{id}` channel
+     * authorized in routes/channels.php. See ADR-0008.
      */
     public function receivesBroadcastNotificationsOn(Notification $notification): string
     {
@@ -135,12 +113,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     }
 
     /**
-     * @return array<string, string>
-     */
-    /**
-     * A database default fills the column but leaves the *model* without the attribute until it
-     * is read back, and `Model::shouldBeStrict()` throws on a missing one — so the first request
-     * after a sign-up went through `HandleUiTheme` and 500'd. The default belongs on both sides.
+     * Mirrors the database default, which a new model lacks until reloaded and strict mode rejects.
      *
      * @var array<string, string>
      */
@@ -148,6 +121,9 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         'ui_theme' => UiTheme::Slate->value,
     ];
 
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [

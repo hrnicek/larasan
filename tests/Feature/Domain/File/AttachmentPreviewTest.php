@@ -17,9 +17,6 @@ beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
 });
 
-/**
- * An image whose object exists on the fake disk, so a preview reads bytes rather than a row.
- */
 function storedImage(Task $task, string $mimeType = 'image/png', string $extension = 'png'): Attachment
 {
     $file = File::factory()->in($task->workspace)->image($mimeType, $extension)->create();
@@ -40,7 +37,6 @@ it('draws an image rather than filing it', function (): void {
 
     expect($response->headers->get('content-disposition'))->toStartWith('inline')
         ->and($response->headers->get('content-type'))->toBe('image/png')
-        // The browser is not allowed to decide this is something else.
         ->and($response->headers->get('x-content-type-options'))->toBe('nosniff')
         ->and($response->headers->get('cache-control'))->toContain('immutable')
         ->and($response->headers->get('etag'))->toBe('"'.$attachment->file->checksum.'"');
@@ -51,11 +47,7 @@ it('refuses to render anything it would be dangerous to render on this origin', 
     $task = Task::factory()->in($workspace)->create();
     $attachment = storedImage($task, 'image/svg+xml', 'svg');
 
-    /*
-     * An SVG is a document with script in it. Served inline it would run against this origin's
-     * session, so it is not previewable at all — downloading it is still fine, because a
-     * download is not an execution.
-     */
+    // SVG can carry script, so it is never served inline; downloading it is safe.
     $this->actingAs($actor)->get(route('attachments.preview', $attachment))->assertNotFound();
     $this->actingAs($actor)->get(route('attachments.download', $attachment))->assertOk();
 });
@@ -78,7 +70,6 @@ it('refuses a leaked id from a project the actor was never given', function (): 
     TaskProjectMembership::factory()->placing($task, $private)->create();
     $attachment = storedImage($task);
 
-    // Reach, not knowledge of an id (ADR-0007). The preview asks exactly what the download asks.
     $this->actingAs($outsider)->get(route('attachments.preview', $attachment))->assertForbidden();
 });
 
@@ -128,6 +119,5 @@ it('says what kind of thing each attachment is', function (): void {
 
     $payload = app(TaskDetailQuery::class)($task->fresh(), $actor);
 
-    // The screen draws a thumbnail or a filename from this, and never from the MIME string.
     expect(collect($payload['attachments'])->pluck('kind')->all())->toBe(['image', 'pdf']);
 });

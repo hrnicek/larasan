@@ -11,15 +11,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * The people a term finds, for the palette.
- *
- * The index holds every user in the installation — a person belongs to several workspaces, so
- * there is no tenant column to filter on — which is exactly why the boundary is the join:
- * `workspace_memberships` for *this* workspace, and only memberships that grant access. A
- * member of another workspace is never returned (ADR-0016).
- *
- * The actor is not excluded. "Assign to me" is a thing people search for, and a list that
- * silently lacks the person doing the searching reads as a bug.
+ * The user index has no workspace attribute, so tenant isolation relies on the membership constraint. See ADR-0016.
  */
 final readonly class PersonResults
 {
@@ -38,7 +30,6 @@ final readonly class PersonResults
         }
 
         if ($workspace->membershipFor($actor)?->status->grantsAccess() !== true) {
-            // Not in this workspace at all: its people are not this actor's to find.
             return [];
         }
 

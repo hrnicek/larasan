@@ -30,8 +30,6 @@ it('reads all three ends of a placement', function (): void {
 it('gives both ends the same workspace by default', function (): void {
     $placement = TaskProjectMembership::factory()->create();
 
-    // A factory that made two unrelated workspaces would hand every later test a row the
-    // Actions are about to refuse to create (ADR-0003).
     expect($placement->task->workspace_id)->toBe($placement->project->workspace_id);
 });
 
@@ -48,7 +46,6 @@ it('starts a placement ungrouped', function (): void {
     $section = Section::factory()->create();
     $grouped = TaskProjectMembership::factory()->inSection($section)->create();
 
-    // Attaching a task to a project puts it in the project, not in a column.
     expect($ungrouped->isUngrouped())->toBeTrue()
         ->and($grouped->isUngrouped())->toBeFalse();
 });
@@ -73,11 +70,7 @@ it('refuses a position from mass assignment', function (): void {
         'position' => 42,
     ]);
 
-    /*
-     * A client never sends a position (ADR-0009): a move says "place this after that one".
-     * Strict Eloquent makes the attempt an exception rather than a silently dropped
-     * attribute, so a payload that reached this far is a bug with a stack trace.
-     */
+    // Strict mode throws instead of silently discarding the guarded attribute.
     expect($fill)->toThrow(MassAssignmentException::class);
 
     $placement = (new TaskProjectMembership)->fill([
@@ -95,11 +88,7 @@ it('does not soft delete', function (): void {
 
     $placement->delete();
 
-    /*
-     * A hidden row would still hold `UNIQUE(task_id, project_id)` and its slot, so
-     * re-attaching a task to a project it was detached from would collide with its own
-     * tombstone.
-     */
+    // A soft-deleted row would still hold its unique pair and slot, blocking re-attachment.
     expect(DB::table('task_project_memberships')->count())->toBe(0)
         ->and(Task::query()->count())->toBe(1);
 });
@@ -107,7 +96,5 @@ it('does not soft delete', function (): void {
 it('is scoped by joining the aggregates rather than by a column of its own', function (): void {
     $placement = TaskProjectMembership::factory()->create();
 
-    // The rule in `docs/architecture/database.md`: a pure relationship table carries no
-    // `workspace_id`, because the copy would be the one that drifts.
     expect($placement->getAttributes())->not->toHaveKey('workspace_id');
 });

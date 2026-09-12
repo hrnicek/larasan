@@ -13,13 +13,6 @@ use App\Http\Controllers\Workspace\WorkspaceMemberController;
 use App\Models\User;
 
 /**
- * Who is in this workspace, and who has been asked to be.
- *
- * Two lists rather than one, because they are two different sentences: the people here are the
- * workspace, and the invitations are a management matter — an address, a deadline and who sent
- * it. Declined and revoked rows are in neither: they are history, and bringing somebody back is
- * the invite form's job rather than a button on a row.
- *
  * @see WorkspaceMemberController
  */
 final readonly class WorkspaceMembersQuery
@@ -45,10 +38,6 @@ final readonly class WorkspaceMembersQuery
      */
     private function members(Workspace $workspace, User $actor, bool $canManage): array
     {
-        /*
-         * Counted once rather than per row: `isLastOwner()` is a query, and the screen is open to
-         * every member. It is also the only reason the list needs to know about owners at all.
-         */
         $activeOwners = $workspace->memberships()
             ->where('role', WorkspaceRole::Owner->value)
             ->where('status', WorkspaceMembershipStatus::Active->value)
@@ -61,14 +50,8 @@ final readonly class WorkspaceMembersQuery
             ->get()
             ->map(fn (WorkspaceMembership $membership): array => [
                 'id' => $membership->id,
-                // An active row always names an account — an unclaimed one can only be an
-                // invitation — and the address is what is left if that ever stops being true.
                 'name' => $membership->user->name ?? $membership->address(),
-                /*
-                 * A guest is an outside collaborator (ADR-0006); handing them every colleague's
-                 * address is not part of commenting on a task. Managers need it to tell two
-                 * people apart and to know who they invited.
-                 */
+                // Addresses are withheld from non-managers such as guests. See ADR-0006.
                 'email' => $canManage || $membership->user_id === $actor->id
                     ? $membership->address()
                     : null,
@@ -82,9 +65,6 @@ final readonly class WorkspaceMembersQuery
     }
 
     /**
-     * Only for somebody who can act on them. An invitation is mostly an address, which this
-     * screen deliberately withholds from everybody else.
-     *
      * @return list<array<string, mixed>>
      */
     private function invitations(Workspace $workspace): array
@@ -104,8 +84,6 @@ final readonly class WorkspaceMembersQuery
                 'role' => $invitation->role->value,
                 'invitedBy' => $invitation->invitedBy->name ?? null,
                 'expiresAt' => $invitation->expires_at?->toIso8601String(),
-                // The sweep runs on a schedule, so a row can be past its deadline and still say
-                // `invited`. The screen answers for the deadline, not the column.
                 'hasExpired' => $invitation->hasExpired()
                     || $invitation->status === WorkspaceMembershipStatus::Expired,
                 'hasAccount' => $invitation->isClaimed(),

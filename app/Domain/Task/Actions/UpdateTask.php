@@ -14,11 +14,6 @@ use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * A task's own fields. Completion is `CompleteTask`, assignment is `AssignTask`, and
- * placement is Phase 070 — three separate operations because each answers a different
- * question and produces a different event.
- */
 final readonly class UpdateTask
 {
     public function __construct(private Dispatcher $events) {}
@@ -31,25 +26,14 @@ final readonly class UpdateTask
 
         $parent = $data->changes('parent_id') ? $this->parentFor($task, $data->parentId) : null;
 
-        /*
-         * Nullable columns take a null as "clear this": a description that no longer
-         * applies and a due date that has been dropped are both ordinary edits, and the
-         * first version of the project Action filtered them out and made the fields
-         * write-once (Phase 040's review).
-         *
-         * A field the payload never mentioned is a third case, and it is left alone — a
-         * row editing one field must not clear the ones it does not carry.
-         */
+        // A null clears a nullable field; a field absent from the payload is left untouched.
         $task->fill($this->changed($data, [
-            // Rich text, so what arrives is markup and only the allowlist's version of it is
-            // stored. Here rather than in the FormRequest: the rule has to hold for the console
-            // and the queue too.
+            // Sanitised here rather than in the FormRequest so console and queue callers are covered too.
             'description' => RichText::sanitize($data->description),
             'due_at' => $data->dueAt,
             'parent_id' => $parent?->id,
         ]));
 
-        // Title and priority cannot be null, so a null says nothing about them.
         $task->fill(array_filter(
             $this->changed($data, ['title' => $data->title, 'priority' => $data->priority]),
             fn (mixed $value): bool => $value !== null,
@@ -69,8 +53,6 @@ final readonly class UpdateTask
     }
 
     /**
-     * The subset of `$values` the payload actually mentioned.
-     *
      * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
@@ -83,11 +65,6 @@ final readonly class UpdateTask
         );
     }
 
-    /**
-     * The new parent, proven to be a task of the same workspace, not the task itself and
-     * not one of its own descendants. A cycle is not merely invalid data: every read that
-     * walks the chain would run forever.
-     */
     private function parentFor(Task $task, ?string $parentId): ?Task
     {
         if ($parentId === null) {
@@ -118,11 +95,6 @@ final readonly class UpdateTask
     }
 
     /**
-     * Resolves parents one row at a time, memoised for the walk. A chain is bounded by
-     * `ParentChain::MAX_DEPTH`, so this is a handful of primary-key lookups rather than a
-     * recursive query — and it stays honest if the data already contains a loop, which the
-     * walk is written to survive.
-     *
      * @return callable(string): ?string
      */
     private function parentResolver(string $workspaceId): callable

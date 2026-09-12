@@ -10,12 +10,6 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreCommentRequest extends FormRequest
 {
-    /**
-     * Handed to the subject's own policy, so the answer arrives as a 403 rather than as a
-     * refusal rendered from a thrown exception. Asked as one question rather than as the
-     * capability plus reach: a project's Commenter level is part of it too, and a request that
-     * spelled the rule out here would be the copy that goes out of date (TASK-260-001).
-     */
     public function authorize(): bool
     {
         $subject = $this->subject();
@@ -34,16 +28,10 @@ class StoreCommentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            // A comment is prose, not a document: long enough for a paragraph of reasoning and
-            // short enough that the feed stays readable and a single row stays bounded.
             'body' => ['required', 'string', 'max:5000'],
         ];
     }
 
-    /**
-     * The subject is whatever the route bound that can be commented on. Anything else is not a
-     * comment route, and a request that cannot name its subject authorizes nothing.
-     */
     public function subject(): (Model&Commentable)|null
     {
         foreach ($this->route()?->parameters() ?? [] as $parameter) {

@@ -34,8 +34,6 @@ class StoreProjectTaskRequest extends FormRequest
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],
 
-            // The column to drop it into. Null is the ungrouped bucket, which is where a
-            // task with no column goes rather than nowhere (ADR-0004).
             'section' => [
                 'nullable', 'uuid',
                 Rule::exists('sections', 'id')->where(
@@ -43,10 +41,7 @@ class StoreProjectTaskRequest extends FormRequest
                 ),
             ],
 
-            /*
-             * Scoped to the project's workspace: a valid user id from another tenant is a bad
-             * request, and without the scope `exists` would confirm that the account is real.
-             */
+            // Scoped to the workspace, so `exists` cannot confirm another tenant's accounts.
             'assignee_id' => [
                 'nullable', 'integer',
                 Rule::exists('workspace_memberships', 'user_id')->where(
@@ -70,8 +65,7 @@ class StoreProjectTaskRequest extends FormRequest
     }
 
     /**
-     * Resolved inside the project, so a section id from elsewhere cannot be reached even if
-     * validation is bypassed.
+     * Scoped to the project even when validation is bypassed.
      */
     public function targetSection(): ?Section
     {

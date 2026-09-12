@@ -31,7 +31,6 @@ it('reads one task in two projects as one task', function (): void {
     TaskProjectMembership::factory()->placing($task, $other)->create();
 
     expect($task->placements()->count())->toBe(2)
-        // By name, because nothing else about two projects holding one task is ordered.
         ->and($task->projects()->pluck('name')->all())->toBe(['Alpha', 'Zulu'])
         ->and(Task::query()->count())->toBe(1);
 });
@@ -44,7 +43,6 @@ it('reads a project s tasks without copying them', function (): void {
     $held = $project->tasks()->sole();
 
     expect($held->is($task))->toBeTrue()
-        // The workspace owns the task; the project only holds a placement of it.
         ->and($held->workspace_id)->toBe($workspace->id);
 });
 
@@ -86,8 +84,6 @@ it('holds the ungrouped bucket in the project and in no column', function (): vo
     TaskProjectMembership::factory()->placing($grouped, $project)->inSection($section)->create();
     TaskProjectMembership::factory()->placing($ungrouped, $project)->create();
 
-    // A task can be in a project without being in a column (ADR-0004): the list view's
-    // default bucket, and where a card lands when it is dragged out of one.
     expect($project->placements()->count())->toBe(2)
         ->and($section->placements()->count())->toBe(1)
         ->and($project->placements()->whereNull('section_id')->pluck('task_id')->all())
@@ -110,8 +106,7 @@ it('eager loads a board without a query per card', function (): void {
     /** @var Collection<int, TaskProjectMembership> $placements */
     $placements = $project->placements()->with(['task', 'section'])->get();
 
-    // Over a collection, never `first()`: `Builder::hydrate()` only arms the lazy loading
-    // guard for a result set with more than one row.
+    // Builder::hydrate() only arms the lazy-loading guard for more than one row, so avoid first().
     expect($placements)->toHaveCount(3)
         ->and($placements->pluck('task.id')->filter())->toHaveCount(3)
         ->and($placements->pluck('section.name')->unique()->all())->toBe([$section->name]);

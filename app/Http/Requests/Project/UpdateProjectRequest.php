@@ -31,12 +31,7 @@ class UpdateProjectRequest extends FormRequest
         $project = $this->project();
 
         return [
-            /*
-             * The same guard `UpdateWorkspaceRequest` carries, one level down: settings
-             * opened for one project and submitted after switching to another would
-             * otherwise write the first project's values into the second, with every
-             * check upstream passing because the actor manages both.
-             */
+            // Stops a stale form from writing one project's settings into another.
             'id' => ['required', 'uuid', Rule::in([$project?->id])],
             'name' => ['required', 'string', 'max:255'],
             'slug' => [

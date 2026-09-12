@@ -11,9 +11,6 @@ use Laravel\Fortify\Features;
 abstract class TestCase extends BaseTestCase
 {
     /**
-     * Ask `broadcasting/auth` whether this user may subscribe to this channel — the real
-     * door, opened the way a client opens it.
-     *
      * @return TestResponse<Response>
      */
     protected function subscribeTo(User $user, string $channel): TestResponse

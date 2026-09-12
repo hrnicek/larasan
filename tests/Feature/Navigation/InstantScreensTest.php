@@ -8,14 +8,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 
-/*
- * A link opens these screens instantly (Inertia v3): the client swaps to the component at once,
- * carrying only the props the page says are shared, and a skeleton is drawn until the prop named
- * here arrives — `resources/js/composables/usePendingScreen.ts` holds the same pairs. Both halves
- * rest on the server. A page that stopped listing its shared keys would leave an instant visit
- * with nothing to carry over; an awaited prop that became shared would end the skeleton before the
- * screen had any props of its own to draw.
- */
+// Mirrors `resources/js/composables/usePendingScreen.ts`; an awaited prop that became shared would end the skeleton early.
 dataset('instant screens', [
     'a project' => ['projects.show', 'project', 'projects/Show', 'project'],
     'the project list' => ['projects.index', null, 'projects/Index', 'allProjects'],
@@ -48,7 +41,7 @@ it('lists its shared props and keeps the awaited one its own', function (string 
     };
 
     $page = $this->actingAs($actor)
-        // `settings/security` asks for the password again; a fresh confirmation stands in for it.
+        // `settings/security` requires a recent password confirmation.
         ->withSession(['auth.password_confirmed_at' => time()])
         ->get(route($route, $parameters))
         ->assertOk()
@@ -60,10 +53,6 @@ it('lists its shared props and keeps the awaited one its own', function (string 
         ->and($page['sharedProps'])->not->toContain($awaits);
 })->with('instant screens');
 
-/*
- * The project skeletons draw their header from the sidebar's row for the project they wait on, so
- * the row has to carry what the header shows first.
- */
 it('shares the sidebar row a project skeleton draws its header from', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);

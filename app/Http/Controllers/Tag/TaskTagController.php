@@ -16,14 +16,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
-/**
- * Putting a tag on a task and taking it off — an edit of the task, which is why the
- * authorization is `update` on the task rather than anything about tags.
- *
- * A tag can be named rather than pointed at, so the word somebody wanted and the task they wanted
- * it on are one request: leaving a task open to go and define a tag, and coming back to apply it,
- * is three screens for one thought.
- */
 class TaskTagController extends Controller
 {
     public function store(StoreTaskTagRequest $request, Task $task, AttachTagToTask $attach, CreateTag $createTag): RedirectResponse
@@ -43,16 +35,7 @@ class TaskTagController extends Controller
     }
 
     /**
-     * The tag this request meant, made if it did not exist.
-     *
-     * An id is resolved inside the task's own workspace, so a tag from another tenant is a 404
-     * before the Action has to refuse it — the Action still does, for callers that never pass
-     * through here.
-     *
-     * A *name* that the vocabulary already holds attaches that tag rather than refusing as a
-     * duplicate: somebody typing a word that exists means the word, and only the branch that
-     * genuinely adds one asks `tag.manage`. The match is case-insensitive because the unique
-     * index is.
+     * Ids resolve within the task's workspace; names match case-insensitively, as the unique index does.
      */
     private function tag(StoreTaskTagRequest $request, Task $task, CreateTag $createTag): Tag
     {

@@ -27,11 +27,7 @@ class InviteMemberRequest extends FormRequest
     public function rules(): array
     {
         return [
-            /*
-             * No `exists` rule: an invitation is addressed to an email, and whether an
-             * account answers to it is the Action's question rather than the form's
-             * (TASK-270-001). Bounded because the column is a `varchar(255)`.
-             */
+            // No `exists` rule: an invitation may address someone who has no account yet.
             'email' => ['required', 'email', 'max:255'],
             'role' => ['required', Rule::enum(WorkspaceRole::class), Rule::notIn([WorkspaceRole::Owner->value])],
         ];

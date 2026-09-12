@@ -5,13 +5,6 @@ type Props = {
     title: string;
     description?: string;
     variant?: 'default' | 'small';
-    /**
-     * Where this heading sits in the outline, when that is not what its size implies.
-     *
-     * Size and level are two different questions and this component used to answer only the
-     * first, rendering `h2` whatever it was heading — so every screen built from it had no `h1`
-     * at all (TASK-180-007). A page whose title is set small still opens the outline.
-     */
     level?: 'h1' | 'h2' | 'h3';
 };
 

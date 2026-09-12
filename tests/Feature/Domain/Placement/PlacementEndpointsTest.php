@@ -56,8 +56,6 @@ it('reorders a column through an anchor rather than a position', function (): vo
     [$workspace, $project, $actor] = placeableProject();
     $section = Section::factory()->in($project)->create();
 
-    // A list rather than a collection: the request below names two of these by position, and an
-    // offset on a collection is a `TaskProjectMembership|null` that this test does not mean.
     $cards = array_map(function (string $title) use ($workspace, $project, $actor, $section): TaskProjectMembership {
         $placement = attach(Task::factory()->in($workspace)->create(['title' => $title]), $project, $actor);
         moveInto($placement, $actor, $section);
@@ -90,7 +88,7 @@ it('hides a card in another workspace behind a 404', function (): void {
     [$otherWorkspace, $otherProject, $otherActor] = placeableProject();
     $elsewhere = attach(Task::factory()->in($otherWorkspace)->create(), $otherProject, $otherActor);
 
-    // A leaked id must not confirm that the card exists: 403 would (ADR-0005).
+    // A 403 would confirm that the card exists. See ADR-0005.
     $this->actingAs($actor)
         ->put(route('placements.move', $elsewhere), ['section' => null])
         ->assertNotFound();
@@ -107,8 +105,6 @@ it('hides a card in a private project of the same workspace behind a 404', funct
         ->placing(Task::factory()->in($workspace)->create(), $private)
         ->create();
 
-    // The binding resolves through the projects the actor can see, one level down from the
-    // rule `routes/sections.php` binds with.
     $this->actingAs($actor)
         ->delete(route('placements.destroy', $placement))
         ->assertNotFound();
@@ -120,7 +116,6 @@ it('refuses a viewer with a 403 rather than a 404', function (): void {
         ->placing(Task::factory()->in($workspace)->create(), $project)
         ->create();
 
-    // They can see the project, so the card is not a secret — only the change is refused.
     $this->actingAs($viewer)
         ->put(route('placements.move', $placement), ['section' => null])
         ->assertForbidden();
@@ -153,7 +148,6 @@ it('refuses an anchor that has moved to another column since the board was drawn
     moveInto($anchor, $actor, $here);
     moveInto($moving, $actor, $here);
 
-    // Somebody else drags the anchor out of the column between the read and the drop.
     moveInto($anchor->refresh(), $actor, $elsewhere);
 
     $this->actingAs($actor)
@@ -161,8 +155,6 @@ it('refuses an anchor that has moved to another column since the board was drawn
         ->put(route('placements.move', $moving), ['section' => $here->id, 'after' => $anchor->id])
         ->assertSessionHasErrors('after');
 
-    // Refused rather than quietly placed at the front, which is what an anchor nobody can find
-    // would otherwise mean.
     expect($moving->refresh()->section_id)->toBe($here->id);
 });
 

@@ -9,12 +9,6 @@ use Illuminate\Validation\Rule;
 
 class StoreWorkspaceRequest extends FormRequest
 {
-    /**
-     * Creating a workspace is not scoped to a workspace, so there is no model for a
-     * policy to judge and no capability that could grant or withhold it: any
-     * authenticated user may create one. The `auth` middleware is the check, and stating
-     * that here is the point — an empty `authorize()` reads like an oversight.
-     */
     public function authorize(): bool
     {
         return $this->user() !== null;

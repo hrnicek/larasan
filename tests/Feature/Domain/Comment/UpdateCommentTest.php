@@ -18,8 +18,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 /**
- * A comment, its author, and the workspace they are both in.
- *
  * @return array{Comment, User, Workspace, Task}
  */
 function threadWithAComment(WorkspaceRole $role = WorkspaceRole::Member): array
@@ -42,8 +40,6 @@ it('changes what was said and says that it changed', function (): void {
 
     $edited = editComment($comment, $author, '  Second thought  ');
 
-    // `edited_at` is the point: a thread that silently presents different words leaves
-    // everybody who replied answering something nobody can see any more.
     expect($edited->body)->toBe('Second thought')
         ->and($edited->isEdited())->toBeTrue();
 });
@@ -54,7 +50,6 @@ it('treats re-saving the same words as no edit at all', function (): void {
     Event::fake();
     $result = editComment($comment, $author, 'First thought');
 
-    // Marking this one edited would tell the thread that something changed when nothing did.
     expect($result->isEdited())->toBeFalse();
     Event::assertNotDispatched(CommentEdited::class);
 });
@@ -72,7 +67,6 @@ it('refuses an edit by anybody but the author', function (): void {
     [$comment, , $workspace] = threadWithAComment();
     $owner = memberOf($workspace, WorkspaceRole::Owner);
 
-    // Not even the workspace owner, who may delete this comment and still may not reword it.
     expect(fn (): Comment => editComment($comment, $owner, 'Rewritten'))
         ->toThrow(CommentException::class, 'Only the author can edit a comment.');
 
@@ -106,10 +100,6 @@ it('removes a comment from the thread and keeps the row', function (): void {
 
     app(DeleteComment::class)->handle($comment, $author);
 
-    /*
-     * Soft, so the feed can say a comment was removed rather than closing the gap and
-     * presenting a conversation that reads differently from the one people had.
-     */
     expect($task->comments()->count())->toBe(0)
         ->and(DB::table('comments')->where('id', $comment->id)->whereNotNull('deleted_at')->exists())->toBeTrue();
 });
@@ -139,7 +129,6 @@ it('refuses to delete a comment twice', function (): void {
     [$comment, $author] = threadWithAComment();
     app(DeleteComment::class)->handle($comment, $author);
 
-    // Nothing to remove from a conversation it is no longer part of.
     expect(fn () => app(DeleteComment::class)->handle($comment, $author))->toThrow(CommentException::class);
 });
 

@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Shared\Html\RichText;
 
-/**
- * The allowlist is the only thing standing between a task description and stored script, so
- * every case that must not survive it is pinned here rather than left to a reading of the code.
- */
+// The allowlist is the only barrier between a task description and stored script.
 it('keeps the formatting the editor produces', function (string $html): void {
     expect(RichText::sanitize($html))->toBe($html);
 })->with([

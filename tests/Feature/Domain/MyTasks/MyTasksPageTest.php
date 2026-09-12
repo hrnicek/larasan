@@ -40,7 +40,6 @@ it('reads the tab and the page from the URL', function (): void {
     $actor = memberOf($workspace);
     Task::factory()->in($workspace)->create(['title' => 'Late', 'assignee_id' => $actor->id, 'due_at' => now()->subWeek()]);
 
-    // The view lives in the address, so a link carries it and a refresh lands back on it.
     $this->actingAs($actor)
         ->get(route('my-tasks.index', ['tab' => 'overdue']))
         ->assertOk()
@@ -53,7 +52,6 @@ it('falls back to today when the tab is not one of them', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 
-    // A tab somebody typed is a request for a screen, not an error worth a 404.
     $this->actingAs($actor)
         ->get(route('my-tasks.index', ['tab' => 'whenever']))
         ->assertOk()
@@ -77,12 +75,7 @@ it('shows the workspace the actor is standing in, and not the other one', functi
 
     $actor->forceFill(['current_workspace_id' => $elsewhere->id])->save();
 
-    /*
-     * `CurrentWorkspace` memoises its answer for the length of a request. A test makes two
-     * requests through one container, so the memo has to be emptied here the way a new request
-     * would empty it — under PHP-FPM every request boots its own. Worth knowing if this
-     * application ever runs on a persistent worker.
-     */
+    // CurrentWorkspace memoises per request, and both requests here share one container.
     app(CurrentWorkspace::class)->flush();
 
     $this->actingAs($actor->refresh())
@@ -103,8 +96,6 @@ it('tells each row whether the reader may tick it off', function (): void {
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.canUpdate', true));
 
-    // A guest can be given work and cannot change it: the checkbox is inert rather than absent,
-    // so the row still reads the same (TASK-080-005).
     $this->actingAs($guest)
         ->get(route('my-tasks.index'))
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('tasks.0.canUpdate', false));
@@ -123,10 +114,6 @@ it('answers per row rather than per screen when the boards disagree', function (
     TaskProjectMembership::factory()->placing($editable, $open)->create();
     TaskProjectMembership::factory()->placing($readOnly, $restricted)->create();
 
-    /*
-     * The reason this is a row's answer and not the screen's: My Tasks gathers work from every
-     * board at once, and one of these two is a board this reader was explicitly restricted from.
-     */
     $this->actingAs($actor)
         ->get(route('my-tasks.index'))
         ->assertOk()
@@ -143,10 +130,6 @@ it('answers a tab switch with the list region alone', function (): void {
     $actor = memberOf($workspace);
     Task::factory()->in($workspace)->create(['title' => 'Late', 'assignee_id' => $actor->id, 'due_at' => now()->subWeek()]);
 
-    /*
-     * The partial reload the tabs make. The shell and the tab list are already correct, so the
-     * server is asked for the two props that changed rather than for the page again.
-     */
     $this->actingAs($actor)
         ->withoutMiddleware(HandleInertiaRequests::class)
         ->get(route('my-tasks.index', ['tab' => 'overdue']), [
@@ -157,7 +140,6 @@ it('answers a tab switch with the list region alone', function (): void {
         ->assertOk()
         ->assertJsonPath('props.meta.tab', 'overdue')
         ->assertJsonPath('props.tasks.0.title', 'Late')
-        // The props it did not ask for are absent, which is the point of asking.
         ->assertJsonMissingPath('props.can');
 });
 
@@ -181,7 +163,6 @@ it('pages without repeating a row', function (): void {
         array_column($second->viewData('page')['props']['tasks'], 'title'),
     );
 
-    // Twenty-five then five, each row once: "load more" adds to a list rather than shuffling it.
     expect($titles)->toHaveCount(30)
         ->and(array_unique($titles))->toHaveCount(30);
 });
@@ -191,7 +172,6 @@ it('refuses to be paged past the end into nothing sensible', function (): void {
     $actor = memberOf($workspace);
     Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
 
-    // A page nobody has is an empty page, not an error: a stale link should still render.
     $this->actingAs($actor)
         ->get(route('my-tasks.index', ['page' => 9]))
         ->assertOk()
@@ -206,8 +186,7 @@ it('carries the tags a row draws', function (): void {
     $task = Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
     $task->tags()->attach(Tag::factory()->in($workspace)->named('Billing')->create());
 
-    // The row is the list view's component and it draws chips unconditionally: a payload without
-    // the key crashes the render, and a crashed render is a screen whose controls do nothing.
+    // The row component renders tags unconditionally, so the key must always be present.
     $this->actingAs($actor)
         ->get(route('my-tasks.index'))
         ->assertOk()

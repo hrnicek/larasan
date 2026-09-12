@@ -5,10 +5,6 @@ declare(strict_types=1);
 use App\Domain\Shared\Enums\UiTheme;
 use Illuminate\Support\Facades\File;
 
-/*
- * What a theme is allowed to be, asserted against the stylesheet rather than trusted (ADR-0019).
- */
-
 /**
  * @return array<string, string>
  */
@@ -28,9 +24,8 @@ function themeTokens(string $selector): array
 }
 
 /**
- * WCAG relative luminance from either notation the stylesheet uses. Two large surfaces are
- * compared by lightness rather than by contrast ratio — the ratio formula compresses to nothing
- * in the shadows, which is the note ADR-0014 already records.
+ * WCAG relative luminance; surfaces are compared by lightness because the contrast ratio
+ * compresses in dark shades. See ADR-0014.
  */
 function surfaceLuminance(string $value): float
 {
@@ -96,16 +91,8 @@ function themeSelectors(): array
     return $selectors;
 }
 
-/**
- * The selectors are not anchored to `:root`, so a swatch on the settings page can be stamped with a
- * theme and draw itself in it. That makes the specificities load-bearing: the base dark block is
- * `:root.dark` (0,1,1) so it beats a theme's light block (0,1,0), and a theme's dark block is
- * (0,2,0) so it beats both. A token the dark block omits does not fall back to nothing — it falls
- * back to the theme's own *light* value and sits there looking almost right.
- */
+// A token missing from a theme's dark block silently falls back to that theme's light value.
 test('every theme declares the whole surface set in both modes', function (): void {
-    // The default is the one case without a block, so at least one other has to exist for this
-    // test to have a reference set of token names to compare the rest against.
     $reference = collect(UiTheme::cases())->first(fn (UiTheme $theme): bool => $theme->hasTokenBlock())
         ?? throw new RuntimeException('no theme carries a token block');
 
@@ -125,11 +112,7 @@ test('every theme declares the whole surface set in both modes', function (): vo
     }
 });
 
-/**
- * A theme owns surfaces and never the brand. ADR-0014 chose plum at hue 330 for its angular
- * distance from the eight colours that label projects, sections and tags; a per-theme accent would
- * land in that gap and make a project dot look like the primary action (ADR-0019).
- */
+// A per-theme accent would collide with the label colours the brand hue is chosen to avoid. See ADR-0019.
 test('no theme moves the brand', function (): void {
     $forbidden = ['--primary', '--ring', '--destructive', '--chart-'];
 
@@ -148,10 +131,6 @@ test('no theme moves the brand', function (): void {
     }
 });
 
-/**
- * ADR-0014's rule: the chrome frames the canvas, so it is always the darker of the two, and by
- * more in dark than in light or the two merge into one field.
- */
 test('the chrome stays darker than the canvas in every theme and mode', function (): void {
     foreach (themeSelectors() as $selector => $label) {
         $tokens = themeTokens($selector);

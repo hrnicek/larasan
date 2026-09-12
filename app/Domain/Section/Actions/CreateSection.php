@@ -29,12 +29,7 @@ final readonly class CreateSection
         try {
             $section = $this->append($project, $data);
         } catch (UniqueConstraintViolationException) {
-            /*
-             * Two people added a column at the same moment and computed the same slot.
-             * `UNIQUE(project_id, position)` turned that into an error rather than two
-             * sections in one place (ADR-0009); the second one reads the tail again and
-             * appends after the winner.
-             */
+            // A concurrent append took the same slot; retry against the new tail.
             $section = $this->append($project, $data);
         }
 
@@ -46,18 +41,8 @@ final readonly class CreateSection
     private function append(Project $project, CreateSectionData $data): Section
     {
         return DB::transaction(function () use ($project, $data): Section {
-            /*
-             * The tail row is read and locked inside the transaction, so a second append
-             * waits rather than computing the same slot. PostgreSQL refuses `FOR UPDATE`
-             * with an aggregate, which is why this orders and takes one row instead of
-             * asking for `max()` — the same restriction `Workspace::isLastOwner()` met.
-             * `reorder()` rather than `orderByDesc()`: the relationship already orders by
-             * position ascending, and adding a second clause leaves the ascending one
-             * first, which reads the head of the list as if it were the tail.
-             *
-             * An empty project has no row to lock, so two first appends can still collide;
-             * the unique constraint catches that and `handle()` retries.
-             */
+            // PostgreSQL rejects FOR UPDATE with an aggregate, so the tail row is locked instead.
+            // reorder() is required because the relation already orders by position ascending.
             $last = $project->sections()->reorder('position', 'desc')->lockForUpdate()->value('position');
 
             $section = new Section([

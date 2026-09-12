@@ -15,19 +15,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * One thread out of two tables.
- *
- * Comments and activities are interleaved by time in the **database**, not in PHP: merging two
- * paginated lists after the fact gives a page that is neither table's page, and a thread that
- * skips lines as soon as it is longer than one screen.
- *
- * Newest first, because a long thread is read from its end and "load older" is the direction
- * people actually scroll. The screen reverses a page to draw it.
- *
- * The workspace is proven here rather than assumed from the subject: both tables carry
- * `workspace_id`, and asking for it costs nothing next to the alternative of a feed that
- * trusts whatever id it was handed (ADR-0005).
- *
  * @phpstan-type FeedLine object{
  *     id: string,
  *     kind: string,
@@ -60,12 +47,6 @@ final readonly class TaskFeedQuery
         $actors = $this->actors($rows);
         $names = $this->mentionedNames($task, $rows);
 
-        /*
-         * Asked once for the page rather than per line. Reach is already settled — somebody
-         * reading this feed can read the task — so what is left of `CommentPolicy` is
-         * authorship and this one capability (`CommentPolicyTest` and `TaskFeedQueryTest` both
-         * assert the two answers agree).
-         */
         $canModerate = $task->workspace->membershipFor($viewer)?->allows(Capability::CommentDelete) === true;
 
         return [
@@ -84,11 +65,6 @@ final readonly class TaskFeedQuery
      */
     private function paginate(Task $task, int $page, int $perPage): LengthAwarePaginator
     {
-        /*
-         * Deleted comments stay in the thread. The feed says a line was removed rather than
-         * closing the gap, which would change what the conversation appears to say — and the
-         * body is dropped below, so "removed" is not a place the words are still readable.
-         */
         $comments = DB::table('comments')
             ->where('workspace_id', $task->workspace_id)
             ->where('commentable_type', 'task')
@@ -121,9 +97,7 @@ final readonly class TaskFeedQuery
                 properties::jsonb
             SQL);
 
-        // `id` as the tiebreaker: `created_at` is `timestamp(0)`, and two lines in the same
-        // second would otherwise be paginated in whichever order PostgreSQL chose that day —
-        // which is how a page repeats one line and drops another.
+        // `created_at` is `timestamp(0)`, so `id` breaks ties to keep pagination stable.
         return DB::query()
             ->fromSub($comments->unionAll($activities), 'feed')
             ->orderByDesc('created_at')
@@ -132,10 +106,6 @@ final readonly class TaskFeedQuery
     }
 
     /**
-     * Every actor on the page in one read. A feed is the one screen where each line has a
-     * different person on it, so a lazy relation here is an N+1 per page rather than per
-     * screen.
-     *
      * @param  list<FeedLine>  $lines
      * @return Collection<int, User>
      */
@@ -154,11 +124,7 @@ final readonly class TaskFeedQuery
     }
 
     /**
-     * The name each person mentioned on this page goes by now, in one read.
-     *
-     * Only live members of this workspace are looked up. A token is text a request wrote, and
-     * resolving its id against every account would let a crafted one read a stranger's name — so
-     * a token naming anybody else keeps the name it was written with.
+     * Resolved against workspace members only, so a crafted mention token cannot reveal a stranger's name.
      *
      * @param  list<FeedLine>  $lines
      * @return array<int, string>
@@ -196,20 +162,8 @@ final readonly class TaskFeedQuery
         return [
             'id' => (string) $line->id,
             'kind' => (string) $line->kind,
-            /*
-             * ISO 8601 rather than the database's own `Y-m-d H:i:s`. The screen draws this in the
-             * reader's locale and time zone, and only one of the two formats can be parsed the
-             * same way by every browser.
-             */
             'createdAt' => Carbon::parse($line->created_at)->toIso8601String(),
-            /*
-             * Null where the account is gone rather than a placeholder name: the row survives
-             * its author on purpose, and inventing "Deleted user" here would put a name in the
-             * feed that nobody can look up.
-             */
             'actor' => PersonSummary::fromNullable($actor),
-            // The words of a removed comment are not readable through the feed that reports it
-            // as removed. A mention reads with the name the person has today.
             'body' => $deleted || $line->body === null ? null : Mentions::withNames($line->body, $names),
             'edited' => $line->edited_at !== null,
             'deleted' => $deleted,
@@ -217,11 +171,6 @@ final readonly class TaskFeedQuery
             'properties' => $line->properties === null
                 ? null
                 : json_decode((string) $line->properties, true, 512, JSON_THROW_ON_ERROR),
-            /*
-             * The permissions the UI renders come from here, never from a rule written into a
-             * template. An activity is nobody's to change: it is a record of something that
-             * already happened.
-             */
             'canEdit' => $isComment && $isAuthor && ! $deleted,
             'canDelete' => $isComment && ! $deleted && ($isAuthor || $canModerate),
         ];

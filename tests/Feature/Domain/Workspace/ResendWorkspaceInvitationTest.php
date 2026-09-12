@@ -55,11 +55,6 @@ it('sends an unclaimed invitation to the address again', function (): void {
 });
 
 it('makes the resender the inviter, so acceptance asks about somebody who is still here', function (): void {
-    /*
-     * Acceptance refuses an invitation whose `invited_by` no longer holds the capability. An
-     * invitation from somebody since removed is dead until a manager sends it again — which is
-     * exactly that manager saying it stands.
-     */
     $workspace = Workspace::factory()->create();
     $gone = memberOf($workspace, WorkspaceRole::Admin, WorkspaceMembershipStatus::Revoked);
     $admin = memberOf($workspace, WorkspaceRole::Admin);
@@ -150,7 +145,5 @@ it('cancels an unclaimed invitation from the members screen', function (): void 
     /** @var array<string, array<string, string>> $flashed */
     $flashed = session()->get(SessionKey::FLASH_DATA, []);
 
-    // Taking an invitation back and removing somebody who is here are the same endpoint and
-    // not the same sentence.
     expect($flashed['toast']['message'])->toBe('Invitation cancelled.');
 });

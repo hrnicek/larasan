@@ -24,11 +24,7 @@ final readonly class CreateWorkspace
         try {
             $workspace = $this->create($owner, $data);
         } catch (UniqueConstraintViolationException $exception) {
-            /*
-             * Only a slug this Action derived may be retried. A slug the caller chose is
-             * their input, and silently creating a workspace at a different address than
-             * the one they asked for is worse than telling them it is taken.
-             */
+            // Only a derived slug is retried; a taken slug the caller chose must fail.
             if ($data->slug !== null) {
                 throw $exception;
             }
@@ -52,11 +48,7 @@ final readonly class CreateWorkspace
                 'settings' => [],
             ]);
 
-            /*
-             * The owner column alone does not make anyone a member. Without this row the
-             * workspace is invisible to User::workspaces() and to the resolution
-             * middleware, so its creator could not open what they had just created.
-             */
+            // owner_id alone grants no access; workspace resolution requires a membership row.
             WorkspaceMembership::query()->create([
                 'workspace_id' => $workspace->id,
                 'user_id' => $owner->id,

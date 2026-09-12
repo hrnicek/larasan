@@ -11,14 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * An address that has been invited and then registers takes over what was waiting for it.
- *
- * Without this an invitation sent before the account existed would stay addressed to nobody:
- * every authorization path filters on `user_id`, so the row grants nothing and the invitee
- * has nothing to answer.
- *
- * Claiming is not accepting. The row stays `invited` and its deadline stands — registering
- * says who you are, not that you agree to join.
+ * Claiming only attaches the account; the invitation stays Invited with its deadline.
  */
 final readonly class ClaimWorkspaceInvitations
 {
@@ -42,7 +35,6 @@ final readonly class ClaimWorkspaceInvitations
         return DB::transaction(function () use ($waiting, $user): Collection {
             $claimed = $waiting->filter(fn (WorkspaceMembership $membership): bool => $this->claim($membership, $user));
 
-            // The rows this actor holds have changed, and the memo is keyed by actor.
             $this->registry->flush();
 
             return $claimed->values();
@@ -51,12 +43,7 @@ final readonly class ClaimWorkspaceInvitations
 
     private function claim(WorkspaceMembership $membership, User $user): bool
     {
-        /*
-         * An account that already has a row in that workspace — because it was invited under
-         * one address and registered under another, then changed to this one — cannot take a
-         * second: `UNIQUE(workspace_id, user_id)` refuses it, and the row they already have
-         * is the authoritative one. The invitation is dropped rather than merged.
-         */
+        // UNIQUE(workspace_id, user_id) forbids a second row, so the existing membership wins.
         if ($membership->workspace->membershipFor($user) instanceof WorkspaceMembership) {
             $membership->delete();
 

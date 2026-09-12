@@ -12,8 +12,4 @@ parameters:
         - routes/
         - tests/
 
-    # Level 8 checks nullability. Raised by TASK-180-016 once the domain models existed, and the
-    # 246 errors it first reported were fixed rather than baselined: 23 of them were relations
-    # documented as nullable when their foreign key is not, and most of the rest were tests
-    # calling `fresh()` where they meant `refresh()`.
     level: 8

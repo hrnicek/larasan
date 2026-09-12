@@ -14,20 +14,11 @@ import type {MoveDirection} from '@/modules/page/lib/movePage';
 import type { PageNode, ProjectPages } from '@/modules/page/types';
 import { show as showProject } from '@/routes/projects';
 
-/**
- * The project's pages, drawn as the tree they are — in the project's fifth view and beside a page
- * being read, which are the same tree and now the same component.
- *
- * Nothing here is optimistic. Creating, moving and removing are server answers: a tree that
- * redrew itself first would have to guess where a page landed, and the one thing it cannot know
- * is whether the server agreed.
- */
 const props = withDefaults(
     defineProps<{
         projectId: string;
         pages: ProjectPages;
         currentId?: string | null;
-        /** The full view offers a heading and an empty state; the sidebar has the screen's. */
         variant?: 'view' | 'sidebar';
     }>(),
     { currentId: null, variant: 'view' },
@@ -54,11 +45,6 @@ const move = ({ page, direction }: { page: PageNode; direction: MoveDirection })
     router.put(PagePlacementController.update.url(page.id), placement, { preserveScroll: true });
 };
 
-/*
- * Removing a page removes what is written inside it, so it is asked about first (ADR-0013) — and
- * from the sidebar of the page being removed, the answer is a screen that no longer exists, so
- * the visit lands on the project's tree instead.
- */
 const holds = (node: PageNode, id: string): boolean =>
     node.id === id || node.children.some((child) => holds(child, id));
 
@@ -69,11 +55,7 @@ const remove = (): void => {
         return;
     }
 
-    /*
-     * The endpoint answers with a redirect back, which is right everywhere except here: deleting
-     * the page being read — or the branch it is in — sends the reader back to a page that no
-     * longer exists, and a 404 is a poor way to learn that a delete worked.
-     */
+    // The redirect back would land on a deleted page when it holds the one being read.
     const readingItsOwnGrave = props.currentId !== null && holds(page, props.currentId);
 
     router.delete(PageController.destroy.url(page.id), {

@@ -11,11 +11,6 @@ use App\Domain\Section\Events\SectionUpdated;
 use App\Domain\Shared\Broadcasting\ViewInvalidated;
 use Illuminate\Contracts\Events\Dispatcher;
 
-/**
- * A column appeared, was renamed, moved or removed. A section is part of the board and
- * nothing outside it, so only the project's own channel hears about it — including for a
- * project the workspace can see, whose sidebar entry does not change when a column does.
- */
 final readonly class BroadcastSectionChange
 {
     public function __construct(private Dispatcher $events) {}

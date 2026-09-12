@@ -33,9 +33,7 @@ final readonly class CreateProject
         try {
             $project = $this->create($workspace, $creator, $data);
         } catch (UniqueConstraintViolationException $exception) {
-            // Only a slug this Action derived may be retried — a caller's slug is their
-            // input, and creating their project at a different address is worse than
-            // telling them it is taken. Same rule as CreateWorkspace.
+            // Only a derived slug is retried; a caller-supplied slug is reported as taken.
             if ($data->slug !== null) {
                 throw $exception;
             }
@@ -68,24 +66,13 @@ final readonly class CreateProject
             $project->created_by = $creator->id;
             $project->save();
 
-            /*
-             * The creator is an owner of the project, not merely its `owner_id`. A private
-             * project without this row is invisible to its own creator, and the column
-             * alone grants nothing — the access level does.
-             */
+            // owner_id grants nothing; access comes from the membership row.
             ProjectMembership::query()->create([
                 'project_id' => $project->id,
                 'user_id' => $creator->id,
                 'access_level' => ProjectAccessLevel::Owner,
             ]);
 
-            /*
-             * A new project opens with columns rather than an empty board. Written here
-             * rather than through CreateSection so a project created by a seeder, a console
-             * command or the future API gets them too — and so the creator is not charged a
-             * capability check per column inside the transaction that just made them its
-             * owner.
-             */
             $positions = SparsePosition::spread(count(Section::DEFAULT_NAMES));
 
             foreach (Section::DEFAULT_NAMES as $index => $name) {

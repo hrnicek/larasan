@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Shared\Enums;
 
 /**
- * The accent palette from `docs/ui/design-system.md`. The column stores the *name*: a
- * user-chosen hex is unreadable in one of the two themes sooner or later, and a name can
- * be re-tuned globally without a data migration. The name → Tailwind utility mapping is a
- * static record in `resources/js/lib/accentColor.ts`, because interpolated class names are
- * stripped by the JIT scanner.
+ * Each case needs a static entry in resources/js/lib/accentColor.ts, since Tailwind cannot see
+ * interpolated class names.
  */
 enum ProjectColor: string
 {

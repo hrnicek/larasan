@@ -12,14 +12,6 @@ import { accentChipClass, accentVars } from '@/lib/accentColor';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import type { WorkspaceTag } from '@/modules/tag/types';
 
-/**
- * The words this workspace uses for its work.
- *
- * The screen a tag could not be made from until now: Phase 140 built the Actions and the
- * endpoints and gave them no list to act on, so the vocabulary existed only as far as a seeder
- * had written it. Inventing or renaming one is `tag.manage`, because it changes what everybody
- * else's filters mean — applying one is an edit of a task and happens on the task.
- */
 const props = defineProps<{
     tags: WorkspaceTag[];
     can: { manage: boolean };
@@ -34,10 +26,6 @@ function submit(): void {
     });
 }
 
-/*
- * A tag is a word and an accent, so the row edits both at once — a rename that had to be followed
- * by a recolour would be two requests for one decision.
- */
 const editing = ref<string | null>(null);
 const edit = useForm<{ name: string; color: string | null }>({ name: '', color: null });
 
@@ -57,7 +45,6 @@ function save(tagId: string): void {
 
 const deleting = ref<WorkspaceTag | null>(null);
 
-/** What deleting a tag costs, said before it is agreed to. The work stays; only the label goes. */
 const deletionCost = computed(() => {
     const tag = deleting.value;
 

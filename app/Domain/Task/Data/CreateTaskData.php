@@ -8,14 +8,6 @@ use App\Domain\Shared\Enums\TaskPriority;
 use App\Http\Requests\Task\StoreTaskRequest;
 use Carbon\CarbonImmutable;
 
-/**
- * The workspace and the creator are absent by design: they are arguments to the Action,
- * decided by who is asking and where they are, never payload a request could carry. A
- * field here is a field a form can send.
- *
- * Placement is absent for the same reason it is absent from the table — a task is not
- * created into a project (ADR-0003). Attaching it is Phase 070's operation.
- */
 final readonly class CreateTaskData
 {
     public function __construct(

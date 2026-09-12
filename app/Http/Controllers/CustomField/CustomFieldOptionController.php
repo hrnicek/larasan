@@ -10,13 +10,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CustomField\UpdateCustomFieldOptionsRequest;
 use Illuminate\Http\RedirectResponse;
 
-/**
- * What a choice field offers.
- *
- * A `PUT` of the whole list rather than three endpoints: an option list is short, is read as one
- * thing and is reordered whole, so a request that could apply half of it is a request nobody wants
- * to have sent.
- */
 class CustomFieldOptionController extends Controller
 {
     public function update(

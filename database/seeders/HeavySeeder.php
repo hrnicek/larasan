@@ -28,27 +28,7 @@ use RuntimeException;
 use stdClass;
 
 /**
- * A workspace that has been used for a year.
- *
- * Fifty projects, tens of people and thousands of tasks, with comments, history, files,
- * tags, custom field values and an inbox behind them — the volume the application will
- * actually meet, rather than the six cards `DevelopmentSeeder` puts on one board. What it
- * is for is the questions volume asks and a demo dataset cannot: which listing query goes
- * quadratic, which sidebar cap matters, what a year of activity does to a task panel.
- *
- * **Rows are written directly, not through the domain Actions.** This is the one seeder
- * where that is the right trade, for two reasons that are not about speed: an Action stamps
- * `now()`, so nothing it creates can have happened last March, and a year of history is the
- * entire point here. Every shape written below is one the Actions produce — an owner
- * membership beside every `owner_id`, a placement per project rather than a column on the
- * task, `completed_by` set wherever `completed_at` is, activity for the events that record
- * it — and where the two could drift, the enum, the constant or the model is read rather
- * than copied.
- *
- * Deterministic: the same seed produces the same workspace, so a query plan measured today
- * can be measured again tomorrow. Idempotent by refusal — it declines to run twice rather
- * than doubling everything, because merging into a dataset like this one is not a thing a
- * seeder can do cheaply or correctly.
+ * Inserts rows directly: the Actions stamp `now()` and so cannot backdate a year of history.
  *
  * @phpstan-type SeedPerson array{id: int, name: string, role: WorkspaceRole, status: WorkspaceMembershipStatus, joined: CarbonImmutable}
  * @phpstan-type SeedColumn array{id: string, name: string}
@@ -66,7 +46,6 @@ class HeavySeeder extends Seeder
 
     private const MAIL_DOMAIN = 'northwind.test';
 
-    /** One seed for the whole run, so two runs of the same scale produce the same rows. */
     private const RANDOM_SEED = 20260825;
 
     private const CHUNK = 500;
@@ -119,8 +98,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * The accounts, the first of which is the one a developer logs in as.
-     *
      * @return list<SeedPerson>
      */
     private function people(CarbonImmutable $opened, CarbonImmutable $now): array
@@ -141,9 +118,6 @@ class HeavySeeder extends Seeder
             $name = fake()->unique()->name();
             $email = Str::slug($name, '.').'.'.$index.'@'.self::MAIL_DOMAIN;
 
-            // People arrive over the year rather than all on the first day, and nobody is
-            // hired in the last fortnight — a member with no history behind them reads as a
-            // gap in the data rather than as somebody who has just started.
             $joined = $this->between($opened, $now->subWeeks(2));
             $joinings[$email] = $joined;
 
@@ -186,10 +160,6 @@ class HeavySeeder extends Seeder
         return $people;
     }
 
-    /**
-     * The account the developer already logs in with, so this workspace appears beside
-     * whatever `DevelopmentSeeder` left rather than behind a second password.
-     */
     private function primary(): User
     {
         $user = User::query()->where('email', self::PRIMARY_EMAIL)->first();
@@ -217,10 +187,6 @@ class HeavySeeder extends Seeder
         };
     }
 
-    /**
-     * Most people accepted. A handful did not, and one invitation is still open — the states
-     * the members screen has to draw, and the ones a query that forgets `status` gets wrong.
-     */
     private function statusAt(int $index): WorkspaceMembershipStatus
     {
         return match ($index % 17) {
@@ -379,8 +345,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * Fifty projects, their columns, their people and the fields they show.
-     *
      * @param  list<SeedPerson>  $people
      * @param  list<SeedField>  $fields
      * @return list<SeedProject>
@@ -420,8 +384,6 @@ class HeavySeeder extends Seeder
 
             $slugs[] = $slug;
 
-            // Projects are opened across the year rather than at random, so the workspace
-            // reads as one that grew: the oldest carry a year of history, the newest a week.
             $created = $opened->addSeconds((int) round($span * $index / max(1, $this->projectCount)))
                 ->addHours(mt_rand(9, 18));
 
@@ -490,9 +452,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * A project's columns. Most carry the three a board settles into; the rest have been
-     * reshaped further by the people using them, which is what a year does to a board.
-     *
      * @param  list<array<string, mixed>>  $sectionRows
      * @return list<SeedColumn>
      */
@@ -529,9 +488,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * The project's memberships: its creator as owner, a few people who may change it, and
-     * sometimes a guest who may only read and comment.
-     *
      * @param  SeedPerson  $owner
      * @param  list<SeedPerson>  $staff
      * @param  list<SeedPerson>  $guests
@@ -608,9 +564,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * The work itself: tasks, where each one sits, what it is tagged with and what its
-     * project's custom fields say about it.
-     *
      * @param  list<SeedProject>  $projects
      * @param  list<string>  $tags
      * @param  list<SeedField>  $fields
@@ -639,11 +592,6 @@ class HeavySeeder extends Seeder
                 $creator = $this->pick($project['editors']);
                 $assignee = $this->chance(78) ? $this->pick($project['editors']) : null;
 
-                /*
-                 * Older work is mostly finished and this week's is mostly not, which is what
-                 * makes a year look like a year: a workspace where completion is a flat coin
-                 * toss has no history in it, only rows.
-                 */
                 $age = (int) round(100 * $this->ratio($opened, $created, $now));
                 $completed = $this->chance(25 + intdiv($age * 7, 10))
                     ? $this->between($created, $now)
@@ -673,17 +621,10 @@ class HeavySeeder extends Seeder
                     $roots[] = $id;
                 }
 
-                // A subtask is not necessarily on the board: half of them live under their
-                // parent and nowhere else, which is the shape the task panel has to draw.
                 if ($parent === null || $this->chance(50)) {
                     $placementRows[] = $this->placement($id, $project, $completed !== null, $created, $slots);
                 }
 
-                /*
-                 * ADR-0003 in the data: a task is owned by its workspace and may appear in
-                 * more than one project. Rare, because it is rare — but never zero, or the
-                 * one query that assumes a task has a single project passes every test.
-                 */
                 if ($this->chance(4) && count($projects) > 1) {
                     $second = $projects[mt_rand(0, count($projects) - 1)];
 
@@ -723,12 +664,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * One card, in one column, at the end of it.
-     *
-     * The counters are what keep this honest: `UNIQUE(project_id, section_id, position)`
-     * and its ungrouped twin refuse two cards in one slot, so positions are handed out per
-     * column exactly as `SparsePosition::append()` hands them out at runtime.
-     *
      * @param  SeedProject  $project
      * @param  array<string, int>  $slots
      * @return array<string, mixed>
@@ -739,8 +674,6 @@ class HeavySeeder extends Seeder
         $done = $columns[count($columns) - 1];
 
         $section = match (true) {
-            // Completion is a column on the task, not a column on the board (ADR-0004) —
-            // but somebody who finished a card did usually drag it to Done as well.
             $completed => $this->chance(85) ? $done : null,
             $this->chance(8) => null,
             default => $columns[mt_rand(0, count($columns) - 2)],
@@ -781,8 +714,6 @@ class HeavySeeder extends Seeder
             'updated_at' => $created,
         ];
 
-        // One column per row, which is what `task_custom_field_values_one_value_check`
-        // enforces: the type decides which one, exactly as `CustomFieldType::column()` does.
         $row[$field['type']->column()] = match ($field['type']) {
             CustomFieldType::Text => fake()->company(),
             CustomFieldType::Email => fake()->safeEmail(),
@@ -798,8 +729,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * What was said about the work, who is listening, and what reached an inbox.
-     *
      * @param  list<SeedTask>  $tasks
      */
     private function conversation(string $workspace, array $tasks, CarbonImmutable $now): void
@@ -816,11 +745,6 @@ class HeavySeeder extends Seeder
         foreach ($tasks as $task) {
             $watchers = [$task['creator']];
 
-            /*
-             * Assigning a task follows it — `FollowAssignedTask` does that at runtime, and a
-             * dataset without it would make the followers list look like a feature nobody
-             * uses.
-             */
             if ($task['assignee'] !== null) {
                 $watchers[] = $task['assignee'];
             }
@@ -905,8 +829,7 @@ class HeavySeeder extends Seeder
     {
         $key = $dedupe.'|'.$user;
 
-        // `notifications_dedupe_unique` says the same sentence reaches one inbox once. The
-        // channel enforces it at runtime; here the set does, rather than a failed insert.
+        // Mirrors `notifications_dedupe_unique`, which would reject the duplicate insert.
         if (isset($notified[$key])) {
             return null;
         }
@@ -928,9 +851,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * The history the listeners would have written: created for everything, assigned and
-     * completed where those happened, and the edits somebody made in between.
-     *
      * @param  list<SeedTask>  $tasks
      */
     private function history(string $workspace, array $tasks): void
@@ -996,9 +916,7 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * Attachments, as rows. **Nothing is written to the disk**: these describe uploads that
-     * never happened, so the files listing and its sorting have something to draw and a
-     * download will 404. Seeding real bytes would put megabytes of noise in `storage/`.
+     * Only rows are written, no files, so downloading a seeded attachment returns 404.
      *
      * @param  list<SeedTask>  $tasks
      */
@@ -1051,7 +969,6 @@ class HeavySeeder extends Seeder
                 'file_id' => $id,
                 'attachable_type' => 'task',
                 'attachable_id' => $task['id'],
-                // One file per task here, so the first slot is the only slot.
                 'position' => SparsePosition::GAP,
                 'created_at' => $uploaded,
                 'updated_at' => $uploaded,
@@ -1100,10 +1017,6 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * How many tasks each project gets. Uneven on purpose: a workspace where every project
-     * holds the same 120 cards is a workspace whose listing queries are never asked a hard
-     * question.
-     *
      * @return list<int>
      */
     private function shares(int $projects): array
@@ -1262,8 +1175,7 @@ class HeavySeeder extends Seeder
     }
 
     /**
-     * How far through the year a moment sits, as 1 for the oldest and 0 for the newest —
-     * the number that decides how much of a task's life has already happened.
+     * Position of a moment between `$opened` (1) and `$now` (0).
      */
     private function ratio(CarbonImmutable $opened, CarbonImmutable $at, CarbonImmutable $now): float
     {

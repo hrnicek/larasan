@@ -6,8 +6,6 @@ use App\Http\Controllers\File\AttachmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
-    // Uploading is expensive in a way commenting is not — it writes bytes — so it carries the
-    // same kind of bound the other costly endpoints do.
     Route::post('tasks/{task}/attachments', [AttachmentController::class, 'store'])
         ->whereUuid('task')
         ->middleware('throttle:attachments')
@@ -17,14 +15,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->whereUuid('attachment')
         ->name('attachments.download');
 
-    // Drawing an image is not downloading it, and the two say different things in the one header
-    // a browser acts on. Same authorization, separate route, so `inline` is never a flag somebody
-    // can ask the download endpoint for.
+    // A separate route so an inline disposition can never be requested from the download endpoint.
     Route::get('attachments/{attachment}/preview', [AttachmentController::class, 'preview'])
         ->whereUuid('attachment')
         ->name('attachments.preview');
 
-    // A move is its own endpoint: it takes an anchor, never a position (ADR-0009).
     Route::put('attachments/{attachment}/move', [AttachmentController::class, 'move'])
         ->whereUuid('attachment')
         ->middleware('throttle:task-moves')

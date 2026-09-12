@@ -2,14 +2,6 @@
 import { computed } from 'vue';
 import { projectIconComponent, projectIconLabel, projectIconNames } from '@/lib/projectIcon';
 
-/**
- * The icon library, drawn as a grid.
- *
- * The companion to `AccentColorGrid`, and shared for the same reason. `sm` is the popover the
- * project header opens — bounded and scrollable, because the library is four rows today and the
- * popover should not grow past the tile it hangs off when it is not. `md` is the settings card,
- * which has the room to show the whole library at once.
- */
 const props = withDefaults(
     defineProps<{
         modelValue: string | null;

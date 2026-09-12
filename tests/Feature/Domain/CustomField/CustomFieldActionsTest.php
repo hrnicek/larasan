@@ -25,15 +25,12 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 
 /**
- * A field defined in the workspace, attached to the project, on a task that is in it.
- *
  * @param  list<string>  $options
  * @return array{Task, CustomField, User, Project}
  */
 function fieldOnATask(CustomFieldType $type = CustomFieldType::Text, array $options = []): array
 {
-    // An owner, because defining a field is `custom_field.manage` — an owner's and an admin's
-    // under ADR-0010, unlike `tag.manage`, which every full member holds.
+    // Defining a field needs custom_field.manage, which only owners and admins hold. See ADR-0010.
     [$workspace, $project, $actor] = placeableProject(role: WorkspaceRole::Owner);
 
     $field = app(DefineCustomField::class)->handle($workspace, $actor, 'Estimate', $type, $options);
@@ -55,7 +52,6 @@ it('defines a field with its choices in one go', function (): void {
 
     $field = app(DefineCustomField::class)->handle($workspace, $actor, '  Stage  ', CustomFieldType::Select, ['Draft', 'Review', 'Done']);
 
-    // A choice field with no choices is a control nobody can use.
     expect($field->name)->toBe('Stage')
         ->and($field->options()->pluck('label')->all())->toBe(['Draft', 'Review', 'Done']);
 });
@@ -84,10 +80,6 @@ it('refuses a member without custom_field.manage, at every definition operation'
     $project = Project::factory()->in($workspace)->create();
     $field = app(DefineCustomField::class)->handle($workspace, $owner, 'Estimate', CustomFieldType::Text);
 
-    /*
-     * A field is a column on everybody's screens, so ADR-0010 gives this to owners and admins —
-     * unlike `tag.manage`, which every full member holds.
-     */
     expect(fn (): CustomField => app(DefineCustomField::class)->handle($workspace, $member, 'Risk', CustomFieldType::Text))
         ->toThrow(CustomFieldException::class, 'You do not have permission to manage custom fields in this workspace.');
 
@@ -108,7 +100,6 @@ it('shows a field on a project once, at the end', function (): void {
     app(AttachFieldToProject::class)->handle($project, $second, $actor);
     app(AttachFieldToProject::class)->handle($project, $first, $actor);
 
-    // A field added today is not more important than the ones already there.
     expect($project->customFields()->pluck('name')->all())->toBe(['Estimate', 'Risk']);
 });
 
@@ -126,11 +117,6 @@ it('keeps the answers when a field stops being shown', function (): void {
 
     app(DetachFieldFromProject::class)->handle($project, $field, $actor);
 
-    /*
-     * Taking a column off a board is a decision about the board; deleting what people answered
-     * because of it would make that decision unrecoverable. Putting the field back brings the
-     * answers with it.
-     */
     expect(TaskCustomFieldValue::query()->count())->toBe(1);
 
     app(AttachFieldToProject::class)->handle($project, $field, $actor);
@@ -144,8 +130,6 @@ it('removes the answers when the field itself goes', function (): void {
 
     app(DeleteCustomField::class)->handle($field, $actor);
 
-    // A field's values mean nothing without the field, which is exactly how this differs from
-    // detaching.
     expect(TaskCustomFieldValue::query()->count())->toBe(0);
 });
 
@@ -154,7 +138,6 @@ it('writes an answer into the column its type says', function (): void {
 
     $answer = setValue($task, $field, $actor, '12.5');
 
-    // Read back through the field's type, and the other columns left alone.
     expect($answer?->value($field))->toEqual(12.5)
         ->and($answer?->value_text)->toBeNull();
 });
@@ -175,8 +158,6 @@ it('removes the row when an answer is cleared', function (): void {
 
     expect(setValue($task, $field, $actor, null))->toBeNull();
 
-    // "No answer" and "an answer that is blank" are the same thing to a reader and two different
-    // things to a query.
     expect($task->customFieldValues()->count())->toBe(0);
 });
 
@@ -197,7 +178,6 @@ it('refuses a field the task s projects do not show', function (): void {
     $workspace = $task->workspace;
     $unattached = app(DefineCustomField::class)->handle($workspace, $actor, 'Risk', CustomFieldType::Text);
 
-    // A value on a field no screen renders is data with no way back out.
     expect(fn (): ?TaskCustomFieldValue => setValue($task, $unattached, $actor, 'High'))
         ->toThrow(CustomFieldException::class, 'That field is not shown on this task.');
 });
@@ -206,7 +186,6 @@ it('refuses a value from somebody who may not edit the task', function (): void 
     [$task, $field] = fieldOnATask();
     $guest = memberOf($task->workspace, WorkspaceRole::Guest);
 
-    // Filling a field in is editing the task, so it asks exactly what every other edit asks.
     expect(fn (): ?TaskCustomFieldValue => setValue($task, $field, $guest, 'Two days'))
         ->toThrow(CustomFieldException::class, 'You do not have permission to change this task.');
 });
@@ -228,11 +207,6 @@ it('carries a project s fields as columns and each row s answers', function (): 
 
     $list = app(ProjectListQuery::class)($project, $actor);
 
-    /*
-     * The definition once, at the top, and each row's answers keyed by field id — a positional
-     * list would shift every row's values sideways the moment the project's fields changed
-     * between two requests.
-     */
     expect(array_column($list['fields'], 'name'))->toBe(['Estimate'])
         ->and($list['sections'][0]['tasks'][0]['fields'])->toBe([$field->id => 12.5])
         ->and($list['sections'][0]['tasks'][1]['fields'])->toBe([]);
@@ -255,7 +229,6 @@ it('reads a list of answered rows without a query per row', function (): void {
 
     $list = app(ProjectListQuery::class)($project, $actor);
 
-    // A column of values is worth nothing if drawing it costs a query per row.
     expect($list['sections'][0]['tasks'])->toHaveCount(10)
         ->and(count($queries))->toBeLessThanOrEqual(10);
 });

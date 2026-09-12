@@ -8,11 +8,6 @@ import { provideModalPortalTarget } from '@/composables/useModalPortalTarget';
 const props = defineProps<{
     title: string;
     description?: string;
-    /**
-     * The package's own scale, forwarded. Omitted, a dialog keeps the width every dialog in this
-     * application has (`lib/modalLayer.ts`); one that is a working surface rather than a question
-     * asks for a wider one.
-     */
     maxWidth?: '2xl' | '3xl' | '4xl' | '5xl';
 }>();
 
@@ -20,24 +15,10 @@ const titleId = useId();
 const descriptionId = useId();
 const panel = ref<HTMLElement | null>(null);
 
-/**
- * Where a popover or a select inside this dialog is teleported to. The dialog is opened with
- * `showModal()`, so anything portalled to `body` is inert underneath it — see
- * `composables/useModalPortalTarget.ts`.
- */
+// The dialog is opened with showModal(), so popovers portalled to body would be inert beneath it.
 const portalTarget = provideModalPortalTarget();
 
-/**
- * Name the dialog after its own heading.
- *
- * Inertia Modal renders a native `<dialog>` and leaves it unlabelled, so a screen reader
- * announces "dialog" and nothing else. The element belongs to the package, which is why the
- * label is attached from here rather than bound in a template — and why it is attached once, in
- * the one component every modal in this application is built from.
- *
- * Watched rather than done on mount: the panel lives in a slot the package renders only once
- * the modal is on the stack, so at mount there is no element yet to look upwards from.
- */
+// Inertia Modal leaves its native <dialog> unlabelled, and the slot only renders once the modal is stacked, hence a watch.
 watch(panel, (element) => {
     const dialog = element?.closest('dialog, [role="dialog"]');
 

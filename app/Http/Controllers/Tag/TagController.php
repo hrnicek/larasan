@@ -23,14 +23,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/**
- * A workspace's vocabulary.
- *
- * The writes answer with a redirect back, because a tag is made from wherever somebody is
- * working — the task detail invents one without leaving the task. The list is a settings screen
- * beside fields and members for the same reason that one is: renaming a word changes what it
- * means everywhere it is already applied, which is `tag.manage` rather than an edit of anything.
- */
 class TagController extends Controller
 {
     public function index(Request $request): Response
@@ -41,8 +33,6 @@ class TagController extends Controller
 
         return Inertia::render('settings/Tags', [
             'tags' => $workspace->tags()
-                // Counted rather than listed: the screen says what a deletion costs, and naming
-                // every task would make the row a paragraph.
                 ->withCount('tasks')
                 ->orderBy('name')
                 ->get()
@@ -82,8 +72,6 @@ class TagController extends Controller
             $this->actor($request),
             $request->has('name') ? (string) $request->string('name') : null,
             $this->color($request),
-            // An explicit null clears the colour; an absent key leaves it alone (TASK-080-008's
-            // rule, applied here).
             clearColor: $request->exists('color') && $request->input('color') === null,
         ));
 
@@ -112,9 +100,7 @@ class TagController extends Controller
     }
 
     /**
-     * A name already taken is an error on the box somebody can act on rather than a toast they
-     * have to read and then find. The unique index is what answers, because two people can
-     * invent "Bug" in the same second — so it cannot be pre-checked in the FormRequest.
+     * The unique index enforces names, since a FormRequest pre-check would race concurrent requests.
      */
     private function translating(callable $operation): void
     {

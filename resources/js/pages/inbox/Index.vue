@@ -11,25 +11,13 @@ import type { InboxNotification } from '@/modules/notification/types';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
-/*
- * The panel is the heaviest thing this screen can show and most visits never open one, so it is
- * not part of what the screen downloads to draw itself. `useTaskPanel` fetches it once the screen
- * is idle, which keeps opening a task instant without putting it on the critical path.
- */
 const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
 
-/**
- * What is waiting for this person, here.
- *
- * Each line is a sentence built from the ids the notification kept and resolved by the server —
- * never from a snapshot, so a task renamed since is named as it is now.
- */
 const props = defineProps<{
     notifications: InboxNotification[];
     meta: { page: number; perPage: number; total: number; hasMore: boolean; unread: number };
-    /** The panel, when the URL says one is open. `null` rather than absent (TASK-200-004). */
     taskDetail?: TaskDetail | null;
-    /** Deferred with the panel: absent until the follow-up request lands. */
+    /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
     members: TaskAssignee[];
     priorities: string[];
@@ -40,26 +28,14 @@ const page = usePage();
 const unread = computed<number>(() => props.meta.unread);
 const workspaceName = computed<string>(() => page.props.workspace?.name ?? 'this workspace');
 
-/*
- * The rows on screen, kept by id. A response updates the rows it carries and adds the ones the
- * screen has not seen yet — page one to the top (something arrived), a later page to the bottom
- * (Load more). Appending blindly drew a row twice whenever a page came back a second time, which
- * every mark-read does: it re-renders the page it was sent from.
- */
+// Merged by id, because every mark-read re-renders the page it was sent from: page one prepends, later pages append.
 const rows = ref<InboxNotification[]>([...props.notifications]);
 
-/*
- * What was unread when it reached the screen. The New group is drawn from this rather than from
- * `read`, so a line read here stays where it was, dimmed, instead of jumping into a day further
- * down while somebody is working through the list.
- */
+// The New group is drawn from unread-on-arrival rather than `read`, so a row read here stays in place.
 const arrivedUnread = ref(new Set(props.notifications.filter((row) => !row.read).map((row) => row.id)));
 const justArrived = ref(new Set<string>());
 
-/*
- * How far down the list has been read, which is not what the last response said: a mark-read
- * re-renders page one after Load more has fetched page three.
- */
+// Not meta.page: a mark-read re-renders page one after Load more has fetched later pages.
 const loadedPage = ref(props.meta.page);
 const hasMore = ref(props.meta.hasMore);
 const loading = ref(false);
@@ -90,10 +66,7 @@ watch(() => props.notifications, (incoming) => {
     window.setTimeout(() => added.forEach((row) => justArrived.value.delete(row.id)), 2_400);
 });
 
-/*
- * Live. The shell already listens on this person's channel and refreshes the badge; when the
- * badge knows of more unread than the list does, something arrived that the list has not drawn.
- */
+// The shell's realtime listener refreshes the badge; a higher count than the list's means new rows arrived.
 watch(() => page.props.unreadNotifications, (count) => {
     if (count > props.meta.unread) {
         router.reload({ only: ['notifications', 'meta'] });
@@ -111,7 +84,6 @@ const startOfDay = (at: Date): number => new Date(at.getFullYear(), at.getMonth(
 
 const dayKey = (at: Date): string => `${at.getFullYear()}-${at.getMonth() + 1}-${at.getDate()}`;
 
-/** A day the way a person would name it: nearby days by name, older ones by date. */
 const dayLabel = (at: Date): string => {
     const now = new Date();
     const daysAgo = Math.round((startOfDay(now) - startOfDay(at)) / 86_400_000);
@@ -136,10 +108,6 @@ const dayLabel = (at: Date): string => {
     });
 };
 
-/**
- * Unread first as the server orders it, then everything else under the day it happened. The day
- * is what somebody scanning an inbox navigates by; the minute is detail.
- */
 const groups = computed<Group[]>(() => {
     const fresh = rows.value.filter((row) => arrivedUnread.value.has(row.id));
     const earlier = new Map<string, Group>();
@@ -174,10 +142,6 @@ const { open: openTask, close: closeTask } = useTaskPanel();
 const isActive = (notification: InboxNotification): boolean =>
     props.taskDetail !== null && props.taskDetail !== undefined && props.taskDetail.task.id === notification.subject?.id;
 
-/**
- * Read state is the server's answer, so a row is not ticked off locally — the visit that follows
- * re-renders it from what came back.
- */
 const markRead = (notification: InboxNotification, then?: () => void): void => {
     router.put(InboxController.read.url(notification.id), {}, {
         preserveScroll: true,
@@ -186,12 +150,6 @@ const markRead = (notification: InboxNotification, then?: () => void): void => {
     });
 };
 
-/**
- * Clicking a line marks it read and opens what it is about — as a panel over the Inbox rather than
- * as its own page: somebody working through a list of notifications is working through a list,
- * and reading one should not cost them their place in it. Reachability is still the server's
- * `url`, and the client never decides that for itself.
- */
 const openNotification = (notification: InboxNotification): void => {
     const subject = notification.subject;
 
@@ -227,10 +185,7 @@ const loadMore = (): void => {
             only: ['notifications', 'meta'],
             preserveScroll: true,
             preserveState: true,
-            /*
-             * The address stays the Inbox's own. A mark-read re-renders the page it was sent from,
-             * and page three of a list somebody reads from the top is not the page they are on.
-             */
+            // A mark-read re-renders the page named in the URL, so the URL must stay on page one.
             preserveUrl: true,
             onHttpException: () => {
                 loadFailed.value = true;
@@ -247,11 +202,6 @@ const loadMore = (): void => {
     );
 };
 
-/*
- * `↑` and `↓` walk the rows, `Enter` opens the focused one — it is a button — and `e` marks it
- * read without opening it (`docs/ui/inbox.md`). Stops at the ends rather than wrapping, as the
- * task list does.
- */
 const list = ref<HTMLElement | null>(null);
 
 const onKeydown = (event: KeyboardEvent): void => {
@@ -320,7 +270,7 @@ const onKeydown = (event: KeyboardEvent): void => {
                     :id="`inbox-group-${group.key}`"
                     class="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background px-4 pt-5 pb-2 text-[13px] font-semibold tracking-wide text-muted-foreground md:px-6"
                 >
-                    <!-- Some locales write a weekday in lower case; a heading starts with a capital. -->
+                    <!-- Some locales write weekdays in lower case. -->
                     <span class="inline-block first-letter:uppercase">{{ group.label }}</span>
                     <span
                         v-if="group.key === 'new' && unreadIn(group) > 0"

@@ -1,14 +1,6 @@
 <script setup lang="ts">
-/**
- * The heading of one block on the task detail: what it is, how much of it there is, and the
- * controls that belong to it.
- *
- * Projects, subtasks and attachments are three blocks that have to line up with one another.
- * Three headings built by hand line up until one of them is edited.
- */
 defineProps<{
     title: string;
-    /** A badge beside the name — `3` for a count, `0 / 2` for a proportion. */
     count?: string | null;
 }>();
 </script>

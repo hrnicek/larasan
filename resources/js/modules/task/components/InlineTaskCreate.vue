@@ -3,26 +3,12 @@ import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import ProjectTaskController from '@/actions/App/Http/Controllers/Project/ProjectTaskController';
 
-/**
- * Add a task where you are looking. Focus stays in the input afterwards, because somebody
- * adding one task is usually adding three.
- */
 const props = withDefaults(
     defineProps<{
         projectId: string;
         sectionId: string | null;
-        /**
-         * The day the new task is due, when it is being added somewhere that means one — a
-         * calendar cell is a date, so typing a title into it schedules the task as well.
-         */
         dueAt?: string | null;
-        /** A day cell has no room for the list's left margin, and says "Add" rather than "Add task". */
         compact?: boolean;
-        /**
-         * Draw nothing until it is opened. A calendar cell offers adding from its own header and
-         * from its empty space, so a second prompt would cost every cell a line of height for a
-         * control that is already there.
-         */
         hideTrigger?: boolean;
     }>(),
     { dueAt: null, compact: false, hideTrigger: false },
@@ -33,7 +19,6 @@ const title = ref('');
 const input = ref<HTMLInputElement | null>(null);
 const saving = ref(false);
 
-/** Exposed, so a calendar cell can open this from a click anywhere in the day. */
 async function start(): Promise<void> {
     open.value = true;
     await nextTick();
@@ -73,8 +58,6 @@ function submit(): void {
 </script>
 
 <template>
-    <!-- From `md` the prompt starts where the task names start, so it reads as the next empty
-         row of the column rather than as a control under it. -->
     <div :class="compact ? '' : 'px-4 py-2 md:pl-21'">
         <button
             v-if="!open && !hideTrigger"

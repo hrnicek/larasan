@@ -23,10 +23,6 @@ it('renames a project from wherever the menu was opened', function (): void {
     expect($project->fresh()?->name)->toBe('Website relaunch');
 });
 
-/*
- * The reason this endpoint exists rather than the dialog posting to `projects.update`, which
- * takes the whole settings form and reads an absent nullable field as a deliberate clearing.
- */
 it('leaves everything the dialog does not show alone', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
     $project->forceFill([
@@ -42,7 +38,6 @@ it('leaves everything the dialog does not show alone', function (): void {
     $renamed = $project->fresh();
 
     expect($renamed?->name)->toBe('A new name')
-        // Re-deriving the slug would break every link anybody saved.
         ->and($renamed?->slug)->toBe('the-old-name')
         ->and($renamed?->description)->toBe('The one that pays for the others')
         ->and($renamed?->start_date?->toDateString())->toBe('2026-03-01')

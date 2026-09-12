@@ -25,8 +25,6 @@ it('promotes the direct subtasks instead of deleting them', function (): void {
 
     app(DeleteTask::class)->handle($parent, $actor);
 
-    // A subtask can be assigned to somebody else entirely; taking it away because its
-    // parent was removed would delete work nobody asked to delete.
     expect($child->fresh()?->parent_id)->toBeNull()
         ->and($child->fresh()?->deleted_at)->toBeNull();
 });

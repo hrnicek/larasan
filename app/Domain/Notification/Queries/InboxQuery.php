@@ -24,23 +24,12 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
- * What is waiting for one person, here.
- *
- * Scoped to the workspace as well as to the account: the Inbox is per workspace
- * (`docs/ui/inbox.md`), and somebody who belongs to three of them should not have to read
- * three inboxes at once to find the thing they were told about.
- *
- * A row is rendered from **ids the notification kept**, resolved now — never from a snapshot of
- * names taken when it was written. A notification read a week later has to say what the task is
- * called today, not what it was called then.
- *
  * @phpstan-type InboxActor array{id: int, name: string, email: string}
  */
 final readonly class InboxQuery
 {
     public const PER_PAGE = 25;
 
-    /** Enough to recognise the comment by; the rest is one click away. */
     private const EXCERPT_LENGTH = 160;
 
     public function __construct(private VisibleProjectsForUser $visibleProjects) {}
@@ -76,10 +65,6 @@ final readonly class InboxQuery
         ];
     }
 
-    /**
-     * The badge's number, and the Inbox's own. One query, on the index TASK-110-014 built for
-     * exactly this read.
-     */
     public function unreadCount(Workspace $workspace, User $reader): int
     {
         return $this->scoped($workspace, $reader)->whereNull('read_at')->count();
@@ -91,8 +76,7 @@ final readonly class InboxQuery
     private function paginate(Workspace $workspace, User $reader, int $page, int $perPage): LengthAwarePaginator
     {
         return $this->scoped($workspace, $reader)
-            // Unread first, then newest. `id` breaks the tie because `created_at` is
-            // `timestamp(0)` and two notifications in one second would otherwise page unstably.
+            // Unread first; `id` breaks ties because `created_at` is `timestamp(0)`.
             ->orderByRaw('read_at is not null')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -111,8 +95,6 @@ final readonly class InboxQuery
     }
 
     /**
-     * Everybody who caused a line on this page, in one read.
-     *
      * @param  Collection<int, DatabaseNotification>  $rows
      * @return Collection<int, User>
      */
@@ -132,9 +114,6 @@ final readonly class InboxQuery
     }
 
     /**
-     * Every subject on this page, in one read. A feed of notifications is the screen where a
-     * lazy relation per row is at its worst: each one points somewhere different.
-     *
      * @param  Collection<int, DatabaseNotification>  $rows
      * @return Collection<string, Task>
      */
@@ -154,13 +133,6 @@ final readonly class InboxQuery
             ->query($workspace, $reader, includeArchived: true)
             ->select('projects.id');
 
-        /*
-         * Reach, asked for the whole page in one read rather than per row through the policy.
-         * The two counts are `TaskPolicy::view()` written as arithmetic: a task is reachable if
-         * it appears in a project the reader can open, or if it appears in no project at all and
-         * the reader is not a guest — guests hold projects, and a task in none was never given
-         * to them.
-         */
         return Task::query()
             ->whereIn('id', $ids)
             ->withCount([
@@ -168,8 +140,7 @@ final readonly class InboxQuery
                 'placements as reachable_placements_count' => fn (Builder $placements) => $placements->whereIn('project_id', $visible),
             ])
             ->with([
-                // Only the projects this reader can open: a task can live in one they were never
-                // given, and naming it on their inbox would leak it through the task.
+                // Constrained so a project the reader cannot open is never named.
                 'projects' => fn (Relation $projects) => $projects
                     ->whereIn('projects.id', $visible)
                     ->select(['projects.id', 'projects.name', 'projects.color']),
@@ -179,12 +150,6 @@ final readonly class InboxQuery
     }
 
     /**
-     * What each comment on this page said, in one read — the line under the sentence, so a
-     * comment can be triaged without opening its task.
-     *
-     * Only for tasks this reader can still reach: the words are the task's, and somebody who
-     * lost the project lost them too.
-     *
      * @param  Collection<int, DatabaseNotification>  $rows
      * @param  Collection<string, Task>  $subjects
      * @return Collection<string, string>
@@ -236,29 +201,12 @@ final readonly class InboxQuery
             'createdAt' => $notification->created_at?->toIso8601String(),
             'readAt' => $notification->read_at?->toIso8601String(),
             'read' => $notification->read_at !== null,
-            /*
-             * Null where the account is gone rather than an invented name: a notification
-             * outlives nothing here — it is deleted with its reader — but the person who caused
-             * it may well have left.
-             */
             'actor' => PersonSummary::fromNullable($actor),
-            // What was said, as it reads now. Null for a line that is not a comment, a comment
-            // since deleted, or a task this reader can no longer reach.
             'excerpt' => $commentId === null ? null : $excerpts->get($commentId),
-            /*
-             * Resolved now, so the line says what the task is called today. Null when the task
-             * has since been deleted — a notification outlives what it points at, and the screen
-             * says so rather than linking nowhere.
-             */
             'subject' => $task === null ? null : [
                 'type' => 'task',
                 'id' => $task->id,
                 'title' => $task->title,
-                /*
-                 * The address, or null where this reader can no longer reach it. Somebody can be
-                 * told about a task and then lose the project it lives in; a link they cannot
-                 * follow is worse than a sentence they can still read.
-                 */
                 'url' => $this->reaches($task, $workspace, $reader) ? route('tasks.show', $task->id) : null,
                 'projects' => array_values($task->projects
                     ->map(fn (Project $project): array => [
@@ -272,8 +220,7 @@ final readonly class InboxQuery
     }
 
     /**
-     * `TaskPolicy::view()`, answered from counts this query already fetched. Membership is not
-     * asked again: a reader with none has no inbox here at all.
+     * Mirrors `TaskPolicy::view()` using the placement counts loaded in `subjects()`.
      */
     private function reaches(Task $task, Workspace $workspace, User $reader): bool
     {
@@ -281,8 +228,6 @@ final readonly class InboxQuery
             return true;
         }
 
-        // The workspace in hand rather than the task's own relation: they are the same
-        // workspace, and reading it from the task would be a query per row.
         return (int) ($task->placements_count ?? 0) === 0
             && $workspace->membershipFor($reader)?->role->isGuest() === false;
     }
@@ -294,8 +239,6 @@ final readonly class InboxQuery
             TaskCollaboratorAddedNotification::class => 'task.collaborator_added',
             CommentPostedNotification::class => 'comment.posted',
             MentionedInCommentNotification::class => 'comment.mentioned',
-            // A class name is not something to show anybody, and a notification this query does
-            // not know is still a line in somebody's inbox.
             default => 'unknown',
         };
     }

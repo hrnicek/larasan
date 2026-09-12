@@ -67,11 +67,6 @@ it('does not carry a role from one workspace into another', function (): void {
 });
 
 it('keeps role comparisons inside the capability layer', function (): void {
-    /*
-     * The rule ADR-0010 states: nothing compares a role by hand. Enforced by reading the
-     * source rather than by discipline, because the first hand-rolled comparison is the
-     * one that quietly disagrees with the enum.
-     */
     $allowed = [
         'app/Domain/Shared/Enums/WorkspaceRole.php',
         'app/Domain/Workspace/Models/WorkspaceMembership.php',

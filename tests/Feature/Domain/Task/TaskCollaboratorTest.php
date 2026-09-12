@@ -24,8 +24,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 /**
- * A task in no project — workspace work every member can open — and somebody who may assign it.
- *
  * @return array{Task, User}
  */
 function collaborationTask(WorkspaceRole $role = WorkspaceRole::Member): array

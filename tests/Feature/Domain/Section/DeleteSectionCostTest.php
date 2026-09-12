@@ -13,12 +13,6 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 
-/*
- * Deleting a column used to cost a write per card, and a column is exactly the thing a person is
- * allowed to fill (TASK-180-020). What it must still do is unchanged: the cards keep their order
- * and land at the end of the ungrouped bucket.
- */
-
 /**
  * @return array{Section, Project, User, list<string>}
  */

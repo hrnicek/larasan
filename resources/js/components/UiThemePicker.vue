@@ -11,11 +11,6 @@ const { current, themes } = defineProps<{
 
 const form = useForm({ ui_theme: current });
 
-/**
- * The attribute the root template writes is what every token block selects on, so setting it
- * here repaints the page at once and the radio is a preview as well as a choice. A reload
- * without a save puts the stored value back, which is the behaviour a preview should have.
- */
 function preview(theme: UiTheme): void {
     form.ui_theme = theme;
     document.documentElement.dataset.theme = theme;
@@ -47,12 +42,6 @@ function submit(): void {
                     @change="preview(theme.value)"
                 />
 
-                <!--
-                  The scheme in miniature: rail, canvas, a card and the accent. Drawn inside its
-                  own `data-theme` so the swatch reads the theme's real tokens rather than a second
-                  copy of the palette that would drift the first time one was re-tuned — and the
-                  accent is in it precisely because it is the one thing that does not change.
-                -->
                 <span
                     :data-theme="theme.value"
                     class="flex h-14 w-24 shrink-0 overflow-hidden rounded-sm border border-border bg-background"

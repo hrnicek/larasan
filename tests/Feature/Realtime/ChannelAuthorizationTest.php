@@ -186,12 +186,7 @@ it('grants a project member a project their workspace membership alone would ref
     $this->subscribeTo($guest, "private-project.{$project->id}")->assertOk();
 });
 
-/*
- * The callbacks, asked directly. `{project}` resolves through the explicit route binder in
- * `routes/projects.php`, which refuses an invisible project before the callback is reached
- * — so a callback that answered `true` unconditionally would pass every request above.
- * These are the assertions that fail when the rule in `routes/channels.php` is wrong.
- */
+// The `{project}` binding refuses unseen projects before the callback runs, so the callbacks are asserted directly.
 
 it('answers the workspace channel by membership and role', function (): void {
     $callback = channelCallback('workspace.{workspace}');

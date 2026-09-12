@@ -13,12 +13,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        /*
-         * PostgreSQL does not index the referencing side of a foreign key, so both delete
-         * paths were sequential scans: nulling the pointer when a workspace goes, and the
-         * RESTRICT check when an account is closed. Measured at 50 000 users, the first
-         * scanned every row while holding KEY SHARE locks.
-         */
+        // PostgreSQL does not index the referencing side of a foreign key.
         Schema::table('workspaces', function (Blueprint $table): void {
             $table->index('owner_id');
         });
@@ -27,22 +22,11 @@ return new class extends Migration
             $table->index('current_workspace_id');
         });
 
-        /*
-         * json has no equality operator on PostgreSQL, so DISTINCT, GROUP BY and any GIN
-         * index are unavailable, and converting it once the high-volume tables that copy
-         * this choice exist is a full rewrite under ACCESS EXCLUSIVE.
-         */
+        // PostgreSQL json has no equality operator, so DISTINCT, GROUP BY and GIN indexes need jsonb.
         Schema::table('workspaces', function (Blueprint $table): void {
             $table->jsonb('settings')->default('{}')->change();
         });
 
-        /*
-         * role and status are authorization data. Without a constraint the database
-         * accepts anything a console command or a data migration writes, and the failure
-         * surfaces at read time inside the enum cast — a 500 on every request for that
-         * user, because workspace resolution runs on all of them. Raw SQL because a CHECK
-         * is not expressible through the schema builder.
-         */
         DB::statement($this->checkConstraint('role', WorkspaceRole::cases()));
         DB::statement($this->checkConstraint('status', WorkspaceMembershipStatus::cases()));
     }

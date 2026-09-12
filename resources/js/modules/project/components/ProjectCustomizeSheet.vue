@@ -16,18 +16,6 @@ import ProjectFieldManager from '@/modules/custom-field/components/ProjectFieldM
 import ProjectColumnManager from '@/modules/project/components/ProjectColumnManager.vue';
 import type { ProjectCustomize } from '@/modules/project/types';
 
-/**
- * What this project records, changed from the project itself rather than from its settings screen.
- *
- * A drawer over the board rather than a page away from it: choosing what a project records is
- * something somebody decides *while looking at the work* — the column they wish were there is on
- * the screen behind this. The same controls still live on the settings screen, because that is
- * where somebody goes who is setting a project up rather than using one.
- *
- * Two levels, as the reader's own reference shows: the list of what can be customized, and the
- * one thing they picked. `Fields` is the only entry today; the shape is what makes a second one
- * an addition rather than a redesign.
- */
 const props = defineProps<{
     projectId: string;
     canManage: boolean;
@@ -37,12 +25,7 @@ const props = defineProps<{
 const open = ref(false);
 const section = ref<'root' | 'fields' | 'columns'>('root');
 
-/*
- * The drawer's contents are `Inertia::optional`, so they are asked for when it is opened rather
- * than sent to everybody who opens a project. Asked for every time: a field could have been
- * defined in another tab since the last look, and the list is small enough that re-reading it is
- * cheaper than being wrong about it.
- */
+// `customize` is an optional prop, so it is reloaded on every open in case it changed elsewhere.
 watch(open, (isOpen) => {
     if (!isOpen) {
         section.value = 'root';
@@ -53,20 +36,10 @@ watch(open, (isOpen) => {
     reload();
 });
 
-/** The one place the drawer's own props are asked for, so opening and writing agree. */
 function reload(): void {
     reloadOptional(['customize']);
 }
 
-/*
- * The last list the server sent, kept while the next one is on its way.
- *
- * A write inside the drawer redirects, and the page that comes back does not carry an optional
- * prop — so reading `props.customize` directly would blank the list on every attach and draw a
- * skeleton over something the reader had just changed. Holding the last answer means the drawer
- * shows the old list for the length of one request instead of nothing at all, and `null` keeps its
- * real meaning: not read yet.
- */
 const headings = {
     root: { title: 'Customize', description: 'View and edit features on this project' },
     fields: {
@@ -76,9 +49,9 @@ const headings = {
     columns: { title: 'Columns', description: 'The order the list draws them in' },
 } as const;
 
+// Last server copy, kept because redirects omit the optional prop; null means not loaded yet.
 const fields = ref<ProjectCustomize['fields'] | null>(props.customize?.fields ?? null);
 
-/** The column order, kept the same way and for the same reason as the field list above. */
 const columns = ref<ProjectCustomize['columns'] | null>(props.customize?.columns ?? null);
 
 watch(
@@ -129,8 +102,6 @@ watch(
                         <ListChecks class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                         <span class="flex-1 font-medium">Fields</span>
 
-                        <!-- The count is what the drawer is for at a glance; a skeleton rather
-                             than a zero, because "none yet" and "not read yet" are different. -->
                         <Skeleton v-if="fields === null" class="h-5 w-6 rounded-md" />
                         <span
                             v-else

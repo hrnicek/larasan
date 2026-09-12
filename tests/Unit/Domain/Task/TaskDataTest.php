@@ -18,7 +18,7 @@ it('defaults a new task to medium priority and nothing else', function (): void 
 });
 
 it('carries no workspace and no creator', function (): void {
-    // Both are arguments to the Action: a field here is a field a form can send.
+    // Both are Action arguments, since any field here is one a form could send.
     $fields = array_map(
         fn (ReflectionProperty $property): string => $property->getName(),
         (new ReflectionClass(CreateTaskData::class))->getProperties(),
