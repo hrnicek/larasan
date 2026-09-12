@@ -89,7 +89,7 @@ class WorkspaceInvitationController extends Controller
      */
     private function towardsAnAccount(Request $request, string $address): RedirectResponse
     {
-        if (User::query()->where('email', $address)->exists()) {
+        if (User::query()->whereRaw('lower(email) = ?', [mb_strtolower($address)])->exists()) {
             $request->session()->flash('status', __('Sign in as :address to answer your invitation.', ['address' => $address]));
 
             return redirect()->guest(route('login'));

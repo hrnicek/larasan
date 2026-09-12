@@ -22,7 +22,7 @@ final readonly class InviteWorkspaceMember
 
     public function handle(Workspace $workspace, User $actor, InviteWorkspaceMemberData $data): WorkspaceMembership
     {
-        $invitee = User::query()->where('email', $data->email)->first();
+        $invitee = User::query()->whereRaw('lower(email) = ?', [$data->email])->first();
         $existing = $this->existing($workspace, $data->email, $invitee);
 
         $this->guard($workspace, $actor, $data, $existing);
@@ -33,7 +33,8 @@ final readonly class InviteWorkspaceMember
 
             $membership->forceFill([
                 'workspace_id' => $workspace->id,
-                'user_id' => $invitee instanceof User ? $invitee->id : $membership->user_id,
+                // An unverified account holding the address is not bound; it claims the row once verified.
+                'user_id' => $invitee instanceof User && $invitee->hasVerifiedEmail() ? $invitee->id : $membership->user_id,
                 'email' => $data->email,
                 'role' => $data->role,
                 'status' => WorkspaceMembershipStatus::Invited,

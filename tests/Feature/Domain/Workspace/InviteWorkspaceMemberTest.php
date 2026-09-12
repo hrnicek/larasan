@@ -301,3 +301,34 @@ it('deletes an unclaimed invitation when it is cancelled, freeing the address', 
     expect(inviteAddress($workspace, $admin, 'nobody@example.com')->status)
         ->toBe(WorkspaceMembershipStatus::Invited);
 });
+
+it('does not bind the invitation to an account that has not verified the address', function (): void {
+    Notification::fake();
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $squatter = User::factory()->unverified()->create(['email' => 'new.hire@example.com']);
+
+    $membership = inviteAddress($workspace, $admin, 'new.hire@example.com');
+
+    expect($membership->user_id)->toBeNull()
+        ->and($membership->email)->toBe('new.hire@example.com')
+        ->and($workspace->membershipFor($squatter))->toBeNull();
+
+    Notification::assertNotSentTo($squatter, WorkspaceInvitationSent::class);
+    Notification::assertSentOnDemand(
+        WorkspaceInvitationSent::class,
+        fn (WorkspaceInvitationSent $notification, array $channels, AnonymousNotifiable $notifiable): bool => $notifiable->routes['mail'] === 'new.hire@example.com',
+    );
+});
+
+it('finds the account for an address stored in another case', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $invitee = User::factory()->create();
+    $invitee->forceFill(['email' => 'Jana@Example.com'])->save();
+
+    $membership = inviteAddress($workspace, $admin, 'JANA@example.com');
+
+    expect($membership->user_id)->toBe($invitee->id)
+        ->and($membership->email)->toBe('jana@example.com');
+});

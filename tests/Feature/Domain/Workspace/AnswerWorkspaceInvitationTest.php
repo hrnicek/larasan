@@ -183,3 +183,34 @@ it('refuses an invitation from someone since demoted, not only someone removed',
     expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee))
         ->toThrow(WorkspaceMembershipException::class, 'can no longer invite');
 });
+
+it('refuses an answer from the invitee before they have verified their address', function (string $method): void {
+    [$membership, $invitee] = pendingInvitation();
+    $invitee->forceFill(['email_verified_at' => null])->save();
+
+    expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->{$method}($membership, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'only be answered by');
+
+    expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Invited);
+})->with(['accept', 'decline']);
+
+it('refuses an answer once the account no longer holds the invited address', function (string $method): void {
+    [$membership, $invitee] = pendingInvitation();
+    $membership->forceFill(['email' => 'invited@example.com'])->save();
+    $invitee->forceFill(['email' => 'elsewhere@example.com'])->save();
+
+    expect(fn (): WorkspaceMembership => app(AnswerWorkspaceInvitation::class)->{$method}($membership, $invitee))
+        ->toThrow(WorkspaceMembershipException::class, 'only be answered by');
+
+    expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Invited);
+})->with(['accept', 'decline']);
+
+it('accepts when the account address differs from the invited one only in case', function (): void {
+    [$membership, $invitee] = pendingInvitation();
+    $membership->forceFill(['email' => 'invited@example.com'])->save();
+    $invitee->forceFill(['email' => 'Invited@Example.com'])->save();
+
+    app(AnswerWorkspaceInvitation::class)->accept($membership, $invitee);
+
+    expect($membership->fresh()?->status)->toBe(WorkspaceMembershipStatus::Active);
+});

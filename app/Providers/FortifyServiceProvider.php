@@ -7,6 +7,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -79,6 +80,35 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by(
                 ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
             );
+        });
+
+        RateLimiter::for('registration', function (Request $request) {
+            return Limit::perMinute(5)->by((string) $request->ip());
+        });
+
+        RateLimiter::for('password-reset-links', function (Request $request) {
+            return Limit::perMinute(5)->by((string) $request->ip());
+        });
+
+        $this->throttleRoutesFortifyLeavesOpen();
+    }
+
+    /**
+     * Fortify reads no limiter for these routes, so the middleware is attached once its routes exist.
+     */
+    private function throttleRoutesFortifyLeavesOpen(): void
+    {
+        $this->app->booted(function (): void {
+            $routes = Route::getRoutes();
+            $routes->refreshNameLookups();
+
+            foreach (['register.store' => 'registration', 'password.email' => 'password-reset-links'] as $route => $limiter) {
+                $name = config("fortify.limiters.{$limiter}");
+
+                if (is_string($name)) {
+                    $routes->getByName($route)?->middleware('throttle:'.$name);
+                }
+            }
         });
     }
 }

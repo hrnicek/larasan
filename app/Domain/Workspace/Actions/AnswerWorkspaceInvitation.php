@@ -59,13 +59,22 @@ final readonly class AnswerWorkspaceInvitation
 
     private function guard(WorkspaceMembership $membership, User $actor): void
     {
-        if ($membership->user_id !== $actor->id) {
+        if ($membership->user_id !== $actor->id || ! $this->holdsInvitedAddress($membership, $actor)) {
             throw WorkspaceMembershipException::notTheInvitee();
         }
 
         if (! $membership->status->canBeAccepted()) {
             throw WorkspaceMembershipException::invitationNotPending($membership->status);
         }
+    }
+
+    /**
+     * A claimed row alone is not proof: the account may have changed its address since claiming.
+     */
+    private function holdsInvitedAddress(WorkspaceMembership $membership, User $actor): bool
+    {
+        return $actor->hasVerifiedEmail()
+            && mb_strtolower($actor->email) === mb_strtolower($membership->address());
     }
 
     /**

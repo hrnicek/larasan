@@ -109,3 +109,24 @@ it('deletes an account that only belongs to workspaces it does not own', functio
     expect($member->fresh())->toBeNull();
     $this->assertDatabaseMissing('workspace_memberships', ['user_id' => $member->id]);
 });
+
+test('an updated email address is stored in lower case', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => 'Test User', 'email' => 'Test@Example.com'])
+        ->assertSessionHasNoErrors();
+
+    expect($user->refresh()->email)->toBe('test@example.com');
+});
+
+test('email cannot be changed to an address another account holds in another case', function () {
+    User::factory()->create(['email' => 'bob@example.com']);
+    $user = User::factory()->create(['email' => 'alice@example.com']);
+
+    $this->actingAs($user)
+        ->patch(route('profile.update'), ['name' => 'Test User', 'email' => 'Bob@Example.com'])
+        ->assertSessionHasErrors('email');
+
+    expect($user->refresh()->email)->toBe('alice@example.com');
+});

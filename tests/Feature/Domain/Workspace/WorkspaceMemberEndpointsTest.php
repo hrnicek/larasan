@@ -266,3 +266,15 @@ it('keeps the invitations from somebody who cannot act on them', function (): vo
             ->has('invitations', 0)
             ->where('can.manageMembers', false));
 });
+
+it('answers a malformed membership id with not found', function (): void {
+    $workspace = Workspace::factory()->create();
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+
+    $this->actingAs($admin)
+        ->put(route('workspaces.members.update', 'not-a-uuid'), ['role' => 'member'])
+        ->assertNotFound();
+
+    $this->post(route('workspaces.members.resend', 'not-a-uuid'))->assertNotFound();
+    $this->delete(route('workspaces.members.destroy', 'not-a-uuid'))->assertNotFound();
+});

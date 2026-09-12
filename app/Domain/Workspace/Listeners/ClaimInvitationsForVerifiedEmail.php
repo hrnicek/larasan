@@ -6,16 +6,16 @@ namespace App\Domain\Workspace\Listeners;
 
 use App\Domain\Workspace\Actions\ClaimWorkspaceInvitations;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Events\Verified;
 
 /**
- * Not queued, because the next screen after registration lists the account's invitations.
+ * Not queued, because the next screen after verification lists the account's invitations.
  */
-final readonly class ClaimInvitationsForNewAccount
+final readonly class ClaimInvitationsForVerifiedEmail
 {
     public function __construct(private ClaimWorkspaceInvitations $claim) {}
 
-    public function handle(Registered $event): void
+    public function handle(Verified $event): void
     {
         if (! $event->user instanceof User) {
             return;

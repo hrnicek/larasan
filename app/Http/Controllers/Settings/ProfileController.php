@@ -12,6 +12,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,7 +41,10 @@ class ProfileController extends Controller
     {
         $user = $this->actor($request);
 
-        $user->fill($request->validated());
+        $user->fill([
+            ...$request->validated(),
+            'email' => Str::lower($request->string('email')->toString()),
+        ]);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;

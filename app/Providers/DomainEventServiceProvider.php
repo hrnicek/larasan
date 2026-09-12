@@ -16,6 +16,8 @@ use App\Domain\Activity\Listeners\RecordTaskUpdated;
 use App\Domain\Comment\Events\CommentCreated;
 use App\Domain\Comment\Events\CommentEdited;
 use App\Domain\Comment\Listeners\BroadcastCommentChange;
+use App\Domain\File\Events\FileAttached;
+use App\Domain\File\Listeners\GenerateThumbnail;
 use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Listeners\NotifyMentionedPeople;
 use App\Domain\Notification\Listeners\NotifyNewCollaborator;
@@ -49,8 +51,8 @@ use App\Domain\Task\Listeners\BroadcastTaskChange;
 use App\Domain\Task\Listeners\FollowAssignedTask;
 use App\Domain\Task\Listeners\FollowCollaboratedTask;
 use App\Domain\Task\Listeners\FollowCommentedTask;
-use App\Domain\Workspace\Listeners\ClaimInvitationsForNewAccount;
-use Illuminate\Auth\Events\Registered;
+use App\Domain\Workspace\Listeners\ClaimInvitationsForVerifiedEmail;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class DomainEventServiceProvider extends ServiceProvider
@@ -107,11 +109,18 @@ class DomainEventServiceProvider extends ServiceProvider
 
         CommentEdited::class => [NotifyMentionedPeople::class],
 
-        Registered::class => [ClaimInvitationsForNewAccount::class],
+        FileAttached::class => [GenerateThumbnail::class],
+
+        Verified::class => [ClaimInvitationsForVerifiedEmail::class],
     ];
 
     public function shouldDiscoverEvents(): bool
     {
         return false;
     }
+
+    /**
+     * The framework's own event provider already registers SendEmailVerificationNotification.
+     */
+    protected function configureEmailVerification(): void {}
 }

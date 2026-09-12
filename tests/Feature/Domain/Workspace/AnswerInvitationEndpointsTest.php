@@ -169,3 +169,39 @@ it('shows the refusal when the invitation has lapsed', function (): void {
 
     expect($invitation->fresh()?->status)->toBe(WorkspaceMembershipStatus::Invited);
 });
+
+it('does not claim for a signed-in account that has not verified the address', function (): void {
+    $workspace = Workspace::factory()->create();
+    $invitation = WorkspaceMembership::factory()
+        ->invited(memberOf($workspace, WorkspaceRole::Admin))
+        ->unclaimed('newcomer@example.com')
+        ->create(['workspace_id' => $workspace->id]);
+    $squatter = User::factory()->unverified()->create(['email' => 'newcomer@example.com']);
+
+    $this->actingAs($squatter)->get(signedInvitationLink($invitation));
+
+    expect($invitation->fresh()?->user_id)->toBeNull();
+});
+
+it('sends a visitor whose account stores the address in another case to log in', function (): void {
+    $workspace = Workspace::factory()->create();
+    $invitation = WorkspaceMembership::factory()
+        ->invited(memberOf($workspace, WorkspaceRole::Admin))
+        ->unclaimed('known@example.com')
+        ->create(['workspace_id' => $workspace->id]);
+    User::factory()->create()->forceFill(['email' => 'Known@Example.com'])->save();
+
+    $this->get(signedInvitationLink($invitation))->assertRedirect(route('login'));
+});
+
+it('answers a malformed invitation id with not found', function (): void {
+    $this->get(URL::temporarySignedRoute('workspaces.invitations.show', CarbonImmutable::now()->addHour(), ['membership' => 'not-a-uuid']))
+        ->assertNotFound();
+
+    $this->actingAs(User::factory()->create())
+        ->post(route('workspaces.invitations.accept', ['membership' => 'not-a-uuid']))
+        ->assertNotFound();
+
+    $this->post(route('workspaces.invitations.decline', ['membership' => 'not-a-uuid']))
+        ->assertNotFound();
+});

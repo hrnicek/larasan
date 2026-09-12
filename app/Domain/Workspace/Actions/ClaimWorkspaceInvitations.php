@@ -22,6 +22,11 @@ final readonly class ClaimWorkspaceInvitations
      */
     public function handle(User $user): Collection
     {
+        // Binding an invitation to an account requires proof that the account owns the mailbox.
+        if (! $user->hasVerifiedEmail()) {
+            return new Collection;
+        }
+
         $waiting = WorkspaceMembership::query()
             ->with('workspace')
             ->whereNull('user_id')

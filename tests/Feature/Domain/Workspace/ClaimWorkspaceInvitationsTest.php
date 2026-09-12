@@ -10,6 +10,7 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\URL;
 
 function unclaimedInvitation(Workspace $workspace, string $email, ?User $invitedBy = null): WorkspaceMembership
 {
@@ -96,7 +97,16 @@ it('claims a lapsed invitation too, so it can be resent to the account', functio
         ->and($lapsed->fresh()?->user_id)->toBe($user->id);
 });
 
-it('claims what is waiting when the account registers', function (): void {
+it('does not claim for an account that has not verified its address', function (): void {
+    $workspace = Workspace::factory()->create();
+    $invitation = unclaimedInvitation($workspace, 'newcomer@example.com');
+    $user = User::factory()->unverified()->create(['email' => 'newcomer@example.com']);
+
+    expect(claimFor($user))->toBe(0)
+        ->and($invitation->fresh()?->user_id)->toBeNull();
+});
+
+it('does not claim what is waiting when the account registers', function (): void {
     $workspace = Workspace::factory()->create();
     $invitation = unclaimedInvitation($workspace, 'newcomer@example.com');
 
@@ -107,5 +117,19 @@ it('claims what is waiting when the account registers', function (): void {
         'password_confirmation' => 'a-long-enough-password',
     ])->assertRedirect();
 
-    expect($invitation->fresh()?->user_id)->toBe(User::query()->where('email', 'newcomer@example.com')->value('id'));
+    expect($invitation->fresh()?->user_id)->toBeNull();
+});
+
+it('claims what is waiting once the account verifies its address', function (): void {
+    $workspace = Workspace::factory()->create();
+    $invitation = unclaimedInvitation($workspace, 'newcomer@example.com');
+    $user = User::factory()->unverified()->create(['email' => 'newcomer@example.com']);
+
+    $this->actingAs($user)->get(URL::temporarySignedRoute(
+        'verification.verify',
+        CarbonImmutable::now()->addHour(),
+        ['id' => $user->id, 'hash' => sha1('newcomer@example.com')],
+    ));
+
+    expect($invitation->fresh()?->user_id)->toBe($user->id);
 });
