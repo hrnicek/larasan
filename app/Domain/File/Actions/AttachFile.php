@@ -25,6 +25,9 @@ use Throwable;
 
 final readonly class AttachFile
 {
+    /** The width of `files.original_name`. */
+    public const int MAX_NAME_LENGTH = 255;
+
     /** The width of `files.extension`. */
     public const int MAX_EXTENSION_LENGTH = 32;
 
@@ -43,7 +46,7 @@ final readonly class AttachFile
         }
 
         if ($actor->cannot('attach', $subject)) {
-            throw FileException::cannotUpload();
+            throw FileException::cannotAttachToSubject();
         }
 
         $disk = (string) config('filesystems.attachments');
@@ -90,7 +93,7 @@ final readonly class AttachFile
         string $checksum,
     ): Attachment {
         return DB::transaction(function () use ($subject, $actor, $upload, $disk, $path, $checksum): Attachment {
-            $file = new File(['original_name' => $upload->getClientOriginalName()]);
+            $file = new File(['original_name' => $this->originalNameOf($upload)]);
 
             $file->workspace_id = $subject->workspaceId();
             $file->uploaded_by = $actor->id;
@@ -152,6 +155,19 @@ final readonly class AttachFile
         $name = (string) Str::uuid7();
 
         return "workspaces/{$workspace->id}/{$type}/{$name}".($extension === '' ? '' : ".{$extension}");
+    }
+
+    private function originalNameOf(UploadedFile $upload): string
+    {
+        $name = $upload->getClientOriginalName();
+
+        if (mb_strlen($name) <= self::MAX_NAME_LENGTH) {
+            return $name;
+        }
+
+        $suffix = $this->extensionOf($upload) === '' ? '' : '.'.$upload->getClientOriginalExtension();
+
+        return mb_substr($name, 0, self::MAX_NAME_LENGTH - mb_strlen($suffix)).$suffix;
     }
 
     private function extensionOf(UploadedFile $upload): string

@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class AttachTaskToProject
 {
+    private const int ATTEMPTS = 3;
+
     public function __construct(private Dispatcher $events) {}
 
     public function handle(Task $task, Project $project, User $actor): TaskProjectMembership
@@ -41,7 +43,7 @@ final readonly class AttachTaskToProject
         try {
             $placement = $this->append($task, $project);
         } catch (UniqueConstraintViolationException) {
-            // A concurrent attach of the same task, or a concurrent append into the same slot. See ADR-0009.
+            // A concurrent attach of the same task. See ADR-0009.
             $placement = $this->existing($task, $project) ?? $this->append($task, $project);
         }
 
@@ -63,13 +65,11 @@ final readonly class AttachTaskToProject
     private function append(Task $task, Project $project): TaskProjectMembership
     {
         return DB::transaction(function () use ($task, $project): TaskProjectMembership {
-            // PostgreSQL refuses FOR UPDATE with max(), so the tail row is locked instead.
-            // An empty bucket has no row to lock; the unique index and the retry in handle() cover that.
-            $last = $project->placements()
-                ->whereNull('section_id')
-                ->reorder('position', 'desc')
-                ->lockForUpdate()
-                ->value('position');
+            // The lock every placement write takes first, so CreateTaskInProject cannot deadlock with a move.
+            // Under it the end of the bucket cannot change, so no row lock is needed to read it. See ADR-0009.
+            Project::query()->whereKey($project->id)->lock('for no key update')->value('id');
+
+            $last = $project->placements()->whereNull('section_id')->max('position');
 
             $placement = new TaskProjectMembership([
                 'task_id' => $task->id,
@@ -81,6 +81,6 @@ final readonly class AttachTaskToProject
             $placement->save();
 
             return $placement;
-        });
+        }, self::ATTEMPTS);
     }
 }

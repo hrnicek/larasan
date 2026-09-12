@@ -227,7 +227,8 @@ it('refuses somebody who may only view every project the task is in, and stores 
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
-    expect(fn (): Attachment => attachTo($task, $viewer))->toThrow(FileException::class);
+    expect(fn (): Attachment => attachTo($task, $viewer))
+        ->toThrow(FileException::class, 'You can open this, but you do not have permission to attach files to it.');
 
     expect(File::query()->count())->toBe(0)
         ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toBe([]);
@@ -253,4 +254,25 @@ it('attaches a batch whole or not at all', function (): void {
 
     expect($task->attachments()->count())->toBe(2)
         ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toHaveCount(2);
+});
+
+it('shortens a name too long to store, keeping every character whole and the extension', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $file = attachTo($task, $actor, UploadedFile::fake()->create(str_repeat('ž', 300).'.PDF', 4, 'application/pdf'))->file;
+
+    expect(mb_strlen($file->original_name))->toBe(AttachFile::MAX_NAME_LENGTH)
+        ->and(mb_check_encoding($file->original_name, 'UTF-8'))->toBeTrue()
+        ->and($file->original_name)->toBe(str_repeat('ž', AttachFile::MAX_NAME_LENGTH - 4).'.PDF');
+});
+
+it('shortens a long name whose extension is not one it keeps', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $file = attachTo($task, $actor, UploadedFile::fake()->create('notes.'.str_repeat('ž', 300), 4, 'text/plain'))->file;
+
+    expect($file->original_name)->toBe(mb_substr('notes.'.str_repeat('ž', 300), 0, AttachFile::MAX_NAME_LENGTH))
+        ->and($file->extension)->toBe('');
 });

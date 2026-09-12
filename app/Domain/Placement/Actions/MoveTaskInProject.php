@@ -48,7 +48,7 @@ final readonly class MoveTaskInProject
         try {
             $moved = $this->place($placement, $section, $target);
         } catch (UniqueConstraintViolationException) {
-            // A concurrent append took the same slot; re-read the column, which now includes it. See ADR-0009.
+            // Writers hold the project lock, so a slot collision is a safety net: re-read the column and retry. See ADR-0009.
             $moved = $this->place($placement, $section, $target);
         }
 

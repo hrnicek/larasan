@@ -15,6 +15,7 @@ use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
 /**
@@ -176,4 +177,33 @@ it('refuses a task the actor cannot reach, exactly as it refuses one from anothe
 
     expect($project->placements()->count())->toBe(0)
         ->and($hidden->placements()->count())->toBe(1);
+});
+
+it('locks the project row before it reads the end of the bucket or writes the card', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    attach(Task::factory()->in($workspace)->create(), $project, $actor);
+    $task = Task::factory()->in($workspace)->create();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    attach($task, $project, $actor);
+
+    DB::disableQueryLog();
+
+    $statements = collect(DB::getQueryLog())->pluck('query');
+
+    $projectLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+        && str_ends_with($sql, 'for no key update'));
+
+    $tailRead = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "task_project_memberships"')
+        && str_contains($sql, '"section_id" is null'));
+
+    $insert = $statements->search(fn (string $sql): bool => str_starts_with($sql, 'insert into "task_project_memberships"'));
+
+    expect($projectLock)->toBeInt()
+        ->and($tailRead)->toBeInt()
+        ->and($insert)->toBeInt()
+        ->and($projectLock)->toBeLessThan($tailRead)
+        ->and($tailRead)->toBeLessThan($insert);
 });

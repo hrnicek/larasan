@@ -42,8 +42,18 @@ class StoreAttachmentRequest extends FormRequest
                 'max:'.config('attachments.max_kilobytes'),
                 'mimetypes:'.implode(',', (array) config('attachments.mime_types')),
                 function (string $attribute, mixed $upload, Closure $fail): void {
-                    if ($upload instanceof UploadedFile
-                        && mb_strlen($upload->getClientOriginalExtension()) > AttachFile::MAX_EXTENSION_LENGTH) {
+                    if (! $upload instanceof UploadedFile) {
+                        return;
+                    }
+
+                    // The name itself is left out of this message: it is the part that is too long to show.
+                    if (mb_strlen($upload->getClientOriginalName()) > AttachFile::MAX_NAME_LENGTH) {
+                        $fail(__('A file name is longer than :length characters.', ['length' => AttachFile::MAX_NAME_LENGTH]));
+
+                        return;
+                    }
+
+                    if (mb_strlen($upload->getClientOriginalExtension()) > AttachFile::MAX_EXTENSION_LENGTH) {
                         $fail(__(':attribute has an extension longer than :length characters.', [
                             'length' => AttachFile::MAX_EXTENSION_LENGTH,
                         ]));

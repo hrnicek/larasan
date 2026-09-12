@@ -102,3 +102,26 @@ it('refuses a file whose extension is too long to be one', function (): void {
         ->assertJsonValidationErrorFor('files.0')
         ->assertJsonFragment(['files.0' => ["{$name} has an extension longer than 32 characters."]]);
 });
+
+it('refuses a file whose name is too long to keep', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $this->actingAs($actor)
+        ->postJson("attachment-probe/{$task->id}", [
+            'files' => [UploadedFile::fake()->create(str_repeat('ž', 256).'.pdf', 4, 'application/pdf')],
+        ])
+        ->assertJsonValidationErrorFor('files.0')
+        ->assertJsonFragment(['files.0' => ['A file name is longer than 255 characters.']]);
+});
+
+it('accepts a name exactly as long as it can keep', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $name = str_repeat('ž', 251).'.pdf';
+
+    $this->actingAs($actor)
+        ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create($name, 4, 'application/pdf')]])
+        ->assertOk()
+        ->assertJson(['names' => [$name]]);
+});

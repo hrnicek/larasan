@@ -207,3 +207,27 @@ it('assigns a guest who was given the project the task is created in, and says s
     Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event): bool => $event->taskId === $placement->task_id
         && $event->assigneeId === $guest->id);
 });
+
+it('locks the project row before it locks or writes any card, when it files the new card in a column', function (): void {
+    [, $project, $actor] = placeableProject();
+    $section = Section::factory()->in($project)->create();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    addTask($project, $actor, 'Filed straight away', $section);
+
+    DB::disableQueryLog();
+
+    $statements = collect(DB::getQueryLog())->pluck('query');
+
+    $projectLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+        && str_ends_with($sql, 'for no key update'));
+
+    $firstCardLockOrWrite = $statements->search(fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
+        && (str_ends_with($sql, 'for update') || str_starts_with($sql, 'insert') || str_starts_with($sql, 'update')));
+
+    expect($projectLock)->toBeInt()
+        ->and($firstCardLockOrWrite)->toBeInt()
+        ->and($projectLock)->toBeLessThan($firstCardLockOrWrite);
+});

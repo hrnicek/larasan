@@ -19,6 +19,11 @@ final class FileException extends DomainException implements DomainRefusal
         return new self('You cannot attach a file to something you cannot reach.');
     }
 
+    public static function cannotAttachToSubject(): self
+    {
+        return new self('You can open this, but you do not have permission to attach files to it.');
+    }
+
     public static function couldNotStore(): self
     {
         return new self('That file could not be stored. Nothing was attached.');
