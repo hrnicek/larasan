@@ -11,11 +11,6 @@ use Laravel\Horizon\HorizonApplicationServiceProvider;
 
 class HorizonServiceProvider extends HorizonApplicationServiceProvider
 {
-    public function boot(): void
-    {
-        parent::boot();
-    }
-
     /** An operator allowlist, not a workspace capability: job payloads span every workspace. See ADR-0011. */
     protected function gate(): void
     {

@@ -5,20 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\Request;
+use Laravel\Fortify\Contracts\LoginViewResponse;
 
 class HomeController extends Controller
 {
-    public function __invoke(): Response|RedirectResponse
+    public function __invoke(Request $request): RedirectResponse|LoginViewResponse
     {
-        if (auth()->check()) {
-            return Inertia::render('Dashboard');
+        if ($request->user() !== null) {
+            return to_route('dashboard');
         }
 
-        return Inertia::render('auth/Login', [
-            'canResetPassword' => true,
-            'status' => session('status'),
-        ]);
+        return app(LoginViewResponse::class);
     }
 }

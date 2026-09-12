@@ -6,7 +6,7 @@ namespace App\Http\Controllers\Page;
 
 use App\Domain\Page\Actions\SavePageContent;
 use App\Domain\Page\Data\SavePageContentData;
-use App\Domain\Page\Exceptions\PageException;
+use App\Domain\Page\Exceptions\PageChangedElsewhere;
 use App\Domain\Page\Models\Page;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Page\SavePageContentRequest;
@@ -28,13 +28,9 @@ class PageContentController extends Controller
                 content: $content,
                 version: $request->integer('version'),
             ));
-        } catch (PageException $refusal) {
-            if ($refusal->getMessage() !== PageException::changedElsewhere()->getMessage()) {
-                throw $refusal;
-            }
-
+        } catch (PageChangedElsewhere $conflict) {
             return response()->json([
-                'message' => $refusal->getMessage(),
+                'message' => $conflict->getMessage(),
                 'version' => $page->fresh()?->version,
             ], Response::HTTP_CONFLICT);
         }

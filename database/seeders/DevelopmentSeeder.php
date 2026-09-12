@@ -39,11 +39,11 @@ class DevelopmentSeeder extends Seeder
 
     public function run(): void
     {
-        $owner = $this->user('hrncir@example.com', 'Jakub Hrnčíř');
-        $colleague = $this->user('kolega@example.com', 'Kolega');
-        $guest = $this->user('klient@example.com', 'Klient');
+        $owner = $this->user('owner@example.com', 'Alex Owner');
+        $colleague = $this->user('member@example.com', 'Sam Member');
+        $guest = $this->user('guest@example.com', 'Casey Guest');
 
-        $workspace = $this->workspace($owner, 'Zondy');
+        $workspace = $this->workspace($owner, 'Acme');
         $side = $this->workspace($owner, 'Side Project');
 
         $this->invite($workspace, $owner, $colleague, WorkspaceRole::Member);
@@ -59,7 +59,7 @@ class DevelopmentSeeder extends Seeder
         $this->cards($website, $owner);
         $this->readOnlyAccess($website, $reader);
 
-        $this->command->info('Log in as hrncir@example.com with the password "'.self::PASSWORD.'".');
+        $this->command->info('Log in as owner@example.com with the password "'.self::PASSWORD.'".');
     }
 
     private function user(string $email, string $name): User

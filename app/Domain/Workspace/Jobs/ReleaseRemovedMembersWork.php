@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Domain\Workspace\Jobs;
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
-use App\Domain\Task\Actions\AssignTask;
-use App\Domain\Task\Actions\RemoveTaskCollaborator;
+use App\Domain\Task\Events\TaskAssigned;
+use App\Domain\Task\Events\TaskCollaboratorRemoved;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -35,35 +36,28 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
         return 'default';
     }
 
-    public function handle(AssignTask $assign, RemoveTaskCollaborator $removeCollaborator): void
+    public function handle(Dispatcher $events): void
     {
         $workspace = Workspace::query()->find($this->workspaceId);
-        $actor = User::query()->find($this->actorId);
 
-        if (! $workspace instanceof Workspace || ! $actor instanceof User) {
+        if (! $workspace instanceof Workspace || $this->wasReadmitted($workspace)) {
             return;
         }
 
-        if ($workspace->membershipFor($actor)?->status->grantsAccess() !== true) {
-            return;
-        }
-
-        $stillRemoved = $workspace->memberships()
-            ->where('user_id', $this->removedUserId)
-            ->where('status', WorkspaceMembershipStatus::Active->value)
-            ->doesntExist();
-
-        if (! $stillRemoved) {
+        // The removal was authorized when it happened, so the remover's current access is not re-checked;
+        // the account must still exist because activities.actor_id references it.
+        if (User::query()->whereKey($this->actorId)->doesntExist()) {
             return;
         }
 
         Task::query()
             ->where('workspace_id', $workspace->id)
             ->where('assignee_id', $this->removedUserId)
-            ->with('workspace')
-            ->chunkById(self::CHUNK, function (Collection $tasks) use ($assign, $actor): void {
+            ->chunkById(self::CHUNK, function (Collection $tasks) use ($events): void {
                 foreach ($tasks as $task) {
-                    $assign->handle($task, $actor, null);
+                    $task->forceFill(['assignee_id' => null])->save();
+
+                    $events->dispatch(new TaskAssigned($task->id, $task->workspace_id, null, $this->actorId));
                 }
             });
 
@@ -71,11 +65,20 @@ final class ReleaseRemovedMembersWork implements ShouldQueue
             ->where('workspace_id', $workspace->id)
             ->whereHas('collaborations', fn (Builder $collaborations): Builder => $collaborations
                 ->where('user_id', $this->removedUserId))
-            ->with('workspace')
-            ->chunkById(self::CHUNK, function (Collection $tasks) use ($removeCollaborator, $actor): void {
+            ->chunkById(self::CHUNK, function (Collection $tasks) use ($events): void {
                 foreach ($tasks as $task) {
-                    $removeCollaborator->handle($task, $actor, $this->removedUserId);
+                    $task->collaborations()->where('user_id', $this->removedUserId)->first()?->delete();
+
+                    $events->dispatch(new TaskCollaboratorRemoved($task->id, $task->workspace_id, $this->removedUserId, $this->actorId));
                 }
             });
+    }
+
+    private function wasReadmitted(Workspace $workspace): bool
+    {
+        return $workspace->memberships()
+            ->where('user_id', $this->removedUserId)
+            ->where('status', WorkspaceMembershipStatus::Active->value)
+            ->exists();
     }
 }

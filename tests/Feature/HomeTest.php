@@ -11,17 +11,26 @@ test('unauthenticated user sees login page', function (): void {
         ->assertInertia(
             fn (AssertableInertia $page): AssertableInertia => $page
                 ->component('auth/Login')
+                ->where('canResetPassword', true)
         );
 });
 
-test('authenticated user sees dashboard', function (): void {
+test('authenticated user is sent to the dashboard', function (): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->get('/')
-        ->assertStatus(200)
+        ->assertRedirect(route('dashboard'));
+});
+
+test('unverified user is asked to verify before seeing the dashboard', function (): void {
+    $user = User::factory()->unverified()->create();
+
+    $this->actingAs($user)
+        ->followingRedirects()
+        ->get('/')
         ->assertInertia(
             fn (AssertableInertia $page): AssertableInertia => $page
-                ->component('Dashboard')
+                ->component('auth/VerifyEmail')
         );
 });

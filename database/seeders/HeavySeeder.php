@@ -40,7 +40,7 @@ class HeavySeeder extends Seeder
 {
     private const PASSWORD = 'password';
 
-    private const PRIMARY_EMAIL = 'hrncir@example.com';
+    private const PRIMARY_EMAIL = 'owner@example.com';
 
     private const WORKSPACE_NAME = 'Northwind';
 
@@ -104,7 +104,7 @@ class HeavySeeder extends Seeder
     {
         $people = [[
             'id' => $this->primary()->id,
-            'name' => 'Jakub Hrnčíř',
+            'name' => 'Alex Owner',
             'role' => WorkspaceRole::Owner,
             'status' => WorkspaceMembershipStatus::Active,
             'joined' => $opened,
@@ -169,7 +169,7 @@ class HeavySeeder extends Seeder
         }
 
         $user = new User;
-        $user->name = 'Jakub Hrnčíř';
+        $user->name = 'Alex Owner';
         $user->email = self::PRIMARY_EMAIL;
         $user->password = bcrypt(self::PASSWORD);
         $user->save();

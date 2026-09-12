@@ -36,7 +36,7 @@ it('writes one line for an assignment however many times the listener runs', fun
     $workspace = Workspace::factory()->create();
     $assigner = memberOf($workspace, WorkspaceRole::Member);
     $assignee = memberOf($workspace, WorkspaceRole::Member);
-    $task = Task::factory()->in($workspace)->create();
+    $task = Task::factory()->in($workspace)->create(['assignee_id' => $assignee->id]);
 
     $event = new TaskAssigned($task->id, $workspace->id, $assignee->id, $assigner->id);
 

@@ -26,14 +26,6 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
-     * @see https://inertiajs.com/asset-versioning
-     */
-    public function version(Request $request): ?string
-    {
-        return parent::version($request);
-    }
-
-    /**
      * Props that cost a query are closures, so a partial reload does not resolve them.
      *
      * @see https://inertiajs.com/shared-data
@@ -43,6 +35,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $workspace = ResolveCurrentWorkspace::from($request);
+        $membership = $workspace === null || $request->user() === null ? null : $workspace->membershipFor($request->user());
 
         return [
             ...parent::share($request),
@@ -53,14 +46,9 @@ class HandleInertiaRequests extends Middleware
                     ...PersonSummary::from($request->user()),
                     'email_verified_at' => $request->user()->email_verified_at?->toIso8601String(),
                 ],
-                'capabilities' => $workspace === null || $request->user() === null
-                    ? []
-                    : array_map(
-                        fn (Capability $capability): string => $capability->value,
-                        $workspace->membershipFor($request->user())?->status->grantsAccess() === true
-                            ? $workspace->membershipFor($request->user())->role->capabilities()
-                            : [],
-                    ),
+                'capabilities' => $membership !== null && $membership->status->grantsAccess()
+                    ? array_map(fn (Capability $capability): string => $capability->value, $membership->role->capabilities())
+                    : [],
             ],
             'workspace' => $workspace === null ? null : [
                 'id' => $workspace->id,

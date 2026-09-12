@@ -7,11 +7,13 @@ namespace App\Http\Requests\Project;
 use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Queries\ProjectBoardQuery;
 use App\Domain\Shared\Enums\ProjectFileSort;
 use App\Domain\Shared\Enums\ProjectView;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ShowProjectRequest extends FormRequest
@@ -89,11 +91,6 @@ class ShowProjectRequest extends FormRequest
             : CarbonImmutable::parse($month.'-01')->startOfMonth();
     }
 
-    public function openTask(): ?string
-    {
-        return $this->string('task')->value() ?: null;
-    }
-
     /**
      * @param  Collection<int, CustomField>  $available
      */
@@ -153,7 +150,7 @@ class ShowProjectRequest extends FormRequest
     public function expandedDays(): array
     {
         return array_values(array_filter(
-            $this->expandedColumns(),
+            $this->expanded(),
             fn (string $day): bool => preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) === 1,
         ));
     }
@@ -162,6 +159,17 @@ class ShowProjectRequest extends FormRequest
      * @return list<string>
      */
     public function expandedColumns(): array
+    {
+        return array_values(array_filter(
+            $this->expanded(),
+            fn (string $column): bool => $column === ProjectBoardQuery::UNGROUPED || Str::isUuid($column),
+        ));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function expanded(): array
     {
         /** @var array<int, mixed> $expanded */
         $expanded = $this->input('expand', []);

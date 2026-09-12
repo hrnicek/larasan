@@ -8,7 +8,6 @@ use App\Domain\Page\Models\Page;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\Capability;
 use App\Models\User;
-use App\Models\User as Actor;
 use Illuminate\Database\Eloquent\Collection;
 
 final readonly class ProjectPagesQuery
@@ -58,7 +57,7 @@ final readonly class ProjectPagesQuery
             ->all());
     }
 
-    private function allows(Project $project, Actor $actor, Capability $capability): bool
+    private function allows(Project $project, User $actor, Capability $capability): bool
     {
         return $project->allowsChangesBy($actor, $capability);
     }

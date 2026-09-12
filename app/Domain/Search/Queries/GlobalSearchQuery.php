@@ -69,15 +69,13 @@ final readonly class GlobalSearchQuery
      */
     private function fromEngine(SearchKind $kind, Workspace $workspace, User $actor, string $term, int $limit): array
     {
-        $results = match ($kind) {
+        return match ($kind) {
             SearchKind::Tasks => ($this->tasks)($workspace, $actor, $term, $limit),
             SearchKind::Projects => ($this->projects)($workspace, $actor, $term, $limit),
             SearchKind::People => ($this->people)($workspace, $actor, $term, $limit),
             SearchKind::Messages => ($this->messages)($workspace, $actor, $term, $limit),
             SearchKind::Pages => ($this->pages)($workspace, $actor, $term, $limit),
         };
-
-        return $results;
     }
 
     /**

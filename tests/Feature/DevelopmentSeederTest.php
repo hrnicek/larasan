@@ -17,13 +17,13 @@ beforeEach(function (): void {
 it('creates an account that can log in and see something', function (): void {
     $this->seed(DevelopmentSeeder::class);
 
-    $user = User::query()->where('email', 'hrncir@example.com')->firstOrFail();
+    $user = User::query()->where('email', 'owner@example.com')->firstOrFail();
 
     expect($user->hasVerifiedEmail())->toBeTrue()
-        ->and($user->workspaces()->pluck('name')->all())->toBe(['Zondy', 'Side Project'])
+        ->and($user->workspaces()->pluck('name')->all())->toBe(['Acme', 'Side Project'])
         ->and($user->projects()->count())->toBe(3);
 
-    $this->post(route('login'), ['email' => 'hrncir@example.com', 'password' => 'password'])
+    $this->post(route('login'), ['email' => 'owner@example.com', 'password' => 'password'])
         ->assertRedirect();
 
     $this->assertAuthenticatedAs($user);
@@ -32,8 +32,8 @@ it('creates an account that can log in and see something', function (): void {
 it('produces the shapes the application produces, not shapes only a factory can make', function (): void {
     $this->seed(DevelopmentSeeder::class);
 
-    $user = User::query()->where('email', 'hrncir@example.com')->firstOrFail();
-    $workspace = $user->workspaces()->where('workspaces.name', 'Zondy')->firstOrFail();
+    $user = User::query()->where('email', 'owner@example.com')->firstOrFail();
+    $workspace = $user->workspaces()->where('workspaces.name', 'Acme')->firstOrFail();
 
     expect($workspace->membershipFor($user)?->role)->toBe(WorkspaceRole::Owner)
         ->and($workspace->owner_id)->toBe($user->id);
@@ -42,6 +42,12 @@ it('produces the shapes the application produces, not shapes only a factory can 
 
     expect($project->memberFor($user)?->access_level->canManageProject())->toBeTrue()
         ->and($project->isManageableBy($user))->toBeTrue();
+});
+
+it('seeds addresses only on a reserved domain, since invitations send mail', function (): void {
+    $this->seed(DevelopmentSeeder::class);
+
+    expect(User::query()->pluck('email')->all())->each->toEndWith('@example.com');
 });
 
 it('changes nothing when it runs twice', function (): void {

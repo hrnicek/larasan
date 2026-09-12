@@ -26,12 +26,4 @@ class TaskFollowerFactory extends Factory
             'user_id' => User::factory(),
         ];
     }
-
-    public function watching(Task $task, User $user): self
-    {
-        return $this->state(fn (): array => [
-            'task_id' => $task->id,
-            'user_id' => $user->id,
-        ]);
-    }
 }

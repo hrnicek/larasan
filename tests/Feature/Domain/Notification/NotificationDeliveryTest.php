@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 use App\Domain\Comment\Actions\CreateComment;
 use App\Domain\Comment\Data\CreateCommentData;
+use App\Domain\Notification\Listeners\NotifyAssignee;
 use App\Domain\Notification\Notifications\CommentPostedNotification;
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\FollowTask;
+use App\Domain\Task\Events\TaskAssigned;
 use App\Domain\Task\Models\Task;
+use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +67,29 @@ it('says nothing when a task is taken back from somebody', function (): void {
     app(AssignTask::class)->handle($task, $actor, null);
 
     expect(inboxOf($assignee))->toHaveCount(1);
+});
+
+it('says nothing when the task was given to somebody else before the notice went out', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    $assignee = memberOf($workspace);
+    $task = Task::factory()->in($workspace)->create(['assignee_id' => $actor->id]);
+
+    app(NotifyAssignee::class)->handle(new TaskAssigned($task->id, $workspace->id, $assignee->id, $actor->id));
+
+    expect(inboxOf($assignee))->toBeEmpty();
+});
+
+it('says nothing when the task was deleted before the notice went out', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    $assignee = memberOf($workspace);
+    $task = Task::factory()->in($workspace)->create(['assignee_id' => $assignee->id]);
+    $task->delete();
+
+    app(NotifyAssignee::class)->handle(new TaskAssigned($task->id, $workspace->id, $assignee->id, $actor->id));
+
+    expect(inboxOf($assignee))->toBeEmpty();
 });
 
 it('tells the people watching a task that somebody commented', function (): void {

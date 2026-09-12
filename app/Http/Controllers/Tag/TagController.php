@@ -80,7 +80,7 @@ class TagController extends Controller
 
     public function destroy(Request $request, Tag $tag, DeleteTag $deleteTag): RedirectResponse
     {
-        Gate::authorize('tag.manage', $tag->workspace);
+        Gate::authorize(Capability::TagManage->value, $tag->workspace);
 
         $deleteTag->handle($tag, $this->actor($request));
 

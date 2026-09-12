@@ -8,6 +8,7 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
 use Database\Seeders\HeavySeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,15 @@ it('fills a workspace with a year of work', function (): void {
     $oldest = Task::query()->withTrashed()->orderBy('created_at')->firstOrFail();
 
     expect($oldest->created_at?->lessThan(now()->subMonths(9)))->toBeTrue();
+});
+
+it('seeds addresses only on reserved domains, owned by the development account', function (): void {
+    seedHeavily();
+
+    $workspace = Workspace::query()->where('name', 'Northwind')->firstOrFail();
+
+    expect($workspace->owner()->value('email'))->toBe('owner@example.com')
+        ->and(User::query()->pluck('email')->all())->each->toMatch('/@(example\.com|northwind\.test)$/');
 });
 
 it('gives every project the owner membership its owner column claims', function (): void {

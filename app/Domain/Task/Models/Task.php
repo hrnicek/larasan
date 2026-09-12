@@ -50,6 +50,16 @@ class Task extends Model implements Attachable, Commentable
     /** @use HasFactory<TaskFactory> */
     use HasFactory, HasUuids, Searchable, SoftDeletes;
 
+    // Completion, workspace and creator columns are set by Actions and must never be mass assigned.
+    protected $fillable = [
+        'parent_id',
+        'title',
+        'description',
+        'priority',
+        'due_at',
+        'assignee_id',
+    ];
+
     /**
      * @return array<string, mixed>
      */
@@ -66,16 +76,6 @@ class Task extends Model implements Attachable, Commentable
             'created_at' => (int) $this->created_at?->getTimestamp(),
         ];
     }
-
-    // Completion, workspace and creator columns are set by Actions and must never be mass assigned.
-    protected $fillable = [
-        'parent_id',
-        'title',
-        'description',
-        'priority',
-        'due_at',
-        'assignee_id',
-    ];
 
     public function isCompleted(): bool
     {
@@ -180,7 +180,7 @@ class Task extends Model implements Attachable, Commentable
     {
         return $this->belongsToMany(User::class, 'task_followers')
             ->withPivot('id')
-            ->orderBy('name');
+            ->orderBy('users.name');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -209,12 +209,6 @@ class Task extends Model implements Attachable, Commentable
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-
-    /** @return BelongsTo<User, $this> */
-    public function completer(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'completed_by');
     }
 
     /**

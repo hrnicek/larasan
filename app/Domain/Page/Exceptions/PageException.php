@@ -7,7 +7,7 @@ namespace App\Domain\Page\Exceptions;
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-final class PageException extends DomainException implements DomainRefusal
+class PageException extends DomainException implements DomainRefusal
 {
     public static function cannotWritePages(): self
     {
@@ -29,9 +29,9 @@ final class PageException extends DomainException implements DomainRefusal
         return new self('That document is larger than a page can hold.');
     }
 
-    public static function changedElsewhere(): self
+    public static function changedElsewhere(): PageChangedElsewhere
     {
-        return new self('This page was changed somewhere else while you were writing.');
+        return new PageChangedElsewhere('This page was changed somewhere else while you were writing.');
     }
 
     public static function parentBelongsToAnotherProject(): self

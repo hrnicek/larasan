@@ -32,7 +32,7 @@ final readonly class ProjectBoardQuery
      * @return array{
      *     columns: list<array{id: string|null, name: string|null, color: string|null, count: int, hasMore: bool, tasks: list<array<string, mixed>>}>,
      *     perColumn: int,
-     *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
+     *     can: array{createTask: bool, updateTask: bool, deleteTask: bool, createSection: bool, updateSection: bool, deleteSection: bool},
      * }
      */
     public function __invoke(Project $project, User $actor, array $expanded = [], array $tags = []): array

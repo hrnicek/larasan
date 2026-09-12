@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Page\Actions\SavePageContent;
 use App\Domain\Page\Data\SavePageContentData;
 use App\Domain\Page\Events\PageUpdated;
+use App\Domain\Page\Exceptions\PageChangedElsewhere;
 use App\Domain\Page\Exceptions\PageException;
 use App\Domain\Page\Models\Page;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
@@ -57,6 +58,16 @@ it('refuses a save that was written against an older version', function (): void
 
     expect($page->fresh()?->version)->toBe(4)
         ->and($page->fresh()?->content)->toEqual($page->content);
+});
+
+it('refuses a stale save with an exception of its own', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $page = Page::factory()->in($project)->create(['version' => 4]);
+
+    expect(fn (): Page => app(SavePageContent::class)->handle($page, $actor, new SavePageContentData(
+        content: doc([]),
+        version: 3,
+    )))->toThrow(PageChangedElsewhere::class);
 });
 
 it('refuses a save that claims a version from the future', function (): void {

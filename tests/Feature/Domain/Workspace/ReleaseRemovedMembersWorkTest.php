@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Shared\Enums\WorkspaceRole;
-use App\Domain\Task\Actions\AssignTask;
-use App\Domain\Task\Actions\RemoveTaskCollaborator;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Models\TaskCollaborator;
 use App\Domain\Workspace\Actions\RemoveWorkspaceMember;
@@ -13,6 +11,7 @@ use App\Domain\Workspace\Jobs\ReleaseRemovedMembersWork;
 use App\Domain\Workspace\Models\Workspace;
 use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -78,7 +77,7 @@ it('unassigns everything they held when the job runs', function (): void {
         'workspaceId' => $workspace->id,
         'removedUserId' => $leaving->id,
         'actorId' => $owner->id,
-    ])->handle(app(AssignTask::class), app(RemoveTaskCollaborator::class));
+    ])->handle(app(Dispatcher::class));
 
     expect(Task::query()->where('workspace_id', $workspace->id)->whereNotNull('assignee_id')->count())->toBe(0);
 });
@@ -94,7 +93,7 @@ it('leaves their work alone if they were invited back before the job ran', funct
         'workspaceId' => $workspace->id,
         'removedUserId' => $leaving->id,
         'actorId' => $owner->id,
-    ])->handle(app(AssignTask::class), app(RemoveTaskCollaborator::class));
+    ])->handle(app(Dispatcher::class));
 
     expect(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(3);
 })->with([
@@ -112,7 +111,7 @@ it('leaves somebody elses work alone', function (): void {
         'workspaceId' => $workspace->id,
         'removedUserId' => $leaving->id,
         'actorId' => $owner->id,
-    ])->handle(app(AssignTask::class), app(RemoveTaskCollaborator::class));
+    ])->handle(app(Dispatcher::class));
 
     expect($theirs->refresh()->assignee_id)->toBe($staying->id);
 });
@@ -130,8 +129,33 @@ it('takes them off the tasks they were collaborating on, and nobody else', funct
         'workspaceId' => $workspace->id,
         'removedUserId' => $leaving->id,
         'actorId' => $owner->id,
-    ])->handle(app(AssignTask::class), app(RemoveTaskCollaborator::class));
+    ])->handle(app(Dispatcher::class));
 
     expect($shared->collaborators()->pluck('users.id')->all())->toBe([$staying->id])
         ->and(DB::table('activities')->where('type', 'task.collaborator_removed')->count())->toBe(1);
+});
+
+it('still releases their work after the person who removed them has lost access', function (): void {
+    [$workspace, $owner, $leaving, $membership] = memberHolding(2);
+    $admin = memberOf($workspace, WorkspaceRole::Admin);
+    $shared = Task::factory()->in($workspace)->create();
+    TaskCollaborator::factory()->on($shared, $leaving)->create();
+
+    app(RemoveWorkspaceMember::class)->handle($workspace, $admin, $membership);
+    app(RemoveWorkspaceMember::class)->handle(
+        $workspace,
+        $owner,
+        $workspace->memberships()->where('user_id', $admin->id)->firstOrFail(),
+    );
+
+    app(ReleaseRemovedMembersWork::class, [
+        'workspaceId' => $workspace->id,
+        'removedUserId' => $leaving->id,
+        'actorId' => $admin->id,
+    ])->handle(app(Dispatcher::class));
+
+    expect(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(0)
+        ->and($shared->collaborations()->count())->toBe(0)
+        ->and(DB::table('activities')->whereIn('type', ['task.assigned', 'task.collaborator_removed'])->pluck('actor_id')->unique()->values()->all())
+        ->toBe([$admin->id]);
 });

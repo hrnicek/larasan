@@ -6,6 +6,7 @@ namespace App\Domain\Notification\Listeners;
 
 use App\Domain\Notification\Notifications\TaskAssignedNotification;
 use App\Domain\Task\Events\TaskAssigned;
+use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
@@ -22,9 +23,16 @@ final readonly class NotifyAssignee implements ShouldQueue
             return;
         }
 
-        $assignee = User::query()->find($event->assigneeId);
+        $stillAssigned = Task::query()
+            ->whereKey($event->taskId)
+            ->where('assignee_id', $event->assigneeId)
+            ->exists();
 
-        $assignee?->notify(new TaskAssignedNotification(
+        if (! $stillAssigned) {
+            return;
+        }
+
+        User::query()->find($event->assigneeId)?->notify(new TaskAssignedNotification(
             $event->taskId,
             $event->workspaceId,
             $event->assignedById,

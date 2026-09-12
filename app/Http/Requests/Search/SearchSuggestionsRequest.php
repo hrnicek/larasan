@@ -15,13 +15,6 @@ class SearchSuggestionsRequest extends FormRequest
         return true;
     }
 
-    protected function prepareForValidation(): void
-    {
-        if ($this->input('kind') === '') {
-            $this->merge(['kind' => null]);
-        }
-    }
-
     /**
      * @return array<string, list<mixed>>
      */
