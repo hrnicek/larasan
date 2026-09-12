@@ -57,10 +57,11 @@ final readonly class SearchTasksQuery
         $results = $this->paginate($workspace, $actor, $query, $matches, $filters, $page, $perPage);
 
         $mayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
+        $people = PersonSummary::for($workspace, $actor);
 
         return [
             'tasks' => array_values($results->getCollection()
-                ->map(fn (Task $task): array => $this->row($task, $mayUpdate && $this->onAChangeableBoard($task)))
+                ->map(fn (Task $task): array => $this->row($task, $mayUpdate && $this->onAChangeableBoard($task), $people))
                 ->all()),
             'meta' => [
                 'term' => $term,
@@ -234,7 +235,7 @@ final readonly class SearchTasksQuery
     /**
      * @return array<string, mixed>
      */
-    private function row(Task $task, bool $canUpdate): array
+    private function row(Task $task, bool $canUpdate, PersonSummary $people): array
     {
         $assignee = $task->assignee;
 
@@ -246,7 +247,7 @@ final readonly class SearchTasksQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
-            'assignee' => PersonSummary::fromNullable($assignee),
+            'assignee' => $people->ofNullable($assignee),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,

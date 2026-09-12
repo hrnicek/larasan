@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Shared\Payloads;
 
 use App\Domain\Account\Support\AvatarPresets;
+use App\Domain\Workspace\Models\Workspace;
+use App\Domain\Workspace\Models\WorkspaceMembership;
 use App\Models\User;
 
 /**
@@ -15,7 +17,41 @@ final readonly class PersonSummary
 {
     private const array AVATAR_COLUMNS = ['avatar_preset', 'avatar_path'];
 
+    private function __construct(public bool $revealsAddresses) {}
+
     /**
+     * Guests see colleagues' faces but never their addresses. See ADR-0006.
+     */
+    public static function for(Workspace $workspace, User $viewer): self
+    {
+        $membership = $workspace->membershipFor($viewer);
+
+        return new self(
+            $membership instanceof WorkspaceMembership
+            && $membership->status->grantsAccess()
+            && ! $membership->role->isGuest(),
+        );
+    }
+
+    /**
+     * @return array{id: int, name: string, email?: string, avatar: string|null}
+     */
+    public function of(User $person): array
+    {
+        return $this->revealsAddresses ? self::from($person) : self::face($person);
+    }
+
+    /**
+     * @return array{id: int, name: string, email?: string, avatar: string|null}|null
+     */
+    public function ofNullable(?User $person): ?array
+    {
+        return $person instanceof User ? $this->of($person) : null;
+    }
+
+    /**
+     * Includes the address; payloads a guest can receive go through for() instead.
+     *
      * @return array{id: int, name: string, email: string, avatar: string|null}
      */
     public static function from(User $person): array

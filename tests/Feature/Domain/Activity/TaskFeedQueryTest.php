@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Domain\Activity\Models\Activity;
 use App\Domain\Activity\Queries\TaskFeedQuery;
 use App\Domain\Comment\Models\Comment;
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ActivityType;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
@@ -216,4 +218,18 @@ it('draws each line with its author\'s face, not only their initials', function 
         'email' => $author->email,
         'avatar' => asset('img/avatars/6.svg'),
     ]);
+});
+
+it('offers no edit to an author who may no longer comment on the task', function (): void {
+    $workspace = Workspace::factory()->create();
+    $project = Project::factory()->in($workspace)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+    $author = viewerOf($project);
+    $comment = Comment::factory()->on($task)->by($author)->create();
+
+    $entry = feedOf($task, $author)['entries'][0];
+
+    expect($entry['canEdit'])->toBeFalse()
+        ->and(Gate::forUser($author)->allows('update', $comment))->toBeFalse();
 });

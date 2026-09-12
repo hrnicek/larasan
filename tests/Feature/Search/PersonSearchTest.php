@@ -9,7 +9,11 @@ use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
+use Laravel\Scout\Builder as ScoutBuilder;
+use Laravel\Scout\EngineManager;
+use Laravel\Scout\Engines\MeilisearchEngine;
 use Laravel\Scout\Jobs\MakeSearchable;
+use Meilisearch\Client as MeilisearchClient;
 
 /**
  * The collection engine matches substrings, so Faker names and emails could collide with the search term.
@@ -147,3 +151,47 @@ it('finds a colleague with their face, not only their initials', function (): vo
     expect($results)->toHaveCount(1)
         ->and($results[0]['avatar'])->toBe(asset('img/avatars/11.svg'));
 });
+
+it('does not let a guest find a colleague by their address', function (): void {
+    $workspace = Workspace::factory()->create();
+    $guest = memberOf($workspace, WorkspaceRole::Guest, user: User::factory()->create(['name' => 'Guest Zero', 'email' => 'guest@pinned.test']));
+    memberOf($workspace, user: User::factory()->create(['name' => 'Jana Nováková', 'email' => 'secret-alias@pinned.test']));
+
+    expect(personResults($workspace, $guest, 'secret-alias'))->toBe([])
+        ->and(array_column(personResults($workspace, $guest, 'Jana'), 'name'))->toBe(['Jana Nováková']);
+});
+
+it('asks Meilisearch to match a guest s search on names only and keeps its typo tolerance', function (WorkspaceRole $role, ?array $attributes): void {
+    $workspace = Workspace::factory()->create();
+    $reader = memberOf($workspace, $role);
+    $colleague = pinnedMemberOf($workspace, 'Jana Nováková');
+
+    $engine = new class(new MeilisearchClient('http://127.0.0.1:9'), $colleague->id) extends MeilisearchEngine
+    {
+        /** @var array<string, mixed> */
+        public array $options = [];
+
+        public function __construct(MeilisearchClient $client, private int $hit)
+        {
+            parent::__construct($client);
+        }
+
+        public function search(ScoutBuilder $builder): mixed
+        {
+            $this->options = $builder->options;
+
+            return ['hits' => [['id' => (string) $this->hit]], 'totalHits' => 1];
+        }
+    };
+
+    app(EngineManager::class)->extend('recording', fn (): MeilisearchEngine => $engine);
+    config(['scout.driver' => 'recording']);
+
+    $results = personResults($workspace, $reader, 'Jna');
+
+    expect($engine->options['attributesToSearchOn'] ?? null)->toBe($attributes)
+        ->and(array_column($results, 'id'))->toBe([$colleague->id]);
+})->with([
+    'a guest' => [WorkspaceRole::Guest, ['name']],
+    'a member' => [WorkspaceRole::Member, null],
+]);

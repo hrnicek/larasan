@@ -37,7 +37,7 @@ const suggestions = computed<TaskAssignee[]>(() => {
                 needle === '' ||
                 name.startsWith(needle) ||
                 name.includes(` ${needle}`) ||
-                foldForSearch(person.email).startsWith(needle)
+                foldForSearch(person.email ?? '').startsWith(needle)
             );
         })
         .slice(0, SUGGESTIONS);
@@ -209,6 +209,7 @@ const onKeyup = (event: KeyboardEvent): void => {
                 />
                 <span class="min-w-0 flex-1 truncate">{{ person.name }}</span>
                 <span
+                    v-if="person.email"
                     class="max-w-[45%] truncate text-xs text-muted-foreground"
                     >{{ person.email }}</span
                 >

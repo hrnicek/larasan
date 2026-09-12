@@ -46,10 +46,11 @@ final readonly class ProjectFilesQuery
 
         $tasks = $this->tasks($rows);
         $moderates = $project->workspace->membershipFor($actor)?->allows(Capability::FileDelete) === true;
+        $people = PersonSummary::for($project->workspace, $actor);
 
         return [
             'files' => array_values($rows
-                ->map(fn (Attachment $attachment): array => $this->row($attachment, $tasks, $actor, $moderates))
+                ->map(fn (Attachment $attachment): array => $this->row($attachment, $tasks, $actor, $moderates, $people))
                 ->all()),
             'meta' => [
                 'page' => $attachments->currentPage(),
@@ -112,7 +113,7 @@ final readonly class ProjectFilesQuery
      * @param  Collection<string, Task>  $tasks
      * @return array<string, mixed>
      */
-    private function row(Attachment $attachment, Collection $tasks, User $actor, bool $moderates): array
+    private function row(Attachment $attachment, Collection $tasks, User $actor, bool $moderates, PersonSummary $people): array
     {
         $file = $attachment->file;
         $uploader = $file->uploader;
@@ -124,7 +125,7 @@ final readonly class ProjectFilesQuery
             'size' => $file->size,
             'extension' => $file->extension,
             'kind' => FileKind::fromMime($file->mime_type, $file->extension)->value,
-            'uploader' => PersonSummary::fromNullable($uploader),
+            'uploader' => $people->ofNullable($uploader),
             'task' => $subject instanceof Task ? ['id' => $subject->id, 'title' => $subject->title] : null,
             'attachedAt' => $attachment->created_at?->toIso8601String(),
             // Mirrors AttachmentPolicy::delete() without a per-row policy call.

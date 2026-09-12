@@ -157,7 +157,7 @@ async function copyLink(): Promise<void> {
                         >
                             <option value="">Choose a person…</option>
                             <option v-for="person in share.candidates" :key="person.id" :value="person.id">
-                                {{ person.name }} — {{ person.email }}
+                                {{ person.email ? `${person.name} — ${person.email}` : person.name }}
                             </option>
                         </select>
                     </div>
@@ -206,7 +206,7 @@ async function copyLink(): Promise<void> {
                                 {{ member.name }}
                                 <span v-if="member.isYou" class="text-muted-foreground text-xs">(you)</span>
                             </p>
-                            <p class="text-muted-foreground truncate text-xs">{{ member.email }}</p>
+                            <p v-if="member.email" class="text-muted-foreground truncate text-xs">{{ member.email }}</p>
                         </div>
 
                         <span

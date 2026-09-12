@@ -3,7 +3,8 @@ export type SearchKind = 'tasks' | 'projects' | 'people' | 'messages' | 'pages';
 export type SearchPerson = {
     id: number;
     name: string;
-    email: string;
+    /** Absent for a guest reader. */
+    email?: string;
 };
 
 export type SearchTaskProject = {

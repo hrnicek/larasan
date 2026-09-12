@@ -56,6 +56,7 @@ final class ProjectListQuery
         $this->fields = $fields;
 
         $cards = $this->cards($project, $tags, $sort, $fieldFilters);
+        $people = PersonSummary::for($project->workspace, $actor);
 
         $sections = $project->sections()->get()
             ->map(fn (Section $section): array => $this->group(
@@ -63,13 +64,14 @@ final class ProjectListQuery
                 $section->name,
                 $section->color?->value,
                 $cards->get($section->id) ?? new Collection,
+                $people,
             ))
             ->all();
 
         $ungrouped = $cards->get('') ?? new Collection;
 
         if ($ungrouped->isNotEmpty()) {
-            $sections[] = $this->group(null, null, null, $ungrouped);
+            $sections[] = $this->group(null, null, null, $ungrouped, $people);
         }
 
         return [
@@ -161,14 +163,14 @@ final class ProjectListQuery
      * @param  Collection<int, TaskProjectMembership>  $cards
      * @return array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}
      */
-    private function group(?string $id, ?string $name, ?string $color, Collection $cards): array
+    private function group(?string $id, ?string $name, ?string $color, Collection $cards, PersonSummary $people): array
     {
         return [
             'id' => $id,
             'name' => $name,
             'color' => $color,
             'count' => $cards->count(),
-            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
+            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card, $people))->all()),
         ];
     }
 
@@ -245,7 +247,7 @@ final class ProjectListQuery
     /**
      * @return array<string, mixed>
      */
-    private function card(TaskProjectMembership $card): array
+    private function card(TaskProjectMembership $card, PersonSummary $people): array
     {
         /** @var Task $task */
         $task = $card->task;
@@ -267,7 +269,7 @@ final class ProjectListQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            'assignee' => PersonSummary::fromNullable($assignee),
+            'assignee' => $people->ofNullable($assignee),
         ];
     }
 }

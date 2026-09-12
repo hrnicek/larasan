@@ -46,7 +46,8 @@ export type ProjectPerson = {
 
 export type ProjectMember = ProjectPerson & {
     membershipId: string;
-    email: string;
+    /** Absent for a guest reader. */
+    email?: string;
     accessLevel: string;
     isYou: boolean;
     isLastOwner: boolean;
@@ -58,7 +59,7 @@ export type ProjectShare = {
     accessLevels: string[];
     link: string;
     members: ProjectMember[];
-    candidates: (ProjectPerson & { email: string })[];
+    candidates: (ProjectPerson & { email?: string })[];
 };
 
 export type ProjectCustomize = {
@@ -95,9 +96,6 @@ export type ProjectSettingsNavGroup = {
 export type ProjectAbilities = {
     update: boolean;
     archive: boolean;
-    delete: boolean;
-    manageMembers: boolean;
-    createSection: boolean;
     manageFields: boolean;
 };
 
@@ -116,7 +114,7 @@ export type ProjectFile = {
     uploader: {
         id: number;
         name: string;
-        email: string;
+        email?: string;
         avatar: string | null;
     } | null;
     task: { id: string; title: string } | null;

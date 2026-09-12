@@ -7,6 +7,7 @@ namespace App\Domain\Search\Queries;
 use App\Domain\Comment\Models\Comment;
 use App\Domain\Comment\Support\Mentions;
 use App\Domain\Shared\Html\RichText;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
@@ -37,6 +38,8 @@ final readonly class MessageResults
             return [];
         }
 
+        $people = PersonSummary::for($workspace, $actor);
+
         $results = Comment::search($term)
             ->where('workspace_id', $workspace->id)
             ->where('commentable_type', 'task')
@@ -45,12 +48,12 @@ final readonly class MessageResults
                 ->whereIn('commentable_id', $this->reachable
                     ->constrain(Task::query(), $workspace, $actor)
                     ->select('tasks.id'))
-                ->with(['author:id,name,email', 'commentable:id,title'])
+                ->with([PersonSummary::eager('author'), 'commentable:id,title'])
                 ->select(['id', 'workspace_id', 'commentable_id', 'commentable_type', 'author_id', 'body', 'created_at', 'edited_at']))
             ->take($limit * self::CANDIDATES_PER_RESULT)
             ->get()
             ->take($limit)
-            ->map(fn (Comment $comment): array => $this->row($comment));
+            ->map(fn (Comment $comment): array => $this->row($comment, $people));
 
         return array_values($results->all());
     }
@@ -58,9 +61,8 @@ final readonly class MessageResults
     /**
      * @return array<string, mixed>
      */
-    private function row(Comment $comment): array
+    private function row(Comment $comment, PersonSummary $people): array
     {
-        $author = $comment->author;
         $task = $comment->commentable;
 
         return [
@@ -68,11 +70,7 @@ final readonly class MessageResults
             'excerpt' => Str::limit(RichText::toPlainText(Mentions::toPlainText($comment->body)), self::EXCERPT),
             'createdAt' => $comment->created_at?->toIso8601String(),
             'edited' => $comment->isEdited(),
-            'author' => $author === null ? null : [
-                'id' => $author->id,
-                'name' => $author->name,
-                'email' => $author->email,
-            ],
+            'author' => $people->ofNullable($comment->author),
             'task' => $task instanceof Task ? ['id' => $task->id, 'title' => $task->title] : null,
         ];
     }

@@ -4,7 +4,8 @@ import type { ListColumn } from '@/modules/task/listColumns';
 export type TaskAssignee = {
     id: number;
     name: string;
-    email: string;
+    /** Absent for a guest reader. */
+    email?: string;
     avatar: string | null;
 };
 

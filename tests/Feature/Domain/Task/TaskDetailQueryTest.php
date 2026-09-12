@@ -8,6 +8,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Section\Models\Section;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
@@ -220,6 +221,31 @@ it('offers only the projects the actor may add the task to', function (): void {
     $offered = array_column(detailOf($task, $actor)['availableProjects'], 'name');
 
     expect($offered)->toBe(['Editable']);
+});
+
+it('decides which projects to offer without a query per project', function (): void {
+    $counts = [];
+
+    foreach ([2, 6] as $projects) {
+        [$workspace, $project, $actor] = placeableProject();
+        Project::factory()->count($projects)->in($workspace)->create();
+        $task = Task::factory()->in($workspace)->create();
+        TaskProjectMembership::factory()->placing($task, $project)->create();
+        $task = $task->fresh() ?? $task;
+
+        app(MembershipRegistry::class)->flush();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $offered = app(TaskDetailQuery::class)($task, $actor)['availableProjects'];
+
+        $counts[$projects] = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        expect($offered)->toHaveCount($projects);
+    }
+
+    expect($counts[6])->toBe($counts[2]);
 });
 
 it('lists what is attached, with the permissions the controls render from', function (): void {

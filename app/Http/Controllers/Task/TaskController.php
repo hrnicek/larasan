@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Task;
 
-use App\Concerns\RemembersWhatWasOpened;
-use App\Domain\Activity\Queries\TaskFeedQuery;
+use App\Concerns\OpensTaskPanel;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\Capability;
-use App\Domain\Shared\Enums\TaskPriority;
-use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\CompleteTask;
 use App\Domain\Task\Actions\CreateTask;
@@ -33,14 +30,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
-use Inertia\DeferProp;
 use Inertia\Inertia;
 use Inertia\Response;
 use InertiaUI\Modal\Modal;
 
 class TaskController extends Controller
 {
-    use RemembersWhatWasOpened;
+    use OpensTaskPanel;
 
     public function show(Request $request, Task $task, TaskDetailQuery $detail): Response
     {
@@ -48,22 +44,15 @@ class TaskController extends Controller
 
         $actor = $this->actor($request);
 
-        $this->rememberOpening($task->workspace, $actor, $task);
+        if ($this->resolvesProp($request, 'task')) {
+            $this->rememberOpening($task->workspace, $actor, $task);
+        }
 
         return Inertia::render('tasks/Show', [
             ...$detail($task, $actor),
-            'members' => $task->workspace->members()->orderBy('name')->get()
-                ->map(PersonSummary::from(...))
-                ->values()
-                ->all(),
-            'priorities' => array_column(TaskPriority::cases(), 'value'),
-            'activity' => $this->activity($task, $actor),
+            'activity' => $this->taskActivity($task, $actor),
+            ...$this->taskControlProps($task->workspace, $actor),
         ]);
-    }
-
-    private function activity(Task $task, User $actor): DeferProp
-    {
-        return Inertia::defer(fn (): array => app(TaskFeedQuery::class)($task, $actor));
     }
 
     public function create(Request $request, VisibleProjectsForUser $visibleProjects): Modal

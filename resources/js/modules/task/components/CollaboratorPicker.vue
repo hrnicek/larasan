@@ -61,7 +61,7 @@ const matches = computed<TaskAssignee[]>(() => {
     return props.members.filter(
         (member) =>
             flatten(member.name).includes(term) ||
-            flatten(member.email).includes(term),
+            flatten(member.email ?? '').includes(term),
     );
 });
 
@@ -252,6 +252,7 @@ function onEscape(event: KeyboardEvent): void {
                                     >{{ member.name }}</span
                                 >
                                 <span
+                                    v-if="member.email"
                                     class="block truncate text-xs text-muted-foreground"
                                     >{{ member.email }}</span
                                 >

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Search\Models\RecentItem;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 /*
  * Each read is recognised by SQL only it emits: the sidebar's `stars_exists`, the switcher's
  * `"workspaces"."slug"`, the badge's and paginated lists' `as "aggregate"`, the board's
- * `count(*) as total` and the panel's `"task_followers"`.
+ * `count(*) as total`, the panel's `"task_followers"` and the member list's
+ * `from "users" inner join "workspace_memberships"`.
  */
 
 /**
@@ -148,4 +150,45 @@ it('reads a list once however many of its keys a reload asks for', function (): 
         ->assertJsonPath('props.meta.page', 1));
 
     expect(substr_count($sql, 'as "aggregate"'))->toBe(1);
+});
+
+it('remembers a panel when it opens but not when the screen beneath it refreshes', function (): void {
+    [$actor, $project, $task] = boardToReload();
+    $url = route('projects.show', [$project, 'view' => 'board', 'task' => $task->id]);
+
+    $this->actingAs($actor)->get($url, partialReloadOf('projects/Show', 'board'))->assertOk();
+
+    expect(RecentItem::query()->where('user_id', $actor->id)->count())->toBe(0);
+
+    $this->actingAs($actor)->get($url, partialReloadOf('projects/Show', 'taskDetail', 'activity'))->assertOk();
+
+    expect(RecentItem::query()->where('user_id', $actor->id)->pluck('subject_id')->all())->toBe([$task->id]);
+});
+
+it('remembers a task page when it opens but not when its activity arrives', function (): void {
+    [$actor, , $task] = boardToReload();
+
+    $this->actingAs($actor)->get(route('tasks.show', $task), partialReloadOf('tasks/Show', 'activity'))->assertOk();
+
+    expect(RecentItem::query()->where('user_id', $actor->id)->count())->toBe(0);
+
+    $this->actingAs($actor)->get(route('tasks.show', $task))->assertOk();
+
+    expect(RecentItem::query()->where('user_id', $actor->id)->pluck('subject_id')->all())->toBe([$task->id]);
+});
+
+it('loads a task page s activity without reading its member list', function (): void {
+    [$actor, , $task] = boardToReload();
+
+    $full = sqlOf(fn () => $this->actingAs($actor)->get(route('tasks.show', $task))->assertOk());
+
+    $deferred = sqlOf(fn () => $this->actingAs($actor)
+        ->get(route('tasks.show', $task), partialReloadOf('tasks/Show', 'activity'))
+        ->assertOk()
+        ->assertJsonMissingPath('props.members'));
+
+    expect($full)
+        ->toContain('from "users" inner join "workspace_memberships"')
+        ->not->toContain('select "users".*')
+        ->and($deferred)->not->toContain('from "users" inner join "workspace_memberships"');
 });

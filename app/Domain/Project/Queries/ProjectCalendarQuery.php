@@ -53,6 +53,7 @@ final readonly class ProjectCalendarQuery
 
         $counts = $this->counts($project, $tags, $start, $end);
         $cards = $this->cards($project, $tags, $start, $end, $expanded);
+        $people = PersonSummary::for($project->workspace, $actor);
 
         $days = [];
 
@@ -66,7 +67,7 @@ final readonly class ProjectCalendarQuery
                 'inMonth' => $day->month === $first->month,
                 'count' => $count,
                 'hasMore' => $count > $held->count(),
-                'tasks' => array_values($held->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
+                'tasks' => array_values($held->map(fn (TaskProjectMembership $card): array => $this->card($card, $people))->all()),
             ];
         }
 
@@ -81,7 +82,7 @@ final readonly class ProjectCalendarQuery
             'undated' => [
                 'count' => $undatedCount,
                 'hasMore' => $undatedCount > $undated->count(),
-                'tasks' => array_values($undated->map(fn (TaskProjectMembership $card): array => $this->card($card))->all()),
+                'tasks' => array_values($undated->map(fn (TaskProjectMembership $card): array => $this->card($card, $people))->all()),
             ],
             'can' => [
                 'createTask' => $actor->can('createTask', $project),
@@ -217,7 +218,7 @@ final readonly class ProjectCalendarQuery
     /**
      * @return array<string, mixed>
      */
-    private function card(TaskProjectMembership $card): array
+    private function card(TaskProjectMembership $card, PersonSummary $people): array
     {
         /** @var Task $task */
         $task = $card->task;
@@ -237,7 +238,7 @@ final readonly class ProjectCalendarQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            'assignee' => PersonSummary::fromNullable($assignee),
+            'assignee' => $people->ofNullable($assignee),
         ];
     }
 }

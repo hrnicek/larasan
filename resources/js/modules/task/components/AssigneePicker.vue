@@ -33,7 +33,7 @@ const matches = computed<TaskAssignee[]>(() => {
         return props.members;
     }
 
-    return props.members.filter((member) => flatten(member.name).includes(term) || flatten(member.email).includes(term));
+    return props.members.filter((member) => flatten(member.name).includes(term) || flatten(member.email ?? '').includes(term));
 });
 
 watch(matches, () => (highlighted.value = 0));
@@ -179,7 +179,7 @@ function onKeydown(event: KeyboardEvent): void {
                             <UserAvatar :user="member" size="sm" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-medium">{{ member.name }}</span>
-                                <span class="block truncate text-xs text-muted-foreground">{{ member.email }}</span>
+                                <span v-if="member.email" class="block truncate text-xs text-muted-foreground">{{ member.email }}</span>
                             </span>
                             <Check v-if="member.id === assignee?.id" class="size-4 shrink-0 text-primary" />
                         </button>

@@ -80,7 +80,7 @@ it('shows the settings screen with the abilities the actor has', function (): vo
             ->component('projects/Settings')
             ->where('project.slug', $project->slug)
             ->where('can.update', true)
-            ->where('can.manageMembers', true));
+            ->where('can.archive', true));
 });
 
 it('does not send the columns to the settings screen, which no longer draws them', function (): void {
@@ -89,17 +89,20 @@ it('does not send the columns to the settings screen, which no longer draws them
 
     $this->actingAs($actor)
         ->get(route('projects.edit', $project))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
-            ->missing('sections')
-            ->where('can.createSection', true));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->missing('sections'));
 });
 
-it('tells a viewer they may not add a section', function (): void {
-    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
+it('sends only the abilities the settings screen draws', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Owner);
 
     $this->actingAs($actor)
         ->get(route('projects.edit', $project))
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('can.createSection', false));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('can', fn (AssertableInertia $can): AssertableInertia => $can
+                ->hasAll(['update', 'archive', 'manageFields'])
+                ->missing('delete')
+                ->missing('manageMembers')
+                ->missing('createSection')));
 });
 
 it('sends the enum options the settings form offers', function (): void {
@@ -121,7 +124,7 @@ it('renders the settings screen read-only for someone who may see but not manage
         ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('can.update', false)
             ->where('can.archive', false)
-            ->where('can.delete', false));
+            ->where('can.manageFields', false));
 });
 
 it('updates a project through its settings', function (): void {

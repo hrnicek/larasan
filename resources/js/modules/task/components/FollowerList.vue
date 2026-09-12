@@ -79,7 +79,7 @@ const toggle = (): void => {
                         <UserAvatar :user="follower" size="sm" />
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm">{{ follower.name }}</span>
-                            <span class="block truncate text-xs text-muted-foreground">{{ follower.email }}</span>
+                            <span v-if="follower.email" class="block truncate text-xs text-muted-foreground">{{ follower.email }}</span>
                         </span>
                     </li>
                 </ul>

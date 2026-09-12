@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Search\Queries;
 
 use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
@@ -36,13 +37,14 @@ final readonly class TaskResults
         }
 
         $visible = $this->reachable->projectIds($workspace, $actor);
+        $people = PersonSummary::for($workspace, $actor);
 
         $results = Task::search($term)
             ->where('workspace_id', $workspace->id)
             ->query(fn (Builder $tasks): Builder => $this->reachable
                 ->constrain($tasks, $workspace, $actor)
                 ->with([
-                    'assignee:id,name,email',
+                    PersonSummary::eager('assignee'),
                     'placements' => fn (Relation $placements) => $placements
                         ->whereIn('project_id', $visible)
                         ->with('project:id,name,color,icon'),
@@ -50,7 +52,7 @@ final readonly class TaskResults
             ->take($limit * self::CANDIDATES_PER_RESULT)
             ->get()
             ->take($limit)
-            ->map(fn (Task $task): array => $this->row($task));
+            ->map(fn (Task $task): array => $this->row($task, $people));
 
         return array_values($results->all());
     }
@@ -58,21 +60,15 @@ final readonly class TaskResults
     /**
      * @return array<string, mixed>
      */
-    private function row(Task $task): array
+    private function row(Task $task, PersonSummary $people): array
     {
-        $assignee = $task->assignee;
-
         return [
             'id' => $task->id,
             'title' => $task->title,
             'dueAt' => $task->due_at?->toIso8601String(),
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
-            'assignee' => $assignee === null ? null : [
-                'id' => $assignee->id,
-                'name' => $assignee->name,
-                'email' => $assignee->email,
-            ],
+            'assignee' => $people->ofNullable($task->assignee),
             'projects' => array_values($task->placements
                 ->map(fn (TaskProjectMembership $placement): array => [
                     'id' => $placement->project->id,

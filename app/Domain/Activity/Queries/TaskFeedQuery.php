@@ -48,9 +48,15 @@ final readonly class TaskFeedQuery
         $names = $this->mentionedNames($task, $rows);
 
         $canModerate = $task->workspace->membershipFor($viewer)?->allows(Capability::CommentDelete) === true;
+        $canComment = collect($rows)->contains(fn (object $line): bool => $line->kind === 'comment' && $line->actor_id === $viewer->id)
+            && $viewer->can('comment', $task);
+        $people = PersonSummary::for($task->workspace, $viewer);
 
         return [
-            'entries' => array_map(fn (object $line): array => $this->entry($line, $actors, $names, $viewer, $canModerate), $rows),
+            'entries' => array_map(
+                fn (object $line): array => $this->entry($line, $actors, $names, $viewer, $people, $canModerate, $canComment),
+                $rows,
+            ),
             'meta' => [
                 'page' => $lines->currentPage(),
                 'perPage' => $lines->perPage(),
@@ -152,8 +158,15 @@ final readonly class TaskFeedQuery
      * @param  array<int, string>  $names
      * @return array<string, mixed>
      */
-    private function entry(object $line, Collection $actors, array $names, User $viewer, bool $canModerate): array
-    {
+    private function entry(
+        object $line,
+        Collection $actors,
+        array $names,
+        User $viewer,
+        PersonSummary $people,
+        bool $canModerate,
+        bool $canComment,
+    ): array {
         $actor = $actors->get($line->actor_id);
         $deleted = $line->deleted_at !== null;
         $isComment = $line->kind === 'comment';
@@ -163,7 +176,7 @@ final readonly class TaskFeedQuery
             'id' => (string) $line->id,
             'kind' => (string) $line->kind,
             'createdAt' => Carbon::parse($line->created_at)->toIso8601String(),
-            'actor' => PersonSummary::fromNullable($actor),
+            'actor' => $people->ofNullable($actor),
             'body' => $deleted || $line->body === null ? null : Mentions::withNames($line->body, $names),
             'edited' => $line->edited_at !== null,
             'deleted' => $deleted,
@@ -171,7 +184,7 @@ final readonly class TaskFeedQuery
             'properties' => $line->properties === null
                 ? null
                 : json_decode((string) $line->properties, true, 512, JSON_THROW_ON_ERROR),
-            'canEdit' => $isComment && $isAuthor && ! $deleted,
+            'canEdit' => $isComment && $isAuthor && ! $deleted && $canComment,
             'canDelete' => $isComment && ! $deleted && ($isAuthor || $canModerate),
         ];
     }

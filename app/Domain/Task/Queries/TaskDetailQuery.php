@@ -12,6 +12,7 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Section\Models\Section;
+use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\FileKind;
@@ -71,6 +72,8 @@ final readonly class TaskDetailQuery
             ]),
         ]);
 
+        $people = PersonSummary::for($task->workspace, $actor);
+
         return [
             'task' => [
                 'id' => $task->id,
@@ -83,8 +86,8 @@ final readonly class TaskDetailQuery
                     'id' => $task->parent->id,
                     'title' => $task->parent->title,
                 ],
-                'assignee' => PersonSummary::fromNullable($task->assignee),
-                'creator' => PersonSummary::fromNullable($task->creator),
+                'assignee' => $people->ofNullable($task->assignee),
+                'creator' => $people->ofNullable($task->creator),
             ],
             'customFields' => $this->customFields($task, $actor),
             'tags' => array_values($task->tags
@@ -103,7 +106,7 @@ final readonly class TaskDetailQuery
                     'color' => $tag->color?->value,
                 ])
                 ->all()),
-            'attachments' => $this->attachments($task, $actor),
+            'attachments' => $this->attachments($task, $actor, $people),
             'placements' => $this->placements($task, $actor),
             'availableProjects' => $this->availableProjects($task, $actor),
             'subtasks' => array_values($task->children
@@ -114,11 +117,11 @@ final readonly class TaskDetailQuery
                 ])
                 ->all()),
             'collaborators' => array_values($task->collaborators
-                ->map(PersonSummary::from(...))
+                ->map($people->of(...))
                 ->all()),
             'collaborating' => $task->collaborators->contains('id', $actor->id),
             'followers' => array_values($task->followers
-                ->map(PersonSummary::from(...))
+                ->map($people->of(...))
                 ->all()),
             'following' => $task->followers->contains('id', $actor->id),
             'starred' => $task->stars()->where('user_id', $actor->id)->exists(),
@@ -189,13 +192,13 @@ final readonly class TaskDetailQuery
     /**
      * @return list<array<string, mixed>>
      */
-    private function attachments(Task $task, User $actor): array
+    private function attachments(Task $task, User $actor, PersonSummary $people): array
     {
         $canModerate = $task->workspace->membershipFor($actor)?->allows(Capability::FileDelete) === true;
 
         // The stored path is never sent; downloads go through the authorized endpoint. See ADR-0007.
         return array_values($task->attachments
-            ->map(function (Attachment $attachment) use ($actor, $canModerate): array {
+            ->map(function (Attachment $attachment) use ($actor, $canModerate, $people): array {
                 $file = $attachment->file;
 
                 return [
@@ -206,7 +209,7 @@ final readonly class TaskDetailQuery
                     'kind' => FileKind::fromMime($file->mime_type, $file->extension)->value,
                     'image' => $file->imageDimensions(),
                     'uploadedAt' => $file->created_at?->toIso8601String(),
-                    'uploader' => PersonSummary::fromNullable($file->uploader),
+                    'uploader' => $people->ofNullable($file->uploader),
                     'canDelete' => $file->uploaded_by === $actor->id || $canModerate,
                 ];
             })
@@ -250,12 +253,16 @@ final readonly class TaskDetailQuery
     {
         $already = $task->placements->pluck('project_id')->all();
 
-        $rows = app(VisibleProjectsForUser::class)
+        $projects = app(VisibleProjectsForUser::class)
             ->query($task->workspace, $actor)
             ->with('workspace')
             ->orderBy('name')
             ->get()
-            ->reject(fn (Project $project): bool => in_array($project->id, $already, strict: true))
+            ->reject(fn (Project $project): bool => in_array($project->id, $already, strict: true));
+
+        app(MembershipRegistry::class)->preloadProjects($projects, $actor);
+
+        $rows = $projects
             ->filter(fn (Project $project): bool => $project->allowsChangesBy($actor, Capability::TaskUpdate))
             ->map(fn (Project $project): array => ['id' => $project->id, 'name' => $project->name])
             ->all();

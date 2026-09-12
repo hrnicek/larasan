@@ -110,7 +110,9 @@ class ProjectController extends Controller
         $view = $request->view($project);
         $actor = $this->actor($request);
 
-        $this->rememberOpening($project->workspace, $actor, $project);
+        if ($this->resolvesProp($request, 'project')) {
+            $this->rememberOpening($project->workspace, $actor, $project);
+        }
 
         // Closures, so a partial reload resolves only the props it names.
         return Inertia::render('projects/Show', [
@@ -135,11 +137,15 @@ class ProjectController extends Controller
                     $request->fieldFilters(),
                 )],
             },
-            'sort' => fn (): array => [
-                'field' => $request->sort($project->customFields)?->field->id,
-                'direction' => $request->sort($project->customFields)?->direction() ?? 'asc',
-                'filters' => (object) $request->fieldFilters(),
-            ],
+            'sort' => function () use ($request, $project): array {
+                $sort = $request->sort($project->customFields);
+
+                return [
+                    'field' => $sort?->field->id,
+                    'direction' => $sort?->direction() ?? 'asc',
+                    'filters' => (object) $request->fieldFilters(),
+                ];
+            },
             'tags' => fn (): array => [
                 'active' => $request->tags(),
                 'available' => $project->workspace->tags()
@@ -155,15 +161,7 @@ class ProjectController extends Controller
             'views' => array_column(ProjectView::cases(), 'value'),
             'share' => Inertia::optional(fn (): array => $this->share($project, $actor)),
             'customize' => Inertia::optional(fn (): array => [
-                'fields' => [
-                    'attached' => $this->fields($project->customFields),
-                    'available' => $this->fields(
-                        $project->workspace->customFields()
-                            ->whereNotIn('id', $project->customFields->modelKeys())
-                            ->orderBy('name')
-                            ->get(),
-                    ),
-                ],
+                'fields' => $this->customFieldChoices($project),
                 // Also sent by ProjectListQuery, because the drawer opens over every view.
                 'columns' => ListColumns::describe($project),
             ]),
@@ -191,15 +189,7 @@ class ProjectController extends Controller
                 'due_date' => $project->due_date?->toDateString(),
                 'archived' => $project->isArchived(),
             ],
-            'customFields' => [
-                'attached' => $this->fields($project->customFields),
-                'available' => $this->fields(
-                    $project->workspace->customFields()
-                        ->whereNotIn('id', $project->customFields->modelKeys())
-                        ->orderBy('name')
-                        ->get(),
-                ),
-            ],
+            'customFields' => $this->customFieldChoices($project),
             'options' => [
                 'colors' => array_column(ProjectColor::cases(), 'value'),
                 'views' => array_column(ProjectDefaultView::cases(), 'value'),
@@ -208,9 +198,6 @@ class ProjectController extends Controller
             'can' => [
                 'update' => $user->can('update', $project),
                 'archive' => $user->can('archive', $project),
-                'delete' => $user->can('delete', $project),
-                'manageMembers' => $user->can('manageMembers', $project),
-                'createSection' => $user->can('createSection', $project),
                 'manageFields' => $user->can(Capability::CustomFieldManage->value, $project->workspace),
             ],
         ]);
@@ -278,6 +265,22 @@ class ProjectController extends Controller
     }
 
     /**
+     * @return array{attached: list<array{id: string, name: string, type: string}>, available: list<array{id: string, name: string, type: string}>}
+     */
+    private function customFieldChoices(Project $project): array
+    {
+        return [
+            'attached' => $this->fields($project->customFields),
+            'available' => $this->fields(
+                $project->workspace->customFields()
+                    ->whereNotIn('id', $project->customFields->modelKeys())
+                    ->orderBy('name')
+                    ->get(),
+            ),
+        ];
+    }
+
+    /**
      * @param  Collection<int, CustomField>  $fields
      * @return list<array{id: string, name: string, type: string}>
      */
@@ -298,6 +301,7 @@ class ProjectController extends Controller
     private function share(Project $project, User $actor): array
     {
         $canManage = $actor->can('manageMembers', $project);
+        $people = PersonSummary::for($project->workspace, $actor);
 
         $owners = $project->memberships()
             ->where('access_level', ProjectAccessLevel::Owner->value)
@@ -314,7 +318,7 @@ class ProjectController extends Controller
                 ->sortBy(fn (ProjectMembership $membership): string => $membership->user->name)
                 ->map(fn (ProjectMembership $membership): array => [
                     'membershipId' => $membership->id,
-                    ...PersonSummary::from($membership->user),
+                    ...$people->of($membership->user),
                     'accessLevel' => $membership->access_level->value,
                     'isYou' => $membership->user_id === $actor->id,
                     'isLastOwner' => $membership->access_level->canManageProject() && $owners === 1,
@@ -327,7 +331,7 @@ class ProjectController extends Controller
                     ->whereNotIn('users.id', $memberships->pluck('user_id')->all())
                     ->orderBy('name')
                     ->get(PersonSummary::columns('users'))
-                    ->map(PersonSummary::from(...))
+                    ->map($people->of(...))
                     ->all())
                 : [],
         ];

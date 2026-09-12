@@ -40,6 +40,7 @@ final readonly class ProjectBoardQuery
         $counts = $this->counts($project, $tags);
         $cards = $this->cards($project, $expanded, $tags);
         $covers = $this->covers($project, $cards);
+        $people = PersonSummary::for($project->workspace, $actor);
 
         $columns = $project->sections()->get()
             ->map(fn (Section $section): array => $this->column(
@@ -50,6 +51,7 @@ final readonly class ProjectBoardQuery
                 $counts[$section->id] ?? 0,
                 in_array($section->id, $expanded, strict: true),
                 $covers,
+                $people,
             ))
             ->all();
 
@@ -64,6 +66,7 @@ final readonly class ProjectBoardQuery
                 $ungroupedCount,
                 in_array(self::UNGROUPED, $expanded, strict: true),
                 $covers,
+                $people,
             );
         }
 
@@ -228,7 +231,7 @@ final readonly class ProjectBoardQuery
      * @param  array<string, array{id: string, width: int|null, height: int|null}>  $covers
      * @return array{id: string|null, name: string|null, color: string|null, count: int, hasMore: bool, tasks: list<array<string, mixed>>}
      */
-    private function column(?string $id, ?string $name, ?string $color, Collection $cards, int $count, bool $expanded, array $covers): array
+    private function column(?string $id, ?string $name, ?string $color, Collection $cards, int $count, bool $expanded, array $covers, PersonSummary $people): array
     {
         return [
             'id' => $id,
@@ -236,7 +239,7 @@ final readonly class ProjectBoardQuery
             'color' => $color,
             'count' => $count,
             'hasMore' => ! $expanded && $count > $cards->count(),
-            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card, $covers))->all()),
+            'tasks' => array_values($cards->map(fn (TaskProjectMembership $card): array => $this->card($card, $covers, $people))->all()),
         ];
     }
 
@@ -244,7 +247,7 @@ final readonly class ProjectBoardQuery
      * @param  array<string, array{id: string, width: int|null, height: int|null}>  $covers
      * @return array<string, mixed>
      */
-    private function card(TaskProjectMembership $card, array $covers): array
+    private function card(TaskProjectMembership $card, array $covers, PersonSummary $people): array
     {
         /** @var Task $task */
         $task = $card->task;
@@ -267,7 +270,7 @@ final readonly class ProjectBoardQuery
                 ->all()),
             'subtasks' => (int) ($task->children_count ?? 0),
             'cover' => $covers[$task->id] ?? null,
-            'assignee' => PersonSummary::fromNullable($assignee),
+            'assignee' => $people->ofNullable($assignee),
         ];
     }
 }

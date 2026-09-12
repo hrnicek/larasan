@@ -43,7 +43,7 @@ let pending: ReturnType<typeof setTimeout> | null = null;
 type Row =
     | { kind: 'tasks'; id: string; title: string; url: string; projects: { id: string; name: string; color: string | null; icon: string | null }[]; done: boolean }
     | { kind: 'projects'; id: string; title: string; url: string; color: string | null; icon: string | null; archived: boolean }
-    | { kind: 'people'; id: string; title: string; url: string; email: string; avatar: string | null; role: string | null }
+    | { kind: 'people'; id: string; title: string; url: string; email?: string; avatar: string | null; role: string | null }
     | { kind: 'messages'; id: string; title: string; url: string | null; task: string | null; author: string | null }
     | { kind: 'pages'; id: string; title: string; url: string; project: string };
 
@@ -369,7 +369,7 @@ watch(open, (isOpen) => {
                         <template v-else-if="row.kind === 'people'">
                             <UserAvatar :user="{ name: row.title, avatar: row.avatar }" size="sm" />
                             <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
-                            <span class="shrink-0 text-xs text-muted-foreground">{{ row.email }}</span>
+                            <span v-if="row.email" class="shrink-0 text-xs text-muted-foreground">{{ row.email }}</span>
                         </template>
 
                         <template v-else-if="row.kind === 'messages'">
