@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
 import type { CalendarCardData } from '@/modules/task/types';
@@ -19,29 +18,11 @@ const emit = defineEmits<{
     pickup: [event: PointerEvent, card: CalendarCardData];
 }>();
 
-// A drag also ends in `click`, so the pointer-down position tells a click from a drop.
-const origin = ref<{ x: number; y: number } | null>(null);
-
 const down = (event: PointerEvent): void => {
-    origin.value = { x: event.clientX, y: event.clientY };
-
     if (props.editable) {
         emit('pickup', event, props.card);
     }
 };
-
-const activate = (event: MouseEvent): void => {
-    const from = origin.value;
-
-    origin.value = null;
-
-    if (from !== null && Math.hypot(event.clientX - from.x, event.clientY - from.y) >= 4) {
-        return;
-    }
-
-    emit('open', props.card.id);
-};
-
 </script>
 
 <template>
@@ -59,7 +40,7 @@ const activate = (event: MouseEvent): void => {
             editable ? 'cursor-grab touch-none active:cursor-grabbing' : '',
         ]"
         @pointerdown="down"
-        @click="activate"
+        @click="emit('open', card.id)"
     >
         <span
             v-if="card.tags.length"

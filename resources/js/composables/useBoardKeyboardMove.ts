@@ -1,4 +1,4 @@
-import { nextTick, ref } from 'vue';
+import { nextTick, onScopeDispose, ref } from 'vue';
 import type { Ref } from 'vue';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
@@ -10,12 +10,13 @@ export type BoardKeyboardMove = {
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 const nameOf = (column: BoardColumnData): string => column.name ?? 'No section';
+const cardOf = (placementId: string): string => `[data-task-card][data-placement-id="${placementId}"]`;
 
 export function useBoardKeyboardMove(
     columns: Ref<BoardColumnData[]>,
     enabled: () => boolean,
     move: {
-        commit: (placementId: string, columnKey: string, beforeId: string | null, rollbackTo: BoardColumnData[]) => void;
+        commit: (placementId: string, columnKey: string, afterId: string | null, rollbackTo: BoardColumnData[]) => void;
         snapshot: () => BoardColumnData[];
     },
 ): BoardKeyboardMove {
@@ -23,6 +24,7 @@ export function useBoardKeyboardMove(
     const announcement = ref('');
 
     let origin: BoardColumnData[] = [];
+    let focusCheck: number | undefined;
 
     const locate = (placementId: string): { column: BoardColumnData; index: number } | null => {
         for (const column of columns.value) {
@@ -43,7 +45,7 @@ export function useBoardKeyboardMove(
     // Vue recreates the card's element when it changes column, which drops its focus.
     const keepFocus = (placementId: string): void => {
         void nextTick(() => {
-            document.querySelector<HTMLElement>(`[data-placement-id="${placementId}"]`)?.focus();
+            document.querySelector<HTMLElement>(cardOf(placementId))?.focus();
         });
     };
 
@@ -57,15 +59,47 @@ export function useBoardKeyboardMove(
         return others[index - 1]?.placementId ?? null;
     };
 
+    const release = (): void => {
+        carrying.value = null;
+        window.clearTimeout(focusCheck);
+        document.removeEventListener('focusout', onFocusOut);
+    };
+
+    const cancel = (): void => {
+        release();
+        columns.value = origin;
+        announcement.value = 'Cancelled.';
+    };
+
+    // Moving the card detaches its element for a moment, so focus is judged after keepFocus has run.
+    const onFocusOut = (): void => {
+        window.clearTimeout(focusCheck);
+
+        focusCheck = window.setTimeout(() => {
+            if (carrying.value !== null && document.activeElement?.matches(cardOf(carrying.value)) !== true) {
+                cancel();
+            }
+        });
+    };
+
+    const hold = (placementId: string): void => {
+        carrying.value = placementId;
+        origin = move.snapshot();
+        document.addEventListener('focusout', onFocusOut);
+    };
+
+    onScopeDispose(release, true);
+
     return {
         carrying,
         announcement,
 
         onKeydown(event: KeyboardEvent): void {
-            const card = (event.target as HTMLElement).closest<HTMLElement>('[data-task-card]');
-            const placementId = carrying.value ?? card?.dataset.placementId ?? null;
+            const placementId = event.target instanceof HTMLElement && event.target.matches('[data-task-card]')
+                ? event.target.dataset.placementId ?? null
+                : null;
 
-            if (placementId === null || !enabled()) {
+            if (placementId === null || !enabled() || (carrying.value !== null && carrying.value !== placementId)) {
                 return;
             }
 
@@ -82,14 +116,13 @@ export function useBoardKeyboardMove(
                 event.preventDefault();
 
                 if (carrying.value === null) {
-                    carrying.value = placementId;
-                    origin = move.snapshot();
+                    hold(placementId);
                     announcement.value = `Picked up. ${nameOf(column)}, position ${index + 1} of ${column.tasks.length}.`;
 
                     return;
                 }
 
-                carrying.value = null;
+                release();
                 announcement.value = `Dropped in ${nameOf(column)}, position ${index + 1}.`;
 
                 move.commit(placementId, keyOf(column), follows(column, index, placementId), origin);
@@ -103,9 +136,8 @@ export function useBoardKeyboardMove(
 
             if (event.key === 'Escape') {
                 event.preventDefault();
-                carrying.value = null;
-                columns.value = origin;
-                announcement.value = 'Cancelled.';
+                cancel();
+                keepFocus(placementId);
 
                 return;
             }

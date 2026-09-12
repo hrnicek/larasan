@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CheckSquare, MessageSquare, MoveRight, TriangleAlert, UserRound } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import {
     DropdownMenu,
@@ -28,27 +28,10 @@ const emit = defineEmits<{
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 
-// A drag also ends in `click`, so the pointer-down position tells a click from a drop.
-const origin = ref<{ x: number; y: number } | null>(null);
-
 const down = (event: PointerEvent): void => {
-    origin.value = { x: event.clientX, y: event.clientY };
-
     if (props.editable) {
         emit('pickup', event, props.card);
     }
-};
-
-const activate = (event: MouseEvent): void => {
-    const from = origin.value;
-
-    origin.value = null;
-
-    if (from !== null && Math.hypot(event.clientX - from.x, event.clientY - from.y) >= 4) {
-        return;
-    }
-
-    emit('open', props.card.id);
 };
 
 const day = computed<string | null>(() => dayOf(props.card.dueAt));
@@ -71,7 +54,7 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
             editable ? 'touch-none active:cursor-grabbing' : '',
         ]"
         @pointerdown="down"
-        @click="activate"
+        @click="emit('open', card.id)"
         @keydown.enter.self="emit('open', card.id)"
     >
         <img

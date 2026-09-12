@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
+import { usePointerDrag } from '@/composables/usePointerDrag';
 import type { TaskAttachment } from '@/modules/task/types';
 
 // The first image is the board card's cover, so the order here is meaningful.
@@ -14,6 +15,7 @@ const props = defineProps<{
 const emit = defineEmits<{ open: [string]; remove: [TaskAttachment] }>();
 
 const order = ref<TaskAttachment[]>([...props.images]);
+const dragging = ref<string | null>(null);
 
 watch(
     () => props.images,
@@ -24,54 +26,18 @@ watch(
     },
 );
 
-const dragging = ref<string | null>(null);
+const beginDrag = usePointerDrag();
 
-// A drag ends with a `click` on the tile it is released over, which must not open it.
-const dragged = ref(false);
-
-/** Pixels of pointer travel below which a press is a click, not a drag. */
-const THRESHOLD = 4;
-
-let origin: { x: number; y: number } | null = null;
 let rollback: TaskAttachment[] = [];
-let candidate: string | null = null;
 
-const idUnderPointer = (event: PointerEvent): string | null => {
-    const element = document.elementFromPoint(event.clientX, event.clientY);
-    const tile = element?.closest<HTMLElement>('[data-attachment-tile]');
+const idAt = (x: number, y: number): string | null => {
+    const tile = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-attachment-tile]');
 
     return tile?.dataset.attachmentTile ?? null;
 };
 
-const pickUp = (event: PointerEvent, image: TaskAttachment): void => {
-    if (! props.canReorder || event.button !== 0) {
-        return;
-    }
-
-    candidate = image.id;
-    origin = { x: event.clientX, y: event.clientY };
-    rollback = [...order.value];
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-};
-
-const onPointerMove = (event: PointerEvent): void => {
-    if (origin === null || candidate === null) {
-        return;
-    }
-
-    if (dragging.value === null) {
-        const far = Math.abs(event.clientX - origin.x) > THRESHOLD || Math.abs(event.clientY - origin.y) > THRESHOLD;
-
-        if (! far) {
-            return;
-        }
-
-        dragging.value = candidate;
-    }
-
-    const overId = idUnderPointer(event);
+const reorderOver = (x: number, y: number): void => {
+    const overId = idAt(x, y);
 
     if (overId === null || overId === dragging.value) {
         return;
@@ -91,23 +57,7 @@ const onPointerMove = (event: PointerEvent): void => {
     order.value = next;
 };
 
-const onPointerUp = (): void => {
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-
-    const moved = dragging.value;
-
-    dragging.value = null;
-    candidate = null;
-    origin = null;
-
-    if (moved === null) {
-        return;
-    }
-
-    dragged.value = true;
-    window.setTimeout(() => (dragged.value = false));
-
+const save = (moved: string): void => {
     const index = order.value.findIndex((image) => image.id === moved);
     const wasIndex = rollback.findIndex((image) => image.id === moved);
 
@@ -128,6 +78,29 @@ const onPointerUp = (): void => {
         },
     );
 };
+
+const pickUp = (event: PointerEvent, image: TaskAttachment): void => {
+    if (!props.canReorder) {
+        return;
+    }
+
+    beginDrag(event, {
+        start: () => {
+            rollback = [...order.value];
+            dragging.value = image.id;
+        },
+        move: reorderOver,
+        drop: (x, y) => {
+            reorderOver(x, y);
+            dragging.value = null;
+            save(image.id);
+        },
+        cancel: () => {
+            dragging.value = null;
+            order.value = rollback;
+        },
+    });
+};
 </script>
 
 <template>
@@ -147,7 +120,7 @@ const onPointerUp = (): void => {
                 ]"
                 :aria-label="`Open ${image.name}`"
                 @pointerdown="pickUp($event, image)"
-                @click="! dragged && emit('open', image.id)"
+                @click="emit('open', image.id)"
             >
                 <img
                     :src="AttachmentController.preview.url(image.id, { query: { size: 'thumb' } })"

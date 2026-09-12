@@ -2,11 +2,8 @@ import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import { perFrame } from '@/lib/perFrame';
+import { usePointerDrag } from '@/composables/usePointerDrag';
 import type { CalendarCardData, CalendarDay, ProjectCalendar } from '@/modules/task/types';
-
-/** Pixels of pointer travel below which a press is a click, not a drag. */
-const THRESHOLD = 4;
 
 export type CalendarSnapshot = { days: CalendarDay[]; undated: ProjectCalendar['undated'] };
 
@@ -17,6 +14,7 @@ export function useCalendarDrag(
 ) {
     const draggingId = ref<string | null>(null);
     const overDay = ref<string | null>(null);
+    const beginDrag = usePointerDrag();
 
     const snapshot = (): CalendarSnapshot => ({
         days: days.value.map((day) => ({ ...day, tasks: [...day.tasks] })),
@@ -73,58 +71,38 @@ export function useCalendarDrag(
         send(card.id, date, previous);
     };
 
+    const reset = (): void => {
+        draggingId.value = null;
+        overDay.value = null;
+    };
+
     return {
         draggingId,
         overDay,
 
         pickUp(event: PointerEvent, card: CalendarCardData): void {
-            if (!enabled() || event.button !== 0) {
+            if (!enabled()) {
                 return;
             }
 
-            const startX = event.clientX;
-            const startY = event.clientY;
-            let dragging = false;
+            beginDrag(event, {
+                start: () => {
+                    draggingId.value = card.placementId;
+                },
+                move: (x, y) => {
+                    overDay.value = dayUnder(x, y);
+                },
+                drop: (x, y) => {
+                    reset();
 
-            const track = perFrame((x: number, y: number): void => {
-                overDay.value = dayUnder(x, y);
+                    const date = dayUnder(x, y);
+
+                    if (date !== null) {
+                        move(card, date);
+                    }
+                },
+                cancel: reset,
             });
-
-            const onMove = (moved: PointerEvent): void => {
-                if (!dragging && Math.hypot(moved.clientX - startX, moved.clientY - startY) < THRESHOLD) {
-                    return;
-                }
-
-                dragging = true;
-                draggingId.value = card.placementId;
-
-                track.call(moved.clientX, moved.clientY);
-            };
-
-            const onUp = (up: PointerEvent): void => {
-                document.removeEventListener('pointermove', onMove);
-                document.removeEventListener('pointerup', onUp);
-                track.cancel();
-
-                const wasDragging = dragging;
-
-                dragging = false;
-                draggingId.value = null;
-                overDay.value = null;
-
-                if (!wasDragging) {
-                    return;
-                }
-
-                const date = dayUnder(up.clientX, up.clientY);
-
-                if (date !== null) {
-                    move(card, date);
-                }
-            };
-
-            document.addEventListener('pointermove', onMove, { passive: true });
-            document.addEventListener('pointerup', onUp, { passive: true });
         },
     };
 }
