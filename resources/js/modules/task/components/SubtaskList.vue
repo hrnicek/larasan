@@ -137,7 +137,7 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                 :disabled="saving"
                 class="w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm disabled:opacity-50"
                 @keydown.enter.prevent="submit"
-                @keydown.esc.prevent="close"
+                @keydown.esc.stop.prevent="close"
                 @blur="title.trim() === '' ? close() : undefined"
             />
 

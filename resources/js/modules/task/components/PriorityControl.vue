@@ -49,7 +49,7 @@ function change(priority: string): void {
             class="inline-flex min-h-11 items-center rounded-md text-muted-foreground capitalize transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-6"
             :class="variant === 'field' ? 'px-1.5 py-1 text-sm hover:bg-accent md:min-h-8' : 'px-1 text-xs'"
             :disabled="saving"
-            aria-label="Priority"
+            :aria-label="`Priority: ${priority}`"
         >
             {{ priority }}
         </DropdownMenuTrigger>

@@ -138,15 +138,19 @@ export function useRealtime(options: {
 
     onReconnect(refetch);
 
-    useSubscription(options.channels, (channel) => {
-        channel.listen('.view.invalidated', (event: ViewInvalidated) => {
-            // The actor's own response already carried the change.
-            if (event.actorId !== null && event.actorId === page.props.auth.user?.id) {
-                return;
-            }
+    const onInvalidated = (event: ViewInvalidated): void => {
+        // The actor's own response already carried the change.
+        if (event.actorId !== null && event.actorId === page.props.auth.user?.id) {
+            return;
+        }
 
-            refetch();
-        });
+        refetch();
+    };
+
+    useSubscription(options.channels, (channel) => {
+        channel.listen('.view.invalidated', onInvalidated);
+
+        return () => channel.stopListening('.view.invalidated', onInvalidated);
     });
 }
 
@@ -158,7 +162,11 @@ export function useInboxRealtime(only: string[] = ['unreadNotifications']): void
 
     useSubscription(
         () => (page.props.auth.user === null ? [] : [`user.${page.props.auth.user.id}`]),
-        (channel) => channel.notification(refetch),
+        (channel) => {
+            channel.notification(refetch);
+
+            return () => channel.stopListeningForNotification(refetch);
+        },
     );
 }
 
@@ -195,20 +203,40 @@ function coalesced(refetch: () => void): () => void {
     };
 }
 
+// Echo hands every caller the same channel object, and leaving it drops everyone's listeners.
+const subscribers = new Map<string, number>();
+
 function useSubscription(
     channels: MaybeRefOrGetter<string[]>,
-    subscribe: (channel: PrivateChannel) => void,
+    subscribe: (channel: PrivateChannel) => () => void,
 ): void {
     let echo: Echo<'reverb'> | null = null;
-    let joined: string[] = [];
+    let joined: { name: string; stop: () => void }[] = [];
+    let latestJoin = 0;
+    let disposed = false;
 
     const leave = (): void => {
-        joined.forEach((channel) => echo?.leave(channel));
+        joined.forEach(({ name, stop }) => {
+            stop();
+
+            const remaining = (subscribers.get(name) ?? 1) - 1;
+
+            if (remaining > 0) {
+                subscribers.set(name, remaining);
+
+                return;
+            }
+
+            subscribers.delete(name);
+            echo?.leave(name);
+        });
+
         joined = [];
     };
 
     const join = async (): Promise<void> => {
-        const names = toValue(channels).filter((name) => name.length > 0);
+        const attempt = ++latestJoin;
+        const names = [...new Set(toValue(channels).filter((name) => name.length > 0))];
 
         if (names.length === 0) {
             leave();
@@ -218,16 +246,25 @@ function useSubscription(
 
         const { initializeEcho } = await import('@/echo');
 
+        if (disposed || attempt !== latestJoin) {
+            return;
+        }
+
         echo ??= initializeEcho();
         observe(echo);
         leave();
 
-        names.forEach((name) => subscribe(echo!.private(name)));
+        joined = names.map((name) => {
+            subscribers.set(name, (subscribers.get(name) ?? 0) + 1);
 
-        joined = names;
+            return { name, stop: subscribe(echo!.private(name)) };
+        });
     };
 
     onMounted(join);
-    onBeforeUnmount(leave);
+    onBeforeUnmount(() => {
+        disposed = true;
+        leave();
+    });
     watch(() => toValue(channels).join('|'), () => void join());
 }

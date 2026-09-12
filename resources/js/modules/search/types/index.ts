@@ -1,4 +1,4 @@
-export type SearchKind = 'tasks' | 'projects' | 'people' | 'messages';
+export type SearchKind = 'tasks' | 'projects' | 'people' | 'messages' | 'pages';
 
 export type SearchPerson = {
     id: number;
@@ -46,11 +46,19 @@ export type SearchMessageResult = {
     task: { id: string; title: string } | null;
 };
 
+export type SearchPageResult = {
+    id: string;
+    title: string;
+    excerpt: string | null;
+    project: SearchTaskProject & { slug: string };
+};
+
 export type SearchResults = {
     tasks?: SearchTaskResult[];
     projects?: SearchProjectResult[];
     people?: SearchPersonResult[];
     messages?: SearchMessageResult[];
+    pages?: SearchPageResult[];
 };
 
 export type SavedSearch = {

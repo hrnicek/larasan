@@ -1,3 +1,8 @@
+<script lang="ts">
+// Module scope: opening a subtask re-keys the panel, and the replacement inherits the row to return focus to.
+let focusAwaitingRestore: string | null = null;
+</script>
+
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
@@ -68,7 +73,8 @@ const onKeydown = (event: KeyboardEvent): void => {
 onMounted(() => {
     const origin = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-task-id]');
 
-    restoreFocusToTask = origin?.dataset.taskId ?? null;
+    restoreFocusToTask = focusAwaitingRestore ?? origin?.dataset.taskId ?? null;
+    focusAwaitingRestore = null;
     panel.value?.focus();
 
     document.body.style.overflow = 'hidden';
@@ -81,8 +87,16 @@ onUnmounted(() => {
         return;
     }
 
+    focusAwaitingRestore = restoreFocusToTask;
+
+    // A panel replaced in the same render has mounted and claimed the target by now.
     void nextTick(() => {
-        document.querySelector<HTMLElement>(`[data-task-id="${restoreFocusToTask}"]`)?.focus();
+        if (focusAwaitingRestore === null) {
+            return;
+        }
+
+        document.querySelector<HTMLElement>(`[data-task-id="${focusAwaitingRestore}"]`)?.focus();
+        focusAwaitingRestore = null;
     });
 });
 </script>
@@ -113,7 +127,7 @@ onUnmounted(() => {
                     @deleted="emit('close')"
                 />
 
-                <div class="min-h-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent" @scroll="onScroll">
+                <div class="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]" @scroll="onScroll">
                     <TaskDetailBody
                         :detail="detail"
                         :activity="activity"

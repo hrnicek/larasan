@@ -8,25 +8,23 @@ use Illuminate\Support\Str;
 /**
  * @return list<string>
  */
-function componentWithItsImports(string $path): array
+function componentWithItsImports(string $path, int $depth = 2): array
 {
-    $sources = [];
-
     if (! File::exists($path)) {
-        return $sources;
+        return [];
     }
 
     $contents = (string) File::get($path);
-    $sources[] = $contents;
+    $sources = [$contents];
 
-    preg_match_all("/from '@\/([^']+)'/", $contents, $matches);
+    if ($depth === 0) {
+        return $sources;
+    }
+
+    preg_match_all("/from '@\/([^']+\.vue)'/", $contents, $matches);
 
     foreach ($matches[1] as $import) {
-        $imported = resource_path('js/'.$import);
-
-        if (str_ends_with($imported, '.vue') && File::exists($imported)) {
-            $sources[] = (string) File::get($imported);
-        }
+        array_push($sources, ...componentWithItsImports(resource_path('js/'.$import), $depth - 1));
     }
 
     return $sources;

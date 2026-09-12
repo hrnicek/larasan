@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { Bookmark, CheckCircle2, Clipboard, MessageSquare, Search as SearchIcon, User as UserIcon, X } from '@lucide/vue';
+import { Bookmark, CheckCircle2, Clipboard, FileText, MessageSquare, Search as SearchIcon, User as UserIcon, X } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
+import PageController from '@/actions/App/Http/Controllers/Page/PageController';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -22,6 +23,7 @@ const KINDS: { value: SearchKind; label: string; icon: typeof CheckCircle2 }[] =
     { value: 'projects', label: 'Projects', icon: Clipboard },
     { value: 'people', label: 'People', icon: UserIcon },
     { value: 'messages', label: 'Messages', icon: MessageSquare },
+    { value: 'pages', label: 'Pages', icon: FileText },
 ];
 
 const DEBOUNCE = 180;
@@ -42,7 +44,8 @@ type Row =
     | { kind: 'tasks'; id: string; title: string; url: string; projects: { id: string; name: string; color: string | null; icon: string | null }[]; done: boolean }
     | { kind: 'projects'; id: string; title: string; url: string; color: string | null; icon: string | null; archived: boolean }
     | { kind: 'people'; id: string; title: string; url: string; email: string; avatar: string | null; role: string | null }
-    | { kind: 'messages'; id: string; title: string; url: string; task: string | null; author: string | null };
+    | { kind: 'messages'; id: string; title: string; url: string | null; task: string | null; author: string | null }
+    | { kind: 'pages'; id: string; title: string; url: string; project: string };
 
 const rows = computed<Row[]>(() => {
     const results = answer.value?.results ?? {};
@@ -79,9 +82,16 @@ const rows = computed<Row[]>(() => {
             kind: 'messages',
             id: message.id,
             title: message.excerpt,
-            url: message.task ? TaskController.show.url({ task: message.task.id }) : '#',
+            url: message.task ? TaskController.show.url({ task: message.task.id }) : null,
             task: message.task?.title ?? null,
             author: message.author?.name ?? null,
+        })),
+        ...(results.pages ?? []).map((page): Row => ({
+            kind: 'pages',
+            id: page.id,
+            title: page.title,
+            url: PageController.show.url({ page: page.id }),
+            project: page.project.name,
         })),
     ];
 });
@@ -140,7 +150,7 @@ function move(by: number): void {
 }
 
 function openRow(row: Row | undefined): void {
-    if (row === undefined || row.url === '#') {
+    if (row === undefined || row.url === null) {
         return;
     }
 
@@ -212,11 +222,10 @@ watch(open, (isOpen) => {
             :show-close-button="false"
             @keydown.down.prevent="move(1)"
             @keydown.up.prevent="move(-1)"
-            @keydown.enter.prevent="openRow(rows[active])"
         >
             <DialogTitle class="sr-only">Search</DialogTitle>
             <DialogDescription class="sr-only">
-                Search this workspace's tasks, projects, people and messages.
+                Search this workspace's tasks, projects, people, messages and pages.
             </DialogDescription>
 
             <div class="flex items-center gap-2 border-b border-border px-4">
@@ -226,9 +235,10 @@ watch(open, (isOpen) => {
                     v-model="term"
                     type="text"
                     class="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    placeholder="Search tasks, projects, people and messages"
+                    placeholder="Search tasks, projects, people, messages and pages"
                     aria-label="Search"
                     autocomplete="off"
+                    @keydown.enter.prevent="openRow(rows[active])"
                 />
                 <Spinner v-if="searching" class="size-4 shrink-0 text-muted-foreground" />
             </div>
@@ -302,7 +312,7 @@ watch(open, (isOpen) => {
                                 </button>
                                 <button
                                     type="button"
-                                    class="rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted"
+                                    class="rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted focus-visible:opacity-100"
                                     :aria-label="`Forget ${search.name}`"
                                     @click="forget(search)"
                                 >
@@ -336,6 +346,7 @@ watch(open, (isOpen) => {
                         class="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-accent"
                         :class="rows[active] === row ? 'bg-accent' : ''"
                         :data-active="rows[active] === row"
+                        :disabled="row.url === null"
                         @mousemove="active = rows.indexOf(row)"
                         @click="openRow(row)"
                     >
@@ -361,12 +372,18 @@ watch(open, (isOpen) => {
                             <span class="shrink-0 text-xs text-muted-foreground">{{ row.email }}</span>
                         </template>
 
-                        <template v-else>
+                        <template v-else-if="row.kind === 'messages'">
                             <MessageSquare class="size-4 shrink-0 text-muted-foreground" />
                             <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
                             <span v-if="row.task" class="shrink-0 truncate text-xs text-muted-foreground">
                                 {{ row.task }}
                             </span>
+                        </template>
+
+                        <template v-else>
+                            <FileText class="size-4 shrink-0 text-muted-foreground" />
+                            <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
+                            <span class="shrink-0 truncate text-xs text-muted-foreground">{{ row.project }}</span>
                         </template>
                     </button>
                 </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { defineAsyncComponent, ref, watch } from 'vue';
+import { Pencil } from '@lucide/vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -29,9 +30,33 @@ watch(
     },
 );
 
+const rendered = computed<string>(() => {
+    if (!props.value) {
+        return '';
+    }
+
+    const parsed = new DOMParser().parseFromString(props.value, 'text/html');
+
+    parsed.querySelectorAll('a[href]').forEach((link) => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    return parsed.body.innerHTML;
+});
+
 const start = (): void => {
     if (props.editable) {
         editing.value = true;
+    }
+};
+
+const startUnlessReading = (event: MouseEvent): void => {
+    const onLink = event.target instanceof Element && event.target.closest('a') !== null;
+    const selecting = window.getSelection()?.isCollapsed === false;
+
+    if (!onLink && !selecting) {
+        start();
     }
 };
 
@@ -100,19 +125,35 @@ const onFocusOut = (): void => {
             </Suspense>
         </div>
 
+        <div v-else-if="editable && value" class="group/description relative">
+            <div
+                class="rich-text cursor-text rounded-lg border border-transparent py-1.5 pr-10 pl-2 transition-colors hover:border-input"
+                @click="startUnlessReading"
+                v-html="rendered"
+            />
+
+            <button
+                type="button"
+                class="absolute top-1 right-1 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/description:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none pointer-coarse:opacity-100"
+                aria-label="Edit the description"
+                @click="start"
+            >
+                <Pencil class="size-3.5" aria-hidden="true" />
+            </button>
+        </div>
+
         <button
             v-else-if="editable"
             type="button"
-            class="w-full cursor-text rounded-lg border border-transparent px-2 py-1.5 text-left transition-colors hover:border-input focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            :aria-label="value ? 'Edit the description' : 'Add a description'"
+            class="w-full cursor-text rounded-lg border border-transparent px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:border-input focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+            aria-label="Add a description"
             @click="start"
         >
-            <div v-if="value" class="rich-text" v-html="value" />
-            <span v-else class="text-sm text-muted-foreground">{{ placeholder }}</span>
+            {{ placeholder }}
         </button>
 
         <div v-else class="px-2 py-1.5">
-            <div v-if="value" class="rich-text" v-html="value" />
+            <div v-if="value" class="rich-text" v-html="rendered" />
             <span v-else class="text-sm text-muted-foreground">No description.</span>
         </div>
 

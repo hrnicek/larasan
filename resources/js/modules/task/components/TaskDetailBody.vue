@@ -15,6 +15,7 @@ import TaskDescriptionField from '@/modules/task/components/TaskDescriptionField
 import TaskProjectMemberships from '@/modules/task/components/TaskProjectMemberships.vue';
 import TaskTextField from '@/modules/task/components/TaskTextField.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+import { show as showTask } from '@/routes/tasks';
 
 const props = defineProps<{
     detail: TaskDetail;
@@ -41,7 +42,7 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
             <div class="flex flex-col gap-2">
                 <Link
                     v-if="detail.task.parent"
-                    :href="`/tasks/${detail.task.parent.id}`"
+                    :href="showTask(detail.task.parent.id)"
                     class="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
                     <CornerLeftUp class="size-3.5" aria-hidden="true" />
