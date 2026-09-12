@@ -75,7 +75,39 @@ it('drops a link that is a script with a different spelling', function (mixed $h
     'javascript' => ['javascript:alert(1)'],
     'data' => ['data:text/html;base64,PHNjcmlwdD4='],
     'empty' => [''],
+    'only whitespace' => [" \t\n"],
     'not a string' => [['https://example.test']],
+    'an upper-case scheme' => ['JaVaScRiPt:alert(1)'],
+    'a tab inside the scheme' => ["java\tscript:alert(1)"],
+    'a newline inside the scheme' => ["java\nscript:alert(1)"],
+    'a carriage return inside the scheme' => ["java\rscript:alert(1)"],
+    'a tab written as an entity' => ['java&#9;script:alert(1)'],
+    'a leading control character' => ["\x01javascript:alert(1)"],
+    'leading spaces and a null byte' => [" \x00 javascript:alert(1)"],
+    'a space before the colon' => ['javascript :alert(1)'],
+    'a leading non-breaking space' => ["\u{00A0}javascript:alert(1)"],
+    'protocol-relative' => ['//evil.example'],
+    'protocol-relative with a backslash' => ['/\\evil.example'],
+    'protocol-relative with two backslashes' => ['\\\\evil.example'],
+    'protocol-relative behind a tab' => ["\t/\t/evil.example"],
+]);
+
+it('keeps a link without the characters a browser strips from it', function (string $href, string $kept): void {
+    $clean = PageDocument::sanitize(doc([
+        ['type' => 'paragraph', 'content' => [
+            textNode('there', [['type' => 'link', 'attrs' => ['href' => $href]]]),
+        ]],
+    ]));
+
+    expect($clean['content'][0]['content'][0]['marks'])->toBe([
+        ['type' => 'link', 'attrs' => ['href' => $kept]],
+    ]);
+})->with([
+    'an upper-case https' => ['HTTPS://example.test', 'HTTPS://example.test'],
+    'a fragment' => ['#details', '#details'],
+    'a colon after the path starts' => ['/search?at=10:30', '/search?at=10:30'],
+    'surrounding whitespace' => [" https://example.test\n", 'https://example.test'],
+    'a newline pasted into the middle' => ["https://example.test/\nbrief", 'https://example.test/brief'],
 ]);
 
 it('drops attributes the node does not carry', function (): void {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Page\Content;
 
 use App\Domain\Page\Exceptions\PageException;
+use App\Domain\Shared\Html\LinkHref;
 
 /**
  * Allowlist sanitizer for stored ProseMirror JSON, so page content never reaches a browser as markup. See ADR-0017.
@@ -53,8 +54,6 @@ final readonly class PageDocument
         'code' => [],
         'link' => ['href'],
     ];
-
-    private const ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
 
     private const MAX_HEADING_LEVEL = 3;
 
@@ -315,14 +314,9 @@ final readonly class PageDocument
             return null;
         }
 
-        $href = trim($href);
-        $scheme = strtolower((string) parse_url($href, PHP_URL_SCHEME));
+        $href = LinkHref::sanitize($href);
 
-        if ($href === '' || mb_strlen($href) > 2048) {
-            return null;
-        }
-
-        return $scheme === '' || in_array($scheme, self::ALLOWED_SCHEMES, true) ? $href : null;
+        return $href === null || mb_strlen($href) > 2048 ? null : $href;
     }
 
     /**

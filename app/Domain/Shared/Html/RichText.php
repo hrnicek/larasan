@@ -7,7 +7,6 @@ namespace App\Domain\Shared\Html;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
-use DOMXPath;
 
 final readonly class RichText
 {
@@ -29,7 +28,15 @@ final readonly class RichText
         'li' => ['data-list'],
     ];
 
-    private const ALLOWED_SCHEMES = ['http', 'https', 'mailto'];
+    /**
+     * Removed with their content, because parsers do not read what is inside them as ordinary markup.
+     *
+     * @var list<string>
+     */
+    private const DROPPED_WITH_CONTENT = [
+        'script', 'style', 'template', 'iframe', 'object', 'embed', 'form', 'svg', 'math',
+        'xmp', 'noembed', 'noframes', 'noscript', 'plaintext', 'textarea', 'title',
+    ];
 
     public static function sanitize(?string $html): ?string
     {
@@ -56,7 +63,6 @@ final readonly class RichText
             return null;
         }
 
-        self::dropDangerousElements($document);
         self::clean($root);
 
         $clean = '';
@@ -83,29 +89,18 @@ final readonly class RichText
         return trim((string) preg_replace('/\s+/u', ' ', $text));
     }
 
-    /** Removed with their content, since unwrapping would leave script source behind as text. */
-    private static function dropDangerousElements(DOMDocument $document): void
-    {
-        $xpath = new DOMXPath($document);
-        $nodes = $xpath->query('//script | //style | //iframe | //object | //embed | //form');
-
-        if ($nodes === false) {
-            return;
-        }
-
-        foreach (iterator_to_array($nodes) as $node) {
-            // DOMXPath can also return a DOMNameSpaceNode, which is not a DOMNode.
-            if ($node instanceof DOMNode) {
-                $node->parentNode?->removeChild($node);
-            }
-        }
-    }
-
     /** Iterates a copy because unwrapping a child mutates the live node list. */
     private static function clean(DOMElement $element): void
     {
         foreach (iterator_to_array($element->childNodes) as $child) {
-            if (! $child instanceof DOMElement) {
+            // Matched by type because DOMCdataSection extends DOMText and is saved back unescaped.
+            if ($child->nodeType === XML_TEXT_NODE) {
+                continue;
+            }
+
+            if (! $child instanceof DOMElement || in_array($child->nodeName, self::DROPPED_WITH_CONTENT, true)) {
+                $element->removeChild($child);
+
                 continue;
             }
 
@@ -154,15 +149,15 @@ final readonly class RichText
 
     private static function cleanLink(DOMElement $element): void
     {
-        $href = trim($element->getAttribute('href'));
-        $scheme = strtolower((string) parse_url($href, PHP_URL_SCHEME));
+        $href = LinkHref::sanitize($element->getAttribute('href'));
 
-        if ($href === '' || ($scheme !== '' && ! in_array($scheme, self::ALLOWED_SCHEMES, true))) {
+        if ($href === null) {
             $element->removeAttribute('href');
 
             return;
         }
 
+        $element->setAttribute('href', $href);
         $element->setAttribute('target', '_blank');
         $element->setAttribute('rel', 'noopener noreferrer nofollow');
     }
