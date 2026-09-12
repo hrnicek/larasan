@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { http, router } from '@inertiajs/vue3';
 import { onBeforeUnmount, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import PageTitleController from '@/actions/App/Http/Controllers/Page/PageTitleController';
 import { UNTITLED } from '@/modules/page/lib/untitled';
 
@@ -13,44 +14,91 @@ const props = defineProps<{
 
 const emit = defineEmits<{ done: [] }>();
 
-const field = ref<HTMLInputElement | null>(null);
-const draft = ref(props.title === UNTITLED ? '' : props.title);
+const shown = (title: string): string => (title === UNTITLED ? '' : title);
 
+const field = ref<HTMLInputElement | null>(null);
+const draft = ref(shown(props.title));
+
+let sent = draft.value;
+let sending = false;
+let mounted = true;
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 watch(
     () => props.pageId,
-    () => (draft.value = props.title === UNTITLED ? '' : props.title),
+    () => {
+        draft.value = shown(props.title);
+        sent = draft.value;
+    },
 );
 
-const send = (): void => {
-    if (draft.value.trim() === props.title.trim()) {
-        return;
-    }
-
-    // A partial visit that preserves state, so the tree and tab update without rebuilding the editor.
-    router.put(
-        PageTitleController.update.url(props.pageId),
-        { title: draft.value },
-        { preserveScroll: true, preserveState: true, only: ['page', 'pages'] },
-    );
-};
-
-const schedule = (): void => {
-    if (timer !== null) {
-        clearTimeout(timer);
-    }
-
-    timer = setTimeout(send, 700);
-};
-
-const flush = (): void => {
+const stopTimer = (): void => {
     if (timer !== null) {
         clearTimeout(timer);
         timer = null;
     }
+};
 
-    send();
+const refusalOf = (failure: unknown): string | null => {
+    const body = (failure as { response?: { data?: unknown } })?.response?.data;
+
+    try {
+        const message = typeof body === 'string' ? (JSON.parse(body) as { message?: unknown }).message : null;
+
+        return typeof message === 'string' ? message : null;
+    } catch {
+        return null;
+    }
+};
+
+const send = async (): Promise<void> => {
+    const title = draft.value;
+
+    if (sending || title.trim() === sent.trim()) {
+        return;
+    }
+
+    const previous = sent;
+
+    sending = true;
+    sent = title;
+
+    try {
+        // Not a visit: the next visit cancels one in flight, and this save must outlive leaving the page.
+        await http.getClient().request({
+            method: 'put',
+            url: PageTitleController.update.url(props.pageId),
+            data: { title },
+            headers: { Accept: 'application/json' },
+        });
+
+        if (mounted) {
+            router.reload({ only: ['page', 'pages'] });
+        }
+    } catch (failure: unknown) {
+        sent = previous;
+        toast.error(refusalOf(failure) ?? 'The page title could not be saved.');
+    } finally {
+        sending = false;
+    }
+
+    if (timer === null && draft.value.trim() !== title.trim()) {
+        void send();
+    }
+};
+
+const schedule = (): void => {
+    stopTimer();
+
+    timer = setTimeout(() => {
+        timer = null;
+        void send();
+    }, 700);
+};
+
+const flush = (): void => {
+    stopTimer();
+    void send();
 };
 
 const leave = (): void => {
@@ -59,20 +107,22 @@ const leave = (): void => {
 };
 
 const restore = (): void => {
-    draft.value = props.title === UNTITLED ? '' : props.title;
-
-    if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
-    }
-
+    stopTimer();
+    draft.value = sent;
     field.value?.blur();
 };
 
-onBeforeUnmount(() => {
-    if (timer !== null) {
-        clearTimeout(timer);
+// Partial reloads stay on this page, so they leave a pending title to its quiet period.
+const stopListening = router.on('before', ({ detail: { visit } }) => {
+    if (!visit.prefetch && visit.only.length === 0 && visit.except.length === 0) {
+        flush();
     }
+});
+
+onBeforeUnmount(() => {
+    mounted = false;
+    stopListening();
+    flush();
 });
 </script>
 

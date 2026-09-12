@@ -10,7 +10,7 @@ const wording = computed(() => ({
     pending: { label: 'Unsaved changes', icon: Loader2, tone: 'text-muted-foreground' },
     saving: { label: 'Saving…', icon: Loader2, tone: 'text-muted-foreground' },
     saved: { label: 'Saved', icon: Check, tone: 'text-muted-foreground' },
-    failed: { label: 'Could not save — trying again on the next change', icon: CircleAlert, tone: 'text-destructive' },
+    failed: { label: 'Could not save — retrying', icon: CircleAlert, tone: 'text-destructive' },
     conflict: { label: 'This page changed elsewhere', icon: TriangleAlert, tone: 'text-destructive' },
 }[props.state]));
 </script>

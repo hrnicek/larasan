@@ -72,6 +72,17 @@ it('renames a page', function (): void {
     expect($page->fresh()?->title)->toBe('Renamed');
 });
 
+it('answers a JSON rename with no content instead of rendering the page again', function (): void {
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $page = Page::factory()->in($project)->create();
+
+    $this->actingAs($actor)
+        ->putJson(route('pages.title.update', $page), ['title' => 'Renamed'])
+        ->assertNoContent();
+
+    expect($page->fresh()?->title)->toBe('Renamed');
+});
+
 it('refuses a rename from a viewer', function (): void {
     [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Viewer);
     $page = Page::factory()->in($project)->titled('Brief')->create();
