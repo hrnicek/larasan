@@ -98,10 +98,18 @@ watch(
     { immediate: true },
 );
 
+// Only reloads asked for on this screen draw the loading state; a realtime refetch swaps rows in place.
+const reloading = ref(false);
+const changingMonth = ref(false);
+const failed = ref(false);
+
 // Only the view props are reloaded, so another user's edit never discards an open task panel. See ADR-0008.
 useRealtime({
     channels: () => [`project.${props.project.id}`],
     only: ['board', 'list', 'calendar', 'files', 'pages'],
+    onFailure: () => {
+        failed.value = true;
+    },
 });
 const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
@@ -135,10 +143,6 @@ const activeColumn = ref(0);
 // Left to CSS breakpoints; reading window.innerWidth would go stale on resize.
 const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
-
-// Only reloads asked for on this screen draw the loading state; a realtime refetch swaps rows in place.
-const reloading = ref(false);
-const failed = ref(false);
 
 const reloadView = (options: ReloadOptions): void => {
     router.reload({
@@ -223,6 +227,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     class="w-full md:ml-2 md:w-auto md:flex-1"
                     @open="openTask"
                     @pickup="calendarDrag.pickUp"
+                    @navigating="(active) => (changingMonth = active)"
                 />
 
                 <FieldSortControl
@@ -365,7 +370,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     :creatable="creatable()"
                     :dragging-id="calendarDrag.draggingId.value"
                     :over-day="calendarDrag.overDay.value"
-                    :loading="reloading"
+                    :loading="reloading || changingMonth"
                     class="mt-4"
                     @open="openTask"
                     @expand="expand"

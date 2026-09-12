@@ -32,6 +32,18 @@ const props = defineProps<{
 
 const emit = defineEmits<{ open: [taskId: string] }>();
 
+const navigations = ref(0);
+const busy = computed<boolean>(() => props.loading === true || navigations.value > 0);
+
+const tracked = {
+    onStart: (): void => {
+        navigations.value += 1;
+    },
+    onFinish: (): void => {
+        navigations.value -= 1;
+    },
+};
+
 const kinds: Record<string, { label: string; icon: Component }> = {
     image: { label: 'Image', icon: FileImage },
     video: { label: 'Video', icon: Film },
@@ -100,7 +112,7 @@ const orderBy = (key: string | null): void => {
     router.get(
         `${window.location.pathname}?${params.toString()}`,
         {},
-        { only: ['files'], preserveScroll: true, preserveState: true },
+        { only: ['files'], preserveScroll: true, preserveState: true, ...tracked },
     );
 };
 
@@ -112,7 +124,7 @@ const range = computed<string>(() => {
 });
 
 const goTo = (page: number): void => {
-    router.reload({ only: ['files'], data: { page } });
+    router.reload({ only: ['files'], data: { page }, ...tracked });
 };
 
 const removing = ref<ProjectFile | null>(null);
@@ -176,7 +188,7 @@ const remove = (): void => {
                     </tr>
                 </thead>
 
-                <tbody :class="loading ? 'opacity-60' : ''">
+                <tbody :class="busy ? 'opacity-60' : ''">
                     <tr
                         v-for="file in files.files"
                         :key="file.id"
@@ -282,7 +294,7 @@ const remove = (): void => {
             <button
                 type="button"
                 class="rounded border border-input px-2 py-1 disabled:opacity-50"
-                :disabled="files.meta.page === 1 || loading"
+                :disabled="files.meta.page === 1 || busy"
                 @click="goTo(files.meta.page - 1)"
             >
                 Newer
@@ -291,7 +303,7 @@ const remove = (): void => {
             <button
                 type="button"
                 class="rounded border border-input px-2 py-1 disabled:opacity-50"
-                :disabled="!files.meta.hasMore || loading"
+                :disabled="!files.meta.hasMore || busy"
                 @click="goTo(files.meta.page + 1)"
             >
                 Older

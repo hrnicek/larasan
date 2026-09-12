@@ -132,9 +132,30 @@ export function useRealtime(options: {
     channels: MaybeRefOrGetter<string[]>;
     /** Props to refetch; all of them when absent. */
     only?: string[];
+    /** When set, a failed refetch is reported here rather than through Inertia's error page. */
+    onFailure?: () => void;
 }): void {
     const page = usePage();
-    const refetch = coalesced(() => router.reload(options.only === undefined ? {} : { only: options.only }));
+    const { onFailure } = options;
+
+    // A network error is not cancelled, so the shell's offline notice and reachability still see it.
+    const refetch = coalesced(() =>
+        router.reload({
+            ...(options.only === undefined ? {} : { only: options.only }),
+            ...(onFailure === undefined
+                ? {}
+                : {
+                      onHttpException: () => {
+                          onFailure();
+
+                          return false;
+                      },
+                      onNetworkError: () => {
+                          onFailure();
+                      },
+                  }),
+        }),
+    );
 
     onReconnect(refetch);
 

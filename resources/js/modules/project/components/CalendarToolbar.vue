@@ -18,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     open: [taskId: string];
     pickup: [event: PointerEvent, card: CalendarCardData];
+    navigating: [active: boolean];
 }>();
 
 const address = (month: string): string =>
@@ -49,6 +50,8 @@ const undated = computed(() => props.calendar.undated);
                 preserve-scroll
                 class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 aria-label="Previous month"
+                @start="emit('navigating', true)"
+                @finish="emit('navigating', false)"
             >
                 <ChevronLeft class="size-4" />
             </Link>
@@ -64,6 +67,8 @@ const undated = computed(() => props.calendar.undated);
                         ? 'bg-accent text-foreground'
                         : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 "
+                @start="emit('navigating', true)"
+                @finish="emit('navigating', false)"
             >
                 Today
             </Link>
@@ -75,6 +80,8 @@ const undated = computed(() => props.calendar.undated);
                 preserve-scroll
                 class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 aria-label="Next month"
+                @start="emit('navigating', true)"
+                @finish="emit('navigating', false)"
             >
                 <ChevronRight class="size-4" />
             </Link>
