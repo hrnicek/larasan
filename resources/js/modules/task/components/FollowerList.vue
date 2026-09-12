@@ -53,7 +53,7 @@ const toggle = (): void => {
                         :key="follower.id"
                         class="rounded-md ring-2 ring-background"
                     >
-                        <UserAvatar :user="{ ...follower, avatar: follower.avatar }" size="sm" />
+                        <UserAvatar :user="follower" size="sm" />
                     </span>
 
                     <span
@@ -76,7 +76,7 @@ const toggle = (): void => {
                         :key="follower.id"
                         class="flex items-center gap-2 rounded-md px-2 py-1.5"
                     >
-                        <UserAvatar :user="{ ...follower, avatar: follower.avatar }" size="sm" />
+                        <UserAvatar :user="follower" size="sm" />
                         <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm">{{ follower.name }}</span>
                             <span class="block truncate text-xs text-muted-foreground">{{ follower.email }}</span>

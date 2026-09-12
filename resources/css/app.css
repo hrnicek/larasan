@@ -92,10 +92,6 @@
 
 /* Custom hex accents (ADR-0021): mixing with --foreground darkens in light mode, lightens in dark. */
 @layer components {
-    .accent-text {
-        color: color-mix(in oklab, var(--custom-accent, currentColor) 78%, var(--foreground));
-    }
-
     .accent-dot {
         background-color: var(--custom-accent, var(--muted-foreground));
     }

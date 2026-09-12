@@ -140,9 +140,9 @@ async function copyLink(): Promise<void> {
             </DialogHeader>
 
             <div v-if="share === null" class="space-y-3" aria-hidden="true">
-                <Skeleton class="h-9 w-full animate-pulse rounded-md" />
-                <Skeleton class="h-12 w-full animate-pulse rounded-md" />
-                <Skeleton class="h-12 w-full animate-pulse rounded-md" />
+                <Skeleton class="h-9 w-full rounded-md" />
+                <Skeleton class="h-12 w-full rounded-md" />
+                <Skeleton class="h-12 w-full rounded-md" />
             </div>
 
             <template v-else>

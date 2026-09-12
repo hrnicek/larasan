@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import ProjectCustomFieldController from '@/actions/App/Http/Controllers/CustomField/ProjectCustomFieldController';
@@ -92,9 +92,14 @@ function detach(id: string): void {
             <p class="text-muted-foreground text-xs">
                 Removing a field here keeps every answer already recorded in it — putting it back
                 brings them with it.
-                <a :href="workspaceFields.url()" class="underline underline-offset-2">
+                <Link
+                    :href="workspaceFields()"
+                    component="settings/Fields"
+                    prefetch="click"
+                    class="underline underline-offset-2"
+                >
                     Fields are defined in workspace settings.
-                </a>
+                </Link>
             </p>
         </template>
     </div>

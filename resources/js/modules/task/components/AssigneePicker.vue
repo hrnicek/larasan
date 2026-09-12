@@ -126,7 +126,7 @@ function onKeydown(event: KeyboardEvent): void {
                 "
             >
                 <template v-if="assignee">
-                    <UserAvatar :user="{ ...assignee, avatar: assignee.avatar }" size="sm" />
+                    <UserAvatar :user="assignee" size="sm" />
                     <span v-if="variant === 'field'" class="truncate">{{ assignee.name }}</span>
                 </template>
 
@@ -176,7 +176,7 @@ function onKeydown(event: KeyboardEvent): void {
                                 class="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary"
                                 aria-hidden="true"
                             />
-                            <UserAvatar :user="{ ...member, avatar: member.avatar }" size="sm" />
+                            <UserAvatar :user="member" size="sm" />
                             <span class="min-w-0 flex-1">
                                 <span class="block truncate text-sm font-medium">{{ member.name }}</span>
                                 <span class="block truncate text-xs text-muted-foreground">{{ member.email }}</span>

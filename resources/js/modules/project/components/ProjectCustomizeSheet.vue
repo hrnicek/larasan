@@ -135,9 +135,9 @@ watch(
 
                 <template v-else-if="section === 'columns'">
                     <div v-if="columns === null" class="space-y-3" aria-hidden="true">
-                        <Skeleton class="h-10 w-full animate-pulse rounded-lg" />
-                        <Skeleton class="h-10 w-full animate-pulse rounded-lg" />
-                        <Skeleton class="h-10 w-full animate-pulse rounded-lg" />
+                        <Skeleton class="h-10 w-full rounded-lg" />
+                        <Skeleton class="h-10 w-full rounded-lg" />
+                        <Skeleton class="h-10 w-full rounded-lg" />
                     </div>
 
                     <ProjectColumnManager
@@ -151,9 +151,9 @@ watch(
 
                 <template v-else>
                     <div v-if="fields === null" class="space-y-3" aria-hidden="true">
-                        <Skeleton class="h-12 w-full animate-pulse rounded-lg" />
-                        <Skeleton class="h-12 w-full animate-pulse rounded-lg" />
-                        <Skeleton class="h-8 w-2/3 animate-pulse rounded-md" />
+                        <Skeleton class="h-12 w-full rounded-lg" />
+                        <Skeleton class="h-12 w-full rounded-lg" />
+                        <Skeleton class="h-8 w-2/3 rounded-md" />
                     </div>
 
                     <ProjectFieldManager

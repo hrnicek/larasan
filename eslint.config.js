@@ -39,7 +39,7 @@ export default defineConfigWithVueTs(
         },
         rules: {
             'vue/multi-word-component-names': 'off',
-            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-explicit-any': 'error',
             '@typescript-eslint/consistent-type-imports': [
                 'error',
                 {
@@ -76,10 +76,9 @@ export default defineConfigWithVueTs(
         ignores: [
             'vendor',
             'node_modules',
-            '.claude/**',
+            '.*/**',
             'public',
             'bootstrap/ssr',
-            'tailwind.config.js',
             'vite.config.ts',
             'resources/js/actions/**',
             'resources/js/components/ui/*',

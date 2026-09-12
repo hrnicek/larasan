@@ -35,8 +35,6 @@ const answerOf = (fieldId: string, type: string | null): string => {
     return type === 'boolean' ? (value ? '✓' : '—') : String(value);
 };
 
-const row = ref<HTMLElement | null>(null);
-
 const optimisticCompletion = ref<boolean | null>(null);
 const pending = ref(false);
 
@@ -66,13 +64,10 @@ function toggleCompletion(): void {
 
     router.put(TaskController.complete.url(props.task.id), {}, { preserveScroll: true, ...settle });
 }
-
-defineExpose({ focus: () => row.value?.focus() });
 </script>
 
 <template>
     <div
-        ref="row"
         tabindex="0"
         data-task-row
         :data-task-id="task.id"

@@ -1,5 +1,4 @@
-import { ref, watch  } from 'vue';
-import type {Ref} from 'vue';
+import { ref, watch } from 'vue';
 
 const storageKey = (projectId: string) => `collapsed-sections:${projectId}`;
 
@@ -19,7 +18,6 @@ function read(projectId: string): string[] {
 }
 
 export function useCollapsedSections(projectId: string): {
-    collapsed: Ref<string[]>;
     isCollapsed: (sectionId: string | null) => boolean;
     toggle: (sectionId: string | null) => void;
 } {
@@ -34,7 +32,6 @@ export function useCollapsedSections(projectId: string): {
     const key = (sectionId: string | null) => sectionId ?? 'ungrouped';
 
     return {
-        collapsed,
         isCollapsed: (sectionId) => collapsed.value.includes(key(sectionId)),
         toggle: (sectionId) => {
             const id = key(sectionId);

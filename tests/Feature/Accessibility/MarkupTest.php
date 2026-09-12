@@ -40,7 +40,7 @@ function componentWithItsImports(string $path): array
 function layoutsFor(string $page): array
 {
     return match (true) {
-        $page === 'Welcome' => [],
+        $page === 'Error' => [],
         str_starts_with($page, 'auth/') => [resource_path('js/layouts/AuthLayout.vue')],
         str_starts_with($page, 'settings/') => [
             resource_path('js/layouts/AppLayout.vue'),
