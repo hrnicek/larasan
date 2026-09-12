@@ -4,11 +4,13 @@ use App\Domain\Shared\Exceptions\DomainRefusal;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\HandleUiTheme;
+use App\Http\Middleware\PreventContentSniffing;
 use App\Http\Middleware\ResolveCurrentWorkspace;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
+use Illuminate\Http\Middleware\FrameGuard;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
@@ -27,7 +29,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
-        $middleware->web(append: [
+        $middleware->append(PreventContentSniffing::class);
+
+        $middleware->web(prepend: [
+            FrameGuard::class,
+        ], append: [
             HandleAppearance::class,
             HandleUiTheme::class,
             ResolveCurrentWorkspace::class,

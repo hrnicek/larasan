@@ -8,11 +8,14 @@ use App\Domain\CustomField\Exceptions\CustomFieldException;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\CustomField\Models\CustomFieldOption;
 use App\Domain\CustomField\Models\TaskCustomFieldValue;
+use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 
 final readonly class SetTaskCustomFieldValue
 {
+    public function __construct(private VisibleProjectsForUser $visibleProjects) {}
+
     public function handle(Task $task, CustomField $field, User $actor, mixed $value): ?TaskCustomFieldValue
     {
         if ($actor->cannot('update', $task)) {
@@ -23,7 +26,7 @@ final readonly class SetTaskCustomFieldValue
             throw CustomFieldException::fieldIsFromAnotherWorkspace();
         }
 
-        if (! $this->shownOn($task, $field)) {
+        if (! $this->shownOn($task, $field, $actor)) {
             throw CustomFieldException::fieldIsNotOnThisTask();
         }
 
@@ -56,9 +59,13 @@ final readonly class SetTaskCustomFieldValue
         return $answer;
     }
 
-    private function shownOn(Task $task, CustomField $field): bool
+    private function shownOn(Task $task, CustomField $field, User $actor): bool
     {
         return $task->placements()
+            ->whereIn(
+                'project_id',
+                $this->visibleProjects->query($task->workspace, $actor, includeArchived: true)->select('projects.id'),
+            )
             ->whereHas(
                 'project.customFields',
                 fn ($fields) => $fields->where('custom_fields.id', $field->id),

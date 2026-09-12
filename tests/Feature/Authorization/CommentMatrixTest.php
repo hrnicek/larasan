@@ -91,7 +91,7 @@ it('refuses a comment on a task that lives only in a private project the actor w
     'guest' => [WorkspaceRole::Guest],
 ]);
 
-it('answers editing a comment by authorship and nothing else', function (
+it('answers editing a comment by authorship and the right to comment', function (
     WorkspaceRole $role,
     ProjectAccessLevel $access,
     bool $author,
@@ -115,9 +115,11 @@ it('answers editing a comment by authorship and nothing else', function (
     'owner, their own' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, true, 'allowed'],
     'owner, somebody else s' => [WorkspaceRole::Owner, ProjectAccessLevel::Owner, false, 'forbidden'],
     'admin, somebody else s' => [WorkspaceRole::Admin, ProjectAccessLevel::Editor, false, 'forbidden'],
-    'member, their own' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, true, 'allowed'],
+    'member, their own' => [WorkspaceRole::Member, ProjectAccessLevel::Commenter, true, 'allowed'],
+    'member, their own, as viewer' => [WorkspaceRole::Member, ProjectAccessLevel::Viewer, true, 'forbidden'],
     'member, somebody else s' => [WorkspaceRole::Member, ProjectAccessLevel::Editor, false, 'forbidden'],
-    'guest, their own' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, true, 'allowed'],
+    'guest, their own' => [WorkspaceRole::Guest, ProjectAccessLevel::Commenter, true, 'allowed'],
+    'guest, their own, as viewer' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, true, 'forbidden'],
     'guest, somebody else s' => [WorkspaceRole::Guest, ProjectAccessLevel::Editor, false, 'forbidden'],
 ]);
 

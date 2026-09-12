@@ -51,7 +51,8 @@ enum CustomFieldType: string
             // Permissive by design: rejects prose but accepts any national number format.
             self::Phone => ['string', 'max:32', 'regex:/^[0-9+()\\-.\\/ ]{3,32}$/'],
             self::Link => ['url', 'max:255'],
-            self::Number => ['numeric'],
+            // Bounded to what the decimal(20,6) column holds; exponent notation is refused.
+            self::Number => ['numeric', 'decimal:0,6', 'min:-99999999999999.999999', 'max:99999999999999.999999'],
             self::Date => ['date'],
             self::Boolean => ['boolean'],
             self::Select => ['uuid'],
@@ -63,7 +64,7 @@ enum CustomFieldType: string
         return $this === self::Select;
     }
 
-    public function normalise(mixed $value): string|float|bool|CarbonImmutable|null
+    public function normalise(mixed $value): string|bool|CarbonImmutable|null
     {
         if ($value === null || $value === '') {
             return null;
@@ -71,7 +72,8 @@ enum CustomFieldType: string
 
         return match ($this) {
             self::Text, self::Select, self::Email, self::Phone, self::Link => trim((string) $value),
-            self::Number => (float) $value,
+            // A string, because a float cast rounds away digits the decimal column would keep.
+            self::Number => is_string($value) ? trim($value) : (string) $value,
             self::Date => CarbonImmutable::parse((string) $value)->startOfDay(),
             // A (bool) cast would turn the string "false" into true.
             self::Boolean => filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false,

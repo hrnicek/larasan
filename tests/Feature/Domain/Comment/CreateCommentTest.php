@@ -76,7 +76,7 @@ it('lets a guest comment on what they were given', function (): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
-    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Commenter)->create();
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
@@ -121,4 +121,29 @@ it('writes the morph alias rather than a class name', function (): void {
     $task = Task::factory()->in($workspace)->create();
 
     expect(comment($task, $actor)->commentable_type)->toBe('task');
+});
+
+it('refuses somebody who may read the subject but not comment on it', function (): void {
+    [$workspace, $project, $viewer] = placeableProject(ProjectAccessLevel::Viewer);
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    expect($viewer->can('view', $task))->toBeTrue();
+
+    expect(fn (): Comment => comment($task, $viewer))->toThrow(CommentException::class);
+
+    expect($task->comments()->count())->toBe(0);
+});
+
+it('refuses a comment on a task that lives only in an archived project', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->archived()->create();
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    expect(fn (): Comment => comment($task, $actor))->toThrow(CommentException::class);
+
+    expect($task->comments()->count())->toBe(0);
 });

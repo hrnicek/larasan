@@ -48,7 +48,7 @@ it('validates the text-shaped types by their shape rather than by their length a
 });
 
 it('validates each type by what it is', function (): void {
-    expect(CustomFieldType::Number->rules())->toBe(['numeric'])
+    expect(CustomFieldType::Number->rules())->toBe(['numeric', 'decimal:0,6', 'min:-99999999999999.999999', 'max:99999999999999.999999'])
         ->and(CustomFieldType::Date->rules())->toBe(['date'])
         ->and(CustomFieldType::Boolean->rules())->toBe(['boolean'])
         ->and(CustomFieldType::Text->rules())->toBe(['string', 'max:255'])
@@ -57,13 +57,22 @@ it('validates each type by what it is', function (): void {
 });
 
 it('turns what a form sends into what the column wants', function (): void {
-    expect(CustomFieldType::Number->normalise('12.5'))->toBe(12.5)
+    expect(CustomFieldType::Number->normalise('12.5'))->toBe('12.5')
         ->and(CustomFieldType::Text->normalise('  Two days  '))->toBe('Two days')
         ->and(CustomFieldType::Email->normalise('  someone@example.com  '))->toBe('someone@example.com')
         ->and(CustomFieldType::Link->normalise(' https://example.com/a '))->toBe('https://example.com/a')
         ->and(CustomFieldType::Phone->normalise('  +420 123 456 789 '))->toBe('+420 123 456 789')
         ->and(CustomFieldType::Date->normalise('2026-08-23'))->toEqual(CarbonImmutable::parse('2026-08-23'));
 });
+
+it('keeps every digit of a number the column can hold', function (mixed $sent, string $stored): void {
+    expect(CustomFieldType::Number->normalise($sent))->toBe($stored);
+})->with([
+    'more digits than a float holds' => ['12345678901234.123456', '12345678901234.123456'],
+    'padded' => ['  -0.000001 ', '-0.000001'],
+    'an integer' => [42, '42'],
+    'a float' => [12.5, '12.5'],
+]);
 
 it('reads a date as the day rather than the moment', function (): void {
     expect(CustomFieldType::Date->normalise('2026-08-23 17:45:00'))

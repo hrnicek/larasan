@@ -15,7 +15,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::put('settings/avatar', [AvatarController::class, 'update'])->name('avatar.update');
     Route::post('settings/avatar', [AvatarController::class, 'store'])
-        ->middleware('throttle:20,1')
+        ->middleware('throttle:avatar-uploads')
         ->name('avatar.store');
     Route::delete('settings/avatar', [AvatarController::class, 'destroy'])->name('avatar.destroy');
 });
@@ -28,7 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('security.edit');
 
     Route::put('settings/password', [SecurityController::class, 'update'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:password-updates')
         ->name('user-password.update');
 
     Route::get('settings/appearance', [AppearanceController::class, 'edit'])->name('appearance.edit');

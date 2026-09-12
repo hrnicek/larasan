@@ -9,7 +9,7 @@ use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Tag\Exceptions\TagException;
 use App\Domain\Tag\Models\Tag;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class UpdateTag
@@ -37,7 +37,7 @@ final readonly class UpdateTag
         try {
             // A savepoint keeps a unique violation from aborting an enclosing PostgreSQL transaction.
             DB::transaction(fn () => $tag->save());
-        } catch (QueryException $exception) {
+        } catch (UniqueConstraintViolationException) {
             throw TagException::nameIsTaken();
         }
 

@@ -151,6 +151,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('comments', fn (Request $request): Limit => Limit::perMinute(30)->by((string) $request->user()?->id));
 
         RateLimiter::for('attachments', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
+
+        RateLimiter::for('avatar-uploads', fn (Request $request): Limit => Limit::perMinute(20)->by((string) $request->user()?->id));
+        RateLimiter::for('password-updates', fn (Request $request): Limit => Limit::perMinute(6)->by((string) $request->user()?->id));
     }
 
     protected function registerCapabilityGates(): void

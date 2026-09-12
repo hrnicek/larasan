@@ -11,7 +11,7 @@ use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class DefineCustomField
@@ -57,7 +57,7 @@ final readonly class DefineCustomField
                     $option->save();
                 }
             });
-        } catch (QueryException $exception) {
+        } catch (UniqueConstraintViolationException) {
             throw CustomFieldException::nameIsTaken();
         }
 

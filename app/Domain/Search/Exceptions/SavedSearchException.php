@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Search\Exceptions;
 
+use App\Domain\Shared\Exceptions\DomainRefusal;
 use DomainException;
 
-final class SavedSearchException extends DomainException
+final class SavedSearchException extends DomainException implements DomainRefusal
 {
     public static function nameIsTaken(string $name): self
     {

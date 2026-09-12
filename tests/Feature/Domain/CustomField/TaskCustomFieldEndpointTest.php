@@ -49,6 +49,38 @@ it('refuses a value the field s type cannot hold', function (): void {
     expect(TaskCustomFieldValue::query()->count())->toBe(0);
 });
 
+it('refuses a number the column cannot hold', function (string $value): void {
+    [$task, $field, $actor] = fieldOnATask(CustomFieldType::Number);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => $value])
+        ->assertRedirect(route('tasks.show', $task))
+        ->assertSessionHasErrors('value');
+
+    expect(TaskCustomFieldValue::query()->count())->toBe(0);
+})->with([
+    'in exponent notation' => ['1e15'],
+    'too many whole digits' => ['100000000000000'],
+    'too far below zero' => ['-100000000000000'],
+    'more decimals than the column keeps' => ['1.1234567'],
+]);
+
+it('stores the largest number the column holds without rounding it', function (string $value): void {
+    [$task, $field, $actor] = fieldOnATask(CustomFieldType::Number);
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => $value])
+        ->assertSessionHasNoErrors();
+
+    expect($task->customFieldValues()->sole()->value_number)->toBe($value);
+})->with([
+    'positive' => ['99999999999999.999999'],
+    'negative' => ['-99999999999999.999999'],
+    'more significant digits than a float' => ['12345678901234.123456'],
+]);
+
 it('refuses a date that is not one', function (): void {
     [$task, $field, $actor] = fieldOnATask(CustomFieldType::Date);
 

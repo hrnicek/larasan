@@ -11,6 +11,8 @@ use App\Domain\Tag\Actions\UpdateTag;
 use App\Domain\Tag\Exceptions\TagException;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Workspace\Models\Workspace;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 it('adds a word to the workspace vocabulary', function (): void {
     [$workspace, , $actor] = placeableProject();
@@ -90,4 +92,18 @@ it('deletes the label rather than the work', function (): void {
     app(DeleteTag::class)->handle($tag, $actor);
 
     expect(Tag::query()->count())->toBe(0);
+});
+
+it('reports a database failure other than a duplicate name as what it is', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $tag = Tag::factory()->in($workspace)->named('Bug')->create();
+    $tooLong = str_repeat('a', 256);
+
+    expect(fn (): Tag => app(CreateTag::class)->handle($workspace, $actor, $tooLong))
+        ->toThrow(fn (QueryException $exception) => expect($exception)->not->toBeInstanceOf(UniqueConstraintViolationException::class));
+
+    expect(fn (): Tag => app(UpdateTag::class)->handle($tag, $actor, $tooLong))
+        ->toThrow(QueryException::class);
+
+    expect(Tag::query()->pluck('name')->all())->toBe(['Bug']);
 });

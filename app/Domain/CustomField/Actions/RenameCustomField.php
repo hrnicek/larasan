@@ -8,7 +8,7 @@ use App\Domain\CustomField\Exceptions\CustomFieldException;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\Shared\Enums\Capability;
 use App\Models\User;
-use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 final readonly class RenameCustomField
@@ -29,7 +29,7 @@ final readonly class RenameCustomField
 
         try {
             DB::transaction(fn () => $field->save());
-        } catch (QueryException $exception) {
+        } catch (UniqueConstraintViolationException) {
             throw CustomFieldException::nameIsTaken();
         }
 

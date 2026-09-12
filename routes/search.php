@@ -15,5 +15,7 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('search.suggestions');
 
     Route::post('search/saved', [SavedSearchController::class, 'store'])->name('search.saved.store');
-    Route::delete('search/saved/{savedSearch}', [SavedSearchController::class, 'destroy'])->name('search.saved.destroy');
+    Route::delete('search/saved/{savedSearch}', [SavedSearchController::class, 'destroy'])
+        ->whereUuid('savedSearch')
+        ->name('search.saved.destroy');
 });

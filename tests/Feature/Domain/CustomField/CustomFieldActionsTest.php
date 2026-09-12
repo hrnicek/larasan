@@ -14,14 +14,18 @@ use App\Domain\CustomField\Models\CustomFieldOption;
 use App\Domain\CustomField\Models\TaskCustomFieldValue;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Project\Queries\ProjectListQuery;
 use App\Domain\Shared\Enums\CustomFieldType;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -71,6 +75,31 @@ it('refuses a duplicate name whatever case it is typed in', function (): void {
 
     expect(fn (): CustomField => app(DefineCustomField::class)->handle($workspace, $actor, 'ESTIMATE', CustomFieldType::Text))
         ->toThrow(CustomFieldException::class, 'A field with that name already exists.');
+});
+
+it('refuses a rename onto a name that is taken', function (): void {
+    [$workspace, , $actor] = placeableProject(role: WorkspaceRole::Owner);
+    app(DefineCustomField::class)->handle($workspace, $actor, 'Estimate', CustomFieldType::Number);
+    $other = app(DefineCustomField::class)->handle($workspace, $actor, 'Risk', CustomFieldType::Text);
+
+    expect(fn (): CustomField => app(RenameCustomField::class)->handle($other, $actor, 'ESTIMATE'))
+        ->toThrow(CustomFieldException::class, 'A field with that name already exists.');
+
+    expect($other->fresh()?->name)->toBe('Risk');
+});
+
+it('reports a database failure other than a duplicate name as what it is', function (): void {
+    [$workspace, , $actor] = placeableProject(role: WorkspaceRole::Owner);
+    $field = app(DefineCustomField::class)->handle($workspace, $actor, 'Estimate', CustomFieldType::Number);
+    $tooLong = str_repeat('a', 256);
+
+    expect(fn (): CustomField => app(DefineCustomField::class)->handle($workspace, $actor, $tooLong, CustomFieldType::Text))
+        ->toThrow(fn (QueryException $exception) => expect($exception)->not->toBeInstanceOf(UniqueConstraintViolationException::class));
+
+    expect(fn (): CustomField => app(RenameCustomField::class)->handle($field, $actor, $tooLong))
+        ->toThrow(QueryException::class);
+
+    expect(CustomField::query()->pluck('name')->all())->toBe(['Estimate']);
 });
 
 it('refuses a member without custom_field.manage, at every definition operation', function (): void {
@@ -180,6 +209,27 @@ it('refuses a field the task s projects do not show', function (): void {
 
     expect(fn (): ?TaskCustomFieldValue => setValue($task, $unattached, $actor, 'High'))
         ->toThrow(CustomFieldException::class, 'That field is not shown on this task.');
+});
+
+it('refuses a field shown only on a project the actor cannot see', function (): void {
+    [$workspace, $shared, $editor] = placeableProject();
+    $owner = memberOf($workspace, WorkspaceRole::Owner);
+    $private = Project::factory()->in($workspace)->private()->create();
+    $field = app(DefineCustomField::class)->handle($workspace, $owner, 'Budget', CustomFieldType::Text);
+    app(AttachFieldToProject::class)->handle($private, $field, $owner);
+
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $shared)->create();
+    TaskProjectMembership::factory()->placing($task, $private)->create();
+
+    expect(fn (): ?TaskCustomFieldValue => setValue($task, $field, $editor, 'Guessed'))
+        ->toThrow(CustomFieldException::class, 'That field is not shown on this task.');
+
+    expect(TaskCustomFieldValue::query()->count())->toBe(0);
+
+    ProjectMembership::factory()->in($private)->forUser($editor)->withAccess(ProjectAccessLevel::Viewer)->create();
+
+    expect(setValue($task, $field, $editor->fresh(), 'Seen')?->value($field))->toBe('Seen');
 });
 
 it('refuses a value from somebody who may not edit the task', function (): void {

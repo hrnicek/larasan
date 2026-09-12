@@ -103,3 +103,33 @@ it('lets a guest who was given the project read the thread on it', function (): 
 
     expect(Gate::forUser($guest)->allows('view', $comment))->toBeTrue();
 });
+
+it('stops an author editing once they may no longer comment on the subject', function (): void {
+    $workspace = Workspace::factory()->create();
+    $author = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->private()->create();
+    $membership = ProjectMembership::factory()->in($project)->forUser($author)->withAccess(ProjectAccessLevel::Commenter)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+    $comment = Comment::factory()->on($task)->by($author)->create();
+
+    expect(Gate::forUser($author)->allows('update', $comment))->toBeTrue();
+
+    $membership->forceFill(['access_level' => ProjectAccessLevel::Viewer])->save();
+
+    expect(Gate::forUser($author->fresh())->allows('view', $comment))->toBeTrue()
+        ->and(Gate::forUser($author->fresh())->allows('update', $comment))->toBeFalse();
+});
+
+it('stops an author editing on a project that has been archived', function (): void {
+    $workspace = Workspace::factory()->create();
+    $author = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->archived()->create();
+    ProjectMembership::factory()->in($project)->forUser($author)->withAccess(ProjectAccessLevel::Editor)->create();
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+    $comment = Comment::factory()->on($task)->by($author)->create();
+
+    expect(Gate::forUser($author)->allows('view', $comment))->toBeTrue()
+        ->and(Gate::forUser($author)->allows('update', $comment))->toBeFalse();
+});

@@ -16,6 +16,7 @@ use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
+use Illuminate\Contracts\Validation\Factory as ValidationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -29,6 +30,8 @@ final class ProjectListQuery
      */
     private Collection $fields;
 
+    public function __construct(private readonly ValidationFactory $validation) {}
+
     /**
      * @param  list<string>  $tags
      * @param  array<string, string>  $fieldFilters  field id => the answer a row must carry
@@ -36,7 +39,7 @@ final class ProjectListQuery
      *     fields: list<array{id: string, name: string, type: string}>,
      *     columns: list<array{key: string, kind: string, label: string, type: string|null}>,
      *     sections: list<array{id: string|null, name: string|null, color: string|null, count: int, tasks: list<array<string, mixed>>}>,
-     *     can: array{createTask: bool, updateTask: bool, deleteTask: bool},
+     *     can: array{createTask: bool, updateTask: bool, deleteTask: bool, createSection: bool, updateSection: bool, deleteSection: bool},
      * }
      */
     public function __invoke(
@@ -116,6 +119,12 @@ final class ProjectListQuery
                 continue;
             }
 
+            if (! $this->columnCanHold($field, $answer)) {
+                $query->whereRaw('1 = 0');
+
+                continue;
+            }
+
             $stored = $field->type->normalise($answer);
 
             $query->whereHas(
@@ -133,6 +142,19 @@ final class ProjectListQuery
         return $query
             ->get()
             ->groupBy(fn (TaskProjectMembership $card): string => $card->section_id ?? '');
+    }
+
+    private function columnCanHold(CustomField $field, string $answer): bool
+    {
+        // PostgreSQL fails the whole query when a filter value cannot be cast to the column's type.
+        return match ($field->type) {
+            CustomFieldType::Number,
+            CustomFieldType::Date,
+            CustomFieldType::Select => ! $this->validation
+                ->make(['answer' => $answer], ['answer' => $field->type->rules()])
+                ->fails(),
+            default => true,
+        };
     }
 
     /**
@@ -160,11 +182,11 @@ final class ProjectListQuery
             CustomFieldType::Text,
             CustomFieldType::Email,
             CustomFieldType::Phone,
-            CustomFieldType::Link => 'value_text',
-            CustomFieldType::Number => 'value_number',
-            CustomFieldType::Date => 'value_date',
-            CustomFieldType::Boolean => 'value_boolean',
-            CustomFieldType::Select => 'value_option_id',
+            CustomFieldType::Link => 'task_custom_field_values.value_text',
+            CustomFieldType::Number => 'task_custom_field_values.value_number',
+            CustomFieldType::Date => 'task_custom_field_values.value_date',
+            CustomFieldType::Boolean => 'task_custom_field_values.value_boolean',
+            CustomFieldType::Select => 'custom_field_options.position',
         };
 
         $direction = $sort->descending ? 'desc' : 'asc';
@@ -174,9 +196,15 @@ final class ProjectListQuery
                 $join->on('task_custom_field_values.task_id', '=', 'task_project_memberships.task_id')
                     ->where('task_custom_field_values.custom_field_id', '=', $sort->field->id);
             })
+            ->when($sort->field->type->isSelect(), fn (Builder $options): Builder => $options->leftJoin(
+                'custom_field_options',
+                'custom_field_options.id',
+                '=',
+                'task_custom_field_values.value_option_id',
+            ))
             ->select('task_project_memberships.*')
             ->reorder()
-            ->orderByRaw("task_custom_field_values.{$column} {$direction} nulls last")
+            ->orderByRaw("{$column} {$direction} nulls last")
             ->orderBy('task_project_memberships.position');
     }
 

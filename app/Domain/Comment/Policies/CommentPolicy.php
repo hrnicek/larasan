@@ -21,7 +21,8 @@ class CommentPolicy
     {
         return $comment->author_id === $user->id
             && $comment->deleted_at === null
-            && $this->canReachSubject($user, $comment);
+            && $this->canReachSubject($user, $comment)
+            && $user->can('comment', $comment->commentable);
     }
 
     public function delete(User $user, Comment $comment): bool

@@ -6,6 +6,7 @@ use App\Domain\CustomField\Actions\AttachFieldToProject;
 use App\Domain\CustomField\Actions\DefineCustomField;
 use App\Domain\CustomField\Data\FieldSort;
 use App\Domain\CustomField\Models\CustomField;
+use App\Domain\CustomField\Models\CustomFieldOption;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectListQuery;
@@ -105,6 +106,64 @@ it('keeps the order somebody put them in when two rows answer the same', functio
     expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field))))
         ->toBe(['First', 'Second']);
 });
+
+it('sorts choices in the order the field offers them rather than by option id', function (): void {
+    [$project, $field, $actor] = projectWithAField(CustomFieldType::Select, ['Placeholder']);
+    $field->options()->delete();
+
+    $offeredSecond = CustomFieldOption::factory()->of($field, 2)->labelled('Review')
+        ->create(['id' => '00000000-0000-7000-8000-000000000001']);
+    $offeredFirst = CustomFieldOption::factory()->of($field, 1)->labelled('Draft')
+        ->create(['id' => 'ffffffff-ffff-7fff-bfff-ffffffffffff']);
+
+    answeredCard($project, $field, $actor, 'In review', $offeredSecond->id, 1);
+    answeredCard($project, $field, $actor, 'Drafted', $offeredFirst->id, 2);
+    answeredCard($project, $field, $actor, 'Blank', null, 3);
+
+    expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field))))
+        ->toBe(['Drafted', 'In review', 'Blank'])
+        ->and(listedTitles(app(ProjectListQuery::class)($project, $actor, [], new FieldSort($field, descending: true))))
+        ->toBe(['In review', 'Drafted', 'Blank']);
+});
+
+it('filters a number by its exact value', function (): void {
+    [$project, $field, $actor] = projectWithAField(CustomFieldType::Number);
+
+    answeredCard($project, $field, $actor, 'Matching', '12345678901234.123456', 1);
+    answeredCard($project, $field, $actor, 'Close', '12345678901234.123457', 2);
+
+    expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], null, [$field->id => '12345678901234.123456'])))
+        ->toBe(['Matching']);
+});
+
+it('filters a checkbox by the way a person writes it', function (): void {
+    [$project, $field, $actor] = projectWithAField(CustomFieldType::Boolean);
+
+    answeredCard($project, $field, $actor, 'Ticked', '1', 1);
+    answeredCard($project, $field, $actor, 'Unticked', '0', 2);
+
+    expect(listedTitles(app(ProjectListQuery::class)($project, $actor, [], null, [$field->id => 'true'])))
+        ->toBe(['Ticked']);
+});
+
+it('matches nothing when a filter names an answer the field cannot hold', function (CustomFieldType $type, string $answer): void {
+    [$project, $field, $actor] = projectWithAField($type, $type->isSelect() ? ['Draft'] : []);
+    answeredCard($project, $field, $actor, 'Answered', match ($type) {
+        CustomFieldType::Number => '0',
+        CustomFieldType::Date => '2026-01-05',
+        default => $field->options()->value('id'),
+    }, 1);
+
+    $this->actingAs($actor)
+        ->get(route('projects.show', [$project, 'view' => 'list', 'field' => [$field->id => $answer]]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->has('list.sections', 0));
+})->with([
+    'a number that is not one' => [CustomFieldType::Number, 'abc'],
+    'a date that is not one' => [CustomFieldType::Date, 'someday'],
+    'a choice that is not an id' => [CustomFieldType::Select, 'nonsense'],
+]);
 
 it('filters to the rows carrying one answer', function (): void {
     [$project, $field, $actor] = projectWithAField(CustomFieldType::Text);

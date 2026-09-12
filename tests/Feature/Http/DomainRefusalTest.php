@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Shared\Exceptions\DomainRefusal;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
@@ -48,4 +49,14 @@ it('answers a json client with 422 and the same message', function (): void {
         ->putJson(route('tasks.assign', $task), ['assignee_id' => $guest->id])
         ->assertStatus(422)
         ->assertJson(['message' => 'That person cannot reach this task.']);
+});
+
+it('marks every domain exception as a refusal the user may read', function (): void {
+    $exceptions = collect(glob(app_path('Domain/*/Exceptions/*.php')) ?: [])
+        ->map(fn (string $path): string => 'App\\Domain\\'.str_replace('/', '\\', substr($path, strlen(app_path('Domain/')), -4)))
+        ->reject(fn (string $class): bool => $class === DomainRefusal::class)
+        ->values();
+
+    expect($exceptions)->not->toBeEmpty()
+        ->each(fn ($class) => $class->toImplement(DomainRefusal::class));
 });

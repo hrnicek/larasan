@@ -35,6 +35,10 @@ final readonly class CreateComment
             throw CommentException::cannotReachSubject();
         }
 
+        if ($actor->cannot('comment', $subject)) {
+            throw CommentException::cannotComment();
+        }
+
         $body = trim($data->body);
 
         if ($body === '') {

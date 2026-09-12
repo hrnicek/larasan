@@ -165,3 +165,11 @@ it('never shows a search kept by somebody else', function (): void {
         ->assertOk()
         ->assertJsonCount(0, 'saved');
 });
+
+it('answers an address that cannot name a saved search with a 404', function (): void {
+    $actor = memberOf(Workspace::factory()->create());
+
+    $this->actingAs($actor)
+        ->delete('/search/saved/not-a-uuid')
+        ->assertNotFound();
+});
