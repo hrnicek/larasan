@@ -128,3 +128,40 @@ it('indexes one person s open work in one workspace', function (): void {
 
     expect($indexes)->toContain(['workspace_id', 'assignee_id', 'completed_at']);
 });
+
+it('computes the search vector with an empty search path, as a restore runs it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $id = (string) Str::uuid7();
+
+    $vector = DB::transaction(function () use ($workspace, $id): string {
+        DB::statement("SET LOCAL search_path = ''");
+
+        DB::insert(
+            'insert into public.tasks (id, workspace_id, title, created_at, updated_at) values (?, ?, ?, now(), now())',
+            [$id, $workspace->id, 'Café crème'],
+        );
+
+        $vector = (string) DB::scalar('select search_vector::text from public.tasks where id = ?', [$id]);
+
+        DB::statement('SET LOCAL search_path = public');
+
+        return $vector;
+    });
+
+    expect($vector)->toContain("'cafe'")
+        ->and($vector)->toContain("'creme'");
+});
+
+it('strips accents with an empty search path', function (): void {
+    $unaccented = DB::transaction(function (): string {
+        DB::statement("SET LOCAL search_path = ''");
+
+        $unaccented = (string) DB::scalar("select public.immutable_unaccent('é')");
+
+        DB::statement('SET LOCAL search_path = public');
+
+        return $unaccented;
+    });
+
+    expect($unaccented)->toBe('e');
+});

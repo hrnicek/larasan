@@ -47,6 +47,15 @@ it('refuses two root pages in the same slot of one project', function (): void {
     expect(DB::table('pages')->count())->toBe(1);
 });
 
+it('frees the slot of a deleted page', function (): void {
+    $project = Project::factory()->create();
+    insertPage($project, ['deleted_at' => now()]);
+
+    insertPage($project, ['title' => 'Notes']);
+
+    expect(DB::table('pages')->count())->toBe(2);
+});
+
 it('refuses two children of one page in the same slot', function (): void {
     $project = Project::factory()->create();
     $parent = insertPage($project);

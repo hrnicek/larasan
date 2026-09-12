@@ -101,10 +101,11 @@ it('refuses an attachment that names no file or no subject', function (): void {
     }
 });
 
-it('indexes the subject read and neither prefix of it', function (): void {
+it('indexes the subject read in its order and nothing else leading with the subject', function (): void {
     $indexes = collect(Schema::getIndexes('attachments'))->pluck('columns');
 
-    expect($indexes)->toContain(['attachable_type', 'attachable_id', 'created_at'])
+    expect($indexes)->toContain(['attachable_type', 'attachable_id', 'position'])
+        ->and($indexes)->not->toContain(['attachable_type', 'attachable_id', 'created_at'])
         ->and($indexes)->not->toContain(['attachable_type', 'attachable_id'])
         ->and($indexes)->toContain(['file_id', 'attachable_type', 'attachable_id']);
 });

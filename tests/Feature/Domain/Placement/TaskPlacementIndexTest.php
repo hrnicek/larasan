@@ -157,6 +157,7 @@ it('carries exactly the indexes the reads need and no prefix of another', functi
     expect($names->all())->toBe([
         'task_project_memberships_pkey',
         'task_project_memberships_project_id_section_id_position_index',
+        'task_project_memberships_section_id_position_index',
         'task_project_memberships_slot_unique',
         'task_project_memberships_task_id_project_id_unique',
         'task_project_memberships_ungrouped_slot_unique',

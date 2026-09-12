@@ -101,16 +101,43 @@ it('lets two projects use the same slot', function (): void {
     expect(DB::table('task_project_memberships')->where('position', 65536)->count())->toBe(2);
 });
 
-it('moves a placement to no section when its section is deleted', function (): void {
+it('refuses to delete a section that still holds placements', function (): void {
     [$task, $project, $section] = placementFixtures();
     $id = insertPlacement($task, $project, ['section_id' => $section->id]);
 
-    $section->delete();
+    // Nulling the section would keep the position and can collide in the ungrouped bucket; DeleteSection moves cards first.
+    expect(fn (): int => DB::transaction(fn (): int => DB::table('sections')->where('id', $section->id)->delete()))
+        ->toThrow(QueryException::class, 'task_project_memberships_section_id_foreign');
 
-    $placement = DB::table('task_project_memberships')->where('id', $id)->first();
+    expect(DB::table('task_project_memberships')->where('id', $id)->value('section_id'))->toBe($section->id);
+});
 
-    expect($placement)->not->toBeNull()
-        ->and($placement?->section_id)->toBeNull();
+it('deletes an empty section', function (): void {
+    [, , $section] = placementFixtures();
+
+    DB::table('sections')->where('id', $section->id)->delete();
+
+    expect(DB::table('sections')->count())->toBe(0);
+});
+
+it('removes sections and their placements together with the project', function (): void {
+    [$task, $project, $section] = placementFixtures();
+    insertPlacement($task, $project, ['section_id' => $section->id]);
+
+    DB::table('projects')->where('id', $project->id)->delete();
+
+    expect(DB::table('sections')->count())->toBe(0)
+        ->and(DB::table('task_project_memberships')->count())->toBe(0);
+});
+
+it('removes sections and their placements together with the workspace', function (): void {
+    [$task, $project, $section] = placementFixtures();
+    insertPlacement($task, $project, ['section_id' => $section->id]);
+
+    DB::table('workspaces')->where('id', $project->workspace_id)->delete();
+
+    expect(DB::table('sections')->count())->toBe(0)
+        ->and(DB::table('task_project_memberships')->count())->toBe(0);
 });
 
 it('removes placements with the project and keeps the task', function (): void {
@@ -137,5 +164,6 @@ it('indexes the ordered column read and the reverse lookup', function (): void {
     $indexes = collect(Schema::getIndexes('task_project_memberships'))->pluck('columns');
 
     expect($indexes)->toContain(['project_id', 'section_id', 'position'])
-        ->and($indexes)->toContain(['task_id', 'project_id']);
+        ->and($indexes)->toContain(['task_id', 'project_id'])
+        ->and($indexes)->toContain(['section_id', 'position']);
 });

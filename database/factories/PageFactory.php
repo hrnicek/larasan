@@ -26,11 +26,11 @@ class PageFactory extends Factory
     {
         $sentence = fake()->sentence();
 
-        $project = Project::factory()->create();
-
         return [
-            'workspace_id' => $project->workspace_id,
-            'project_id' => $project->id,
+            'project_id' => Project::factory(),
+            'workspace_id' => fn (array $attributes): string => (string) Project::query()
+                ->whereKey($attributes['project_id'])
+                ->value('workspace_id'),
             'parent_id' => null,
             'title' => Str::headline(fake()->unique()->word()),
             'content' => [

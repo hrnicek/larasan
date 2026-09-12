@@ -25,16 +25,36 @@ class CustomFieldOptionFactory extends Factory
             'custom_field_id' => CustomField::factory()->ofType(CustomFieldType::Select),
             'label' => fake()->unique()->word(),
             'color' => null,
-            'position' => 1,
         ];
     }
 
-    public function of(CustomField $field, int $position = 1): self
+    public function configure(): static
     {
-        return $this->state(fn (): array => [
-            'custom_field_id' => $field->id,
-            'position' => $position,
-        ]);
+        // A batch is made in full before any row is saved, so the database alone cannot see its siblings.
+        /** @var array<string, int> $made */
+        $made = [];
+
+        return $this->afterMaking(function (CustomFieldOption $option) use (&$made): void {
+            if (isset($option->position)) {
+                return;
+            }
+
+            $last = CustomFieldOption::query()->where('custom_field_id', $option->custom_field_id)->max('position');
+
+            $option->position = $made[$option->custom_field_id] = max((int) $last, $made[$option->custom_field_id] ?? 0) + 1;
+        });
+    }
+
+    public function of(CustomField $field, ?int $position = null): self
+    {
+        $factory = $this->state(fn (): array => ['custom_field_id' => $field->id]);
+
+        return $position === null ? $factory : $factory->at($position);
+    }
+
+    public function at(int $position): self
+    {
+        return $this->state(fn (): array => ['position' => $position]);
     }
 
     public function labelled(string $label): self

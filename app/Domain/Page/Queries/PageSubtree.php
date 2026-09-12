@@ -19,6 +19,7 @@ final readonly class PageSubtree
         for ($depth = 0; $depth < Page::MAX_DEPTH && $level !== []; $depth++) {
             /** @var list<string> $level */
             $level = Page::query()
+                ->where('project_id', $page->project_id)
                 ->whereIn('parent_id', $level)
                 ->pluck('id')
                 ->all();
@@ -42,6 +43,7 @@ final readonly class PageSubtree
         for ($depth = 0; $depth < Page::MAX_DEPTH && $level !== []; $depth++) {
             /** @var list<string> $level */
             $level = Page::query()
+                ->where('project_id', $page->project_id)
                 ->whereIn('parent_id', $level)
                 ->pluck('id')
                 ->all();
