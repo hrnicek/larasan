@@ -2,7 +2,7 @@
 import Suggestion from '@tiptap/suggestion';
 import { Editor, EditorContent, Extension } from '@tiptap/vue-3';
 import type { Range } from '@tiptap/vue-3';
-import { onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { onBeforeUnmount, ref, shallowRef, toRaw, watch } from 'vue';
 import PageSelectionToolbar from '@/modules/page/components/PageSelectionToolbar.vue';
 import PageSlashMenu from '@/modules/page/components/PageSlashMenu.vue';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
@@ -33,6 +33,8 @@ const menu = ref<{
 } | null>(null);
 
 const editor = shallowRef<Editor>();
+
+let emitted: PageDocument | null = null;
 
 const insert = (command: SlashCommand, over?: Range): void => {
     const chosen = slashCommands.find((candidate) => candidate.key === command.key);
@@ -188,7 +190,10 @@ editor.value = new Editor({
             'aria-label': 'Page content',
         },
     },
-    onUpdate: ({ editor: instance }) => emit('update:modelValue', instance.getJSON() as PageDocument),
+    onUpdate: ({ editor: instance }) => {
+        emitted = instance.getJSON() as PageDocument;
+        emit('update:modelValue', emitted);
+    },
     onSelectionUpdate: readSelection,
     onBlur: ({ event }) => {
         // Clicking a toolbar control blurs the editor, so the toolbar must survive that blur.
@@ -204,10 +209,37 @@ editor.value = new Editor({
 watch(
     () => props.modelValue,
     (document) => {
-        if (editor.value && JSON.stringify(editor.value.getJSON()) !== JSON.stringify(document)) {
+        if (!editor.value || toRaw(document) === emitted) {
+            return;
+        }
+
+        if (JSON.stringify(editor.value.getJSON()) !== JSON.stringify(document)) {
             editor.value.commands.setContent(document, { emitUpdate: false });
         }
     },
+);
+
+// The listbox is announced through the focused `.ProseMirror` textbox, not EditorContent's wrapper.
+watch(
+    () => menu.value?.commands[menu.value.selected]?.key ?? null,
+    (active) => {
+        const textbox = editor.value && !editor.value.isDestroyed ? editor.value.view.dom : null;
+
+        if (!textbox) {
+            return;
+        }
+
+        if (active === null) {
+            textbox.removeAttribute('aria-activedescendant');
+            textbox.removeAttribute('aria-controls');
+
+            return;
+        }
+
+        textbox.setAttribute('aria-activedescendant', `page-slash-${active}`);
+        textbox.setAttribute('aria-controls', 'page-slash-menu');
+    },
+    { flush: 'post' },
 );
 
 watch(
@@ -232,10 +264,7 @@ defineExpose({
 
 <template>
     <div class="relative">
-        <EditorContent
-            :editor="editor"
-            :aria-activedescendant="menu ? `page-slash-${menu.commands[menu.selected]?.key}` : undefined"
-        />
+        <EditorContent :editor="editor" />
 
         <div
             v-if="editable"
