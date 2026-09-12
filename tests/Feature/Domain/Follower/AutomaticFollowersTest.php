@@ -72,7 +72,7 @@ it('follows for a guest exactly as for anybody else', function (): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
-    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Commenter)->create();
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 

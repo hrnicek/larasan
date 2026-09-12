@@ -182,3 +182,23 @@ it('tells the project where the page went', function (): void {
     Event::assertDispatched(PageMoved::class, fn (PageMoved $event): bool => $event->pageId === $page->id
         && $event->parentId === $parent->id);
 });
+
+it('stays quiet when the page is already where it was asked to go', function (?int $anchor): void {
+    Event::fake([PageMoved::class]);
+
+    [$project, $actor] = projectFor(WorkspaceRole::Member, ProjectAccessLevel::Editor);
+    $pages = [
+        Page::factory()->in($project)->at(SparsePosition::GAP)->create(),
+        Page::factory()->in($project)->at(SparsePosition::GAP * 2)->create(),
+    ];
+    $page = $pages[$anchor === null ? 0 : $anchor + 1];
+
+    app(MovePage::class)->handle($page, $actor, null, $anchor === null ? null : $pages[$anchor]);
+
+    Event::assertNotDispatched(PageMoved::class);
+
+    expect(rootOrder($project->id))->toBe([$pages[0]->id, $pages[1]->id]);
+})->with([
+    'at the front' => [null],
+    'behind its sibling' => [0],
+]);

@@ -14,6 +14,7 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
@@ -180,4 +181,31 @@ it('turns away everybody who is not signed in', function (): void {
 
     $this->get(route('attachments.download', $attachment))->assertRedirect(route('login'));
     $this->post(route('tasks.attachments.store', $task))->assertRedirect(route('login'));
+});
+
+it('keeps neither rows nor objects when a later file in the batch fails', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $created = 0;
+
+    Attachment::creating(function (Attachment $attachment) use (&$created): void {
+        if (++$created === 3) {
+            $attachment->file_id = (string) Str::uuid7();
+        }
+    });
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->post(route('tasks.attachments.store', $task), [
+            'files' => [
+                UploadedFile::fake()->create('first.pdf', 12, 'application/pdf'),
+                UploadedFile::fake()->create('second.pdf', 12, 'application/pdf'),
+                UploadedFile::fake()->create('third.pdf', 12, 'application/pdf'),
+            ],
+        ])
+        ->assertServerError();
+
+    expect($task->attachments()->count())->toBe(0)
+        ->and(File::query()->count())->toBe(0)
+        ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toBe([]);
 });

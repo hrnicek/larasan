@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\File;
 
-use App\Domain\File\Actions\AttachFile;
+use App\Domain\File\Actions\AttachFiles;
 use App\Domain\File\Actions\DetachFile;
 use App\Domain\File\Actions\MoveAttachment;
 use App\Domain\File\Models\Attachment;
@@ -39,15 +39,11 @@ class AttachmentController extends Controller
         'image/webp',
     ];
 
-    public function store(StoreAttachmentRequest $request, Task $task, AttachFile $attachFile): RedirectResponse
+    public function store(StoreAttachmentRequest $request, Task $task, AttachFiles $attachFiles): RedirectResponse
     {
-        $uploads = array_values((array) $request->file('files', []));
+        $uploads = $request->uploads();
 
-        $actor = $this->actor($request);
-
-        foreach ($uploads as $upload) {
-            $attachFile->handle($task, $actor, $upload);
-        }
+        $attachFiles->handle($task, $this->actor($request), $uploads);
 
         Inertia::flash('toast', [
             'type' => 'success',

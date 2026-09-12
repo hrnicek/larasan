@@ -187,3 +187,17 @@ it('hides a move on an attachment in another workspace behind a 404', function (
         ->put(route('attachments.move', $attachment), ['after' => null])
         ->assertNotFound();
 });
+
+it('moves the file when its slot after normalising is the number it held before', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    [$first, $second, $third] = attachmentsOn($task, 3);
+
+    $first->forceFill(['position' => 10])->save();
+    $second->forceFill(['position' => 12])->save();
+    $third->forceFill(['position' => 98304])->save();
+
+    moveAttachment($third, $actor, $first);
+
+    expect(orderOn($task))->toBe([$first->id, $third->id, $second->id]);
+});

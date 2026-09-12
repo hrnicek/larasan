@@ -13,7 +13,10 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 
 it('deletes the section outright', function (): void {
     [$project, $actor] = projectEditableBy();
@@ -146,4 +149,77 @@ it('leaves the cards of another column alone', function (): void {
 
     expect($staying->placements()->pluck('id')->all())->toBe([$kept->id])
         ->and($kept->refresh()->position)->toBe($kept->position);
+});
+
+it('locks the project row before it touches a card, and scopes the rewrite to the project', function (): void {
+    [$project, $actor] = projectEditableBy();
+    $section = addSection($project, $actor, 'Doing');
+
+    TaskProjectMembership::factory()
+        ->placing(Task::factory()->in($project->workspace)->create(), $project)
+        ->inSection($section)
+        ->create();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    app(DeleteSection::class)->handle($section, $actor);
+
+    DB::disableQueryLog();
+
+    $log = collect(DB::getQueryLog());
+
+    $projectLock = $log->search(fn (array $entry): bool => str_contains($entry['query'], 'from "projects"')
+        && str_ends_with($entry['query'], 'for no key update'));
+
+    $firstCardStatement = $log->search(fn (array $entry): bool => str_contains($entry['query'], 'task_project_memberships'));
+
+    $rewrite = $log->first(fn (array $entry): bool => str_starts_with(trim($entry['query']), 'update task_project_memberships'));
+
+    expect($projectLock)->toBeInt()
+        ->and($firstCardStatement)->toBeInt()
+        ->and($projectLock)->toBeLessThan($firstCardStatement)
+        ->and($rewrite)->not->toBeNull()
+        ->and($rewrite['bindings'])->toContain($project->id);
+});
+
+it('recovers when an append took the end of the ungrouped bucket between the read and the write', function (): void {
+    [$project, $actor] = projectEditableBy();
+    $section = addSection($project, $actor, 'Doing');
+
+    $boxed = TaskProjectMembership::factory()
+        ->placing(Task::factory()->in($project->workspace)->create(['title' => 'Boxed']), $project)
+        ->inSection($section)
+        ->create();
+
+    $squatter = Task::factory()->in($project->workspace)->create(['title' => 'Squatter']);
+    $injected = false;
+
+    DB::listen(function (QueryExecuted $query) use (&$injected, $project, $squatter): void {
+        if ($injected
+            || ! str_contains($query->sql, 'task_project_memberships')
+            || ! str_contains($query->sql, '"section_id" is null')) {
+            return;
+        }
+
+        $injected = true;
+
+        DB::table('task_project_memberships')->insert([
+            'id' => (string) Str::uuid7(),
+            'task_id' => $squatter->id,
+            'project_id' => $project->id,
+            'section_id' => null,
+            'position' => SparsePosition::GAP,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    app(DeleteSection::class)->handle($section, $actor);
+
+    // The squatter is rolled back with the failed attempt, so only the retry's writes survive.
+    expect($injected)->toBeTrue()
+        ->and(Section::query()->whereKey($section->id)->exists())->toBeFalse()
+        ->and($boxed->refresh()->section_id)->toBeNull()
+        ->and($project->placements()->whereNull('section_id')->pluck('position')->all())->toBe([SparsePosition::GAP]);
 });

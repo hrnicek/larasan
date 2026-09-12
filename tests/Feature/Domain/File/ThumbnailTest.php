@@ -7,6 +7,7 @@ use App\Domain\File\Events\FileAttached;
 use App\Domain\File\Listeners\GenerateThumbnail;
 use App\Domain\File\Models\Attachment;
 use App\Domain\File\Models\File;
+use App\Domain\File\Support\Thumbnailer;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
 use Illuminate\Support\Facades\Artisan;
@@ -25,11 +26,28 @@ function pictureBytes(int $width = 900, int $height = 600): string
 
     ob_start();
     imagepng($image);
-    $bytes = (string) ob_get_clean();
 
-    imagedestroy($image);
+    return (string) ob_get_clean();
+}
 
-    return $bytes;
+function blankGreyscalePng(int $width, int $height): string
+{
+    $chunk = fn (string $type, string $data): string => pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
+
+    $deflate = deflate_init(ZLIB_ENCODING_DEFLATE);
+    $row = str_repeat("\0", $width + 1);
+    $pixels = '';
+
+    foreach (range(1, $height) as $ignored) {
+        $pixels .= deflate_add($deflate, $row, ZLIB_NO_FLUSH);
+    }
+
+    $pixels .= deflate_add($deflate, '', ZLIB_FINISH);
+
+    return "\x89PNG\r\n\x1a\n"
+        .$chunk('IHDR', pack('NNCCCCC', $width, $height, 8, 0, 0, 0, 0))
+        .$chunk('IDAT', $pixels)
+        .$chunk('IEND', '');
 }
 
 /**
@@ -192,3 +210,22 @@ it('tells the screen what shape the picture is', function (): void {
 
     expect($payload['attachments'][0]['image'])->toBe(['width' => 900, 'height' => 600]);
 });
+
+it('skips a picture with more pixels than it will decode', function (): void {
+    $side = (int) ceil(sqrt(Thumbnailer::MAX_SOURCE_PIXELS)) + 1;
+
+    expect(app(Thumbnailer::class)->fromBlob(blankGreyscalePng($side, $side)))->toBeNull()
+        ->and(app(Thumbnailer::class)->fromBlob(blankGreyscalePng(1200, 800)))->not->toBeNull();
+});
+
+it('skips an animation with more frames than it will decode', function (): void {
+    $animation = new Imagick;
+
+    foreach (range(1, Thumbnailer::MAX_FRAMES + 1) as $ignored) {
+        $animation->newImage(4, 4, 'rgb(20, 120, 200)', 'gif');
+    }
+
+    $blob = $animation->getImagesBlob();
+
+    expect(app(Thumbnailer::class)->fromBlob($blob))->toBeNull();
+})->skip(! extension_loaded('imagick'), 'GD decodes only the first frame of an animation.');

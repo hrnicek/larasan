@@ -12,6 +12,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 /**
@@ -314,3 +315,46 @@ it('sends no candidates to somebody who may not manage members', function (): vo
         ->assertJsonCount(2, 'props.share.members')
         ->assertJsonCount(0, 'props.share.candidates');
 });
+
+it('reads the owners from the database rather than trusting the membership it was handed', function (): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    $loadedWhileEditor = app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
+
+    app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Owner);
+    app(GrantProjectAccess::class)->handle($project, $other, $owner, ProjectAccessLevel::Editor);
+
+    expect(fn () => app(RevokeProjectAccess::class)->handle($project, $other, $loadedWhileEditor))
+        ->toThrow(ProjectException::class, 'A project needs at least one owner.');
+
+    expect($project->memberships()->where('access_level', ProjectAccessLevel::Owner->value)->pluck('user_id')->all())
+        ->toBe([$other->id]);
+});
+
+it('locks the owner rows before it removes or demotes an owner', function (string $change): void {
+    [, $project, $owner, $other] = projectWithOwner();
+    app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Owner);
+    $membership = $project->memberships()->where('user_id', $other->id)->sole();
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    match ($change) {
+        'revoke' => app(RevokeProjectAccess::class)->handle($project, $owner, $membership),
+        'demote' => app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor),
+    };
+
+    DB::disableQueryLog();
+
+    $statements = collect(DB::getQueryLog())->pluck('query');
+
+    $ownerLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "project_memberships"')
+        && str_contains($sql, '"access_level" = ?')
+        && str_ends_with($sql, 'for update'));
+
+    $write = $statements->search(fn (string $sql): bool => str_starts_with($sql, 'delete from "project_memberships"')
+        || str_starts_with($sql, 'update "project_memberships"'));
+
+    expect($ownerLock)->toBeInt()
+        ->and($write)->toBeInt()
+        ->and($ownerLock)->toBeLessThan($write);
+})->with(['revoke', 'demote']);

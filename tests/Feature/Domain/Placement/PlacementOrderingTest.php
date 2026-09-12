@@ -223,3 +223,52 @@ it('recovers when the slot it computed was taken between the read and the write'
         ->and(orderIn($section))->toBe(['A', 'C', 'B'])
         ->and(array_unique($positions))->toHaveCount(3);
 });
+
+it('moves the card when its slot after normalising is the number it held before', function (): void {
+    [$section, $cards, $actor] = column();
+
+    $cards[0]->forceFill(['position' => 10])->save();
+    $cards[1]->forceFill(['position' => 11])->save();
+    $cards[2]->forceFill(['position' => 98304])->save();
+
+    moveTo($cards[2], $actor, $section, PlacementTarget::after($cards[0]->refresh()));
+
+    expect(orderIn($section))->toBe(['A', 'C', 'B']);
+});
+
+it('locks the project row before any card, whichever way the card crosses', function (): void {
+    [$section, $cards, $actor, $project] = column();
+    $other = Section::factory()->in($project)->at(2 * SparsePosition::GAP)->create();
+
+    $statementsWhile = function (callable $move): array {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $move();
+
+        DB::disableQueryLog();
+
+        return array_column(DB::getQueryLog(), 'query');
+    };
+
+    $moves = [
+        fn (): TaskProjectMembership => moveTo($cards[0], $actor, $other, PlacementTarget::end()),
+        fn (): TaskProjectMembership => moveTo($cards[0]->refresh(), $actor, $section, PlacementTarget::end()),
+    ];
+
+    foreach ($moves as $move) {
+        $statements = $statementsWhile($move);
+
+        $projectLock = collect($statements)->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+            && str_ends_with($sql, 'for no key update'));
+
+        $firstCardLock = collect($statements)->search(fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
+            && (str_ends_with($sql, 'for update') || str_starts_with($sql, 'update')));
+
+        expect($projectLock)->toBeInt()
+            ->and($firstCardLock)->toBeInt()
+            ->and($projectLock)->toBeLessThan($firstCardLock);
+    }
+
+    expect(orderIn($section))->toBe(['B', 'C', 'A']);
+});

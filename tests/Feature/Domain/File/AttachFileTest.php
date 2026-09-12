@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\File\Actions\AttachFile;
+use App\Domain\File\Actions\AttachFiles;
 use App\Domain\File\Events\FileAttached;
 use App\Domain\File\Exceptions\FileException;
 use App\Domain\File\Models\Attachment;
@@ -17,9 +18,12 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     Storage::fake(config('filesystems.attachments'));
@@ -158,4 +162,95 @@ it('writes the morph alias rather than a class name', function (): void {
     $task = Task::factory()->in($workspace)->create();
 
     expect(attachTo($task, $actor)->attachable_type)->toBe('task');
+});
+
+it('drops an extension too long to be one instead of failing the upload', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $file = attachTo($task, $actor, UploadedFile::fake()->create('notes.'.str_repeat('x', 40), 4, 'text/plain'))->file;
+
+    expect($file->extension)->toBe('')
+        ->and(pathinfo($file->path, PATHINFO_EXTENSION))->toBe('');
+
+    Storage::disk(config('filesystems.attachments'))->assertExists($file->path);
+});
+
+it('removes the stored object when the rows cannot be written', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    Attachment::creating(function (Attachment $attachment): void {
+        $attachment->file_id = (string) Str::uuid7();
+    });
+
+    expect(fn (): Attachment => attachTo($task, $actor))->toThrow(QueryException::class);
+
+    expect(File::query()->count())->toBe(0)
+        ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toBe([]);
+});
+
+it('recovers when an upload took the last slot between the read and the write', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $squatter = File::factory()->in($workspace)->create();
+    $injected = false;
+
+    Attachment::creating(function (Attachment $attachment) use (&$injected, $squatter): void {
+        if ($injected) {
+            return;
+        }
+
+        $injected = true;
+
+        DB::table('attachments')->insert([
+            'id' => (string) Str::uuid7(),
+            'file_id' => $squatter->id,
+            'attachable_type' => $attachment->attachable_type,
+            'attachable_id' => $attachment->attachable_id,
+            'position' => $attachment->position,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    });
+
+    $attachment = attachTo($task, $actor);
+
+    expect($injected)->toBeTrue()
+        ->and($task->attachments()->pluck('id')->all())->toBe([$attachment->id]);
+
+    Storage::disk(config('filesystems.attachments'))->assertExists($attachment->file->path);
+});
+
+it('refuses somebody who may only view every project the task is in, and stores nothing', function (): void {
+    [$workspace, $project, $viewer] = placeableProject(ProjectAccessLevel::Viewer);
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    expect(fn (): Attachment => attachTo($task, $viewer))->toThrow(FileException::class);
+
+    expect(File::query()->count())->toBe(0)
+        ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toBe([]);
+});
+
+it('attaches a batch whole or not at all', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    $uploads = fn (): array => [
+        UploadedFile::fake()->create('first.pdf', 4, 'application/pdf'),
+        UploadedFile::fake()->create('second.pdf', 4, 'application/pdf'),
+    ];
+
+    expect(app(AttachFiles::class)->handle($task, $actor, $uploads()))->toHaveCount(2);
+
+    Attachment::creating(function (Attachment $attachment) use ($task): void {
+        if ($task->attachments()->count() === 3) {
+            $attachment->file_id = (string) Str::uuid7();
+        }
+    });
+
+    expect(fn (): array => app(AttachFiles::class)->handle($task, $actor, $uploads()))->toThrow(QueryException::class);
+
+    expect($task->attachments()->count())->toBe(2)
+        ->and(Storage::disk(config('filesystems.attachments'))->allFiles())->toHaveCount(2);
 });

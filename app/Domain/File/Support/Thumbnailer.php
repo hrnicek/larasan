@@ -14,6 +14,11 @@ final readonly class Thumbnailer
     /** Longest edge in pixels, about twice the widest board card for high-density screens. */
     public const MAX_EDGE = 480;
 
+    /** Decoded pixels across every frame, about 50 megapixels; larger sources get no thumbnail. */
+    public const MAX_SOURCE_PIXELS = 50_000_000;
+
+    public const MAX_FRAMES = 100;
+
     private const QUALITY = 82;
 
     /**
@@ -21,9 +26,48 @@ final readonly class Thumbnailer
      */
     public function fromBlob(string $blob): ?array
     {
-        return extension_loaded('imagick')
+        $imagick = extension_loaded('imagick');
+
+        if (! $this->isSmallEnoughToDecode($blob, $imagick)) {
+            return null;
+        }
+
+        return $imagick
             ? $this->withImagick($blob)
             : $this->withGd($blob);
+    }
+
+    /** Headers only, since decoding is what exhausts the worker's memory. */
+    private function isSmallEnoughToDecode(string $blob, bool $imagick): bool
+    {
+        $size = @getimagesizefromstring($blob);
+
+        if ($size === false) {
+            return false;
+        }
+
+        // GD decodes only the first frame; Imagick decodes every frame of an animation.
+        $frames = $imagick ? $this->frameCount($blob) : 1;
+
+        return $frames !== null
+            && $frames <= self::MAX_FRAMES
+            && $size[0] * $size[1] * $frames <= self::MAX_SOURCE_PIXELS;
+    }
+
+    private function frameCount(string $blob): ?int
+    {
+        try {
+            $probe = new Imagick;
+            $probe->pingImageBlob($blob);
+
+            $frames = $probe->getNumberImages();
+
+            $probe->clear();
+
+            return $frames;
+        } catch (ImagickException) {
+            return null;
+        }
     }
 
     /**
@@ -120,8 +164,6 @@ final readonly class Thumbnailer
         $thumbnail = imagecreatetruecolor($width, $height);
 
         if (! $thumbnail instanceof GdImage) {
-            imagedestroy($source);
-
             return null;
         }
 
@@ -134,9 +176,6 @@ final readonly class Thumbnailer
         ob_start();
         imagewebp($thumbnail, null, self::QUALITY);
         $bytes = (string) ob_get_clean();
-
-        imagedestroy($source);
-        imagedestroy($thumbnail);
 
         return $bytes === '' ? null : [
             'bytes' => $bytes,

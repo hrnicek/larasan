@@ -62,8 +62,11 @@ final readonly class MoveAttachment
             try {
                 $position = SparsePosition::between($target['before'], $target['after']);
             } catch (PositionsNeedNormalisation) {
-                // No gap left between the neighbours: respread the list and recompute the slot.
                 $ordered = $this->normalise($attachment);
+
+                // normalise() rewrote this row through another instance, so save() would compare against a stale position.
+                $attachment->refresh();
+
                 $target = $this->slotFor($ordered, $attachment, $after);
 
                 if ($target === null) {

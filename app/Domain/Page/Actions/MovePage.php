@@ -35,14 +35,16 @@ final readonly class MovePage
         $this->guardAnchor($page, $parent, $after);
 
         try {
-            $this->place($page, $parent, $after);
+            $moved = $this->place($page, $parent, $after);
         } catch (UniqueConstraintViolationException) {
-            $this->place($page->refresh(), $parent?->fresh(), $after?->fresh());
+            $moved = $this->place($page, $parent?->fresh(), $after?->fresh());
         }
 
         $page->refresh();
 
-        $this->events->dispatch(new PageMoved($page->id, $page->project_id, $page->parent_id));
+        if ($moved) {
+            $this->events->dispatch(new PageMoved($page->id, $page->project_id, $page->parent_id));
+        }
 
         return $page;
     }
@@ -81,11 +83,18 @@ final readonly class MovePage
         }
     }
 
-    private function place(Page $page, ?Page $parent, ?Page $after): void
+    /**
+     * @return bool whether the page actually moved
+     */
+    private function place(Page $page, ?Page $parent, ?Page $after): bool
     {
-        DB::transaction(function () use ($page, $parent, $after): void {
+        return DB::transaction(function () use ($page, $parent, $after): bool {
             $siblings = $this->lockedSiblings($page, $parent);
             $slot = $this->slotFor($siblings, $page, $after);
+
+            if ($this->isAlreadyIn($page->refresh(), $parent, $slot)) {
+                return false;
+            }
 
             try {
                 $position = SparsePosition::between($slot['before'], $slot['after']);
@@ -99,7 +108,19 @@ final readonly class MovePage
                 'parent_id' => $parent?->id,
                 'position' => $position,
             ])->save();
+
+            return true;
         });
+    }
+
+    /**
+     * @param  array{before: int|null, after: int|null}  $slot
+     */
+    private function isAlreadyIn(Page $page, ?Page $parent, array $slot): bool
+    {
+        return $page->parent_id === $parent?->id
+            && ($slot['before'] === null || $page->position > $slot['before'])
+            && ($slot['after'] === null || $page->position < $slot['after']);
     }
 
     /**

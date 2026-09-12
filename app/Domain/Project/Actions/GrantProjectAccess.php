@@ -7,11 +7,15 @@ namespace App\Domain\Project\Actions;
 use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Project\Support\ProjectOwners;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 final readonly class GrantProjectAccess
 {
+    public function __construct(private ProjectOwners $owners) {}
+
     public function handle(
         Project $project,
         User $actor,
@@ -29,14 +33,16 @@ final readonly class GrantProjectAccess
         $existing = $project->memberships()->where('user_id', $member->id)->first();
 
         if ($existing instanceof ProjectMembership) {
-            if ($this->wouldLeaveNoOwner($project, $existing, $level)) {
-                throw ProjectException::projectNeedsAnOwner();
-            }
+            return DB::transaction(function () use ($existing, $level): ProjectMembership {
+                if (! $level->canManageProject() && $this->owners->isLastOwner($existing)) {
+                    throw ProjectException::projectNeedsAnOwner();
+                }
 
-            $existing->access_level = $level;
-            $existing->save();
+                $existing->access_level = $level;
+                $existing->save();
 
-            return $existing;
+                return $existing;
+            });
         }
 
         return ProjectMembership::query()->create([
@@ -44,19 +50,5 @@ final readonly class GrantProjectAccess
             'user_id' => $member->id,
             'access_level' => $level,
         ]);
-    }
-
-    private function wouldLeaveNoOwner(
-        Project $project,
-        ProjectMembership $membership,
-        ProjectAccessLevel $level,
-    ): bool {
-        if (! $membership->access_level->canManageProject() || $level->canManageProject()) {
-            return false;
-        }
-
-        return $project->memberships()
-            ->where('access_level', ProjectAccessLevel::Owner->value)
-            ->count() === 1;
     }
 }

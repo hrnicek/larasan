@@ -88,3 +88,17 @@ it('refuses somebody who cannot reach the task', function (): void {
         ->postJson("attachment-probe/{$task->id}", ['files' => [UploadedFile::fake()->create('plan.pdf', 12, 'application/pdf')]])
         ->assertForbidden();
 });
+
+it('refuses a file whose extension is too long to be one', function (): void {
+    [$workspace, , $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+
+    $name = 'notes.'.str_repeat('x', 40);
+
+    $this->actingAs($actor)
+        ->postJson("attachment-probe/{$task->id}", [
+            'files' => [UploadedFile::fake()->create($name, 4, 'text/plain')],
+        ])
+        ->assertJsonValidationErrorFor('files.0')
+        ->assertJsonFragment(['files.0' => ["{$name} has an extension longer than 32 characters."]]);
+});

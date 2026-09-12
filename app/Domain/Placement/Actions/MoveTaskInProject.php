@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 
 final readonly class MoveTaskInProject
 {
+    private const int ATTEMPTS = 3;
+
     public function __construct(private Dispatcher $events) {}
 
     public function handle(
@@ -46,8 +48,8 @@ final readonly class MoveTaskInProject
         try {
             $moved = $this->place($placement, $section, $target);
         } catch (UniqueConstraintViolationException) {
-            // A concurrent move took the same slot; re-read the column, which now includes it. See ADR-0009.
-            $moved = $this->place($placement->refresh(), $section, $target);
+            // A concurrent append took the same slot; re-read the column, which now includes it. See ADR-0009.
+            $moved = $this->place($placement, $section, $target);
         }
 
         if ($moved) {
@@ -73,6 +75,11 @@ final readonly class MoveTaskInProject
     private function place(TaskProjectMembership $placement, ?Section $section, PlacementTarget $target): bool
     {
         return DB::transaction(function () use ($placement, $section, $target): bool {
+            $this->lockTheBoard($placement->project_id);
+
+            // Read under the lock, so a retry or a caller holding an older copy computes from current positions.
+            $placement->refresh();
+
             $ordered = $this->lockedColumn($placement, $section);
 
             $slot = $this->slotFor($ordered, $placement, $section, $target);
@@ -85,6 +92,10 @@ final readonly class MoveTaskInProject
                 $position = SparsePosition::between($slot['before'], $slot['after']);
             } catch (PositionsNeedNormalisation) {
                 $ordered = $this->normalise($placement, $section);
+
+                // normalise() rewrote this row through another instance, so save() would compare against a stale position.
+                $placement->refresh();
+
                 $slot = $this->slotFor($ordered, $placement, $section, $target);
 
                 if ($slot === null) {
@@ -100,7 +111,16 @@ final readonly class MoveTaskInProject
             ])->save();
 
             return true;
-        });
+        }, self::ATTEMPTS);
+    }
+
+    /**
+     * Every move in a project takes this lock first, so two moves never hold card locks in opposite order.
+     * NO KEY UPDATE still admits the KEY SHARE lock a foreign-key check takes when a card is inserted.
+     */
+    private function lockTheBoard(string $projectId): void
+    {
+        Project::query()->whereKey($projectId)->lock('for no key update')->value('id');
     }
 
     /**

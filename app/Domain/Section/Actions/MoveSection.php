@@ -70,6 +70,10 @@ final readonly class MoveSection
                 $position = SparsePosition::between($target['before'], $target['after']);
             } catch (PositionsNeedNormalisation) {
                 $ordered = $this->normalise($section->project);
+
+                // normalise() rewrote this row through another instance, so save() would compare against a stale position.
+                $section->refresh();
+
                 $target = $this->slotFor($ordered, $section, $after);
 
                 if ($target === null) {

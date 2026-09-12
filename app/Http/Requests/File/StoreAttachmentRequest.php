@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\File;
 
+use App\Domain\File\Actions\AttachFile;
 use App\Domain\File\Models\Attachable;
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -39,6 +41,14 @@ class StoreAttachmentRequest extends FormRequest
                 'file',
                 'max:'.config('attachments.max_kilobytes'),
                 'mimetypes:'.implode(',', (array) config('attachments.mime_types')),
+                function (string $attribute, mixed $upload, Closure $fail): void {
+                    if ($upload instanceof UploadedFile
+                        && mb_strlen($upload->getClientOriginalExtension()) > AttachFile::MAX_EXTENSION_LENGTH) {
+                        $fail(__(':attribute has an extension longer than :length characters.', [
+                            'length' => AttachFile::MAX_EXTENSION_LENGTH,
+                        ]));
+                    }
+                },
             ],
         ];
     }
@@ -74,6 +84,17 @@ class StoreAttachmentRequest extends FormRequest
         }
 
         return $names;
+    }
+
+    /**
+     * @return list<UploadedFile>
+     */
+    public function uploads(): array
+    {
+        return array_values(array_filter(
+            (array) $this->file('files', []),
+            fn (mixed $upload): bool => $upload instanceof UploadedFile,
+        ));
     }
 
     public function subject(): (Model&Attachable)|null

@@ -168,3 +168,18 @@ it('refuses an actor who may not shape the project', function (): void {
 
     expect(order($project))->toBe(['A', 'B']);
 });
+
+it('moves the section when its slot after normalising is the number it held before', function (): void {
+    [$project, $actor] = projectEditableBy();
+    $a = addSection($project, $actor, 'A');
+    $b = addSection($project, $actor, 'B');
+    $c = addSection($project, $actor, 'C');
+
+    $a->forceFill(['position' => 1000])->save();
+    $b->forceFill(['position' => 1001])->save();
+    $c->forceFill(['position' => 98304])->save();
+
+    move($c, $actor, $a);
+
+    expect(order($project))->toBe(['A', 'C', 'B']);
+});
