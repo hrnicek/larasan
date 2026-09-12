@@ -58,9 +58,9 @@ it('finds a word somebody spelled without its accents', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 
-    Task::factory()->in($workspace)->create(['title' => 'Ask Hrnčíř about the invoice']);
+    Task::factory()->in($workspace)->create(['title' => 'Ask Dvořák about the invoice']);
 
-    expect(found($workspace, $actor, 'hrncir'))->toBe(['Ask Hrnčíř about the invoice']);
+    expect(found($workspace, $actor, 'dvorak'))->toBe(['Ask Dvořák about the invoice']);
 });
 
 it('needs every word, not any of them', function (): void {
