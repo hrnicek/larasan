@@ -103,6 +103,7 @@ it('refuses somebody from another workspace', function (): void {
 it('refuses a member who cannot open the task', function (): void {
     [$task, $actor] = collaborationTask();
     $private = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($private)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
     $outsider = memberOf($task->workspace, WorkspaceRole::Member);
 

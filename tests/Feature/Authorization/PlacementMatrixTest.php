@@ -159,3 +159,27 @@ it('refuses another workspace card even to somebody who owns a project there', f
 
     expect($placement->fresh())->not->toBeNull();
 });
+
+it('answers a task hidden in a private project exactly as it answers one that does not exist', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Member);
+    $own = Project::factory()->in($workspace)->private()->create();
+    ProjectMembership::factory()->in($own)->forUser($actor)->withAccess(ProjectAccessLevel::Owner)->create();
+
+    $hidden = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()
+        ->placing($hidden, Project::factory()->in($workspace)->private()->create())
+        ->create();
+
+    $unreachable = $this->actingAs($actor)->postJson(route('placements.store', $own), ['task' => $hidden->id]);
+    $missing = $this->actingAs($actor)->postJson(route('placements.store', $own), ['task' => (string) Str::uuid7()]);
+
+    $unreachable->assertUnprocessable()->assertJsonValidationErrorFor('task');
+    $missing->assertUnprocessable()->assertJsonValidationErrorFor('task');
+
+    expect($unreachable->status())->toBe($missing->status())
+        ->and($unreachable->json('errors.task'))->toBe($missing->json('errors.task'))
+        ->and($own->placements()->count())->toBe(0);
+
+    $this->actingAs($actor)->getJson(route('tasks.show', $hidden))->assertForbidden();
+});

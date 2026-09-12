@@ -259,3 +259,21 @@ it('treats the empty document the editor sends as no description', function (): 
 
     expect($task->fresh()?->description)->toBeNull();
 });
+
+it('keeps the title when a caller only moves the task', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $parent = Task::factory()->in($task->workspace)->create();
+
+    app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(parentId: $parent->id));
+
+    expect($task->fresh()?->title)->toBe('Untouched')
+        ->and($task->fresh()?->parent_id)->toBe($parent->id);
+});
+
+it('leaves the title alone when the fields name it without a value', function (): void {
+    [$task, $actor] = taskEditableBy();
+
+    app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(fields: ['title']));
+
+    expect($task->fresh()?->title)->toBe('Untouched');
+});

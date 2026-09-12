@@ -4,48 +4,55 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Html\RichText;
 use App\Domain\Task\Ancestry\ParentChain;
+use App\Domain\Task\Ancestry\TaskTree;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 
 final readonly class UpdateTask
 {
-    public function __construct(private Dispatcher $events) {}
+    public function __construct(private Dispatcher $events, private TaskTree $tree) {}
 
     public function handle(Task $task, User $actor, UpdateTaskData $data): Task
     {
-        if (! $task->workspace->membershipFor($actor)?->allows(Capability::TaskUpdate)) {
+        if ($actor->cannot('update', $task)) {
             throw TaskException::cannotUpdateTask();
         }
 
-        $parent = $data->changes('parent_id') ? $this->parentFor($task, $data->parentId) : null;
+        $changed = DB::transaction(function () use ($task, $data): array {
+            $parent = $data->changes('parent_id') ? $this->parentFor($task, $data->parentId) : null;
 
-        // A null clears a nullable field; a field absent from the payload is left untouched.
-        $task->fill($this->changed($data, [
-            // Sanitised here rather than in the FormRequest so console and queue callers are covered too.
-            'description' => RichText::sanitize($data->description),
-            'due_at' => $data->dueAt,
-            'parent_id' => $parent?->id,
-        ]));
+            // A null clears a nullable field; a field absent from the payload is left untouched.
+            $task->fill($this->changed($data, [
+                // Sanitised here rather than in the FormRequest so console and queue callers are covered too.
+                'description' => RichText::sanitize($data->description),
+                'due_at' => $data->dueAt,
+                'parent_id' => $parent?->id,
+            ]));
 
-        $task->fill(array_filter(
-            $this->changed($data, ['title' => $data->title, 'priority' => $data->priority]),
-            fn (mixed $value): bool => $value !== null,
-        ));
+            $task->fill(array_filter(
+                $this->changed($data, ['title' => $data->title, 'priority' => $data->priority]),
+                fn (mixed $value): bool => $value !== null,
+            ));
 
-        $changed = array_keys($task->getDirty());
+            $changed = array_keys($task->getDirty());
+
+            if ($changed !== []) {
+                $task->save();
+            }
+
+            return $changed;
+        });
 
         if ($changed === []) {
             return $task;
         }
-
-        $task->save();
 
         $this->events->dispatch(new TaskUpdated($task->id, $task->workspace_id, $changed, $actor->id));
 
@@ -81,36 +88,18 @@ final readonly class UpdateTask
             throw TaskException::parentBelongsToAnotherWorkspace();
         }
 
-        $parentOf = $this->parentResolver($task->workspace_id);
+        $parentOf = $this->tree->lockChainFrom($task->workspace_id, $parent->id, alsoLock: $task->id);
 
         if (ParentChain::wouldCycle($task->id, $parent->id, $parentOf)) {
             throw TaskException::parentWouldCloseALoop();
         }
 
-        if (ParentChain::depthOf($parent->id, $parentOf) + 1 >= ParentChain::MAX_DEPTH) {
+        $deepest = ParentChain::depthOf($parent->id, $parentOf) + 1 + $this->tree->heightOf($task->workspace_id, $task->id);
+
+        if ($deepest >= ParentChain::MAX_DEPTH) {
             throw TaskException::parentChainTooDeep();
         }
 
         return $parent;
-    }
-
-    /**
-     * @return callable(string): ?string
-     */
-    private function parentResolver(string $workspaceId): callable
-    {
-        /** @var array<string, string|null> $resolved */
-        $resolved = [];
-
-        return function (string $id) use (&$resolved, $workspaceId): ?string {
-            if (! array_key_exists($id, $resolved)) {
-                $resolved[$id] = Task::query()
-                    ->where('workspace_id', $workspaceId)
-                    ->whereKey($id)
-                    ->value('parent_id');
-            }
-
-            return $resolved[$id];
-        };
     }
 }

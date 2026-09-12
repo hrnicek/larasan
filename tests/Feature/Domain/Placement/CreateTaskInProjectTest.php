@@ -6,17 +6,21 @@ use App\Domain\Placement\Actions\CreateTaskInProject;
 use App\Domain\Placement\Exceptions\PlacementException;
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
 use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Data\CreateTaskData;
+use App\Domain\Task\Events\TaskAssigned;
+use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
 function addTask(Project $project, User $actor, string $title, ?Section $section = null): TaskProjectMembership
@@ -168,4 +172,38 @@ it('hides the endpoint of a project in another workspace', function (): void {
         ->assertNotFound();
 
     expect(Workspace::query()->count())->toBe(2);
+});
+
+it('refuses an assignee who cannot open the private project the task is created in', function (): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace, WorkspaceRole::Member);
+    $project = Project::factory()->in($workspace)->private()->create();
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
+    $outsider = memberOf($workspace, WorkspaceRole::Member);
+
+    expect(fn (): TaskProjectMembership => app(CreateTaskInProject::class)->handle(
+        $project,
+        $actor,
+        new CreateTaskData(title: 'Not for them', assigneeId: $outsider->id),
+    ))->toThrow(TaskException::class, 'That person cannot reach this task.');
+
+    expect(Task::query()->count())->toBe(0);
+});
+
+it('assigns a guest who was given the project the task is created in, and says so', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    Event::fake([TaskAssigned::class]);
+
+    $placement = app(CreateTaskInProject::class)->handle(
+        $project,
+        $actor,
+        new CreateTaskData(title: 'For the client', assigneeId: $guest->id),
+    );
+
+    expect($placement->task->assignee_id)->toBe($guest->id);
+
+    Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event): bool => $event->taskId === $placement->task_id
+        && $event->assigneeId === $guest->id);
 });

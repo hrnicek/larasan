@@ -8,6 +8,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Actions\CreateTask;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\CreateTaskData;
+use App\Domain\Task\Events\TaskAssigned;
 use App\Domain\Task\Events\TaskCreated;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
@@ -56,7 +57,7 @@ it('honours the attributes the caller supplied', function (): void {
         ->and($task->fresh()?->assignee_id)->toBe($assignee->id);
 });
 
-it('announces the task after the transaction', function (): void {
+it('announces the task it created', function (): void {
     Event::fake();
     $workspace = Workspace::factory()->create();
     $creator = memberOf($workspace, WorkspaceRole::Member);
@@ -160,4 +161,38 @@ it('refuses a member whose own membership is not active', function (): void {
     $suspended = memberOf($workspace, WorkspaceRole::Member, WorkspaceMembershipStatus::Revoked);
 
     expect(fn (): Task => createTask($workspace, $suspended))->toThrow(TaskException::class);
+});
+
+it('assigns through the same path as an assignment made later', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+    $assignee = memberOf($workspace, WorkspaceRole::Member);
+    Event::fake([TaskAssigned::class]);
+
+    $task = createTask($workspace, $creator, new CreateTaskData(title: 'Ship it', assigneeId: $assignee->id));
+
+    Event::assertDispatched(TaskAssigned::class, fn (TaskAssigned $event): bool => $event->taskId === $task->id
+        && $event->assigneeId === $assignee->id
+        && $event->assignedById === $creator->id);
+});
+
+it('makes the assignee of a new task follow it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+    $assignee = memberOf($workspace, WorkspaceRole::Member);
+
+    $task = createTask($workspace, $creator, new CreateTaskData(title: 'Ship it', assigneeId: $assignee->id));
+
+    expect($task->followers()->pluck('users.id')->all())->toContain($assignee->id);
+});
+
+it('refuses to hand a new task to a guest who could not open it', function (): void {
+    $workspace = Workspace::factory()->create();
+    $creator = memberOf($workspace, WorkspaceRole::Member);
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+
+    expect(fn (): Task => createTask($workspace, $creator, new CreateTaskData(title: 'Ship it', assigneeId: $guest->id)))
+        ->toThrow(TaskException::class, 'That person cannot reach this task.');
+
+    expect($workspace->tasks()->count())->toBe(0);
 });

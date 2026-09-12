@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Events\TaskCollaboratorAdded;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
@@ -19,7 +18,7 @@ final readonly class AddTaskCollaborator
 
     public function handle(Task $task, User $actor, User $collaborator): TaskCollaborator
     {
-        if (! $task->workspace->membershipFor($actor)?->allows(Capability::TaskAssign)) {
+        if ($actor->cannot('assign', $task)) {
             throw TaskException::cannotAssignTask();
         }
 

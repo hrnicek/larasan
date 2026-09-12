@@ -127,6 +127,15 @@ it('rejects an account from another workspace as assignee', function (): void {
         ->assertJsonValidationErrorFor('assignee_id');
 });
 
+it('rejects a guest as the assignee of a task that starts in no project', function (): void {
+    [$workspace, $actor] = workspaceForTaskRequests();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+
+    $this->actingAs($actor)
+        ->postJson('task-probe/acme', ['title' => 'Write it down', 'assignee_id' => $guest->id])
+        ->assertJsonValidationErrorFor('assignee_id');
+});
+
 it('lets a member update a task and refuses a guest', function (): void {
     [$workspace, $actor] = workspaceForTaskRequests();
     $task = Task::factory()->in($workspace)->create();

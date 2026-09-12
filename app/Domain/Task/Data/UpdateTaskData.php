@@ -14,10 +14,11 @@ final readonly class UpdateTaskData
     public const EVERY_FIELD = ['title', 'description', 'priority', 'due_at', 'parent_id'];
 
     /**
+     * @param  string|null  $title  null leaves the title as it is, even when `title` is among the fields
      * @param  list<string>  $fields  the keys present in the payload
      */
     public function __construct(
-        public string $title = '',
+        public ?string $title = null,
         public ?string $description = null,
         public ?TaskPriority $priority = null,
         public ?CarbonImmutable $dueAt = null,
@@ -33,7 +34,7 @@ final readonly class UpdateTaskData
     public static function fromRequest(UpdateTaskRequest $request): self
     {
         return new self(
-            title: $request->string('title')->toString(),
+            title: $request->exists('title') ? $request->string('title')->toString() : null,
             description: $request->string('description')->value() ?: null,
             priority: $request->enum('priority', TaskPriority::class),
             dueAt: $request->date('due_at')?->toImmutable(),

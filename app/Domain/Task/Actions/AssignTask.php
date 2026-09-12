@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Events\TaskAssigned;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
@@ -18,7 +17,7 @@ final readonly class AssignTask
 
     public function handle(Task $task, User $actor, ?User $assignee): Task
     {
-        if (! $task->workspace->membershipFor($actor)?->allows(Capability::TaskAssign)) {
+        if ($actor->cannot('assign', $task)) {
             throw TaskException::cannotAssignTask();
         }
 

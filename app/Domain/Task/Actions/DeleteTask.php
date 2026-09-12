@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Events\TaskDeleted;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
@@ -18,7 +17,7 @@ final readonly class DeleteTask
 
     public function handle(Task $task, User $actor): void
     {
-        if (! $task->workspace->membershipFor($actor)?->allows(Capability::TaskDelete)) {
+        if ($actor->cannot('delete', $task)) {
             throw TaskException::cannotDeleteTask();
         }
 

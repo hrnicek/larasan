@@ -30,4 +30,15 @@ final readonly class CreateTaskData
             assigneeId: $request->integer('assignee_id') ?: null,
         );
     }
+
+    public function withoutAssignee(): self
+    {
+        return new self(
+            title: $this->title,
+            description: $this->description,
+            priority: $this->priority,
+            dueAt: $this->dueAt,
+            parentId: $this->parentId,
+        );
+    }
 }

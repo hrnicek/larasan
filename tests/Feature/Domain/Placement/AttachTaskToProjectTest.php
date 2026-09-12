@@ -163,3 +163,17 @@ it('lets one task be attached to two projects', function (): void {
     expect($task->placements()->count())->toBe(2)
         ->and(Task::query()->count())->toBe(1);
 });
+
+it('refuses a task the actor cannot reach, exactly as it refuses one from another workspace', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $hidden = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()
+        ->placing($hidden, Project::factory()->in($workspace)->private()->create())
+        ->create();
+
+    expect(fn (): TaskProjectMembership => attach($hidden, $project, $actor))
+        ->toThrow(PlacementException::class, 'That task is not in this workspace.');
+
+    expect($project->placements()->count())->toBe(0)
+        ->and($hidden->placements()->count())->toBe(1);
+});

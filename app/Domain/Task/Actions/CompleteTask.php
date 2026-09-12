@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
-use App\Domain\Shared\Enums\Capability;
 use App\Domain\Task\Events\TaskCompleted;
 use App\Domain\Task\Events\TaskReopened;
 use App\Domain\Task\Exceptions\TaskException;
@@ -48,7 +47,7 @@ final readonly class CompleteTask
 
     private function guard(Task $task, User $actor): void
     {
-        if (! $task->workspace->membershipFor($actor)?->allows(Capability::TaskUpdate)) {
+        if ($actor->cannot('complete', $task)) {
             throw TaskException::cannotUpdateTask();
         }
     }

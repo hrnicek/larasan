@@ -108,6 +108,7 @@ it('assigns a guest a task that is in a project they were given', function (): v
     $guest = memberOf($task->workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
     ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Editor)->create();
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();
 
     app(AssignTask::class)->handle($task, $actor, $guest);
@@ -119,6 +120,7 @@ it('refuses a member for a task that lives only in a private project they are no
     [$task, $actor] = taskEditableBy();
     $outsider = memberOf($task->workspace, WorkspaceRole::Member);
     $private = Project::factory()->in($task->workspace)->create(['visibility' => ProjectVisibility::Private]);
+    ProjectMembership::factory()->in($private)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
     expect(fn (): Task => app(AssignTask::class)->handle($task, $actor, $outsider))
@@ -142,4 +144,18 @@ it('refuses an actor from another workspace', function (): void {
 
     expect(fn (): Task => app(AssignTask::class)->handle($task, $outsider, $assignee))
         ->toThrow(TaskException::class);
+});
+
+it('refuses to unassign somebody on a board the actor cannot change', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $assignee = memberOf($task->workspace, WorkspaceRole::Member);
+    $task->forceFill(['assignee_id' => $assignee->id])->save();
+    $archived = Project::factory()->in($task->workspace)->archived()->create();
+    ProjectMembership::factory()->in($archived)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
+    TaskProjectMembership::factory()->placing($task, $archived)->create();
+
+    expect(fn (): Task => app(AssignTask::class)->handle($task->refresh(), $actor, null))
+        ->toThrow(TaskException::class, 'permission to assign');
+
+    expect($task->fresh()?->assignee_id)->toBe($assignee->id);
 });

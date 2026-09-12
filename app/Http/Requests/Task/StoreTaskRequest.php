@@ -7,6 +7,7 @@ namespace App\Http\Requests\Task;
 use App\Domain\Shared\Enums\Capability;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
+use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
@@ -52,12 +53,14 @@ class StoreTaskRequest extends FormRequest
                         ->whereIn('id', $this->reachableTaskIds($workspace)),
                 ),
             ],
+            // A guest can never open a task that is in no project, so cannot be its assignee.
             'assignee_id' => [
                 'nullable', 'integer',
                 Rule::exists('workspace_memberships', 'user_id')->where(
                     fn (Builder $query): Builder => $query
                         ->where('workspace_id', $workspace?->id)
-                        ->where('status', WorkspaceMembershipStatus::Active->value),
+                        ->where('status', WorkspaceMembershipStatus::Active->value)
+                        ->where('role', '!=', WorkspaceRole::Guest->value),
                 ),
             ],
         ];

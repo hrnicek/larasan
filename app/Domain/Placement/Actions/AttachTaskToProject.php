@@ -27,7 +27,8 @@ final readonly class AttachTaskToProject
         }
 
         // Foreign keys cannot enforce a shared workspace, and non-HTTP callers skip FormRequests. See ADR-0003.
-        if ($task->workspace_id !== $project->workspace_id) {
+        // An unreachable task is refused the same way, since a new placement would make it readable.
+        if ($task->workspace_id !== $project->workspace_id || $actor->cannot('view', $task)) {
             throw PlacementException::taskBelongsToAnotherWorkspace();
         }
 
