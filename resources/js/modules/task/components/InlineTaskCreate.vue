@@ -64,7 +64,11 @@ function submit(): void {
             type="button"
             data-add-task
             class="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
-            :class="compact ? 'min-h-6 w-full rounded px-1.5 text-xs hover:bg-accent' : 'min-h-11 md:min-h-6'"
+            :class="
+                compact
+                    ? 'min-h-6 w-full rounded px-1.5 text-xs hover:bg-accent'
+                    : 'min-h-11 md:min-h-6'
+            "
             @click="start"
         >
             {{ compact ? '+ Add' : '+ Add task' }}

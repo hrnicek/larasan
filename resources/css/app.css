@@ -69,7 +69,6 @@
     --color-chart-3: var(--chart-3);
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
-
 }
 
 /*
@@ -97,18 +96,38 @@
     }
 
     .accent-band {
-        background-color: color-mix(in oklab, var(--custom-accent, transparent) 12%, transparent);
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 12%,
+            transparent
+        );
     }
 
     .accent-chip,
     .accent-content-tile {
-        background-color: color-mix(in oklab, var(--custom-accent, transparent) 16%, transparent);
-        color: color-mix(in oklab, var(--custom-accent, currentColor) 72%, var(--foreground));
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 16%,
+            transparent
+        );
+        color: color-mix(
+            in oklab,
+            var(--custom-accent, currentColor) 72%,
+            var(--foreground)
+        );
     }
 
     .accent-tile {
-        background-color: color-mix(in oklab, var(--custom-accent, transparent) 22%, transparent);
-        color: color-mix(in oklab, var(--custom-accent, currentColor) 45%, var(--chrome-foreground));
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 22%,
+            transparent
+        );
+        color: color-mix(
+            in oklab,
+            var(--custom-accent, currentColor) 45%,
+            var(--chrome-foreground)
+        );
     }
 }
 
@@ -178,7 +197,6 @@
     --chrome-border: oklch(0.3 0.012 285);
     --chrome-primary: oklch(0.72 0.16 330);
     --chrome-primary-foreground: oklch(0.19 0.03 330);
-
 }
 
 :root.dark {

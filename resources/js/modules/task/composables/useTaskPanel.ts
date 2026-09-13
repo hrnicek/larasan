@@ -4,7 +4,8 @@ import { onMounted, onUnmounted, ref } from 'vue';
 export function useTaskPanel() {
     // Preload the async panel chunk once the page is idle, off the first-paint path.
     onMounted(() => {
-        const fetchPanel = (): void => void import('@/modules/task/components/TaskDetailPanel.vue');
+        const fetchPanel = (): void =>
+            void import('@/modules/task/components/TaskDetailPanel.vue');
 
         if (typeof window.requestIdleCallback === 'function') {
             window.requestIdleCallback(fetchPanel);

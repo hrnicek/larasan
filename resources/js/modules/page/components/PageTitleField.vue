@@ -43,7 +43,10 @@ const refusalOf = (failure: unknown): string | null => {
     const body = (failure as { response?: { data?: unknown } })?.response?.data;
 
     try {
-        const message = typeof body === 'string' ? (JSON.parse(body) as { message?: unknown }).message : null;
+        const message =
+            typeof body === 'string'
+                ? (JSON.parse(body) as { message?: unknown }).message
+                : null;
 
         return typeof message === 'string' ? message : null;
     } catch {
@@ -114,7 +117,11 @@ const restore = (): void => {
 
 // Partial reloads stay on this page, so they leave a pending title to its quiet period.
 const stopListening = router.on('before', ({ detail: { visit } }) => {
-    if (!visit.prefetch && visit.only.length === 0 && visit.except.length === 0) {
+    if (
+        !visit.prefetch &&
+        visit.only.length === 0 &&
+        visit.except.length === 0
+    ) {
         flush();
     }
 });
@@ -143,6 +150,10 @@ onBeforeUnmount(() => {
             @keydown.esc.prevent="restore"
         />
 
-        <span v-else class="block text-2xl font-semibold tracking-tight text-foreground">{{ title }}</span>
+        <span
+            v-else
+            class="block text-2xl font-semibold tracking-tight text-foreground"
+            >{{ title }}</span
+        >
     </h1>
 </template>

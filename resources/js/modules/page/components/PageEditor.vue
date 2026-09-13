@@ -7,7 +7,10 @@ import PageSelectionToolbar from '@/modules/page/components/PageSelectionToolbar
 import PageSlashMenu from '@/modules/page/components/PageSlashMenu.vue';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
 import { pageExtensions } from '@/modules/page/lib/extensions';
-import { matchingCommands, slashCommands } from '@/modules/page/lib/slashCommands';
+import {
+    matchingCommands,
+    slashCommands,
+} from '@/modules/page/lib/slashCommands';
 import type { PageDocument } from '@/modules/page/types';
 import '../../../../css/page-editor.css';
 
@@ -23,7 +26,10 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [document: PageDocument] }>();
 
-const toolbar = ref<{ mode: 'marks' | 'code' | 'table'; anchor: { top: number; left: number } } | null>(null);
+const toolbar = ref<{
+    mode: 'marks' | 'code' | 'table';
+    anchor: { top: number; left: number };
+} | null>(null);
 
 const menu = ref<{
     commands: SlashCommand[];
@@ -37,7 +43,9 @@ const editor = shallowRef<Editor>();
 let emitted: PageDocument | null = null;
 
 const insert = (command: SlashCommand, over?: Range): void => {
-    const chosen = slashCommands.find((candidate) => candidate.key === command.key);
+    const chosen = slashCommands.find(
+        (candidate) => candidate.key === command.key,
+    );
     const range = over ?? menu.value?.range;
 
     if (chosen && editor.value && range) {
@@ -58,7 +66,8 @@ const slashMenu = Extension.create({
                 char: '/',
                 startOfLine: false,
                 allowSpaces: false,
-                command: ({ range, props: chosen }) => insert(chosen as SlashCommand, range),
+                command: ({ range, props: chosen }) =>
+                    insert(chosen as SlashCommand, range),
                 items: ({ query }) => matchingCommands(query),
                 render: () => ({
                     onStart: (state) => {
@@ -73,8 +82,14 @@ const slashMenu = Extension.create({
                             selected: 0,
                             // Above the caret when the list would overflow the window.
                             position: {
-                                top: rect.bottom + 300 > window.innerHeight ? rect.top - 296 : rect.bottom + 6,
-                                left: Math.min(rect.left, window.innerWidth - 272),
+                                top:
+                                    rect.bottom + 300 > window.innerHeight
+                                        ? rect.top - 296
+                                        : rect.bottom + 6,
+                                left: Math.min(
+                                    rect.left,
+                                    window.innerWidth - 272,
+                                ),
                             },
                             range: state.range,
                         };
@@ -100,13 +115,15 @@ const slashMenu = Extension.create({
                         }
 
                         if (state.event.key === 'ArrowDown' && count) {
-                            menu.value.selected = (menu.value.selected + 1) % count;
+                            menu.value.selected =
+                                (menu.value.selected + 1) % count;
 
                             return true;
                         }
 
                         if (state.event.key === 'ArrowUp' && count) {
-                            menu.value.selected = (menu.value.selected - 1 + count) % count;
+                            menu.value.selected =
+                                (menu.value.selected - 1 + count) % count;
 
                             return true;
                         }
@@ -199,7 +216,10 @@ editor.value = new Editor({
         // Clicking a toolbar control blurs the editor, so the toolbar must survive that blur.
         const moved = event.relatedTarget;
 
-        if (!(moved instanceof HTMLElement) || moved.closest('[role="toolbar"]') === null) {
+        if (
+            !(moved instanceof HTMLElement) ||
+            moved.closest('[role="toolbar"]') === null
+        ) {
             toolbar.value = null;
         }
     },
@@ -213,7 +233,9 @@ watch(
             return;
         }
 
-        if (JSON.stringify(editor.value.getJSON()) !== JSON.stringify(document)) {
+        if (
+            JSON.stringify(editor.value.getJSON()) !== JSON.stringify(document)
+        ) {
             editor.value.commands.setContent(document, { emitUpdate: false });
         }
     },
@@ -223,7 +245,10 @@ watch(
 watch(
     () => menu.value?.commands[menu.value.selected]?.key ?? null,
     (active) => {
-        const textbox = editor.value && !editor.value.isDestroyed ? editor.value.view.dom : null;
+        const textbox =
+            editor.value && !editor.value.isDestroyed
+                ? editor.value.view.dom
+                : null;
 
         if (!textbox) {
             return;

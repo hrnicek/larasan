@@ -5,7 +5,8 @@ import PageContentController from '@/actions/App/Http/Controllers/Page/PageConte
 import type { PageDocument } from '@/modules/page/types';
 
 // On `conflict` saving stops rather than retrying, which would overwrite the other writer. See ADR-0017.
-export type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'conflict' | 'failed';
+export type SaveState =
+    'idle' | 'pending' | 'saving' | 'saved' | 'conflict' | 'failed';
 
 /** Milliseconds after the last keystroke before a save goes out. */
 const QUIET_PERIOD = 900;
@@ -14,7 +15,10 @@ const RETRY_DELAYS = [1_000, 2_000, 5_000, 10_000, 30_000];
 
 // Bound to one page and version: the owning component must be keyed by page id to get a fresh instance per page.
 // Never two saves in flight: the next one must carry the version the running one returns.
-export function usePageAutosave(pageId: string, initialVersion: number): {
+export function usePageAutosave(
+    pageId: string,
+    initialVersion: number,
+): {
     state: Ref<SaveState>;
     save: (document: PageDocument) => void;
 } {
@@ -38,10 +42,13 @@ export function usePageAutosave(pageId: string, initialVersion: number): {
             return;
         }
 
-        timer = setTimeout(() => {
-            timer = null;
-            void send();
-        }, RETRY_DELAYS[failures - 1]);
+        timer = setTimeout(
+            () => {
+                timer = null;
+                void send();
+            },
+            RETRY_DELAYS[failures - 1],
+        );
     };
 
     const send = async (): Promise<void> => {
@@ -69,7 +76,8 @@ export function usePageAutosave(pageId: string, initialVersion: number): {
             version = (JSON.parse(answer.data) as { version: number }).version;
             outcome = 'saved';
         } catch (failure: unknown) {
-            const status = (failure as { response?: { status?: number } })?.response?.status;
+            const status = (failure as { response?: { status?: number } })
+                ?.response?.status;
 
             outcome = status === 409 ? 'conflict' : 'failed';
         } finally {
@@ -133,7 +141,8 @@ export function usePageAutosave(pageId: string, initialVersion: number): {
         void send();
     };
 
-    const unsaved = (): boolean => ['pending', 'saving', 'failed'].includes(state.value);
+    const unsaved = (): boolean =>
+        ['pending', 'saving', 'failed'].includes(state.value);
 
     const guard = (event: BeforeUnloadEvent): void => {
         if (unsaved()) {
@@ -145,7 +154,11 @@ export function usePageAutosave(pageId: string, initialVersion: number): {
 
     // `beforeunload` never fires for an Inertia visit; partial reloads stay on the page and keep the quiet period.
     const stopListening = router.on('before', ({ detail: { visit } }) => {
-        if (!visit.prefetch && visit.only.length === 0 && visit.except.length === 0) {
+        if (
+            !visit.prefetch &&
+            visit.only.length === 0 &&
+            visit.except.length === 0
+        ) {
             flush();
         }
     });

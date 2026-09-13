@@ -126,7 +126,12 @@ export type ProjectCalendar = {
 
 export type TaskDetailPlacement = {
     placementId: string;
-    project: { id: string; name: string; color: string | null; archived: boolean };
+    project: {
+        id: string;
+        name: string;
+        color: string | null;
+        archived: boolean;
+    };
     section: { id: string; name: string } | null;
     sections: { id: string; name: string }[];
     /** Covers both moving and detaching. */
@@ -158,7 +163,14 @@ export type TaskDetail = {
     tags: TaskTag[];
     availableTags: TaskTag[];
     attachments: TaskAttachment[];
-    can: { update: boolean; assign: boolean; delete: boolean; comment: boolean; attach: boolean; manageTags: boolean };
+    can: {
+        update: boolean;
+        assign: boolean;
+        delete: boolean;
+        comment: boolean;
+        attach: boolean;
+        manageTags: boolean;
+    };
 };
 
 export type TaskFeedEntry = {

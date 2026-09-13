@@ -12,7 +12,8 @@ configureModalLayer();
 
 createInertiaApp({
     // Read from page props rather than a VITE_ variable so renaming APP_NAME needs no rebuild.
-    title: (title, page) => (title ? `${title} — ${page.props.name}` : String(page.props.name)),
+    title: (title, page) =>
+        title ? `${title} — ${page.props.name}` : String(page.props.name),
     withApp: applyModalLayer,
     layout: (name) => {
         switch (true) {

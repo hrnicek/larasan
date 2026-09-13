@@ -11,7 +11,9 @@ function read(projectId: string): string[] {
         const stored = window.localStorage.getItem(storageKey(projectId));
         const parsed: unknown = stored === null ? [] : JSON.parse(stored);
 
-        return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+        return Array.isArray(parsed)
+            ? parsed.filter((id): id is string => typeof id === 'string')
+            : [];
     } catch {
         return [];
     }
@@ -23,11 +25,18 @@ export function useCollapsedSections(projectId: string): {
 } {
     const collapsed = ref<string[]>(read(projectId));
 
-    watch(collapsed, (value) => {
-        if (typeof window !== 'undefined') {
-            window.localStorage.setItem(storageKey(projectId), JSON.stringify(value));
-        }
-    }, { deep: true });
+    watch(
+        collapsed,
+        (value) => {
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem(
+                    storageKey(projectId),
+                    JSON.stringify(value),
+                );
+            }
+        },
+        { deep: true },
+    );
 
     const key = (sectionId: string | null) => sectionId ?? 'ungrouped';
 

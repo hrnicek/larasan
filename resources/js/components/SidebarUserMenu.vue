@@ -2,7 +2,11 @@
 import { usePage } from '@inertiajs/vue3';
 import { ChevronsUpDown } from '@lucide/vue';
 import { computed } from 'vue';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import UserAvatar from '@/components/UserAvatar.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCollapsed } from '@/composables/useShell';
@@ -23,14 +27,28 @@ const user = computed(() => page.props.auth.user);
             <UserAvatar :user="user" />
 
             <span v-if="!collapsed" class="grid flex-1 leading-tight">
-                <span class="truncate text-[13px] font-semibold text-chrome-foreground">{{ user.name }}</span>
-                <span class="truncate text-[11px] text-chrome-muted-foreground">{{ user.email }}</span>
+                <span
+                    class="truncate text-[13px] font-semibold text-chrome-foreground"
+                    >{{ user.name }}</span
+                >
+                <span
+                    class="truncate text-[11px] text-chrome-muted-foreground"
+                    >{{ user.email }}</span
+                >
             </span>
 
-            <ChevronsUpDown v-if="!collapsed" class="size-3.5 shrink-0 text-chrome-muted-foreground" />
+            <ChevronsUpDown
+                v-if="!collapsed"
+                class="size-3.5 shrink-0 text-chrome-muted-foreground"
+            />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent class="min-w-60" align="start" side="top" :side-offset="8">
+        <DropdownMenuContent
+            class="min-w-60"
+            align="start"
+            side="top"
+            :side-offset="8"
+        >
             <UserMenuContent :user="user" />
         </DropdownMenuContent>
     </DropdownMenu>

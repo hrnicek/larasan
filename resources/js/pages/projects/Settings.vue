@@ -64,7 +64,9 @@ const startDate = ref<string>(props.project.start_date ?? '');
 const dueDate = ref<string>(props.project.due_date ?? '');
 const confirmation = ref('');
 
-const confirmed = computed(() => confirmation.value.trim() === props.project.name);
+const confirmed = computed(
+    () => confirmation.value.trim() === props.project.name,
+);
 
 type Choice = { label: string; hint: string; icon: Component };
 
@@ -84,7 +86,11 @@ const visibilities: Record<string, Choice> = {
 const views: Record<string, Choice> = {
     list: { label: 'List', hint: 'Rows grouped by section', icon: List },
     board: { label: 'Board', hint: 'A column per section', icon: Kanban },
-    calendar: { label: 'Calendar', hint: 'Tasks by due date', icon: CalendarDays },
+    calendar: {
+        label: 'Calendar',
+        hint: 'Tasks by due date',
+        icon: CalendarDays,
+    },
 };
 
 function choice(known: Record<string, Choice>, option: string): Choice {
@@ -96,12 +102,16 @@ const days = computed<number | null>(() => {
         return null;
     }
 
-    return Math.round((Date.parse(dueDate.value) - Date.parse(startDate.value)) / 86_400_000);
+    return Math.round(
+        (Date.parse(dueDate.value) - Date.parse(startDate.value)) / 86_400_000,
+    );
 });
 
 // `<Form>` derives dirtiness from input events, which hidden fields written by a picker never fire.
 const appearanceChanged = computed(
-    () => color.value !== (props.project.color ?? '') || icon.value !== (props.project.icon ?? ''),
+    () =>
+        color.value !== (props.project.color ?? '') ||
+        icon.value !== (props.project.icon ?? ''),
 );
 
 function hasChanges(formDirty: boolean): boolean {
@@ -123,16 +133,18 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
                   items: [
                       { id: 'access', label: 'Access', icon: Users },
                       { id: 'views', label: 'Default view', icon: Columns3 },
-                      { id: 'timeline', label: 'Timeline', icon: CalendarRange },
+                      {
+                          id: 'timeline',
+                          label: 'Timeline',
+                          icon: CalendarRange,
+                      },
                   ],
               },
           ]
         : []),
     {
         label: 'Structure',
-        items: [
-            { id: 'fields', label: 'Fields', icon: ListChecks },
-        ],
+        items: [{ id: 'fields', label: 'Fields', icon: ListChecks }],
     },
     ...(props.can.archive
         ? [
@@ -177,11 +189,18 @@ function discard(reset: () => void): void {
                 />
 
                 <div class="min-w-0">
-                    <h1 class="truncate text-xl font-semibold tracking-tight">{{ props.project.name }}</h1>
-                    <p class="mt-0.5 text-sm text-muted-foreground">Project settings</p>
+                    <h1 class="truncate text-xl font-semibold tracking-tight">
+                        {{ props.project.name }}
+                    </h1>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Project settings
+                    </p>
                 </div>
 
-                <span v-if="props.project.archived" class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <span
+                    v-if="props.project.archived"
+                    class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                >
                     Archived
                 </span>
 
@@ -213,13 +232,19 @@ function discard(reset: () => void): void {
                         set-defaults-on-success
                         v-slot="{ errors, processing, isDirty, reset }"
                     >
-                        <input type="hidden" name="id" :value="props.project.id" />
+                        <input
+                            type="hidden"
+                            name="id"
+                            :value="props.project.id"
+                        />
                         <!-- `projects.update` treats an absent nullable field as cleared, so these must always be sent. -->
                         <input type="hidden" name="color" :value="color" />
                         <input type="hidden" name="icon" :value="icon" />
 
                         <section class="space-y-4">
-                            <h2 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                            <h2
+                                class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                            >
                                 Project
                             </h2>
 
@@ -231,35 +256,56 @@ function discard(reset: () => void): void {
                                 <div class="grid gap-5 sm:grid-cols-2">
                                     <div class="grid gap-2">
                                         <Label for="name">Name</Label>
-                                        <Input id="name" name="name" required :default-value="props.project.name" />
+                                        <Input
+                                            id="name"
+                                            name="name"
+                                            required
+                                            :default-value="props.project.name"
+                                        />
                                         <InputError :message="errors.name" />
                                         <InputError :message="errors.id" />
                                     </div>
 
                                     <div class="grid gap-2">
                                         <Label for="slug">Address</Label>
-                                        <Input id="slug" name="slug" :default-value="props.project.slug" />
-                                        <p class="text-xs text-muted-foreground">
-                                            A short handle, unique in this workspace. Search matches it as well as
-                                            the name.
+                                        <Input
+                                            id="slug"
+                                            name="slug"
+                                            :default-value="props.project.slug"
+                                        />
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            A short handle, unique in this
+                                            workspace. Search matches it as well
+                                            as the name.
                                         </p>
                                         <InputError :message="errors.slug" />
                                     </div>
 
                                     <div class="grid gap-2 sm:col-span-2">
-                                        <Label for="description">Description</Label>
+                                        <Label for="description"
+                                            >Description</Label
+                                        >
                                         <textarea
                                             id="description"
                                             name="description"
                                             rows="3"
                                             class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-                                            :value="props.project.description ?? ''"
+                                            :value="
+                                                props.project.description ?? ''
+                                            "
                                         />
-                                        <p class="text-xs text-muted-foreground">
-                                            Shown beside the project in a list of them, and searched along with its
+                                        <p
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            Shown beside the project in a list
+                                            of them, and searched along with its
                                             tasks.
                                         </p>
-                                        <InputError :message="errors.description" />
+                                        <InputError
+                                            :message="errors.description"
+                                        />
                                     </div>
                                 </div>
                             </ProjectSettingsSection>
@@ -270,39 +316,54 @@ function discard(reset: () => void): void {
                                 description="How this project is recognised in the sidebar and in a list of them"
                             >
                                 <template #aside>
-                                    <div class="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                                    <div
+                                        class="flex items-center gap-2 rounded-lg border border-border px-3 py-2"
+                                    >
                                         <ProjectTile
                                             :name="props.project.name"
                                             :color="color || null"
                                             :icon="icon || null"
                                         />
-                                        <span class="max-w-40 truncate text-sm font-medium">
+                                        <span
+                                            class="max-w-40 truncate text-sm font-medium"
+                                        >
                                             {{ props.project.name }}
                                         </span>
                                     </div>
                                 </template>
 
-                                <div class="grid gap-6 sm:grid-cols-[auto_1fr] sm:gap-10">
+                                <div
+                                    class="grid gap-6 sm:grid-cols-[auto_1fr] sm:gap-10"
+                                >
                                     <AccentColorGrid
                                         size="md"
                                         :model-value="color || null"
-                                        @update:model-value="color = $event ?? ''"
+                                        @update:model-value="
+                                            color = $event ?? ''
+                                        "
                                     />
 
                                     <ProjectIconGrid
                                         size="md"
                                         :model-value="icon || null"
-                                        @update:model-value="icon = $event ?? ''"
+                                        @update:model-value="
+                                            icon = $event ?? ''
+                                        "
                                     />
                                 </div>
 
-                                <InputError class="mt-2" :message="errors.color" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.color"
+                                />
                                 <InputError :message="errors.icon" />
                             </ProjectSettingsSection>
                         </section>
 
                         <section class="space-y-4">
-                            <h2 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                            <h2
+                                class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                            >
                                 Behaviour
                             </h2>
 
@@ -313,7 +374,8 @@ function discard(reset: () => void): void {
                             >
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label
-                                        v-for="option in props.options.visibilities"
+                                        v-for="option in props.options
+                                            .visibilities"
                                         :key="option"
                                         class="group relative flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent/50 has-[:checked]:border-primary-ring has-[:checked]:bg-primary-subtle has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-ring"
                                     >
@@ -326,7 +388,10 @@ function discard(reset: () => void): void {
                                         />
 
                                         <component
-                                            :is="choice(visibilities, option).icon"
+                                            :is="
+                                                choice(visibilities, option)
+                                                    .icon
+                                            "
                                             class="mt-0.5 size-4 shrink-0 text-muted-foreground group-has-[:checked]:text-primary-subtle-foreground"
                                         />
 
@@ -334,10 +399,18 @@ function discard(reset: () => void): void {
                                             <span
                                                 class="block text-sm font-medium group-has-[:checked]:text-primary-subtle-foreground"
                                             >
-                                                {{ choice(visibilities, option).label }}
+                                                {{
+                                                    choice(visibilities, option)
+                                                        .label
+                                                }}
                                             </span>
-                                            <span class="mt-0.5 block text-xs text-muted-foreground">
-                                                {{ choice(visibilities, option).hint }}
+                                            <span
+                                                class="mt-0.5 block text-xs text-muted-foreground"
+                                            >
+                                                {{
+                                                    choice(visibilities, option)
+                                                        .hint
+                                                }}
                                             </span>
                                         </span>
 
@@ -347,7 +420,10 @@ function discard(reset: () => void): void {
                                     </label>
                                 </div>
 
-                                <InputError class="mt-2" :message="errors.visibility" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.visibility"
+                                />
                             </ProjectSettingsSection>
 
                             <ProjectSettingsSection
@@ -378,16 +454,23 @@ function discard(reset: () => void): void {
                                             <span
                                                 class="block text-sm font-medium group-has-[:checked]:text-primary-subtle-foreground"
                                             >
-                                                {{ choice(views, option).label }}
+                                                {{
+                                                    choice(views, option).label
+                                                }}
                                             </span>
-                                            <span class="mt-0.5 block text-xs text-muted-foreground">
+                                            <span
+                                                class="mt-0.5 block text-xs text-muted-foreground"
+                                            >
                                                 {{ choice(views, option).hint }}
                                             </span>
                                         </span>
                                     </label>
                                 </div>
 
-                                <InputError class="mt-2" :message="errors.default_view" />
+                                <InputError
+                                    class="mt-2"
+                                    :message="errors.default_view"
+                                />
                             </ProjectSettingsSection>
 
                             <ProjectSettingsSection
@@ -398,25 +481,45 @@ function discard(reset: () => void): void {
                                 <div class="grid gap-5 sm:grid-cols-2">
                                     <div class="grid gap-2">
                                         <Label for="start_date">Starts</Label>
-                                        <Input id="start_date" v-model="startDate" name="start_date" type="date" />
-                                        <InputError :message="errors.start_date" />
+                                        <Input
+                                            id="start_date"
+                                            v-model="startDate"
+                                            name="start_date"
+                                            type="date"
+                                        />
+                                        <InputError
+                                            :message="errors.start_date"
+                                        />
                                     </div>
 
                                     <div class="grid gap-2">
                                         <Label for="due_date">Due</Label>
-                                        <Input id="due_date" v-model="dueDate" name="due_date" type="date" />
-                                        <InputError :message="errors.due_date" />
+                                        <Input
+                                            id="due_date"
+                                            v-model="dueDate"
+                                            name="due_date"
+                                            type="date"
+                                        />
+                                        <InputError
+                                            :message="errors.due_date"
+                                        />
                                     </div>
                                 </div>
 
-                                <p v-if="days !== null && days >= 0" class="mt-3 text-xs text-muted-foreground">
+                                <p
+                                    v-if="days !== null && days >= 0"
+                                    class="mt-3 text-xs text-muted-foreground"
+                                >
                                     {{
                                         days === 0
                                             ? 'Both dates fall on the same day.'
                                             : `${days} days from start to due.`
                                     }}
                                 </p>
-                                <p v-else-if="days !== null" class="mt-3 text-xs text-destructive">
+                                <p
+                                    v-else-if="days !== null"
+                                    class="mt-3 text-xs text-destructive"
+                                >
                                     The due date falls before the start date.
                                 </p>
                             </ProjectSettingsSection>
@@ -429,21 +532,33 @@ function discard(reset: () => void): void {
                             <p class="text-sm font-medium">Unsaved changes</p>
 
                             <div class="ml-auto flex items-center gap-2">
-                                <Button type="button" variant="ghost" :disabled="processing" @click="discard(reset)">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    :disabled="processing"
+                                    @click="discard(reset)"
+                                >
                                     Discard
                                 </Button>
 
-                                <Button type="submit" :disabled="processing">Save changes</Button>
+                                <Button type="submit" :disabled="processing"
+                                    >Save changes</Button
+                                >
                             </div>
                         </div>
                     </Form>
 
-                    <p v-else class="rounded-xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground">
+                    <p
+                        v-else
+                        class="rounded-xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground"
+                    >
                         You can open this project but not change its settings.
                     </p>
 
                     <section class="space-y-4">
-                        <h2 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                        <h2
+                            class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
                             Structure
                         </h2>
 
@@ -462,15 +577,25 @@ function discard(reset: () => void): void {
                     </section>
 
                     <section v-if="props.can.archive" class="space-y-4">
-                        <h2 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                        <h2
+                            class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
                             Danger zone
                         </h2>
 
                         <ProjectSettingsSection
                             id="danger"
                             tone="danger"
-                            :title="props.project.archived ? 'Restore project' : 'Archive project'"
-                            :icon="props.project.archived ? ArchiveRestore : Archive"
+                            :title="
+                                props.project.archived
+                                    ? 'Restore project'
+                                    : 'Archive project'
+                            "
+                            :icon="
+                                props.project.archived
+                                    ? ArchiveRestore
+                                    : Archive
+                            "
                             :description="
                                 props.project.archived
                                     ? 'Put this project back in the sidebar for everyone who can see it'
@@ -478,7 +603,9 @@ function discard(reset: () => void): void {
                             "
                         >
                             <div class="flex flex-wrap items-center gap-4">
-                                <p class="min-w-0 flex-1 text-sm text-muted-foreground">
+                                <p
+                                    class="min-w-0 flex-1 text-sm text-muted-foreground"
+                                >
                                     {{
                                         props.project.archived
                                             ? 'Its tasks, sections and members are exactly where they were left.'
@@ -488,10 +615,18 @@ function discard(reset: () => void): void {
 
                                 <Form
                                     v-if="props.project.archived"
-                                    v-bind="ProjectController.restore.form(props.project.id)"
+                                    v-bind="
+                                        ProjectController.restore.form(
+                                            props.project.id,
+                                        )
+                                    "
                                     v-slot="{ processing }"
                                 >
-                                    <Button type="submit" variant="outline" :disabled="processing">
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        :disabled="processing"
+                                    >
                                         <ArchiveRestore />
                                         Restore project
                                     </Button>
@@ -506,25 +641,40 @@ function discard(reset: () => void): void {
                                     </DialogTrigger>
                                     <DialogContent>
                                         <Form
-                                            v-bind="ProjectController.archive.form(props.project.id)"
+                                            v-bind="
+                                                ProjectController.archive.form(
+                                                    props.project.id,
+                                                )
+                                            "
                                             class="space-y-6"
                                             v-slot="{ processing }"
                                         >
                                             <DialogHeader class="space-y-3">
-                                                <DialogTitle>Archive {{ props.project.name }}?</DialogTitle>
+                                                <DialogTitle
+                                                    >Archive
+                                                    {{
+                                                        props.project.name
+                                                    }}?</DialogTitle
+                                                >
                                                 <DialogDescription>
-                                                    Its tasks and members stay exactly as they are, and you can
-                                                    restore it here. Type the project name to confirm.
+                                                    Its tasks and members stay
+                                                    exactly as they are, and you
+                                                    can restore it here. Type
+                                                    the project name to confirm.
                                                 </DialogDescription>
                                             </DialogHeader>
 
                                             <div class="grid gap-2">
-                                                <Label for="confirmation">Project name</Label>
+                                                <Label for="confirmation"
+                                                    >Project name</Label
+                                                >
                                                 <Input
                                                     id="confirmation"
                                                     v-model="confirmation"
                                                     autocomplete="off"
-                                                    :placeholder="props.project.name"
+                                                    :placeholder="
+                                                        props.project.name
+                                                    "
                                                 />
                                             </div>
 
@@ -532,7 +682,9 @@ function discard(reset: () => void): void {
                                                 <Button
                                                     type="submit"
                                                     variant="destructive"
-                                                    :disabled="!confirmed || processing"
+                                                    :disabled="
+                                                        !confirmed || processing
+                                                    "
                                                 >
                                                     Archive project
                                                 </Button>

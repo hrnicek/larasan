@@ -1,6 +1,11 @@
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table';
+import {
+    Table,
+    TableCell,
+    TableHeader,
+    TableRow,
+} from '@tiptap/extension-table';
 import StarterKit from '@tiptap/starter-kit';
 import type { Extensions } from '@tiptap/vue-3';
 

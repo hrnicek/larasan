@@ -13,7 +13,9 @@ const props = defineProps<{
     placeholder?: string;
 }>();
 
-const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'));
+const RichTextEditor = defineAsyncComponent(
+    () => import('@/components/RichTextEditor.vue'),
+);
 
 const editing = ref(false);
 const draft = ref(props.value ?? '');
@@ -52,7 +54,8 @@ const start = (): void => {
 };
 
 const startUnlessReading = (event: MouseEvent): void => {
-    const onLink = event.target instanceof Element && event.target.closest('a') !== null;
+    const onLink =
+        event.target instanceof Element && event.target.closest('a') !== null;
     const selecting = window.getSelection()?.isCollapsed === false;
 
     if (!onLink && !selecting) {
@@ -61,7 +64,8 @@ const startUnlessReading = (event: MouseEvent): void => {
 };
 
 /** Quill's empty document is `<p><br></p>`, so emptiness is judged on the text content. */
-const blank = (html: string): boolean => html.replace(/<[^>]*>/g, '').trim() === '';
+const blank = (html: string): boolean =>
+    html.replace(/<[^>]*>/g, '').trim() === '';
 
 const save = (): void => {
     const next = blank(draft.value) ? null : draft.value;
@@ -98,7 +102,10 @@ const save = (): void => {
 const onFocusOut = (): void => {
     // Checked after focus settles; opening the editor moves focus in ways `relatedTarget` misreads.
     window.setTimeout(() => {
-        if (!editing.value || wrapper.value?.contains(document.activeElement) === true) {
+        if (
+            !editing.value ||
+            wrapper.value?.contains(document.activeElement) === true
+        ) {
             return;
         }
 
@@ -154,7 +161,9 @@ const onFocusOut = (): void => {
 
         <div v-else class="px-2 py-1.5">
             <div v-if="value" class="rich-text" v-html="rendered" />
-            <span v-else class="text-sm text-muted-foreground">No description.</span>
+            <span v-else class="text-sm text-muted-foreground"
+                >No description.</span
+            >
         </div>
 
         <p v-if="failed" class="text-xs text-destructive">

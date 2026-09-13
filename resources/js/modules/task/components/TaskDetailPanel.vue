@@ -71,7 +71,9 @@ const onKeydown = (event: KeyboardEvent): void => {
 };
 
 onMounted(() => {
-    const origin = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>('[data-task-id]');
+    const origin = (
+        document.activeElement as HTMLElement | null
+    )?.closest<HTMLElement>('[data-task-id]');
 
     restoreFocusToTask = focusAwaitingRestore ?? origin?.dataset.taskId ?? null;
     focusAwaitingRestore = null;
@@ -95,7 +97,11 @@ onUnmounted(() => {
             return;
         }
 
-        document.querySelector<HTMLElement>(`[data-task-id="${focusAwaitingRestore}"]`)?.focus();
+        document
+            .querySelector<HTMLElement>(
+                `[data-task-id="${focusAwaitingRestore}"]`,
+            )
+            ?.focus();
         focusAwaitingRestore = null;
     });
 });
@@ -104,7 +110,10 @@ onUnmounted(() => {
 <template>
     <Teleport to="body">
         <div class="fixed inset-x-0 top-13 bottom-0 z-40">
-            <div class="absolute inset-0 bg-black/25 backdrop-blur-[1px]" @click="emit('close')" />
+            <div
+                class="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
+                @click="emit('close')"
+            />
 
             <section
                 ref="panel"
@@ -113,9 +122,9 @@ onUnmounted(() => {
                 aria-modal="true"
                 :aria-label="detail.task.title"
                 :class="[
-                    'absolute inset-x-0 bottom-0 flex h-[88%] flex-col overflow-hidden border border-border bg-background shadow-2xl outline-none animate-in duration-300 md:slide-in-from-right max-sm:slide-in-from-bottom',
+                    'absolute inset-x-0 bottom-0 flex h-[88%] animate-in flex-col overflow-hidden border border-border bg-background shadow-2xl duration-300 outline-none max-sm:slide-in-from-bottom md:slide-in-from-right',
                     'md:inset-y-0 md:right-0 md:left-auto md:h-auto md:w-[86%] md:rounded-none',
-                    'lg:w-[64%] xl:w-[55%]'
+                    'lg:w-[64%] xl:w-[55%]',
                 ]"
                 @keydown="onKeydown"
             >
@@ -127,7 +136,10 @@ onUnmounted(() => {
                     @deleted="emit('close')"
                 />
 
-                <div class="min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]" @scroll="onScroll">
+                <div
+                    class="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto"
+                    @scroll="onScroll"
+                >
                     <TaskDetailBody
                         :detail="detail"
                         :activity="activity"

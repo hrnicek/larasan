@@ -48,7 +48,13 @@ function submit(): void {
 </script>
 
 <template>
-    <div :class="variant === 'board' ? 'w-full shrink-0 md:w-72' : 'px-4 py-2 md:px-6'">
+    <div
+        :class="
+            variant === 'board'
+                ? 'w-full shrink-0 md:w-72'
+                : 'px-4 py-2 md:px-6'
+        "
+    >
         <button
             v-if="!open"
             type="button"

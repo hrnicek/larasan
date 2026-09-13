@@ -1,16 +1,35 @@
 <script setup lang="ts">
 import { router, useHttp } from '@inertiajs/vue3';
-import { Bookmark, CheckCircle2, Clipboard, FileText, MessageSquare, Search as SearchIcon, User as UserIcon, X } from '@lucide/vue';
+import {
+    Bookmark,
+    CheckCircle2,
+    Clipboard,
+    FileText,
+    MessageSquare,
+    Search as SearchIcon,
+    User as UserIcon,
+    X,
+} from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import PageController from '@/actions/App/Http/Controllers/Page/PageController';
 import ProjectController from '@/actions/App/Http/Controllers/Project/ProjectController';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import UserAvatar from '@/components/UserAvatar.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
-import type { RecentItem, SavedSearch, SearchAnswer, SearchKind } from '@/modules/search/types';
+import type {
+    RecentItem,
+    SavedSearch,
+    SearchAnswer,
+    SearchKind,
+} from '@/modules/search/types';
 import { index as searchIndex, suggestions } from '@/routes/search';
 import { destroy as forgetSaved } from '@/routes/search/saved';
 
@@ -18,13 +37,14 @@ import { destroy as forgetSaved } from '@/routes/search/saved';
 // the previous one so answers cannot arrive out of order.
 const { open, kind, hide } = useCommandPalette();
 
-const KINDS: { value: SearchKind; label: string; icon: typeof CheckCircle2 }[] = [
-    { value: 'tasks', label: 'Tasks', icon: CheckCircle2 },
-    { value: 'projects', label: 'Projects', icon: Clipboard },
-    { value: 'people', label: 'People', icon: UserIcon },
-    { value: 'messages', label: 'Messages', icon: MessageSquare },
-    { value: 'pages', label: 'Pages', icon: FileText },
-];
+const KINDS: { value: SearchKind; label: string; icon: typeof CheckCircle2 }[] =
+    [
+        { value: 'tasks', label: 'Tasks', icon: CheckCircle2 },
+        { value: 'projects', label: 'Projects', icon: Clipboard },
+        { value: 'people', label: 'People', icon: UserIcon },
+        { value: 'messages', label: 'Messages', icon: MessageSquare },
+        { value: 'pages', label: 'Pages', icon: FileText },
+    ];
 
 const DEBOUNCE = 180;
 
@@ -41,11 +61,52 @@ const http = useHttp<Record<string, never>, SearchAnswer>({});
 let pending: ReturnType<typeof setTimeout> | null = null;
 
 type Row =
-    | { kind: 'tasks'; id: string; title: string; url: string; projects: { id: string; name: string; color: string | null; icon: string | null }[]; done: boolean }
-    | { kind: 'projects'; id: string; title: string; url: string; color: string | null; icon: string | null; archived: boolean }
-    | { kind: 'people'; id: string; title: string; url: string; email?: string; avatar: string | null; role: string | null }
-    | { kind: 'messages'; id: string; title: string; url: string | null; task: string | null; author: string | null }
-    | { kind: 'pages'; id: string; title: string; url: string; project: string };
+    | {
+          kind: 'tasks';
+          id: string;
+          title: string;
+          url: string;
+          projects: {
+              id: string;
+              name: string;
+              color: string | null;
+              icon: string | null;
+          }[];
+          done: boolean;
+      }
+    | {
+          kind: 'projects';
+          id: string;
+          title: string;
+          url: string;
+          color: string | null;
+          icon: string | null;
+          archived: boolean;
+      }
+    | {
+          kind: 'people';
+          id: string;
+          title: string;
+          url: string;
+          email?: string;
+          avatar: string | null;
+          role: string | null;
+      }
+    | {
+          kind: 'messages';
+          id: string;
+          title: string;
+          url: string | null;
+          task: string | null;
+          author: string | null;
+      }
+    | {
+          kind: 'pages';
+          id: string;
+          title: string;
+          url: string;
+          project: string;
+      };
 
 const rows = computed<Row[]>(() => {
     const results = answer.value?.results ?? {};
@@ -82,7 +143,9 @@ const rows = computed<Row[]>(() => {
             kind: 'messages',
             id: message.id,
             title: message.excerpt,
-            url: message.task ? TaskController.show.url({ task: message.task.id }) : null,
+            url: message.task
+                ? TaskController.show.url({ task: message.task.id })
+                : null,
             task: message.task?.title ?? null,
             author: message.author?.name ?? null,
         })),
@@ -104,7 +167,8 @@ const groups = computed(() =>
 );
 
 const nothingFound = computed(
-    () => term.value.trim() !== '' && !searching.value && rows.value.length === 0,
+    () =>
+        term.value.trim() !== '' && !searching.value && rows.value.length === 0,
 );
 
 const degraded = computed(() => answer.value?.meta.degraded === true);
@@ -118,15 +182,18 @@ function ask(): void {
     searching.value = true;
     http.cancel();
 
-    http.get(suggestions.url({ query: { q: asked, kind: kind.value ?? undefined } }), {
-        onSuccess: (response: SearchAnswer) => {
-            answer.value = response;
-            active.value = 0;
+    http.get(
+        suggestions.url({ query: { q: asked, kind: kind.value ?? undefined } }),
+        {
+            onSuccess: (response: SearchAnswer) => {
+                answer.value = response;
+                active.value = 0;
+            },
+            onFinish: () => {
+                searching.value = false;
+            },
         },
-        onFinish: () => {
-            searching.value = false;
-        },
-    });
+    );
 }
 
 function schedule(): void {
@@ -145,7 +212,9 @@ function move(by: number): void {
     active.value = (active.value + by + rows.value.length) % rows.value.length;
 
     nextTick(() => {
-        list.value?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
+        list.value
+            ?.querySelector('[data-active="true"]')
+            ?.scrollIntoView({ block: 'nearest' });
     });
 }
 
@@ -184,12 +253,16 @@ function openRecent(item: RecentItem): void {
     hide();
 
     if (item.kind === 'tasks') {
-        router.visit(TaskController.show.url({ task: item.id }), { component: 'tasks/Show' });
+        router.visit(TaskController.show.url({ task: item.id }), {
+            component: 'tasks/Show',
+        });
 
         return;
     }
 
-    router.visit(ProjectController.show.url({ project: item.id }), { component: 'projects/Show' });
+    router.visit(ProjectController.show.url({ project: item.id }), {
+        component: 'projects/Show',
+    });
 }
 
 function forget(search: SavedSearch): void {
@@ -225,7 +298,8 @@ watch(open, (isOpen) => {
         >
             <DialogTitle class="sr-only">Search</DialogTitle>
             <DialogDescription class="sr-only">
-                Search this workspace's tasks, projects, people, messages and pages.
+                Search this workspace's tasks, projects, people, messages and
+                pages.
             </DialogDescription>
 
             <div class="flex items-center gap-2 border-b border-border px-4">
@@ -240,10 +314,15 @@ watch(open, (isOpen) => {
                     autocomplete="off"
                     @keydown.enter.prevent="openRow(rows[active])"
                 />
-                <Spinner v-if="searching" class="size-4 shrink-0 text-muted-foreground" />
+                <Spinner
+                    v-if="searching"
+                    class="size-4 shrink-0 text-muted-foreground"
+                />
             </div>
 
-            <div class="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2">
+            <div
+                class="flex flex-wrap items-center gap-1.5 border-b border-border px-3 py-2"
+            >
                 <button
                     v-for="entry in KINDS"
                     :key="entry.value"
@@ -262,14 +341,20 @@ watch(open, (isOpen) => {
                 </button>
             </div>
 
-            <p v-if="degraded" class="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-                The search engine is unavailable, so these are tasks only, matched by whole words.
+            <p
+                v-if="degraded"
+                class="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground"
+            >
+                The search engine is unavailable, so these are tasks only,
+                matched by whole words.
             </p>
 
             <div ref="list" class="max-h-[22rem] overflow-y-auto p-2">
                 <template v-if="term.trim() === ''">
                     <div v-if="recents.length > 0" class="mb-2">
-                        <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                        <p
+                            class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
                             Recents
                         </p>
 
@@ -281,22 +366,49 @@ watch(open, (isOpen) => {
                             @click="openRecent(item)"
                         >
                             <template v-if="item.kind === 'tasks'">
-                                <CheckCircle2 class="size-4 shrink-0" :class="item.completed ? 'text-primary' : 'text-muted-foreground'" />
-                                <span class="min-w-0 flex-1 truncate" :class="item.completed ? 'text-muted-foreground line-through' : ''">
+                                <CheckCircle2
+                                    class="size-4 shrink-0"
+                                    :class="
+                                        item.completed
+                                            ? 'text-primary'
+                                            : 'text-muted-foreground'
+                                    "
+                                />
+                                <span
+                                    class="min-w-0 flex-1 truncate"
+                                    :class="
+                                        item.completed
+                                            ? 'text-muted-foreground line-through'
+                                            : ''
+                                    "
+                                >
                                     {{ item.title }}
                                 </span>
                             </template>
 
                             <template v-else>
-                                <ProjectTile :name="item.title" :color="item.color" :icon="item.icon" size="sm" />
-                                <span class="min-w-0 flex-1 truncate">{{ item.title }}</span>
-                                <span v-if="item.archived" class="shrink-0 text-xs text-muted-foreground">Archived</span>
+                                <ProjectTile
+                                    :name="item.title"
+                                    :color="item.color"
+                                    :icon="item.icon"
+                                    size="sm"
+                                />
+                                <span class="min-w-0 flex-1 truncate">{{
+                                    item.title
+                                }}</span>
+                                <span
+                                    v-if="item.archived"
+                                    class="shrink-0 text-xs text-muted-foreground"
+                                    >Archived</span
+                                >
                             </template>
                         </button>
                     </div>
 
                     <div v-if="saved.length > 0" class="mb-1">
-                        <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                        <p
+                            class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                        >
                             Saved searches
                         </p>
 
@@ -306,7 +418,11 @@ watch(open, (isOpen) => {
                                 :key="search.id"
                                 class="group inline-flex items-center gap-1.5 rounded-full border border-border py-1 pr-1 pl-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                             >
-                                <button type="button" class="inline-flex items-center gap-1.5" @click="openSaved(search)">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5"
+                                    @click="openSaved(search)"
+                                >
                                     <Bookmark class="size-3.5" />
                                     {{ search.name }}
                                 </button>
@@ -330,12 +446,21 @@ watch(open, (isOpen) => {
                     </p>
                 </template>
 
-                <p v-if="nothingFound" class="px-2 py-6 text-center text-sm text-muted-foreground">
+                <p
+                    v-if="nothingFound"
+                    class="px-2 py-6 text-center text-sm text-muted-foreground"
+                >
                     Nothing matched “{{ term.trim() }}”.
                 </p>
 
-                <div v-for="group in groups" :key="group.value" class="mb-2 last:mb-0">
-                    <p class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                <div
+                    v-for="group in groups"
+                    :key="group.value"
+                    class="mb-2 last:mb-0"
+                >
+                    <p
+                        class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+                    >
                         {{ group.label }}
                     </p>
 
@@ -351,48 +476,113 @@ watch(open, (isOpen) => {
                         @click="openRow(row)"
                     >
                         <template v-if="row.kind === 'tasks'">
-                            <CheckCircle2 class="size-4 shrink-0" :class="row.done ? 'text-primary' : 'text-muted-foreground'" />
-                            <span class="min-w-0 flex-1 truncate" :class="row.done ? 'text-muted-foreground line-through' : ''">
+                            <CheckCircle2
+                                class="size-4 shrink-0"
+                                :class="
+                                    row.done
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground'
+                                "
+                            />
+                            <span
+                                class="min-w-0 flex-1 truncate"
+                                :class="
+                                    row.done
+                                        ? 'text-muted-foreground line-through'
+                                        : ''
+                                "
+                            >
                                 {{ row.title }}
                             </span>
-                            <span v-if="row.projects.length > 0" class="shrink-0 truncate text-xs text-muted-foreground">
+                            <span
+                                v-if="row.projects.length > 0"
+                                class="shrink-0 truncate text-xs text-muted-foreground"
+                            >
                                 {{ row.projects[0].name }}
                             </span>
                         </template>
 
                         <template v-else-if="row.kind === 'projects'">
-                            <ProjectTile :name="row.title" :color="row.color" :icon="row.icon" size="sm" />
-                            <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
-                            <span v-if="row.archived" class="shrink-0 text-xs text-muted-foreground">Archived</span>
+                            <ProjectTile
+                                :name="row.title"
+                                :color="row.color"
+                                :icon="row.icon"
+                                size="sm"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{
+                                row.title
+                            }}</span>
+                            <span
+                                v-if="row.archived"
+                                class="shrink-0 text-xs text-muted-foreground"
+                                >Archived</span
+                            >
                         </template>
 
                         <template v-else-if="row.kind === 'people'">
-                            <UserAvatar :user="{ name: row.title, avatar: row.avatar }" size="sm" />
-                            <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
-                            <span v-if="row.email" class="shrink-0 text-xs text-muted-foreground">{{ row.email }}</span>
+                            <UserAvatar
+                                :user="{ name: row.title, avatar: row.avatar }"
+                                size="sm"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{
+                                row.title
+                            }}</span>
+                            <span
+                                v-if="row.email"
+                                class="shrink-0 text-xs text-muted-foreground"
+                                >{{ row.email }}</span
+                            >
                         </template>
 
                         <template v-else-if="row.kind === 'messages'">
-                            <MessageSquare class="size-4 shrink-0 text-muted-foreground" />
-                            <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
-                            <span v-if="row.task" class="shrink-0 truncate text-xs text-muted-foreground">
+                            <MessageSquare
+                                class="size-4 shrink-0 text-muted-foreground"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{
+                                row.title
+                            }}</span>
+                            <span
+                                v-if="row.task"
+                                class="shrink-0 truncate text-xs text-muted-foreground"
+                            >
                                 {{ row.task }}
                             </span>
                         </template>
 
                         <template v-else>
-                            <FileText class="size-4 shrink-0 text-muted-foreground" />
-                            <span class="min-w-0 flex-1 truncate">{{ row.title }}</span>
-                            <span class="shrink-0 truncate text-xs text-muted-foreground">{{ row.project }}</span>
+                            <FileText
+                                class="size-4 shrink-0 text-muted-foreground"
+                            />
+                            <span class="min-w-0 flex-1 truncate">{{
+                                row.title
+                            }}</span>
+                            <span
+                                class="shrink-0 truncate text-xs text-muted-foreground"
+                                >{{ row.project }}</span
+                            >
                         </template>
                     </button>
                 </div>
             </div>
 
-            <div class="flex items-center gap-3 border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
-                <span><kbd class="rounded border border-border px-1">↑</kbd><kbd class="ml-0.5 rounded border border-border px-1">↓</kbd> to move</span>
-                <span><kbd class="rounded border border-border px-1">↵</kbd> to open</span>
-                <span><kbd class="rounded border border-border px-1">esc</kbd> to close</span>
+            <div
+                class="flex items-center gap-3 border-t border-border px-4 py-2 text-[11px] text-muted-foreground"
+            >
+                <span
+                    ><kbd class="rounded border border-border px-1">↑</kbd
+                    ><kbd class="ml-0.5 rounded border border-border px-1"
+                        >↓</kbd
+                    >
+                    to move</span
+                >
+                <span
+                    ><kbd class="rounded border border-border px-1">↵</kbd> to
+                    open</span
+                >
+                <span
+                    ><kbd class="rounded border border-border px-1">esc</kbd> to
+                    close</span
+                >
             </div>
         </DialogContent>
     </Dialog>

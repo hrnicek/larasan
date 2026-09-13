@@ -14,7 +14,10 @@ export type PointerDragHandlers = {
     cancel: () => void;
 };
 
-export type BeginPointerDrag = (event: PointerEvent, handlers: PointerDragHandlers) => void;
+export type BeginPointerDrag = (
+    event: PointerEvent,
+    handlers: PointerDragHandlers,
+) => void;
 
 // A released drag still dispatches `click` on the element under the pointer, in the same task as `pointerup`.
 const swallowNextClick = (): void => {
@@ -24,7 +27,9 @@ const swallowNextClick = (): void => {
     };
 
     window.addEventListener('click', swallow, { capture: true, once: true });
-    window.setTimeout(() => window.removeEventListener('click', swallow, { capture: true }));
+    window.setTimeout(() =>
+        window.removeEventListener('click', swallow, { capture: true }),
+    );
 };
 
 export function usePointerDrag(): BeginPointerDrag {
@@ -57,7 +62,10 @@ export function usePointerDrag(): BeginPointerDrag {
             }
 
             if (!dragging) {
-                if (Math.hypot(moved.clientX - startX, moved.clientY - startY) < THRESHOLD) {
+                if (
+                    Math.hypot(moved.clientX - startX, moved.clientY - startY) <
+                    THRESHOLD
+                ) {
                     return;
                 }
 

@@ -14,7 +14,8 @@ export function configureModalLayer(): void {
             closeOnClickOutside: true,
             maxWidth: 'xl',
             paddingClasses: 'p-6',
-            panelClasses: 'bg-card text-card-foreground rounded-xl border border-border shadow-2xl',
+            panelClasses:
+                'bg-card text-card-foreground rounded-xl border border-border shadow-2xl',
             position: 'center',
         },
         slideover: {
@@ -23,7 +24,8 @@ export function configureModalLayer(): void {
             closeOnClickOutside: true,
             maxWidth: '3xl',
             paddingClasses: '',
-            panelClasses: 'bg-background text-foreground min-h-screen border-l border-border shadow-2xl',
+            panelClasses:
+                'bg-background text-foreground min-h-screen border-l border-border shadow-2xl',
             position: 'right',
         },
     });
@@ -33,4 +35,3 @@ export function configureModalLayer(): void {
 export function applyModalLayer(app: App): void {
     withInertiaModal(app as unknown as Parameters<typeof withInertiaModal>[0]);
 }
-

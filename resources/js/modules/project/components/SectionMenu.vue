@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, MoreHorizontal, Palette, Pencil, Plus, Trash2 } from '@lucide/vue';
+import {
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronUp,
+    MoreHorizontal,
+    Palette,
+    Pencil,
+    Plus,
+    Trash2,
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -33,12 +43,18 @@ const emit = defineEmits<{ rename: [] }>();
 const deleting = ref(false);
 const working = ref(false);
 
-const order = computed((): string[] => props.siblings.filter((id): id is string => id !== null));
+const order = computed((): string[] =>
+    props.siblings.filter((id): id is string => id !== null),
+);
 
-const index = computed((): number => (props.sectionId === null ? -1 : order.value.indexOf(props.sectionId)));
+const index = computed((): number =>
+    props.sectionId === null ? -1 : order.value.indexOf(props.sectionId),
+);
 
 const canMoveEarlier = computed((): boolean => index.value > 0);
-const canMoveLater = computed((): boolean => index.value >= 0 && index.value < order.value.length - 1);
+const canMoveLater = computed(
+    (): boolean => index.value >= 0 && index.value < order.value.length - 1,
+);
 
 /** `after` is the section this one lands behind; `null` moves it to the front. */
 function move(after: string | null): void {
@@ -112,7 +128,10 @@ function remove(): void {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" class="w-52">
-            <DropdownMenuItem v-if="can.update && sectionId !== null" @select="emit('rename')">
+            <DropdownMenuItem
+                v-if="can.update && sectionId !== null"
+                @select="emit('rename')"
+            >
                 <Pencil class="mr-2 size-4 text-muted-foreground" />
                 Rename section
             </DropdownMenuItem>
@@ -132,7 +151,9 @@ function remove(): void {
                 </DropdownMenuSubContent>
             </DropdownMenuSub>
 
-            <template v-if="can.update && sectionId !== null && order.length > 1">
+            <template
+                v-if="can.update && sectionId !== null && order.length > 1"
+            >
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
@@ -146,7 +167,10 @@ function remove(): void {
                     {{ variant === 'board' ? 'Move left' : 'Move up' }}
                 </DropdownMenuItem>
 
-                <DropdownMenuItem :disabled="working || !canMoveLater" @select="move(order[index + 1])">
+                <DropdownMenuItem
+                    :disabled="working || !canMoveLater"
+                    @select="move(order[index + 1])"
+                >
                     <component
                         :is="variant === 'board' ? ChevronRight : ChevronDown"
                         class="mr-2 size-4 text-muted-foreground"
@@ -157,14 +181,21 @@ function remove(): void {
                 <DropdownMenuSeparator />
             </template>
 
-            <DropdownMenuItem v-if="can.create" :disabled="working" @select="add">
+            <DropdownMenuItem
+                v-if="can.create"
+                :disabled="working"
+                @select="add"
+            >
                 <Plus class="mr-2 size-4 text-muted-foreground" />
                 Add section
             </DropdownMenuItem>
 
             <template v-if="can.delete && sectionId !== null">
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" @select="deleting = true">
+                <DropdownMenuItem
+                    variant="destructive"
+                    @select="deleting = true"
+                >
                     <Trash2 class="mr-2 size-4" />
                     Delete section
                 </DropdownMenuItem>

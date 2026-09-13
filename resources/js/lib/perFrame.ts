@@ -3,7 +3,9 @@ export type FramedCall<T extends unknown[]> = {
     cancel: () => void;
 };
 
-export function perFrame<T extends unknown[]>(run: (...args: T) => void): FramedCall<T> {
+export function perFrame<T extends unknown[]>(
+    run: (...args: T) => void,
+): FramedCall<T> {
     let frame: number | null = null;
     let latest: T | null = null;
 

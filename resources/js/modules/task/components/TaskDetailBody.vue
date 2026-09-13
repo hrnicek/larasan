@@ -58,7 +58,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                 />
             </div>
 
-            <dl class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]">
+            <dl
+                class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]"
+            >
                 <dt class="text-[13px] text-muted-foreground">Assignee</dt>
                 <dd class="flex min-h-9 items-center">
                     <AssigneePicker
@@ -116,7 +118,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
 
                 <dt class="text-[13px] text-muted-foreground">Created by</dt>
                 <dd class="flex min-h-9 items-center">
-                    <span class="px-1.5 text-sm">{{ detail.task.creator?.name ?? '—' }}</span>
+                    <span class="px-1.5 text-sm">{{
+                        detail.task.creator?.name ?? '—'
+                    }}</span>
                 </dd>
             </dl>
 

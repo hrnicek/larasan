@@ -19,14 +19,18 @@ const descriptions: Record<number, string> = {
     503: 'We are working on it. Try again in a few minutes.',
 };
 
-const title = computed<string>(() => titles[props.status] ?? 'Something went wrong');
+const title = computed<string>(
+    () => titles[props.status] ?? 'Something went wrong',
+);
 const description = computed<string>(
     () => descriptions[props.status] ?? 'The request could not be completed.',
 );
 </script>
 
 <template>
-    <div class="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+    <div
+        class="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center"
+    >
         <Head :title="`${status}`" />
 
         <p class="text-sm font-medium text-muted-foreground">{{ status }}</p>

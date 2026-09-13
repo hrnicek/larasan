@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import ProjectAppearanceFields from '@/modules/project/components/ProjectAppearanceFields.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 
 const props = defineProps<{
-    project: { id: string; name: string; color: string | null; icon: string | null };
+    project: {
+        id: string;
+        name: string;
+        color: string | null;
+        icon: string | null;
+    };
 }>();
 
 const open = ref(false);

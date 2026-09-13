@@ -24,7 +24,11 @@ withDefaults(
             <span
                 v-if="icon"
                 class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md"
-                :class="tone === 'danger' ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'"
+                :class="
+                    tone === 'danger'
+                        ? 'bg-destructive/10 text-destructive'
+                        : 'bg-muted text-muted-foreground'
+                "
                 aria-hidden="true"
             >
                 <component :is="icon" class="size-4" />
@@ -32,7 +36,12 @@ withDefaults(
 
             <div class="min-w-0">
                 <h3 class="text-base font-semibold">{{ title }}</h3>
-                <p v-if="description" class="mt-0.5 text-sm text-muted-foreground">{{ description }}</p>
+                <p
+                    v-if="description"
+                    class="mt-0.5 text-sm text-muted-foreground"
+                >
+                    {{ description }}
+                </p>
             </div>
 
             <div v-if="$slots.aside" class="ml-auto shrink-0">

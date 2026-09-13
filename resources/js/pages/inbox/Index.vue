@@ -12,11 +12,19 @@ import type { InboxNotification } from '@/modules/notification/types';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
 
-const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
+const TaskDetailPanel = defineAsyncComponent(
+    () => import('@/modules/task/components/TaskDetailPanel.vue'),
+);
 
 const props = defineProps<{
     notifications: InboxNotification[];
-    meta: { page: number; perPage: number; total: number; hasMore: boolean; unread: number };
+    meta: {
+        page: number;
+        perPage: number;
+        total: number;
+        hasMore: boolean;
+        unread: number;
+    };
     taskDetail?: TaskDetail | null;
     /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
@@ -27,10 +35,16 @@ const props = defineProps<{
 const page = usePage();
 
 const unread = computed<number>(() => props.meta.unread);
-const workspaceName = computed<string>(() => page.props.workspace?.name ?? 'this workspace');
+const workspaceName = computed<string>(
+    () => page.props.workspace?.name ?? 'this workspace',
+);
 
 // The New group is drawn from unread-on-arrival rather than `read`, so a row read here stays in place.
-const arrivedUnread = ref(new Set(props.notifications.filter((row) => !row.read).map((row) => row.id)));
+const arrivedUnread = ref(
+    new Set(
+        props.notifications.filter((row) => !row.read).map((row) => row.id),
+    ),
+);
 const justArrived = ref(new Set<string>());
 
 const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
@@ -40,23 +54,31 @@ const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
     only: ['notifications', 'meta'],
     placement: 'stable',
     onAdded: (added, number) => {
-        added.filter((row) => !row.read).forEach((row) => arrivedUnread.value.add(row.id));
+        added
+            .filter((row) => !row.read)
+            .forEach((row) => arrivedUnread.value.add(row.id));
 
         if (number > 1) {
             return;
         }
 
         added.forEach((row) => justArrived.value.add(row.id));
-        window.setTimeout(() => added.forEach((row) => justArrived.value.delete(row.id)), 2_400);
+        window.setTimeout(
+            () => added.forEach((row) => justArrived.value.delete(row.id)),
+            2_400,
+        );
     },
 });
 
 // The shell's realtime listener refreshes the badge; a higher count than the list's means new rows arrived.
-watch(() => page.props.unreadNotifications, (count) => {
-    if (count > props.meta.unread) {
-        router.reload({ only: ['notifications', 'meta'] });
-    }
-});
+watch(
+    () => page.props.unreadNotifications,
+    (count) => {
+        if (count > props.meta.unread) {
+            router.reload({ only: ['notifications', 'meta'] });
+        }
+    },
+);
 
 type Group = {
     key: string;
@@ -65,9 +87,11 @@ type Group = {
     timeStyle: 'relative' | 'clock';
 };
 
-const startOfDay = (at: Date): number => new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime();
+const startOfDay = (at: Date): number =>
+    new Date(at.getFullYear(), at.getMonth(), at.getDate()).getTime();
 
-const dayKey = (at: Date): string => `${at.getFullYear()}-${at.getMonth() + 1}-${at.getDate()}`;
+const dayKey = (at: Date): string =>
+    `${at.getFullYear()}-${at.getMonth() + 1}-${at.getDate()}`;
 
 const dayLabel = (at: Date): string => {
     const now = new Date();
@@ -106,33 +130,59 @@ const groups = computed<Group[]>(() => {
         const key = at === null ? 'undated' : dayKey(at);
 
         if (!earlier.has(key)) {
-            earlier.set(key, { key, label: at === null ? 'Earlier' : dayLabel(at), rows: [], timeStyle: 'clock' });
+            earlier.set(key, {
+                key,
+                label: at === null ? 'Earlier' : dayLabel(at),
+                rows: [],
+                timeStyle: 'clock',
+            });
         }
 
         earlier.get(key)!.rows.push(row);
     }
 
     return [
-        ...(fresh.length > 0 ? [{ key: 'new', label: 'New', rows: fresh, timeStyle: 'relative' as const }] : []),
+        ...(fresh.length > 0
+            ? [
+                  {
+                      key: 'new',
+                      label: 'New',
+                      rows: fresh,
+                      timeStyle: 'relative' as const,
+                  },
+              ]
+            : []),
         ...earlier.values(),
     ];
 });
 
-const unreadIn = (group: Group): number => group.rows.filter((row) => !row.read).length;
+const unreadIn = (group: Group): number =>
+    group.rows.filter((row) => !row.read).length;
 
-const remaining = computed<number>(() => Math.min(props.meta.perPage, Math.max(props.meta.total - rows.value.length, 1)));
+const remaining = computed<number>(() =>
+    Math.min(
+        props.meta.perPage,
+        Math.max(props.meta.total - rows.value.length, 1),
+    ),
+);
 
 const { open: openTask, close: closeTask } = useTaskPanel();
 
 const isActive = (notification: InboxNotification): boolean =>
-    props.taskDetail !== null && props.taskDetail !== undefined && props.taskDetail.task.id === notification.subject?.id;
+    props.taskDetail !== null &&
+    props.taskDetail !== undefined &&
+    props.taskDetail.task.id === notification.subject?.id;
 
 const markRead = (notification: InboxNotification, then?: () => void): void => {
-    router.put(InboxController.read.url(notification.id), {}, {
-        preserveScroll: true,
-        preserveState: true,
-        onSuccess: () => then?.(),
-    });
+    router.put(
+        InboxController.read.url(notification.id),
+        {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => then?.(),
+        },
+    );
 };
 
 const openNotification = (notification: InboxNotification): void => {
@@ -162,8 +212,12 @@ const onKeydown = (event: KeyboardEvent): void => {
         return;
     }
 
-    const items = Array.from(list.value.querySelectorAll<HTMLElement>('[data-inbox-id]'));
-    const current = (event.target as HTMLElement).closest<HTMLElement>('[data-inbox-id]');
+    const items = Array.from(
+        list.value.querySelectorAll<HTMLElement>('[data-inbox-id]'),
+    );
+    const current = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-inbox-id]',
+    );
     const index = current === null ? -1 : items.indexOf(current);
 
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -175,13 +229,17 @@ const onKeydown = (event: KeyboardEvent): void => {
 
         const next = event.key === 'ArrowDown' ? index + 1 : index - 1;
 
-        items[Math.min(Math.max(next, 0), items.length - 1)]?.querySelector<HTMLElement>('[data-inbox-row]')?.focus();
+        items[Math.min(Math.max(next, 0), items.length - 1)]
+            ?.querySelector<HTMLElement>('[data-inbox-row]')
+            ?.focus();
 
         return;
     }
 
     if (event.key === 'e' && current !== null) {
-        const notification = rows.value.find((row) => row.id === current.dataset.inboxId);
+        const notification = rows.value.find(
+            (row) => row.id === current.dataset.inboxId,
+        );
 
         if (notification !== undefined && !notification.read) {
             event.preventDefault();
@@ -197,7 +255,11 @@ const onKeydown = (event: KeyboardEvent): void => {
 
         <PageHeader
             title="Inbox"
-            :description="unread > 0 ? `${unread} unread in ${workspaceName}` : `Everything in ${workspaceName} has been seen`"
+            :description="
+                unread > 0
+                    ? `${unread} unread in ${workspaceName}`
+                    : `Everything in ${workspaceName} has been seen`
+            "
         >
             <template v-if="unread > 0" #actions>
                 <button
@@ -218,13 +280,19 @@ const onKeydown = (event: KeyboardEvent): void => {
             :aria-busy="loading"
             @keydown="onKeydown"
         >
-            <section v-for="group in groups" :key="group.key" :aria-labelledby="`inbox-group-${group.key}`">
+            <section
+                v-for="group in groups"
+                :key="group.key"
+                :aria-labelledby="`inbox-group-${group.key}`"
+            >
                 <h2
                     :id="`inbox-group-${group.key}`"
                     class="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background px-4 pt-5 pb-2 text-[13px] font-semibold tracking-wide text-muted-foreground md:px-6"
                 >
                     <!-- Some locales write weekdays in lower case. -->
-                    <span class="inline-block first-letter:uppercase">{{ group.label }}</span>
+                    <span class="inline-block first-letter:uppercase">{{
+                        group.label
+                    }}</span>
                     <span
                         v-if="group.key === 'new' && unreadIn(group) > 0"
                         class="rounded-full bg-primary px-1.5 py-px text-[11px] leading-4 font-medium text-primary-foreground tabular-nums"
@@ -247,8 +315,16 @@ const onKeydown = (event: KeyboardEvent): void => {
                 </ul>
             </section>
 
-            <div v-if="loading" class="border-t border-border/70" aria-hidden="true">
-                <div v-for="line in 3" :key="line" class="flex items-start gap-3 px-4 py-3 md:px-6">
+            <div
+                v-if="loading"
+                class="border-t border-border/70"
+                aria-hidden="true"
+            >
+                <div
+                    v-for="line in 3"
+                    :key="line"
+                    class="flex items-start gap-3 px-4 py-3 md:px-6"
+                >
                     <span class="size-1.5 shrink-0" />
                     <Skeleton class="size-7 shrink-0 rounded-md" />
                     <span class="flex flex-1 flex-col gap-2 pt-1">
@@ -258,8 +334,14 @@ const onKeydown = (event: KeyboardEvent): void => {
                 </div>
             </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 px-4 md:px-6">
-                <p v-if="loadFailed" class="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+            <div
+                class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 px-4 md:px-6"
+            >
+                <p
+                    v-if="loadFailed"
+                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                    role="status"
+                >
                     Older notifications did not load.
                     <button
                         type="button"
@@ -279,8 +361,11 @@ const onKeydown = (event: KeyboardEvent): void => {
                     Show {{ remaining }} older
                 </button>
 
-                <p class="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground md:flex">
-                    <kbd class="inbox-key">↑</kbd><kbd class="inbox-key">↓</kbd> move
+                <p
+                    class="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground md:flex"
+                >
+                    <kbd class="inbox-key">↑</kbd
+                    ><kbd class="inbox-key">↓</kbd> move
                     <kbd class="inbox-key ml-2">Enter</kbd> open
                     <kbd class="inbox-key ml-2">E</kbd> mark read
                 </p>

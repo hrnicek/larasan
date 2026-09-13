@@ -16,10 +16,9 @@ export function formatFeedTime(iso: string): string {
 
     for (const [unit, span] of units) {
         if (Math.abs(value) < span) {
-            return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(
-                Math.round(value),
-                unit,
-            );
+            return new Intl.RelativeTimeFormat(undefined, {
+                numeric: 'auto',
+            }).format(Math.round(value), unit);
         }
 
         value /= span;
@@ -28,7 +27,10 @@ export function formatFeedTime(iso: string): string {
     return at.toLocaleDateString(undefined, {
         day: 'numeric',
         month: 'short',
-        year: at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+        year:
+            at.getFullYear() === new Date().getFullYear()
+                ? undefined
+                : 'numeric',
     });
 }
 

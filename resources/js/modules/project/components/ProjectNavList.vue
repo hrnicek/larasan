@@ -11,11 +11,17 @@ const page = usePage();
 const collapsed = useCollapsed();
 
 const projects = computed<SidebarProject[]>(() => page.props.projects);
-const canCreate = computed<boolean>(() => page.props.auth.capabilities.includes('project.create'));
+const canCreate = computed<boolean>(() =>
+    page.props.auth.capabilities.includes('project.create'),
+);
 
 // The server orders starred rows first so the capped list never drops them; split, do not re-sort.
-const starred = computed<SidebarProject[]>(() => projects.value.filter((project) => project.starred));
-const rest = computed<SidebarProject[]>(() => projects.value.filter((project) => !project.starred));
+const starred = computed<SidebarProject[]>(() =>
+    projects.value.filter((project) => project.starred),
+);
+const rest = computed<SidebarProject[]>(() =>
+    projects.value.filter((project) => !project.starred),
+);
 </script>
 
 <template>
@@ -28,13 +34,21 @@ const rest = computed<SidebarProject[]>(() => projects.value.filter((project) =>
                 Starred
             </h2>
 
-            <ProjectNavRow v-for="project in starred" :key="project.id" :project="project" />
+            <ProjectNavRow
+                v-for="project in starred"
+                :key="project.id"
+                :project="project"
+            />
 
             <hr v-if="collapsed" class="my-1 border-chrome-border" />
         </template>
 
         <div v-if="!collapsed" class="flex h-7 items-center gap-1 pr-1 pl-2">
-            <h2 class="text-[11px] font-semibold tracking-wide text-chrome-muted-foreground uppercase">Projects</h2>
+            <h2
+                class="text-[11px] font-semibold tracking-wide text-chrome-muted-foreground uppercase"
+            >
+                Projects
+            </h2>
 
             <Link
                 v-if="canCreate"
@@ -46,7 +60,11 @@ const rest = computed<SidebarProject[]>(() => projects.value.filter((project) =>
             </Link>
         </div>
 
-        <ProjectNavRow v-for="project in rest" :key="project.id" :project="project" />
+        <ProjectNavRow
+            v-for="project in rest"
+            :key="project.id"
+            :project="project"
+        />
 
         <template v-if="!projects.length && !collapsed">
             <Link

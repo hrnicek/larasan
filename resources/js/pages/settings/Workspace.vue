@@ -6,7 +6,10 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { WorkspaceAbilities, WorkspaceSettings } from '@/modules/workspace/types';
+import type {
+    WorkspaceAbilities,
+    WorkspaceSettings,
+} from '@/modules/workspace/types';
 
 defineProps<{
     workspace: WorkspaceSettings;
@@ -26,7 +29,7 @@ defineProps<{
             description="Name, address and time zone"
         />
 
-        <p v-if="!can.update" class="text-muted-foreground text-sm">
+        <p v-if="!can.update" class="text-sm text-muted-foreground">
             You can view this workspace but not change its settings.
         </p>
 
@@ -40,7 +43,12 @@ defineProps<{
 
             <div class="grid gap-2">
                 <Label for="name">Name</Label>
-                <Input id="name" name="name" required :default-value="workspace.name" />
+                <Input
+                    id="name"
+                    name="name"
+                    required
+                    :default-value="workspace.name"
+                />
                 <InputError :message="errors.name" />
                 <InputError :message="errors.id" />
             </div>
@@ -53,7 +61,11 @@ defineProps<{
 
             <div class="grid gap-2">
                 <Label for="timezone">Time zone</Label>
-                <Input id="timezone" name="timezone" :default-value="workspace.timezone" />
+                <Input
+                    id="timezone"
+                    name="timezone"
+                    :default-value="workspace.timezone"
+                />
                 <InputError :message="errors.timezone" />
             </div>
 

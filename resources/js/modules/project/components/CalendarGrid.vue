@@ -4,7 +4,11 @@ import { computed } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import CalendarDayCell from '@/modules/project/components/CalendarDayCell.vue';
 import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue';
-import type { CalendarCardData, CalendarDay, ProjectCalendar } from '@/modules/task/types';
+import type {
+    CalendarCardData,
+    CalendarDay,
+    ProjectCalendar,
+} from '@/modules/task/types';
 
 const props = defineProps<{
     calendar: ProjectCalendar;
@@ -23,14 +27,18 @@ const emit = defineEmits<{
     pickup: [event: PointerEvent, card: CalendarCardData];
 }>();
 
-const weekdays = computed<{ date: string; label: string }[]> (() =>
+const weekdays = computed<{ date: string; label: string }[]>(() =>
     props.calendar.days.slice(0, 7).map((day) => ({
         date: day.date,
-        label: new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short' }),
+        label: new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, {
+            weekday: 'short',
+        }),
     })),
 );
 
-const withTasks = computed<CalendarDay[]>(() => props.calendar.days.filter((day) => day.tasks.length > 0));
+const withTasks = computed<CalendarDay[]>(() =>
+    props.calendar.days.filter((day) => day.tasks.length > 0),
+);
 
 /** The server sends whole weeks, so chunking by seven never leaves a short row. */
 const weeks = computed<CalendarDay[][]>(() => {
@@ -44,7 +52,10 @@ const weeks = computed<CalendarDay[][]>(() => {
 });
 
 const monthLabel = computed<string>(() =>
-    new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+    new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(
+        undefined,
+        { month: 'long', year: 'numeric' },
+    ),
 );
 
 const emptyDetail = computed<string>(() =>
@@ -54,7 +65,11 @@ const emptyDetail = computed<string>(() =>
 );
 
 const dayLabel = (date: string): string =>
-    new Date(`${date}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+    new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+    });
 </script>
 
 <template>
@@ -63,7 +78,11 @@ const dayLabel = (date: string): string =>
             class="hidden w-full table-fixed border-collapse border-t border-l border-border transition-opacity md:table"
             :class="loading ? 'pointer-events-none opacity-60' : ''"
         >
-            <caption class="sr-only">{{ monthLabel }}</caption>
+            <caption class="sr-only">
+                {{
+                    monthLabel
+                }}
+            </caption>
 
             <thead>
                 <tr>
@@ -98,14 +117,27 @@ const dayLabel = (date: string): string =>
             </tbody>
         </table>
 
-        <div v-if="withTasks.length" class="flex flex-col divide-y divide-border border-y border-border md:hidden">
-            <section v-for="day in withTasks" :key="day.date" class="flex flex-col gap-0.5 px-2 py-3">
+        <div
+            v-if="withTasks.length"
+            class="flex flex-col divide-y divide-border border-y border-border md:hidden"
+        >
+            <section
+                v-for="day in withTasks"
+                :key="day.date"
+                class="flex flex-col gap-0.5 px-2 py-3"
+            >
                 <h3
                     class="px-2 pb-1 text-xs font-semibold tracking-wide uppercase"
-                    :class="day.date === calendar.today ? 'text-primary' : 'text-muted-foreground'"
+                    :class="
+                        day.date === calendar.today
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
+                    "
                 >
                     {{ dayLabel(day.date) }}
-                    <span v-if="day.date === calendar.today" class="normal-case">· today</span>
+                    <span v-if="day.date === calendar.today" class="normal-case"
+                        >· today</span
+                    >
                 </h3>
 
                 <CalendarTaskChip
@@ -129,7 +161,10 @@ const dayLabel = (date: string): string =>
             </section>
         </div>
 
-        <p v-if="!withTasks.length" class="hidden px-4 py-3 text-sm text-muted-foreground md:block md:px-6">
+        <p
+            v-if="!withTasks.length"
+            class="hidden px-4 py-3 text-sm text-muted-foreground md:block md:px-6"
+        >
             Nothing is due in {{ monthLabel }}. {{ emptyDetail }}
         </p>
 

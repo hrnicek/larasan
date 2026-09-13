@@ -24,9 +24,9 @@ const props = defineProps<{
 }>();
 
 const isDropSlot = (placementId: string | null): boolean =>
-    props.dropTarget != null
-    && props.dropTarget.key === (props.column.id ?? 'ungrouped')
-    && props.dropTarget.before === placementId;
+    props.dropTarget != null &&
+    props.dropTarget.key === (props.column.id ?? 'ungrouped') &&
+    props.dropTarget.before === placementId;
 
 const renaming = ref(false);
 const draft = ref('');
@@ -65,7 +65,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <section class="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-muted/30" data-task-section>
+    <section
+        class="flex w-72 shrink-0 flex-col rounded-lg border border-border bg-muted/30"
+        data-task-section
+    >
         <header
             class="group/section flex items-center gap-1 rounded-t-lg px-3 py-2.5 text-[13px] font-semibold"
             :class="accentBandClass(column.color)"
@@ -89,9 +92,13 @@ const emit = defineEmits<{
                 :style="accentVars(column.color)"
                 aria-hidden="true"
             />
-            <span v-if="!renaming" class="flex-1 truncate">{{ column.name ?? 'No section' }}</span>
+            <span v-if="!renaming" class="flex-1 truncate">{{
+                column.name ?? 'No section'
+            }}</span>
 
-            <span class="shrink-0 rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground">
+            <span
+                class="shrink-0 rounded-full bg-background px-1.5 text-[11px] font-medium text-muted-foreground"
+            >
                 {{ column.count }}
             </span>
 
@@ -110,7 +117,7 @@ const emit = defineEmits<{
 
         <!-- The board's drag handler reads `data-column-key` from the element under the pointer. -->
         <div
-            class="flex max-h-[60vh] min-h-24 flex-col gap-2 overflow-y-auto border-t border-border p-2 [scrollbar-width:thin]"
+            class="flex max-h-[60vh] min-h-24 [scrollbar-width:thin] flex-col gap-2 overflow-y-auto border-t border-border p-2"
             :class="over ? 'bg-accent/40' : ''"
             :data-column-key="column.id ?? 'ungrouped'"
         >
@@ -118,12 +125,19 @@ const emit = defineEmits<{
                 v-if="column.tasks.length === 0"
                 compact
                 :title="creatable ? 'Nothing in this column' : 'Nothing here'"
-                :description="creatable ? 'Drop a card here, or add one below.' : undefined"
+                :description="
+                    creatable
+                        ? 'Drop a card here, or add one below.'
+                        : undefined
+                "
             />
 
             <template v-for="card in column.tasks" :key="card.placementId">
                 <div v-if="isDropSlot(card.placementId)" class="relative h-0">
-                    <span class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                    <span
+                        class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary"
+                        aria-hidden="true"
+                    />
                 </div>
 
                 <TaskCard
@@ -132,13 +146,19 @@ const emit = defineEmits<{
                     :dragging="draggingId === card.placementId"
                     :columns="columns"
                     @pickup="(event, picked) => emit('pickup', event, picked)"
-                    @moveto="(placementId, columnKey) => emit('moveto', placementId, columnKey)"
+                    @moveto="
+                        (placementId, columnKey) =>
+                            emit('moveto', placementId, columnKey)
+                    "
                     @open="(taskId) => emit('open', taskId)"
                 />
             </template>
 
             <div v-if="isDropSlot(null)" class="relative h-0">
-                <span class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary" aria-hidden="true" />
+                <span
+                    class="absolute inset-x-0 -top-1 h-0.5 rounded-full bg-primary"
+                    aria-hidden="true"
+                />
             </div>
 
             <button

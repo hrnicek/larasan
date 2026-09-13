@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Columns3, ListChecks, SlidersHorizontal } from '@lucide/vue';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Columns3,
+    ListChecks,
+    SlidersHorizontal,
+} from '@lucide/vue';
 import { ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,18 +47,29 @@ function reload(): void {
 }
 
 const headings = {
-    root: { title: 'Customize', description: 'View and edit features on this project' },
+    root: {
+        title: 'Customize',
+        description: 'View and edit features on this project',
+    },
     fields: {
         title: 'Fields',
-        description: 'What this project records about a task beyond its title and dates',
+        description:
+            'What this project records about a task beyond its title and dates',
     },
-    columns: { title: 'Columns', description: 'The order the list draws them in' },
+    columns: {
+        title: 'Columns',
+        description: 'The order the list draws them in',
+    },
 } as const;
 
 // Last server copy, kept because redirects omit the optional prop; null means not loaded yet.
-const fields = ref<ProjectCustomize['fields'] | null>(props.customize?.fields ?? null);
+const fields = ref<ProjectCustomize['fields'] | null>(
+    props.customize?.fields ?? null,
+);
 
-const columns = ref<ProjectCustomize['columns'] | null>(props.customize?.columns ?? null);
+const columns = ref<ProjectCustomize['columns'] | null>(
+    props.customize?.columns ?? null,
+);
 
 watch(
     () => props.customize,
@@ -89,7 +106,9 @@ watch(
                     </Button>
                     {{ headings[section].title }}
                 </SheetTitle>
-                <SheetDescription>{{ headings[section].description }}</SheetDescription>
+                <SheetDescription>{{
+                    headings[section].description
+                }}</SheetDescription>
             </SheetHeader>
 
             <div class="px-5 py-5">
@@ -99,10 +118,16 @@ watch(
                         class="flex w-full items-center gap-3 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                         @click="section = 'fields'"
                     >
-                        <ListChecks class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <ListChecks
+                            class="size-5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                        />
                         <span class="flex-1 font-medium">Fields</span>
 
-                        <Skeleton v-if="fields === null" class="h-5 w-6 rounded-md" />
+                        <Skeleton
+                            v-if="fields === null"
+                            class="h-5 w-6 rounded-md"
+                        />
                         <span
                             v-else
                             class="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground tabular-nums"
@@ -110,7 +135,10 @@ watch(
                             {{ fields.attached.length }}
                         </span>
 
-                        <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <ChevronRight
+                            class="size-4 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                        />
                     </button>
 
                     <button
@@ -118,10 +146,16 @@ watch(
                         class="mt-3 flex w-full items-center gap-3 rounded-lg border border-border px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                         @click="section = 'columns'"
                     >
-                        <Columns3 class="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <Columns3
+                            class="size-5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                        />
                         <span class="flex-1 font-medium">Columns</span>
 
-                        <Skeleton v-if="columns === null" class="h-5 w-6 rounded-md" />
+                        <Skeleton
+                            v-if="columns === null"
+                            class="h-5 w-6 rounded-md"
+                        />
                         <span
                             v-else
                             class="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground tabular-nums"
@@ -129,12 +163,19 @@ watch(
                             {{ columns.length + 1 }}
                         </span>
 
-                        <ChevronRight class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <ChevronRight
+                            class="size-4 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                        />
                     </button>
                 </template>
 
                 <template v-else-if="section === 'columns'">
-                    <div v-if="columns === null" class="space-y-3" aria-hidden="true">
+                    <div
+                        v-if="columns === null"
+                        class="space-y-3"
+                        aria-hidden="true"
+                    >
                         <Skeleton class="h-10 w-full rounded-lg" />
                         <Skeleton class="h-10 w-full rounded-lg" />
                         <Skeleton class="h-10 w-full rounded-lg" />
@@ -150,7 +191,11 @@ watch(
                 </template>
 
                 <template v-else>
-                    <div v-if="fields === null" class="space-y-3" aria-hidden="true">
+                    <div
+                        v-if="fields === null"
+                        class="space-y-3"
+                        aria-hidden="true"
+                    >
                         <Skeleton class="h-12 w-full rounded-lg" />
                         <Skeleton class="h-12 w-full rounded-lg" />
                         <Skeleton class="h-8 w-2/3 rounded-md" />

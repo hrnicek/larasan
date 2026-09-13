@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Archive, Copy, ExternalLink, Palette, PencilLine, Settings, Star, StarOff } from '@lucide/vue';
+import {
+    Archive,
+    Copy,
+    ExternalLink,
+    Palette,
+    PencilLine,
+    Settings,
+    Star,
+    StarOff,
+} from '@lucide/vue';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
@@ -72,7 +81,12 @@ function archiveProject(): void {
 
         <ContextMenuContent class="w-56">
             <ContextMenuItem as-child>
-                <a :href="show(props.project.id).url" target="_blank" rel="noopener" class="cursor-default">
+                <a
+                    :href="show(props.project.id).url"
+                    target="_blank"
+                    rel="noopener"
+                    class="cursor-default"
+                >
                     <ExternalLink class="mr-2 size-4" />
                     Open in new tab
                 </a>
@@ -95,18 +109,32 @@ function archiveProject(): void {
                 </ContextMenuSubContent>
             </ContextMenuSub>
 
-            <ContextMenuItem v-if="props.project.canUpdate" @select="renaming = true">
+            <ContextMenuItem
+                v-if="props.project.canUpdate"
+                @select="renaming = true"
+            >
                 <PencilLine class="mr-2 size-4" />
                 Rename
             </ContextMenuItem>
 
             <ContextMenuItem @select="toggleStar">
-                <component :is="props.project.starred ? StarOff : Star" class="mr-2 size-4" />
-                {{ props.project.starred ? 'Remove from starred' : 'Add to starred' }}
+                <component
+                    :is="props.project.starred ? StarOff : Star"
+                    class="mr-2 size-4"
+                />
+                {{
+                    props.project.starred
+                        ? 'Remove from starred'
+                        : 'Add to starred'
+                }}
             </ContextMenuItem>
 
             <ContextMenuItem as-child>
-                <Link :href="edit(props.project.id).url" component="projects/Settings" class="w-full cursor-default">
+                <Link
+                    :href="edit(props.project.id).url"
+                    component="projects/Settings"
+                    class="w-full cursor-default"
+                >
                     <Settings class="mr-2 size-4" />
                     Project settings
                 </Link>
@@ -114,7 +142,10 @@ function archiveProject(): void {
 
             <template v-if="props.project.canArchive">
                 <ContextMenuSeparator />
-                <ContextMenuItem variant="destructive" @select="archiving = true">
+                <ContextMenuItem
+                    variant="destructive"
+                    @select="archiving = true"
+                >
                     <Archive class="mr-2 size-4" />
                     Archive project
                 </ContextMenuItem>

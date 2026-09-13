@@ -10,13 +10,19 @@ export type BoardKeyboardMove = {
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
 const nameOf = (column: BoardColumnData): string => column.name ?? 'No section';
-const cardOf = (placementId: string): string => `[data-task-card][data-placement-id="${placementId}"]`;
+const cardOf = (placementId: string): string =>
+    `[data-task-card][data-placement-id="${placementId}"]`;
 
 export function useBoardKeyboardMove(
     columns: Ref<BoardColumnData[]>,
     enabled: () => boolean,
     move: {
-        commit: (placementId: string, columnKey: string, afterId: string | null, rollbackTo: BoardColumnData[]) => void;
+        commit: (
+            placementId: string,
+            columnKey: string,
+            afterId: string | null,
+            rollbackTo: BoardColumnData[],
+        ) => void;
         snapshot: () => BoardColumnData[];
     },
 ): BoardKeyboardMove {
@@ -26,9 +32,13 @@ export function useBoardKeyboardMove(
     let origin: BoardColumnData[] = [];
     let focusCheck: number | undefined;
 
-    const locate = (placementId: string): { column: BoardColumnData; index: number } | null => {
+    const locate = (
+        placementId: string,
+    ): { column: BoardColumnData; index: number } | null => {
         for (const column of columns.value) {
-            const index = column.tasks.findIndex((card: BoardCardData) => card.placementId === placementId);
+            const index = column.tasks.findIndex(
+                (card: BoardCardData) => card.placementId === placementId,
+            );
 
             if (index !== -1) {
                 return { column, index };
@@ -49,12 +59,18 @@ export function useBoardKeyboardMove(
         });
     };
 
-    const follows = (column: BoardColumnData, index: number, placementId: string): string | null => {
+    const follows = (
+        column: BoardColumnData,
+        index: number,
+        placementId: string,
+    ): string | null => {
         if (index === 0) {
             return null;
         }
 
-        const others = column.tasks.filter((card) => card.placementId !== placementId);
+        const others = column.tasks.filter(
+            (card) => card.placementId !== placementId,
+        );
 
         return others[index - 1]?.placementId ?? null;
     };
@@ -76,7 +92,10 @@ export function useBoardKeyboardMove(
         window.clearTimeout(focusCheck);
 
         focusCheck = window.setTimeout(() => {
-            if (carrying.value !== null && document.activeElement?.matches(cardOf(carrying.value)) !== true) {
+            if (
+                carrying.value !== null &&
+                document.activeElement?.matches(cardOf(carrying.value)) !== true
+            ) {
                 cancel();
             }
         });
@@ -95,11 +114,17 @@ export function useBoardKeyboardMove(
         announcement,
 
         onKeydown(event: KeyboardEvent): void {
-            const placementId = event.target instanceof HTMLElement && event.target.matches('[data-task-card]')
-                ? event.target.dataset.placementId ?? null
-                : null;
+            const placementId =
+                event.target instanceof HTMLElement &&
+                event.target.matches('[data-task-card]')
+                    ? (event.target.dataset.placementId ?? null)
+                    : null;
 
-            if (placementId === null || !enabled() || (carrying.value !== null && carrying.value !== placementId)) {
+            if (
+                placementId === null ||
+                !enabled() ||
+                (carrying.value !== null && carrying.value !== placementId)
+            ) {
                 return;
             }
 
@@ -125,7 +150,12 @@ export function useBoardKeyboardMove(
                 release();
                 announcement.value = `Dropped in ${nameOf(column)}, position ${index + 1}.`;
 
-                move.commit(placementId, keyOf(column), follows(column, index, placementId), origin);
+                move.commit(
+                    placementId,
+                    keyOf(column),
+                    follows(column, index, placementId),
+                    origin,
+                );
 
                 return;
             }
@@ -142,8 +172,18 @@ export function useBoardKeyboardMove(
                 return;
             }
 
-            const vertical = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
-            const horizontal = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+            const vertical =
+                event.key === 'ArrowUp'
+                    ? -1
+                    : event.key === 'ArrowDown'
+                      ? 1
+                      : 0;
+            const horizontal =
+                event.key === 'ArrowLeft'
+                    ? -1
+                    : event.key === 'ArrowRight'
+                      ? 1
+                      : 0;
 
             if (vertical === 0 && horizontal === 0) {
                 return;
@@ -152,7 +192,10 @@ export function useBoardKeyboardMove(
             event.preventDefault();
 
             if (vertical !== 0) {
-                const next = Math.min(Math.max(index + vertical, 0), column.tasks.length - 1);
+                const next = Math.min(
+                    Math.max(index + vertical, 0),
+                    column.tasks.length - 1,
+                );
 
                 if (next === index) {
                     return;

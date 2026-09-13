@@ -10,7 +10,13 @@ import { show as showProject } from '@/routes/projects';
 
 const props = defineProps<{
     page: PageDetail;
-    project: { id: string; name: string; slug: string; color: string | null; icon: string | null };
+    project: {
+        id: string;
+        name: string;
+        slug: string;
+        color: string | null;
+        icon: string | null;
+    };
     pages: ProjectPages;
 }>();
 
@@ -32,10 +38,15 @@ const reload = (): void => {
     <div class="flex w-full">
         <Head :title="page.title" />
 
-        <aside class="hidden w-72 shrink-0 border-r border-border py-4 lg:block">
+        <aside
+            class="hidden w-72 shrink-0 border-r border-border py-4 lg:block"
+        >
             <div class="px-3 pb-2">
                 <Link
-                    :href="showProject(project.id, { query: { view: 'pages' } }).url"
+                    :href="
+                        showProject(project.id, { query: { view: 'pages' } })
+                            .url
+                    "
                     component="projects/Show"
                     prefetch="click"
                     class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"

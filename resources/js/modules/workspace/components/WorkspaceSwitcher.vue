@@ -44,15 +44,26 @@ function switchTo(workspace: WorkspaceSummary): void {
             </span>
 
             <span v-if="!collapsed" class="grid flex-1 leading-tight">
-                <span class="truncate text-[13px] font-semibold text-chrome-foreground">{{ current.name }}</span>
-                <span class="truncate text-[11px] text-chrome-muted-foreground">{{ current.slug }}</span>
+                <span
+                    class="truncate text-[13px] font-semibold text-chrome-foreground"
+                    >{{ current.name }}</span
+                >
+                <span
+                    class="truncate text-[11px] text-chrome-muted-foreground"
+                    >{{ current.slug }}</span
+                >
             </span>
 
-            <ChevronsUpDown v-if="!collapsed" class="size-3.5 shrink-0 text-chrome-muted-foreground" />
+            <ChevronsUpDown
+                v-if="!collapsed"
+                class="size-3.5 shrink-0 text-chrome-muted-foreground"
+            />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent class="min-w-60" align="start" side="bottom">
-            <DropdownMenuLabel class="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
+            <DropdownMenuLabel class="text-xs text-muted-foreground"
+                >Workspaces</DropdownMenuLabel
+            >
 
             <DropdownMenuItem
                 v-for="workspace in workspaces"

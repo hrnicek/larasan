@@ -18,7 +18,10 @@ defineProps<{
     <div class="flex flex-col">
         <Head title="Projects" />
 
-        <PageHeader title="Projects" description="Everything you can reach in this workspace">
+        <PageHeader
+            title="Projects"
+            description="Everything you can reach in this workspace"
+        >
             <template v-if="can.create" #actions>
                 <Link
                     :href="create().url"
@@ -30,7 +33,10 @@ defineProps<{
             </template>
         </PageHeader>
 
-        <ul v-if="allProjects.length" class="flex flex-col divide-y divide-border border-b border-border">
+        <ul
+            v-if="allProjects.length"
+            class="flex flex-col divide-y divide-border border-b border-border"
+        >
             <li
                 v-for="project in allProjects"
                 :key="project.id"
@@ -42,7 +48,11 @@ defineProps<{
                     prefetch="click"
                     class="flex min-h-11 min-w-0 flex-1 items-center gap-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
-                    <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" />
+                    <ProjectTile
+                        :name="project.name"
+                        :color="project.color"
+                        :icon="project.icon"
+                    />
 
                     <span class="truncate font-medium">{{ project.name }}</span>
 
@@ -65,7 +75,10 @@ defineProps<{
                     <Settings class="size-4" />
                 </Link>
 
-                <ChevronRight class="size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+                <ChevronRight
+                    class="size-4 shrink-0 text-muted-foreground/60"
+                    aria-hidden="true"
+                />
             </li>
         </ul>
 

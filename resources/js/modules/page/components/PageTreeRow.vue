@@ -24,7 +24,9 @@ const emit = defineEmits<{
     addChild: [page: PageNode];
     rename: [page: PageNode];
     remove: [page: PageNode];
-    move: [payload: { page: PageNode; direction: 'up' | 'down' | 'in' | 'out' }];
+    move: [
+        payload: { page: PageNode; direction: 'up' | 'down' | 'in' | 'out' },
+    ];
 }>();
 
 const hasChildren = computed<boolean>(() => props.page.children.length > 0);
@@ -32,7 +34,9 @@ const hasChildren = computed<boolean>(() => props.page.children.length > 0);
 const isCurrent = computed<boolean>(() => props.currentId === props.page.id);
 
 const holdsCurrent = (node: PageNode): boolean =>
-    node.children.some((child) => child.id === props.currentId || holdsCurrent(child));
+    node.children.some(
+        (child) => child.id === props.currentId || holdsCurrent(child),
+    );
 
 const expanded = ref(true);
 
@@ -46,10 +50,16 @@ watch(
     { immediate: true },
 );
 
-const movable = computed(() => props.moves ?? { up: false, down: false, in: false, out: false });
+const movable = computed(
+    () => props.moves ?? { up: false, down: false, in: false, out: false },
+);
 
 const canMove = computed<boolean>(
-    () => movable.value.up || movable.value.down || movable.value.in || movable.value.out,
+    () =>
+        movable.value.up ||
+        movable.value.down ||
+        movable.value.in ||
+        movable.value.out,
 );
 </script>
 
@@ -68,10 +78,15 @@ const canMove = computed<boolean>(
                 v-if="hasChildren"
                 type="button"
                 class="grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="expanded ? `Collapse ${page.title}` : `Expand ${page.title}`"
+                :aria-label="
+                    expanded ? `Collapse ${page.title}` : `Expand ${page.title}`
+                "
                 @click="expanded = !expanded"
             >
-                <ChevronRight class="size-3.5 transition-transform" :class="expanded && 'rotate-90'" />
+                <ChevronRight
+                    class="size-3.5 transition-transform"
+                    :class="expanded && 'rotate-90'"
+                />
             </button>
 
             <span v-else class="size-5 shrink-0" aria-hidden="true" />
@@ -84,23 +99,31 @@ const canMove = computed<boolean>(
             >
                 <FileText
                     class="size-4 shrink-0"
-                    :class="isCurrent ? 'text-foreground' : 'text-muted-foreground'"
+                    :class="
+                        isCurrent ? 'text-foreground' : 'text-muted-foreground'
+                    "
                     aria-hidden="true"
                 />
 
                 <span
                     class="min-w-0 flex-1 truncate"
-                    :class="isCurrent ? 'font-medium text-foreground' : 'text-foreground'"
-                >{{ page.title }}</span>
+                    :class="
+                        isCurrent
+                            ? 'font-medium text-foreground'
+                            : 'text-foreground'
+                    "
+                    >{{ page.title }}</span
+                >
 
                 <span
                     v-if="page.excerpt"
                     class="hidden min-w-0 flex-[2] truncate text-muted-foreground lg:block"
-                >{{ page.excerpt }}</span>
+                    >{{ page.excerpt }}</span
+                >
             </Link>
 
             <div
-                class="flex shrink-0 items-center transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                class="flex shrink-0 items-center transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
                 :class="isCurrent ? 'opacity-100' : 'opacity-0'"
             >
                 <button
@@ -122,30 +145,56 @@ const canMove = computed<boolean>(
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent align="end" class="w-52">
-                        <DropdownMenuItem v-if="can.updatePage" @select="emit('rename', page)">
+                        <DropdownMenuItem
+                            v-if="can.updatePage"
+                            @select="emit('rename', page)"
+                        >
                             Rename
                         </DropdownMenuItem>
 
                         <template v-if="can.updatePage && canMove">
                             <DropdownMenuSeparator />
 
-                            <DropdownMenuItem v-if="movable.up" @select="emit('move', { page, direction: 'up' })">
+                            <DropdownMenuItem
+                                v-if="movable.up"
+                                @select="
+                                    emit('move', { page, direction: 'up' })
+                                "
+                            >
                                 Move up
                             </DropdownMenuItem>
-                            <DropdownMenuItem v-if="movable.down" @select="emit('move', { page, direction: 'down' })">
+                            <DropdownMenuItem
+                                v-if="movable.down"
+                                @select="
+                                    emit('move', { page, direction: 'down' })
+                                "
+                            >
                                 Move down
                             </DropdownMenuItem>
-                            <DropdownMenuItem v-if="movable.in" @select="emit('move', { page, direction: 'in' })">
+                            <DropdownMenuItem
+                                v-if="movable.in"
+                                @select="
+                                    emit('move', { page, direction: 'in' })
+                                "
+                            >
                                 Move inside the page above
                             </DropdownMenuItem>
-                            <DropdownMenuItem v-if="movable.out" @select="emit('move', { page, direction: 'out' })">
+                            <DropdownMenuItem
+                                v-if="movable.out"
+                                @select="
+                                    emit('move', { page, direction: 'out' })
+                                "
+                            >
                                 Move out one level
                             </DropdownMenuItem>
                         </template>
 
                         <template v-if="can.deletePage">
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem variant="destructive" @select="emit('remove', page)">
+                            <DropdownMenuItem
+                                variant="destructive"
+                                @select="emit('remove', page)"
+                            >
                                 Delete
                             </DropdownMenuItem>
                         </template>

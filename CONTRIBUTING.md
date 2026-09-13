@@ -65,7 +65,7 @@ boot; on the host, `createdb` above does.
 composer ci:check
 ```
 
-That is the whole gate: Pint, ESLint, PHPStan, `vue-tsc` and the suite. CI runs the same thing, so
+That is the whole gate: Pint, Prettier, ESLint, PHPStan, `vue-tsc` and the suite. CI runs the same thing, so
 a green local run is a green pull request. Under Docker it is
 `docker compose exec laravel.test composer ci:check`, or `sail composer ci:check`. Individually:
 
@@ -73,13 +73,10 @@ a green local run is a green pull request. Under Docker it is
 | --- | --- |
 | `vendor/bin/pint --dirty` | format the PHP you touched |
 | `vendor/bin/phpstan analyse --memory-limit=2G` | static analysis, level 8 through Larastan |
+| `npm run format:check` | Prettier over `resources/` (`npm run format` fixes it) |
 | `npm run lint:check` | ESLint |
 | `npm run types:check` | `vue-tsc --noEmit` |
 | `php artisan test --compact` | the suite |
-
-**Do not run `npm run format`.** It rewrites all of `resources/`, and this repository is not
-prettier-clean — one run reformats around 65 files and buries a small change in a 1,400-line diff.
-Format only what you edited: `npx prettier --write <files>`.
 
 ## What a change should look like
 

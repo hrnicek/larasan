@@ -15,7 +15,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{ open: [taskId: string] }>();
 
-const done = computed<number>(() => props.subtasks.filter((subtask) => subtask.completedAt !== null).length);
+const done = computed<number>(
+    () =>
+        props.subtasks.filter((subtask) => subtask.completedAt !== null).length,
+);
 
 const open = ref(false);
 const title = ref('');
@@ -64,18 +67,28 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
     }
 
     if (subtask.completedAt !== null) {
-        router.delete(TaskController.reopen.url(subtask.id), { preserveScroll: true, preserveState: true });
+        router.delete(TaskController.reopen.url(subtask.id), {
+            preserveScroll: true,
+            preserveState: true,
+        });
 
         return;
     }
 
-    router.put(TaskController.complete.url(subtask.id), {}, { preserveScroll: true, preserveState: true });
+    router.put(
+        TaskController.complete.url(subtask.id),
+        {},
+        { preserveScroll: true, preserveState: true },
+    );
 };
 </script>
 
 <template>
     <section class="flex flex-col gap-1">
-        <TaskSectionHeading title="Subtasks" :count="subtasks.length ? `${done} / ${subtasks.length}` : null">
+        <TaskSectionHeading
+            title="Subtasks"
+            :count="subtasks.length ? `${done} / ${subtasks.length}` : null"
+        >
             <template v-if="editable" #add>
                 <Button
                     variant="ghost"
@@ -89,7 +102,10 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
             </template>
         </TaskSectionHeading>
 
-        <ul v-if="subtasks.length" class="flex flex-col divide-y divide-border border-y border-border">
+        <ul
+            v-if="subtasks.length"
+            class="flex flex-col divide-y divide-border border-y border-border"
+        >
             <li
                 v-for="subtask in subtasks"
                 :key="subtask.id"
@@ -105,7 +121,11 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                     "
                     :disabled="!editable"
                     :aria-pressed="subtask.completedAt !== null"
-                    :aria-label="subtask.completedAt ? `Reopen ${subtask.title}` : `Complete ${subtask.title}`"
+                    :aria-label="
+                        subtask.completedAt
+                            ? `Reopen ${subtask.title}`
+                            : `Complete ${subtask.title}`
+                    "
                     @click="toggle(subtask)"
                 >
                     <CircleCheck class="size-4" />
@@ -114,7 +134,11 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                 <button
                     type="button"
                     class="min-h-11 min-w-0 flex-1 truncate text-left text-sm transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-6"
-                    :class="subtask.completedAt ? 'text-muted-foreground line-through' : ''"
+                    :class="
+                        subtask.completedAt
+                            ? 'text-muted-foreground line-through'
+                            : ''
+                    "
                     @click="emit('open', subtask.id)"
                 >
                     {{ subtask.title }}
@@ -152,6 +176,8 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
             </button>
         </div>
 
-        <p v-else-if="!subtasks.length" class="text-sm text-muted-foreground">No subtasks.</p>
+        <p v-else-if="!subtasks.length" class="text-sm text-muted-foreground">
+            No subtasks.
+        </p>
     </section>
 </template>

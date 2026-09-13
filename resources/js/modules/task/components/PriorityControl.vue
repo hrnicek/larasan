@@ -40,14 +40,19 @@ function change(priority: string): void {
 <template>
     <span
         v-if="!editable"
-        class="capitalize text-muted-foreground"
+        class="text-muted-foreground capitalize"
         :class="variant === 'field' ? 'text-sm' : 'text-xs'"
-    >{{ priority }}</span>
+        >{{ priority }}</span
+    >
 
     <DropdownMenu v-else v-model:open="open">
         <DropdownMenuTrigger
             class="inline-flex min-h-11 items-center rounded-md text-muted-foreground capitalize transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-6"
-            :class="variant === 'field' ? 'px-1.5 py-1 text-sm hover:bg-accent md:min-h-8' : 'px-1 text-xs'"
+            :class="
+                variant === 'field'
+                    ? 'px-1.5 py-1 text-sm hover:bg-accent md:min-h-8'
+                    : 'px-1 text-xs'
+            "
             :disabled="saving"
             :aria-label="`Priority: ${priority}`"
         >

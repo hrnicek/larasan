@@ -16,7 +16,10 @@ const page = usePage();
 const { skeleton, failed, retry } = usePendingScreen();
 
 // Fade in only on a different screen or a replaced skeleton, never on a same-screen redraw after a write.
-const screen = computed<string>(() => `${page.component} ${new URL(page.url, window.location.origin).pathname}`);
+const screen = computed<string>(
+    () =>
+        `${page.component} ${new URL(page.url, window.location.origin).pathname}`,
+);
 const entering = ref(false);
 
 watch([screen, skeleton], ([current, pending], [previous, wasPending]) => {
@@ -48,7 +51,10 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                 </aside>
 
                 <Sheet v-model:open="mobileOpen">
-                    <SheetContent side="left" class="w-72 border-chrome-border bg-chrome p-0 text-chrome-foreground">
+                    <SheetContent
+                        side="left"
+                        class="w-72 border-chrome-border bg-chrome p-0 text-chrome-foreground"
+                    >
                         <SheetTitle class="sr-only">Navigation</SheetTitle>
                         <AppSidebar variant="drawer" />
                     </SheetContent>
@@ -71,10 +77,21 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                         role="alert"
                     >
                         <span>This page did not load.</span>
-                        <button type="button" class="font-medium underline" @click="retry">Try again</button>
+                        <button
+                            type="button"
+                            class="font-medium underline"
+                            @click="retry"
+                        >
+                            Try again
+                        </button>
                     </div>
 
-                    <div v-if="skeleton" data-screen-pending class="flex flex-col" aria-busy="true">
+                    <div
+                        v-if="skeleton"
+                        data-screen-pending
+                        class="flex flex-col"
+                        aria-busy="true"
+                    >
                         <p class="sr-only" role="status">Loading…</p>
 
                         <component :is="skeleton" />

@@ -82,8 +82,16 @@ const skeleton = usePendingSkeleton('settings');
                     >
                         <Link
                             :href="item.href"
-                            :component="isCurrentOrParentUrl(item.href) ? undefined : item.component"
-                            :prefetch="isCurrentOrParentUrl(item.href) ? false : 'click'"
+                            :component="
+                                isCurrentOrParentUrl(item.href)
+                                    ? undefined
+                                    : item.component
+                            "
+                            :prefetch="
+                                isCurrentOrParentUrl(item.href)
+                                    ? false
+                                    : 'click'
+                            "
                         >
                             <component :is="item.icon" class="h-4 w-4" />
                             {{ item.title }}

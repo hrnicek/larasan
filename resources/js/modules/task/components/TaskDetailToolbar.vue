@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { Check, CircleCheck, Ellipsis, Link2, Maximize2, PanelRightClose, Star, Trash2 } from '@lucide/vue';
+import {
+    Check,
+    CircleCheck,
+    Ellipsis,
+    Link2,
+    Maximize2,
+    PanelRightClose,
+    Star,
+    Trash2,
+} from '@lucide/vue';
 import { ref } from 'vue';
 import { toast } from 'vue-sonner';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
@@ -35,12 +44,18 @@ function toggleCompletion(): void {
 
     // Call methods on `router` directly; a detached `router.put` loses `this` and fails at runtime.
     if (completed()) {
-        router.delete(TaskController.reopen.url(props.detail.task.id), { preserveScroll: true });
+        router.delete(TaskController.reopen.url(props.detail.task.id), {
+            preserveScroll: true,
+        });
 
         return;
     }
 
-    router.put(TaskController.complete.url(props.detail.task.id), {}, { preserveScroll: true });
+    router.put(
+        TaskController.complete.url(props.detail.task.id),
+        {},
+        { preserveScroll: true },
+    );
 }
 
 async function copyLink(): Promise<void> {
@@ -57,7 +72,9 @@ async function copyLink(): Promise<void> {
 
 function toggleStar(): void {
     if (props.detail.starred) {
-        router.delete(unstar(props.detail.task.id).url, { preserveScroll: true });
+        router.delete(unstar(props.detail.task.id).url, {
+            preserveScroll: true,
+        });
 
         return;
     }
@@ -84,7 +101,9 @@ function destroy(): void {
 </script>
 
 <template>
-    <div class="flex h-13 shrink-0 items-center gap-2 border-b border-border bg-background px-3">
+    <div
+        class="flex h-13 shrink-0 items-center gap-2 border-b border-border bg-background px-3"
+    >
         <button
             v-if="detail.can.update && !collapsed"
             type="button"
@@ -104,10 +123,16 @@ function destroy(): void {
         <p v-else-if="collapsed" class="flex min-w-0 items-center gap-2">
             <CircleCheck
                 class="size-4 shrink-0"
-                :class="completed() ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'"
+                :class="
+                    completed()
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-muted-foreground'
+                "
                 aria-hidden="true"
             />
-            <span class="truncate text-sm font-medium">{{ detail.task.title }}</span>
+            <span class="truncate text-sm font-medium">{{
+                detail.task.title
+            }}</span>
         </p>
 
         <span v-else class="text-sm text-muted-foreground">
@@ -126,12 +151,23 @@ function destroy(): void {
             <Button
                 variant="ghost"
                 size="icon-sm"
-                :class="detail.starred ? 'text-amber-500 dark:text-amber-400' : 'text-muted-foreground'"
+                :class="
+                    detail.starred
+                        ? 'text-amber-500 dark:text-amber-400'
+                        : 'text-muted-foreground'
+                "
                 :aria-pressed="detail.starred"
-                :aria-label="detail.starred ? 'Remove this task from starred' : 'Add this task to starred'"
+                :aria-label="
+                    detail.starred
+                        ? 'Remove this task from starred'
+                        : 'Add this task to starred'
+                "
                 @click="toggleStar"
             >
-                <Star class="size-4" :class="detail.starred && 'fill-current'" />
+                <Star
+                    class="size-4"
+                    :class="detail.starred && 'fill-current'"
+                />
             </Button>
 
             <Button
@@ -151,14 +187,22 @@ function destroy(): void {
                 size="icon-sm"
                 class="text-muted-foreground"
             >
-                <Link :href="show(detail.task.id)" aria-label="Open as a full page">
+                <Link
+                    :href="show(detail.task.id)"
+                    aria-label="Open as a full page"
+                >
                     <Maximize2 class="size-4" />
                 </Link>
             </Button>
 
             <DropdownMenu>
                 <DropdownMenuTrigger as-child>
-                    <Button variant="ghost" size="icon-sm" class="text-muted-foreground" aria-label="More actions">
+                    <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        class="text-muted-foreground"
+                        aria-label="More actions"
+                    >
                         <Ellipsis class="size-4" />
                     </Button>
                 </DropdownMenuTrigger>
@@ -172,7 +216,10 @@ function destroy(): void {
                     <template v-if="detail.can.delete">
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem variant="destructive" @select="deleting = true">
+                        <DropdownMenuItem
+                            variant="destructive"
+                            @select="deleting = true"
+                        >
                             <Trash2 class="size-4" />
                             Delete task
                         </DropdownMenuItem>

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { CalendarDays, FileText, LayoutGrid, List, Paperclip } from '@lucide/vue';
+import {
+    CalendarDays,
+    FileText,
+    LayoutGrid,
+    List,
+    Paperclip,
+} from '@lucide/vue';
 import type { Component } from 'vue';
 import { warmView } from '@/modules/project/views';
 import { show } from '@/routes/projects';

@@ -3,7 +3,12 @@ import { ChevronLeft, ChevronRight, Download } from '@lucide/vue';
 import { computed, onBeforeUnmount, watch } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { formatFileSize } from '@/lib/fileSize';
 import type { TaskAttachment } from '@/modules/task/types';
 
@@ -14,8 +19,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:openId': [string | null] }>();
 
-const index = computed((): number => props.images.findIndex((image) => image.id === props.openId));
-const current = computed((): TaskAttachment | null => props.images[index.value] ?? null);
+const index = computed((): number =>
+    props.images.findIndex((image) => image.id === props.openId),
+);
+const current = computed(
+    (): TaskAttachment | null => props.images[index.value] ?? null,
+);
 
 const step = (by: number): void => {
     if (props.images.length < 2 || index.value < 0) {
@@ -56,17 +65,24 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>
-    <Dialog :open="current !== null" @update:open="(next) => !next && emit('update:openId', null)">
+    <Dialog
+        :open="current !== null"
+        @update:open="(next) => !next && emit('update:openId', null)"
+    >
         <DialogContent
             v-if="current"
             class="gap-3 p-4 sm:w-fit sm:max-w-[min(95vw,72rem)] sm:p-6"
         >
             <div class="flex min-w-0 items-center gap-3">
                 <div class="min-w-0">
-                    <DialogTitle class="truncate text-sm font-medium">{{ current.name }}</DialogTitle>
+                    <DialogTitle class="truncate text-sm font-medium">{{
+                        current.name
+                    }}</DialogTitle>
                     <DialogDescription class="text-xs text-muted-foreground">
                         {{ formatFileSize(current.size) }}
-                        <template v-if="images.length > 1"> · {{ index + 1 }} of {{ images.length }}</template>
+                        <template v-if="images.length > 1">
+                            · {{ index + 1 }} of {{ images.length }}</template
+                        >
                     </DialogDescription>
                 </div>
 
@@ -89,7 +105,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     :key="current.id"
                     :src="AttachmentController.preview.url(current.id)"
                     :alt="current.name"
-                    :style="current.image ? { aspectRatio: `${current.image.width} / ${current.image.height}` } : undefined"
+                    :style="
+                        current.image
+                            ? {
+                                  aspectRatio: `${current.image.width} / ${current.image.height}`,
+                              }
+                            : undefined
+                    "
                     class="max-h-[70vh] w-auto max-w-full rounded-md object-contain"
                 />
 

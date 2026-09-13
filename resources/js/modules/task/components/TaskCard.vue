@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { CheckSquare, MessageSquare, MoveRight, TriangleAlert, UserRound } from '@lucide/vue';
+import {
+    CheckSquare,
+    MessageSquare,
+    MoveRight,
+    TriangleAlert,
+    UserRound,
+} from '@lucide/vue';
 import { computed } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import {
@@ -36,9 +42,13 @@ const down = (event: PointerEvent): void => {
 
 const day = computed<string | null>(() => dayOf(props.card.dueAt));
 
-const overdue = computed<boolean>(() => props.card.completedAt === null && isOverdue(day.value));
+const overdue = computed<boolean>(
+    () => props.card.completedAt === null && isOverdue(day.value),
+);
 
-const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
+const dueLabel = computed<string>(() =>
+    day.value === null ? '' : formatDay(day.value),
+);
 </script>
 
 <template>
@@ -47,7 +57,7 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
         data-task-card
         :data-task-id="card.id"
         :data-placement-id="card.placementId"
-        class="group/card cursor-pointer rounded-md border border-border bg-card p-3 text-sm outline-none transition-shadow hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary-ring"
+        class="group/card cursor-pointer rounded-md border border-border bg-card p-3 text-sm transition-shadow outline-none hover:shadow-xs focus-visible:ring-2 focus-visible:ring-primary-ring"
         :class="[
             card.completedAt ? 'text-muted-foreground' : '',
             dragging ? 'opacity-50' : '',
@@ -59,7 +69,11 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
     >
         <img
             v-if="card.cover"
-            :src="AttachmentController.preview.url(card.cover.id, { query: { size: 'thumb' } })"
+            :src="
+                AttachmentController.preview.url(card.cover.id, {
+                    query: { size: 'thumb' },
+                })
+            "
             alt=""
             loading="lazy"
             decoding="async"
@@ -88,14 +102,19 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
             {{ card.title }}
         </button>
 
-        <div class="mt-2.5 flex items-center gap-2.5 text-xs text-muted-foreground">
+        <div
+            class="mt-2.5 flex items-center gap-2.5 text-xs text-muted-foreground"
+        >
             <UserAvatar v-if="card.assignee" :user="card.assignee" size="sm" />
             <span
                 v-else
                 class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/40"
                 title="Unassigned"
             >
-                <UserRound class="size-3.5 text-muted-foreground/60" aria-hidden="true" />
+                <UserRound
+                    class="size-3.5 text-muted-foreground/60"
+                    aria-hidden="true"
+                />
                 <span class="sr-only">Unassigned</span>
             </span>
 
@@ -104,18 +123,28 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
                 class="inline-flex items-center gap-1"
                 :class="overdue ? 'text-destructive' : ''"
             >
-                <TriangleAlert v-if="overdue" class="size-3.5" aria-hidden="true" />
+                <TriangleAlert
+                    v-if="overdue"
+                    class="size-3.5"
+                    aria-hidden="true"
+                />
                 {{ dueLabel }}
                 <span v-if="overdue" class="sr-only">overdue</span>
             </span>
 
-            <span v-if="card.subtasks > 0" class="inline-flex items-center gap-1">
+            <span
+                v-if="card.subtasks > 0"
+                class="inline-flex items-center gap-1"
+            >
                 <CheckSquare class="size-3.5" aria-hidden="true" />
                 {{ card.subtasks }}
                 <span class="sr-only">subtasks</span>
             </span>
 
-            <span v-if="card.comments > 0" class="inline-flex items-center gap-1">
+            <span
+                v-if="card.comments > 0"
+                class="inline-flex items-center gap-1"
+            >
                 <MessageSquare class="size-3.5" aria-hidden="true" />
                 {{ card.comments }}
                 <span class="sr-only">comments</span>
@@ -134,7 +163,9 @@ const dueLabel = computed<string>(() => (day.value === null ? '' : formatDay(day
                     <DropdownMenuItem
                         v-for="column in columns"
                         :key="keyOf(column)"
-                        @select="emit('moveto', card.placementId, keyOf(column))"
+                        @select="
+                            emit('moveto', card.placementId, keyOf(column))
+                        "
                     >
                         {{ column.name ?? 'No section' }}
                     </DropdownMenuItem>

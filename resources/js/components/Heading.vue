@@ -12,7 +12,9 @@ const props = withDefaults(defineProps<Props>(), {
     variant: 'default',
 });
 
-const tag = computed<string>(() => props.level ?? (props.variant === 'small' ? 'h2' : 'h1'));
+const tag = computed<string>(
+    () => props.level ?? (props.variant === 'small' ? 'h2' : 'h1'),
+);
 </script>
 
 <template>

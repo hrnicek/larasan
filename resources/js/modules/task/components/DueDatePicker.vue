@@ -4,7 +4,11 @@ import { CalendarPlus, TriangleAlert, X } from '@lucide/vue';
 import { computed, defineAsyncComponent, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { dayOf, formatDay, isOverdue, today } from '@/lib/dueDate';
 
 /** Sends only `due_at`; `tasks.update` leaves absent fields untouched. */
@@ -16,7 +20,8 @@ const props = defineProps<{
 }>();
 
 // The calendar chunk is heavy and lists render many triggers, so it loads on hover or focus.
-const loadCalendar = () => import('@/modules/task/components/DueDateCalendar.vue');
+const loadCalendar = () =>
+    import('@/modules/task/components/DueDateCalendar.vue');
 
 const DueDateCalendar = defineAsyncComponent(loadCalendar);
 
@@ -29,7 +34,9 @@ const day = computed<string | null>(() => dayOf(props.dueAt));
 
 const overdue = computed<boolean>(() => isOverdue(day.value));
 
-const label = computed<string>(() => (day.value === null ? '' : formatDay(day.value)));
+const label = computed<string>(() =>
+    day.value === null ? '' : formatDay(day.value),
+);
 
 function save(next: string | null): void {
     saving.value = true;
@@ -46,7 +53,6 @@ function save(next: string | null): void {
         },
     );
 }
-
 </script>
 
 <template>
@@ -55,8 +61,14 @@ function save(next: string | null): void {
         class="inline-flex items-center gap-1 text-muted-foreground"
         :class="variant === 'field' ? 'text-sm' : 'text-xs'"
     >
-        <TriangleAlert v-if="overdue" class="size-3.5 text-destructive" aria-hidden="true" />
-        <span :class="overdue ? 'text-destructive' : ''">{{ label || '—' }}</span>
+        <TriangleAlert
+            v-if="overdue"
+            class="size-3.5 text-destructive"
+            aria-hidden="true"
+        />
+        <span :class="overdue ? 'text-destructive' : ''">{{
+            label || '—'
+        }}</span>
         <span v-if="overdue" class="sr-only">overdue</span>
     </span>
 
@@ -68,9 +80,15 @@ function save(next: string | null): void {
             class="inline-flex min-h-11 items-center gap-1.5 rounded-md transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-6"
             :class="[
                 overdue ? 'text-destructive' : 'text-muted-foreground',
-                variant === 'field' ? 'px-1.5 py-1 text-sm md:min-h-8' : 'px-1 py-0.5 text-xs',
+                variant === 'field'
+                    ? 'px-1.5 py-1 text-sm md:min-h-8'
+                    : 'px-1 py-0.5 text-xs',
             ]"
-            :aria-label="dueAt === null ? 'Set a due date' : `Due ${label}${overdue ? ', overdue' : ''}. Change it`"
+            :aria-label="
+                dueAt === null
+                    ? 'Set a due date'
+                    : `Due ${label}${overdue ? ', overdue' : ''}. Change it`
+            "
         >
             <TriangleAlert v-if="overdue" class="size-3.5" aria-hidden="true" />
             <span
@@ -81,7 +99,9 @@ function save(next: string | null): void {
             </span>
             <span v-else>{{ label }}</span>
 
-            <span v-if="variant === 'field' && dueAt === null">No due date</span>
+            <span v-if="variant === 'field' && dueAt === null"
+                >No due date</span
+            >
         </PopoverTrigger>
 
         <PopoverContent class="w-auto p-0" align="start">

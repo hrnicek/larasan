@@ -41,11 +41,28 @@ watch(panel, (element) => {
         <div ref="panel" class="flex flex-col gap-5">
             <header class="flex items-start justify-between gap-4">
                 <div class="space-y-1">
-                    <h2 :id="titleId" class="text-base font-semibold tracking-tight text-foreground">{{ title }}</h2>
-                    <p v-if="description" :id="descriptionId" class="text-sm text-muted-foreground">{{ description }}</p>
+                    <h2
+                        :id="titleId"
+                        class="text-base font-semibold tracking-tight text-foreground"
+                    >
+                        {{ title }}
+                    </h2>
+                    <p
+                        v-if="description"
+                        :id="descriptionId"
+                        class="text-sm text-muted-foreground"
+                    >
+                        {{ description }}
+                    </p>
                 </div>
 
-                <Button variant="ghost" size="icon" class="-mt-1 -mr-1 size-7 shrink-0" aria-label="Close" @click="close">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    class="-mt-1 -mr-1 size-7 shrink-0"
+                    aria-label="Close"
+                    @click="close"
+                >
                     <X class="size-4" />
                 </Button>
             </header>

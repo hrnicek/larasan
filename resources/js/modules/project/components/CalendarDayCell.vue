@@ -23,11 +23,15 @@ const emit = defineEmits<{
 
 const isToday = computed<boolean>(() => props.day.date === props.today);
 
-const number = computed<string>(() => String(Number(props.day.date.slice(8, 10))));
+const number = computed<string>(() =>
+    String(Number(props.day.date.slice(8, 10))),
+);
 
 const hidden = computed<number>(() => props.day.count - props.day.tasks.length);
 
-const isWeekend = computed<boolean>(() => [0, 6].includes(new Date(`${props.day.date}T00:00:00`).getDay()));
+const isWeekend = computed<boolean>(() =>
+    [0, 6].includes(new Date(`${props.day.date}T00:00:00`).getDay()),
+);
 
 const surface = computed<string>(() => {
     if (props.over || isToday.value) {
@@ -44,7 +48,10 @@ const surface = computed<string>(() => {
 const composer = ref<InstanceType<typeof InlineTaskCreate> | null>(null);
 
 const startHere = (event: MouseEvent): void => {
-    if (!props.creatable || (event.target as HTMLElement).closest('button, input, a') !== null) {
+    if (
+        !props.creatable ||
+        (event.target as HTMLElement).closest('button, input, a') !== null
+    ) {
         return;
     }
 
@@ -66,7 +73,9 @@ const startHere = (event: MouseEvent): void => {
                     :datetime="day.date"
                     class="inline-flex size-6 items-center justify-center rounded-full text-xs tabular-nums"
                     :class="[
-                        isToday ? 'bg-primary font-semibold text-primary-foreground' : 'font-medium',
+                        isToday
+                            ? 'bg-primary font-semibold text-primary-foreground'
+                            : 'font-medium',
                         !isToday && day.inMonth ? 'text-foreground' : '',
                         !isToday && !day.inMonth ? 'text-muted-foreground' : '',
                     ]"

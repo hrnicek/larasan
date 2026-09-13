@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Check } from '@lucide/vue';
 import { computed } from 'vue';
-import { accentColorNames, accentDotClass, isCustomAccent } from '@/lib/accentColor';
+import {
+    accentColorNames,
+    accentDotClass,
+    isCustomAccent,
+} from '@/lib/accentColor';
 
 const props = withDefaults(
     defineProps<{
@@ -19,7 +23,9 @@ const mark = computed(() => (props.size === 'sm' ? 'size-3.5' : 'size-4'));
 
 const isCustom = computed(() => isCustomAccent(props.modelValue));
 
-const customValue = computed(() => (isCustom.value ? (props.modelValue as string) : '#3f7d5a'));
+const customValue = computed(() =>
+    isCustom.value ? (props.modelValue as string) : '#3f7d5a',
+);
 
 // `change`, not `input`: the header persists each pick, so commit once rather than while dragging.
 function choose(event: Event): void {
@@ -32,7 +38,11 @@ function choose(event: Event): void {
 <template>
     <div>
         <div class="flex h-6 items-center justify-between">
-            <h3 class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Colour</h3>
+            <h3
+                class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Colour
+            </h3>
 
             <button
                 v-if="props.modelValue"
@@ -61,7 +71,7 @@ function choose(event: Event): void {
             </button>
 
             <label
-                class="relative flex items-center justify-center overflow-hidden rounded-md text-white transition-transform hover:scale-110 focus-within:ring-2 focus-within:ring-primary-ring focus-within:ring-offset-2"
+                class="relative flex items-center justify-center overflow-hidden rounded-md text-white transition-transform focus-within:ring-2 focus-within:ring-primary-ring focus-within:ring-offset-2 hover:scale-110"
                 :class="[swatch, { 'opacity-50': props.disabled }]"
                 :style="
                     isCustom

@@ -34,7 +34,9 @@ const down = (event: PointerEvent): void => {
         :title="card.title"
         class="flex w-full shrink-0 items-center rounded-sm text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
         :class="[
-            variant === 'row' ? 'min-h-11 gap-2 px-2 py-2 text-sm' : 'gap-1 py-0.5 pr-0.5 pl-1 text-xs',
+            variant === 'row'
+                ? 'min-h-11 gap-2 px-2 py-2 text-sm'
+                : 'gap-1 py-0.5 pr-0.5 pl-1 text-xs',
             card.completedAt ? 'text-muted-foreground' : 'text-foreground',
             dragging ? 'opacity-50' : '',
             editable ? 'cursor-grab touch-none active:cursor-grabbing' : '',
@@ -50,7 +52,10 @@ const down = (event: PointerEvent): void => {
             :title="card.tags.map((tag) => tag.name).join(', ')"
         />
 
-        <span class="min-w-0 flex-1 truncate" :class="card.completedAt ? 'line-through' : ''">
+        <span
+            class="min-w-0 flex-1 truncate"
+            :class="card.completedAt ? 'line-through' : ''"
+        >
             {{ card.title }}
         </span>
 

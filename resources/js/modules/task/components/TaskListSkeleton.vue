@@ -6,7 +6,11 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 5 });
 
 <template>
     <div class="divide-y border-t">
-        <div v-for="row in rows" :key="row" class="flex items-center gap-3 px-4 py-2">
+        <div
+            v-for="row in rows"
+            :key="row"
+            class="flex items-center gap-3 px-4 py-2"
+        >
             <Skeleton class="size-4 rounded" />
             <Skeleton class="h-4 flex-1" />
             <Skeleton class="h-4 w-20" />

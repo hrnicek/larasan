@@ -17,11 +17,17 @@ export function isCustomAccent(color: string | null): color is string {
     return typeof color === 'string' && color.startsWith('#');
 }
 
-export function accentVars(color: string | null): Record<string, string> | undefined {
+export function accentVars(
+    color: string | null,
+): Record<string, string> | undefined {
     return isCustomAccent(color) ? { '--custom-accent': color } : undefined;
 }
 
-function named(record: Record<AccentColor, string>, color: string | null, fallback: string): string {
+function named(
+    record: Record<AccentColor, string>,
+    color: string | null,
+    fallback: string,
+): string {
     return record[color as AccentColor] ?? fallback;
 }
 

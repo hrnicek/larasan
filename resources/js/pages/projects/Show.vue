@@ -4,7 +4,10 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ListTodo, Plus } from '@lucide/vue';
 import { computed, defineAsyncComponent, ref, watch } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
-import { useBoardDragAndDrop, useTaskDragAndDrop } from '@/composables/useBoardDragAndDrop';
+import {
+    useBoardDragAndDrop,
+    useTaskDragAndDrop,
+} from '@/composables/useBoardDragAndDrop';
 import { useBoardKeyboardMove } from '@/composables/useBoardKeyboardMove';
 import { useCalendarDrag } from '@/composables/useCalendarDrag';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
@@ -16,8 +19,19 @@ import InlineSectionCreate from '@/modules/project/components/InlineSectionCreat
 import ProjectHeader from '@/modules/project/components/ProjectHeader.vue';
 import ProjectViewSkeleton from '@/modules/project/components/ProjectViewSkeleton.vue';
 import { rememberLandingView } from '@/modules/project/landingView';
-import type { ProjectCustomize, ProjectFiles, ProjectHeading, ProjectShare } from '@/modules/project/types';
-import { BoardColumn, CalendarGrid, CalendarToolbar, FilesTable, PagesTree } from '@/modules/project/views';
+import type {
+    ProjectCustomize,
+    ProjectFiles,
+    ProjectHeading,
+    ProjectShare,
+} from '@/modules/project/types';
+import {
+    BoardColumn,
+    CalendarGrid,
+    CalendarToolbar,
+    FilesTable,
+    PagesTree,
+} from '@/modules/project/views';
 import TagFilter from '@/modules/tag/components/TagFilter.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import SectionGroup from '@/modules/task/components/SectionGroup.vue';
@@ -37,7 +51,9 @@ import type {
 } from '@/modules/task/types';
 import { create as createTask } from '@/routes/tasks';
 
-const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
+const TaskDetailPanel = defineAsyncComponent(
+    () => import('@/modules/task/components/TaskDetailPanel.vue'),
+);
 
 const props = defineProps<{
     project: ProjectHeading;
@@ -51,7 +67,11 @@ const props = defineProps<{
     members: TaskAssignee[];
     priorities: string[];
     tags: { active: string[]; available: TaskTag[] };
-    sort: { field: string | null; direction: string; filters: Record<string, string> };
+    sort: {
+        field: string | null;
+        direction: string;
+        filters: Record<string, string>;
+    };
     taskDetail?: TaskDetail | null;
     /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
@@ -64,11 +84,15 @@ const props = defineProps<{
 // Local copy for optimistic moves; replaced whenever the server sends a new board.
 const columns = ref<BoardColumnData[]>(props.board?.columns ?? []);
 
-watch(() => props.board, (board) => {
-    columns.value = board?.columns ?? [];
-});
+watch(
+    () => props.board,
+    (board) => {
+        columns.value = board?.columns ?? [];
+    },
+);
 
-const editable = () => (props.board ?? props.list ?? props.calendar)?.can.updateTask === true;
+const editable = () =>
+    (props.board ?? props.list ?? props.calendar)?.can.updateTask === true;
 
 // Derived from the payload props rather than `view`, so a reload targets the region actually on screen.
 const drawing = computed<string>(() =>
@@ -111,7 +135,8 @@ useRealtime({
         failed.value = true;
     },
 });
-const creatable = () => (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
+const creatable = () =>
+    (props.board ?? props.list ?? props.calendar)?.can.createTask === true;
 
 const { open: openTask, close: closeTask } = useTaskPanel();
 
@@ -119,9 +144,12 @@ const drag = useBoardDragAndDrop(columns, () => editable());
 
 const sections = ref<TaskSectionGroup[]>(props.list?.sections ?? []);
 
-watch(() => props.list, (list) => {
-    sections.value = list?.sections ?? [];
-});
+watch(
+    () => props.list,
+    (list) => {
+        sections.value = list?.sections ?? [];
+    },
+);
 
 const listDrag = useTaskDragAndDrop(sections, () => editable(), {
     cardSelector: '[data-task-row]',
@@ -129,19 +157,29 @@ const listDrag = useTaskDragAndDrop(sections, () => editable(), {
 });
 
 const days = ref<CalendarDay[]>(props.calendar?.days ?? []);
-const undated = ref<ProjectCalendar['undated']>(props.calendar?.undated ?? { count: 0, hasMore: false, tasks: [] });
+const undated = ref<ProjectCalendar['undated']>(
+    props.calendar?.undated ?? { count: 0, hasMore: false, tasks: [] },
+);
 
-watch(() => props.calendar, (calendar) => {
-    days.value = calendar?.days ?? [];
-    undated.value = calendar?.undated ?? { count: 0, hasMore: false, tasks: [] };
-});
+watch(
+    () => props.calendar,
+    (calendar) => {
+        days.value = calendar?.days ?? [];
+        undated.value = calendar?.undated ?? {
+            count: 0,
+            hasMore: false,
+            tasks: [],
+        };
+    },
+);
 
 const calendarDrag = useCalendarDrag(days, undated, () => editable());
 
 const activeColumn = ref(0);
 
 // Left to CSS breakpoints; reading window.innerWidth would go stale on resize.
-const columnVisibility = (index: number): string => (index === activeColumn.value ? 'flex' : 'hidden md:flex');
+const columnVisibility = (index: number): string =>
+    index === activeColumn.value ? 'flex' : 'hidden md:flex';
 const keyboard = useBoardKeyboardMove(columns, () => editable(), drag);
 
 const reloadView = (options: ReloadOptions): void => {
@@ -168,7 +206,9 @@ const reloadView = (options: ReloadOptions): void => {
 // Board columns and calendar days share the `expand` parameter; a URL only ever names one view.
 const expand = (group: string | null): void => {
     const key = group ?? 'ungrouped';
-    const current = new URLSearchParams(window.location.search).getAll('expand[]');
+    const current = new URLSearchParams(window.location.search).getAll(
+        'expand[]',
+    );
 
     reloadView({
         only: [props.calendar ? 'calendar' : 'board'],
@@ -199,7 +239,10 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                 :share="share"
             />
 
-            <div v-if="view !== 'files' && view !== 'pages'" class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6">
+            <div
+                v-if="view !== 'files' && view !== 'pages'"
+                class="flex flex-wrap items-center gap-2 px-4 py-3 md:px-6"
+            >
                 <Link
                     v-if="creatable()"
                     :href="createTask({ query: { project: project.id } })"
@@ -239,7 +282,10 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                 />
             </div>
 
-            <TaskListHeader v-if="list && list.sections.length" :columns="list.columns" />
+            <TaskListHeader
+                v-if="list && list.sections.length"
+                :columns="list.columns"
+            />
         </div>
 
         <div class="flex flex-col pb-6">
@@ -250,19 +296,38 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     role="alert"
                 >
                     <span>Something went wrong loading this project.</span>
-                    <button type="button" class="underline" @click="retry">Try again</button>
+                    <button type="button" class="underline" @click="retry">
+                        Try again
+                    </button>
                 </div>
 
-                <p v-if="board" class="sr-only" role="status" aria-live="polite">{{ keyboard.announcement.value }}</p>
+                <p
+                    v-if="board"
+                    class="sr-only"
+                    role="status"
+                    aria-live="polite"
+                >
+                    {{ keyboard.announcement.value }}
+                </p>
 
-                <nav v-if="board && columns.length > 1" class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6" aria-label="Columns">
+                <nav
+                    v-if="board && columns.length > 1"
+                    class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6"
+                    aria-label="Columns"
+                >
                     <button
                         v-for="(column, index) in columns"
                         :key="column.id ?? 'ungrouped'"
                         type="button"
                         class="rounded border px-3 py-1 text-xs"
-                        :class="index === activeColumn ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'"
-                        :aria-current="index === activeColumn ? 'true' : undefined"
+                        :class="
+                            index === activeColumn
+                                ? 'bg-accent text-accent-foreground'
+                                : 'text-muted-foreground'
+                        "
+                        :aria-current="
+                            index === activeColumn ? 'true' : undefined
+                        "
                         @click="activeColumn = index"
                     >
                         {{ column.name ?? 'No section' }} ({{ column.count }})
@@ -271,7 +336,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
 
                 <div
                     v-if="board"
-                    class="flex gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6 [scrollbar-color:var(--color-border)_transparent] [scrollbar-width:thin]"
+                    class="flex [scrollbar-width:thin] [scrollbar-color:var(--color-border)_transparent] gap-4 overflow-x-auto px-4 pt-4 pb-3 md:px-6"
                     @keydown="keyboard.onKeydown"
                 >
                     <BoardColumn
@@ -281,14 +346,22 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                         :project-id="project.id"
                         :editable="editable()"
                         :creatable="creatable()"
-                        :can-section="board ? {
-                            create: board.can.createSection,
-                            update: board.can.updateSection,
-                            delete: board.can.deleteSection,
-                        } : undefined"
+                        :can-section="
+                            board
+                                ? {
+                                      create: board.can.createSection,
+                                      update: board.can.updateSection,
+                                      delete: board.can.deleteSection,
+                                  }
+                                : undefined
+                        "
                         :loading="reloading"
-                        :dragging-id="drag.draggingId.value ?? keyboard.carrying.value"
-                        :over="drag.overColumn.value === (column.id ?? 'ungrouped')"
+                        :dragging-id="
+                            drag.draggingId.value ?? keyboard.carrying.value
+                        "
+                        :over="
+                            drag.overColumn.value === (column.id ?? 'ungrouped')
+                        "
                         :drop-target="drag.dropTarget.value"
                         :columns="columns"
                         class="w-full md:w-72"
@@ -324,18 +397,24 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                             :project-id="project.id"
                             :columns="list?.columns"
                             :siblings="sections.map((group) => group.id)"
-                            :can-section="list ? {
-                                create: list.can.createSection,
-                                update: list.can.updateSection,
-                                delete: list.can.deleteSection,
-                            } : undefined"
+                            :can-section="
+                                list
+                                    ? {
+                                          create: list.can.createSection,
+                                          update: list.can.updateSection,
+                                          delete: list.can.deleteSection,
+                                      }
+                                    : undefined
+                            "
                             :dragging-id="listDrag.draggingId.value"
                             :drop-target="listDrag.dropTarget.value"
                             :collapsed="isCollapsed(section.id)"
                             :loading="reloading"
                             @toggle="toggle"
                             @open="openTask"
-                            @pickup="(event, task) => listDrag.pickUp(event, task)"
+                            @pickup="
+                                (event, task) => listDrag.pickUp(event, task)
+                            "
                         />
 
                         <InlineSectionCreate
@@ -357,7 +436,10 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                         "
                     >
                         <template v-if="creatable()" #action>
-                            <InlineTaskCreate :project-id="project.id" :section-id="null" />
+                            <InlineTaskCreate
+                                :project-id="project.id"
+                                :section-id="null"
+                            />
                         </template>
                     </EmptyState>
                 </template>
@@ -377,9 +459,18 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     @pickup="calendarDrag.pickUp"
                 />
 
-                <FilesTable v-else-if="files" :files="files" :loading="reloading" @open="openTask" />
+                <FilesTable
+                    v-else-if="files"
+                    :files="files"
+                    :loading="reloading"
+                    @open="openTask"
+                />
 
-                <PagesTree v-else-if="pages" :project-id="project.id" :pages="pages" />
+                <PagesTree
+                    v-else-if="pages"
+                    :project-id="project.id"
+                    :pages="pages"
+                />
 
                 <!-- The view has switched but its payload has not arrived yet. -->
                 <ProjectViewSkeleton v-else data-screen-pending :view="view" />

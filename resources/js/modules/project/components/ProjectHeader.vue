@@ -13,7 +13,11 @@ import ProjectMemberFaces from '@/modules/project/components/ProjectMemberFaces.
 import ProjectShareDialog from '@/modules/project/components/ProjectShareDialog.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import ViewSwitcher from '@/modules/project/components/ViewSwitcher.vue';
-import type { ProjectCustomize, ProjectHeading, ProjectShare } from '@/modules/project/types';
+import type {
+    ProjectCustomize,
+    ProjectHeading,
+    ProjectShare,
+} from '@/modules/project/types';
 import { edit, star, unstar } from '@/routes/projects';
 
 const props = defineProps<{
@@ -40,7 +44,10 @@ function toggleStar(): void {
 <template>
     <header class="border-b border-border">
         <div class="flex flex-wrap items-center gap-3 px-4 pt-4 pb-3 md:px-6">
-            <ProjectAppearancePicker v-if="props.project.canUpdate" :project="props.project" />
+            <ProjectAppearancePicker
+                v-if="props.project.canUpdate"
+                :project="props.project"
+            />
             <ProjectTile
                 v-else
                 :name="props.project.name"
@@ -49,9 +56,14 @@ function toggleStar(): void {
                 size="lg"
             />
 
-            <h1 class="min-w-0 truncate text-xl font-semibold tracking-tight">{{ project.name }}</h1>
+            <h1 class="min-w-0 truncate text-xl font-semibold tracking-tight">
+                {{ project.name }}
+            </h1>
 
-            <span v-if="project.archived" class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            <span
+                v-if="project.archived"
+                class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+            >
                 Archived
             </span>
 
@@ -64,13 +76,26 @@ function toggleStar(): void {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" class="w-56">
                     <DropdownMenuItem @select="toggleStar">
-                        <component :is="project.starred ? StarOff : Star" class="mr-2 size-4 text-muted-foreground" />
-                        {{ project.starred ? 'Remove from starred' : 'Add to starred' }}
+                        <component
+                            :is="project.starred ? StarOff : Star"
+                            class="mr-2 size-4 text-muted-foreground"
+                        />
+                        {{
+                            project.starred
+                                ? 'Remove from starred'
+                                : 'Add to starred'
+                        }}
                     </DropdownMenuItem>
 
                     <DropdownMenuItem as-child>
-                        <Link :href="edit(project.id).url" component="projects/Settings" class="block w-full cursor-pointer">
-                            <Settings class="mr-2 size-4 text-muted-foreground" />
+                        <Link
+                            :href="edit(project.id).url"
+                            component="projects/Settings"
+                            class="block w-full cursor-pointer"
+                        >
+                            <Settings
+                                class="mr-2 size-4 text-muted-foreground"
+                            />
                             Project settings
                         </Link>
                     </DropdownMenuItem>
@@ -78,7 +103,10 @@ function toggleStar(): void {
             </DropdownMenu>
 
             <div class="ml-auto flex shrink-0 items-center gap-3">
-                <ProjectMemberFaces :members="project.members" :total="project.memberCount" />
+                <ProjectMemberFaces
+                    :members="project.members"
+                    :total="project.memberCount"
+                />
 
                 <ProjectShareDialog
                     :project-id="project.id"
@@ -86,7 +114,7 @@ function toggleStar(): void {
                     :share="props.share"
                 />
 
-                <span class="bg-border h-5 w-px" aria-hidden="true"></span>
+                <span class="h-5 w-px bg-border" aria-hidden="true"></span>
 
                 <ProjectCustomizeSheet
                     v-if="project.canCustomize"
@@ -98,7 +126,11 @@ function toggleStar(): void {
         </div>
 
         <div class="px-2 md:px-4">
-            <ViewSwitcher :project-id="project.id" :current="view" :views="views" />
+            <ViewSwitcher
+                :project-id="project.id"
+                :current="view"
+                :views="views"
+            />
         </div>
     </header>
 </template>

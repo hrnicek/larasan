@@ -16,16 +16,23 @@ const draft = ref(props.value ?? '');
 const saving = ref(false);
 const failed = ref(false);
 
-watch(() => props.value, (value) => {
-    if (!saving.value && !failed.value) {
-        draft.value = value ?? '';
-    }
-});
+watch(
+    () => props.value,
+    (value) => {
+        if (!saving.value && !failed.value) {
+            draft.value = value ?? '';
+        }
+    },
+);
 
 const save = (): void => {
     const next = draft.value.trim();
 
-    if (!props.editable || saving.value || next === (props.value ?? '').trim()) {
+    if (
+        !props.editable ||
+        saving.value ||
+        next === (props.value ?? '').trim()
+    ) {
         return;
     }
 
@@ -52,12 +59,15 @@ const save = (): void => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-1" :class="size === 'row' ? 'min-w-24 shrink @lg:min-w-32' : 'min-w-0'">
+    <div
+        class="flex flex-col gap-1"
+        :class="size === 'row' ? 'min-w-24 shrink @lg:min-w-32' : 'min-w-0'"
+    >
         <!--
             An input cannot size itself to its value, so a hidden twin measures the text in the
             same grid cell. It copies the input's border and padding, or the last letter is clipped.
         -->
-        <div class="grid min-w-0 max-w-full">
+        <div class="grid max-w-full min-w-0">
             <span
                 v-if="size === 'row'"
                 class="invisible col-start-1 row-start-1 min-w-8 truncate border border-transparent px-1 text-sm whitespace-pre"

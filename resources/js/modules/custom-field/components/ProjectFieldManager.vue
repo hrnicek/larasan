@@ -38,21 +38,33 @@ function attach(id: string): void {
 function detach(id: string): void {
     pending.value = id;
 
-    router.delete(ProjectCustomFieldController.destroy.url({ project: props.projectId, field: id }), {
-        preserveScroll: true,
-        onSuccess: () => emit('changed'),
-        onFinish: () => (pending.value = null),
-    });
+    router.delete(
+        ProjectCustomFieldController.destroy.url({
+            project: props.projectId,
+            field: id,
+        }),
+        {
+            preserveScroll: true,
+            onSuccess: () => emit('changed'),
+            onFinish: () => (pending.value = null),
+        },
+    );
 }
 </script>
 
 <template>
     <div class="space-y-4">
         <ul v-if="props.attached.length" class="divide-y rounded-lg border">
-            <li v-for="field in props.attached" :key="field.id" class="flex items-center gap-3 px-3 py-2">
+            <li
+                v-for="field in props.attached"
+                :key="field.id"
+                class="flex items-center gap-3 px-3 py-2"
+            >
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium">{{ field.name }}</p>
-                    <p class="text-muted-foreground text-xs">{{ typeLabels[field.type] }}</p>
+                    <p class="text-xs text-muted-foreground">
+                        {{ typeLabels[field.type] }}
+                    </p>
                 </div>
 
                 <Button
@@ -68,9 +80,9 @@ function detach(id: string): void {
             </li>
         </ul>
 
-        <p v-else class="text-muted-foreground text-sm">
-            This project shows no custom fields. Its tasks still have a title, an assignee and a
-            due date.
+        <p v-else class="text-sm text-muted-foreground">
+            This project shows no custom fields. Its tasks still have a title,
+            an assignee and a due date.
         </p>
 
         <template v-if="props.canManage">
@@ -89,9 +101,9 @@ function detach(id: string): void {
                 </Button>
             </div>
 
-            <p class="text-muted-foreground text-xs">
-                Removing a field here keeps every answer already recorded in it — putting it back
-                brings them with it.
+            <p class="text-xs text-muted-foreground">
+                Removing a field here keeps every answer already recorded in it
+                — putting it back brings them with it.
                 <Link
                     :href="workspaceFields()"
                     component="settings/Fields"

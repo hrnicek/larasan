@@ -11,7 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { typeHints, typeLabels } from '@/modules/custom-field/fieldTypes';
-import type { CustomFieldType, WorkspaceCustomField } from '@/modules/custom-field/types';
+import type {
+    CustomFieldType,
+    WorkspaceCustomField,
+} from '@/modules/custom-field/types';
 
 const props = defineProps<{
     fields: WorkspaceCustomField[];
@@ -19,7 +22,11 @@ const props = defineProps<{
     can: { manage: boolean };
 }>();
 
-const form = useForm<{ name: string; type: CustomFieldType; options: string[] }>({
+const form = useForm<{
+    name: string;
+    type: CustomFieldType;
+    options: string[];
+}>({
     name: '',
     type: 'text',
     options: [''],
@@ -50,7 +57,11 @@ function removeChoice(index: number): void {
 function submit(): void {
     form
         // The server reads an absent `options` key as "none" but an empty array as an emptied choice field.
-        .transform((data) => (data.type === 'select' ? data : { name: data.name, type: data.type }))
+        .transform((data) =>
+            data.type === 'select'
+                ? data
+                : { name: data.name, type: data.type },
+        )
         .post(CustomFieldController.store.url(), {
             preserveScroll: true,
             onSuccess: () => {
@@ -73,7 +84,9 @@ const deletionCost = computed(() => {
     const answers =
         field.valueCount === 1 ? 'one answer' : `${field.valueCount} answers`;
     const projects =
-        field.projectCount === 1 ? 'one project' : `${field.projectCount} projects`;
+        field.projectCount === 1
+            ? 'one project'
+            : `${field.projectCount} projects`;
 
     if (field.valueCount === 0 && field.projectCount === 0) {
         return 'Nothing has been recorded in it yet.';
@@ -96,16 +109,23 @@ function confirmDeletion(): void {
 // Sent whole: entries with an id are kept, entries without one are created, omitted ids are removed.
 const editingChoices = ref<string | null>(null);
 
-const choices = useForm<{ options: { id: string | null; label: string }[] }>({ options: [] });
+const choices = useForm<{ options: { id: string | null; label: string }[] }>({
+    options: [],
+});
 
 function editChoices(field: WorkspaceCustomField): void {
     editingChoices.value = field.id;
     choices.clearErrors();
-    choices.options = field.options.map((option) => ({ id: option.id, label: option.label }));
+    choices.options = field.options.map((option) => ({
+        id: option.id,
+        label: option.label,
+    }));
 }
 
 function choiceError(index: number): string | undefined {
-    return (choices.errors as Record<string, string | undefined>)[`options.${index}.label`];
+    return (choices.errors as Record<string, string | undefined>)[
+        `options.${index}.label`
+    ];
 }
 
 function saveChoices(fieldId: string): void {
@@ -144,7 +164,12 @@ function summary(field: WorkspaceCustomField): string {
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
                 <div class="grid flex-1 gap-2">
                     <Label for="field-name">Name</Label>
-                    <Input id="field-name" v-model="form.name" required placeholder="Estimate" />
+                    <Input
+                        id="field-name"
+                        v-model="form.name"
+                        required
+                        placeholder="Estimate"
+                    />
                     <InputError :message="form.errors.name" />
                 </div>
 
@@ -153,26 +178,40 @@ function summary(field: WorkspaceCustomField): string {
                     <select
                         id="field-type"
                         v-model="form.type"
-                        class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                        class="h-9 rounded-md border border-input bg-background px-3 text-sm"
                     >
-                        <option v-for="type in props.types" :key="type" :value="type">
+                        <option
+                            v-for="type in props.types"
+                            :key="type"
+                            :value="type"
+                        >
                             {{ typeLabels[type] }}
                         </option>
                     </select>
                     <InputError :message="form.errors.type" />
                 </div>
 
-                <Button type="submit" :disabled="form.processing">Add field</Button>
+                <Button type="submit" :disabled="form.processing"
+                    >Add field</Button
+                >
             </div>
 
-            <p class="text-muted-foreground text-xs">{{ typeHints[form.type] }}</p>
+            <p class="text-xs text-muted-foreground">
+                {{ typeHints[form.type] }}
+            </p>
 
             <fieldset v-if="isChoice" class="space-y-2 border-t pt-4">
                 <legend class="sr-only">Choices</legend>
 
-                <div v-for="(_, index) in form.options" :key="index" class="flex items-start gap-2">
+                <div
+                    v-for="(_, index) in form.options"
+                    :key="index"
+                    class="flex items-start gap-2"
+                >
                     <div class="flex-1">
-                        <Label :for="`choice-${index}`" class="sr-only">Choice {{ index + 1 }}</Label>
+                        <Label :for="`choice-${index}`" class="sr-only"
+                            >Choice {{ index + 1 }}</Label
+                        >
                         <Input
                             :id="`choice-${index}`"
                             ref="choiceInputs"
@@ -195,71 +234,124 @@ function summary(field: WorkspaceCustomField): string {
 
                 <InputError :message="form.errors.options" />
 
-                <Button type="button" variant="ghost" size="sm" @click="addChoice">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    @click="addChoice"
+                >
                     <Plus class="size-4" />
                     Add choice
                 </Button>
             </fieldset>
         </form>
 
-        <p v-if="!props.fields.length" class="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
-            No fields yet. A field is a column every project can choose to show — an estimate, a
-            client, a stage of its own.
+        <p
+            v-if="!props.fields.length"
+            class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+        >
+            No fields yet. A field is a column every project can choose to show
+            — an estimate, a client, a stage of its own.
         </p>
 
         <ul v-else class="divide-y rounded-lg border">
-            <li v-for="field in props.fields" :key="field.id" class="space-y-4 p-4">
+            <li
+                v-for="field in props.fields"
+                :key="field.id"
+                class="space-y-4 p-4"
+            >
                 <div class="flex flex-wrap items-center gap-3">
-                <Form
-                    v-if="renaming === field.id"
-                    v-bind="CustomFieldController.update.form(field.id)"
-                    class="flex flex-1 items-center gap-2"
-                    :options="{ preserveScroll: true }"
-                    @success="renaming = null"
-                    v-slot="{ errors, processing }"
-                >
-                    <div class="flex-1">
-                        <Label :for="`name-${field.id}`" class="sr-only">Field name</Label>
-                        <Input :id="`name-${field.id}`" name="name" :default-value="field.name" autofocus />
-                        <InputError :message="errors.name" />
-                    </div>
-                    <Button type="submit" size="sm" :disabled="processing">Save</Button>
-                    <Button type="button" size="sm" variant="ghost" @click="renaming = null">Cancel</Button>
-                </Form>
-
-                <template v-else>
-                    <div class="min-w-0 flex-1">
-                        <p class="truncate font-medium">{{ field.name }}</p>
-                        <p class="text-muted-foreground truncate text-xs">{{ summary(field) }}</p>
-                    </div>
-
-                    <span class="text-muted-foreground shrink-0 text-xs">
-                        {{ field.projectCount === 1 ? 'on 1 project' : `on ${field.projectCount} projects` }}
-                    </span>
-
-                    <div v-if="props.can.manage" class="flex shrink-0 items-center gap-0.5">
+                    <Form
+                        v-if="renaming === field.id"
+                        v-bind="CustomFieldController.update.form(field.id)"
+                        class="flex flex-1 items-center gap-2"
+                        :options="{ preserveScroll: true }"
+                        @success="renaming = null"
+                        v-slot="{ errors, processing }"
+                    >
+                        <div class="flex-1">
+                            <Label :for="`name-${field.id}`" class="sr-only"
+                                >Field name</Label
+                            >
+                            <Input
+                                :id="`name-${field.id}`"
+                                name="name"
+                                :default-value="field.name"
+                                autofocus
+                            />
+                            <InputError :message="errors.name" />
+                        </div>
+                        <Button type="submit" size="sm" :disabled="processing"
+                            >Save</Button
+                        >
                         <Button
-                            v-if="field.type === 'select'"
+                            type="button"
                             size="sm"
                             variant="ghost"
-                            @click="editChoices(field)"
+                            @click="renaming = null"
+                            >Cancel</Button
                         >
-                            Choices
-                        </Button>
-                        <Button size="sm" variant="ghost" @click="renaming = field.id">Rename</Button>
-                        <Button size="sm" variant="ghost" @click="deleting = field">Delete</Button>
-                    </div>
-                </template>
+                    </Form>
+
+                    <template v-else>
+                        <div class="min-w-0 flex-1">
+                            <p class="truncate font-medium">{{ field.name }}</p>
+                            <p class="truncate text-xs text-muted-foreground">
+                                {{ summary(field) }}
+                            </p>
+                        </div>
+
+                        <span class="shrink-0 text-xs text-muted-foreground">
+                            {{
+                                field.projectCount === 1
+                                    ? 'on 1 project'
+                                    : `on ${field.projectCount} projects`
+                            }}
+                        </span>
+
+                        <div
+                            v-if="props.can.manage"
+                            class="flex shrink-0 items-center gap-0.5"
+                        >
+                            <Button
+                                v-if="field.type === 'select'"
+                                size="sm"
+                                variant="ghost"
+                                @click="editChoices(field)"
+                            >
+                                Choices
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                @click="renaming = field.id"
+                                >Rename</Button
+                            >
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                @click="deleting = field"
+                                >Delete</Button
+                            >
+                        </div>
+                    </template>
                 </div>
 
-                <div v-if="editingChoices === field.id" class="space-y-2 border-t pt-4">
+                <div
+                    v-if="editingChoices === field.id"
+                    class="space-y-2 border-t pt-4"
+                >
                     <div
                         v-for="(choice, index) in choices.options"
                         :key="choice.id ?? `new-${index}`"
                         class="flex items-start gap-2"
                     >
                         <div class="flex-1">
-                            <Label :for="`option-${field.id}-${index}`" class="sr-only">Choice {{ index + 1 }}</Label>
+                            <Label
+                                :for="`option-${field.id}-${index}`"
+                                class="sr-only"
+                                >Choice {{ index + 1 }}</Label
+                            >
                             <Input
                                 :id="`option-${field.id}-${index}`"
                                 v-model="choices.options[index].label"
@@ -286,7 +378,9 @@ function summary(field: WorkspaceCustomField): string {
                             type="button"
                             variant="ghost"
                             size="sm"
-                            @click="choices.options.push({ id: null, label: '' })"
+                            @click="
+                                choices.options.push({ id: null, label: '' })
+                            "
                         >
                             <Plus class="size-4" />
                             Add choice
@@ -294,14 +388,24 @@ function summary(field: WorkspaceCustomField): string {
 
                         <span class="flex-1"></span>
 
-                        <Button size="sm" :disabled="choices.processing" @click="saveChoices(field.id)">
+                        <Button
+                            size="sm"
+                            :disabled="choices.processing"
+                            @click="saveChoices(field.id)"
+                        >
                             Save choices
                         </Button>
-                        <Button size="sm" variant="ghost" @click="editingChoices = null">Cancel</Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            @click="editingChoices = null"
+                            >Cancel</Button
+                        >
                     </div>
 
-                    <p class="text-muted-foreground text-xs">
-                        Removing a choice empties the answers that picked it. Renaming one keeps them.
+                    <p class="text-xs text-muted-foreground">
+                        Removing a choice empties the answers that picked it.
+                        Renaming one keeps them.
                     </p>
                 </div>
             </li>

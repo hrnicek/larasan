@@ -16,7 +16,10 @@ const reachability = useReachability();
     >
         <WifiOff class="size-4 shrink-0" aria-hidden="true" />
 
-        <span>No connection. Changes cannot be saved until the network is back.</span>
+        <span
+            >No connection. Changes cannot be saved until the network is
+            back.</span
+        >
 
         <button
             type="button"

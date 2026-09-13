@@ -9,15 +9,28 @@ import { usePagedRows } from '@/composables/usePagedRows';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
-import type { MyTaskRow, TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
+import type {
+    MyTaskRow,
+    TaskAssignee,
+    TaskDetail,
+    TaskFeed,
+} from '@/modules/task/types';
 import { create as createTask } from '@/routes/tasks';
 
-const TaskDetailPanel = defineAsyncComponent(() => import('@/modules/task/components/TaskDetailPanel.vue'));
+const TaskDetailPanel = defineAsyncComponent(
+    () => import('@/modules/task/components/TaskDetailPanel.vue'),
+);
 
 const props = defineProps<{
     tasks: MyTaskRow[];
     tabs: string[];
-    meta: { tab: string; page: number; perPage: number; total: number; hasMore: boolean };
+    meta: {
+        tab: string;
+        page: number;
+        perPage: number;
+        total: number;
+        hasMore: boolean;
+    };
     taskDetail?: TaskDetail | null;
     /** Deferred; absent until the follow-up request lands. */
     activity?: TaskFeed;
@@ -33,14 +46,17 @@ const labels: Record<string, string> = {
     starred: 'Starred',
 };
 
-const workspaceName = computed<string | undefined>(() => usePage().props.workspace?.name);
+const workspaceName = computed<string | undefined>(
+    () => usePage().props.workspace?.name,
+);
 
 const emptyDescriptions: Record<string, string> = {
     today: 'Nothing is scheduled for today in this workspace.',
     upcoming: 'Nothing with a date on it is waiting for you.',
     overdue: 'Nothing has slipped past its date.',
     completed: 'Tasks you finish appear here.',
-    starred: 'Star a task from its panel to keep it here, whoever it belongs to.',
+    starred:
+        'Star a task from its panel to keep it here, whoever it belongs to.',
 };
 
 const emptyMessages: Record<string, string> = {
@@ -54,7 +70,8 @@ const emptyMessages: Record<string, string> = {
 const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
     rows: () => props.tasks,
     meta: () => props.meta,
-    url: (page) => MyTasksController.index.url({ query: { tab: props.meta.tab, page } }),
+    url: (page) =>
+        MyTasksController.index.url({ query: { tab: props.meta.tab, page } }),
     only: ['tasks', 'meta'],
     placement: 'server',
     scope: () => props.meta.tab,
@@ -94,7 +111,10 @@ const { open, close: closeTask } = useTaskPanel();
         <div class="sticky top-0 z-20 bg-background">
             <PageHeader title="My Tasks" :description="workspaceName">
                 <template #tabs>
-                    <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="My Tasks views">
+                    <nav
+                        class="-mb-px flex items-end gap-1 overflow-x-auto"
+                        aria-label="My Tasks views"
+                    >
                         <button
                             v-for="tab in tabs"
                             :key="tab"
@@ -105,7 +125,9 @@ const { open, close: closeTask } = useTaskPanel();
                                     ? 'border-primary text-foreground'
                                     : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
                             "
-                            :aria-current="tab === meta.tab ? 'page' : undefined"
+                            :aria-current="
+                                tab === meta.tab ? 'page' : undefined
+                            "
                             @click="show(tab)"
                         >
                             {{ labels[tab] ?? tab }}
@@ -118,7 +140,10 @@ const { open, close: closeTask } = useTaskPanel();
         </div>
 
         <div class="flex flex-1 flex-col gap-4 pb-4">
-            <ul v-if="rows.length" class="flex flex-col divide-y divide-border border-b border-border">
+            <ul
+                v-if="rows.length"
+                class="flex flex-col divide-y divide-border border-b border-border"
+            >
                 <li v-for="task in rows" :key="task.id" class="flex flex-col">
                     <TaskRow
                         :task="task"
@@ -128,8 +153,16 @@ const { open, close: closeTask } = useTaskPanel();
                         @open="open"
                     />
 
-                    <p v-if="task.projects.length" class="pb-1 pl-7 text-xs text-muted-foreground md:pl-11">
-                        <span v-for="project in task.projects" :key="project.id" class="mr-2">{{ project.name }}</span>
+                    <p
+                        v-if="task.projects.length"
+                        class="pb-1 pl-7 text-xs text-muted-foreground md:pl-11"
+                    >
+                        <span
+                            v-for="project in task.projects"
+                            :key="project.id"
+                            class="mr-2"
+                            >{{ project.name }}</span
+                        >
                     </p>
                 </li>
             </ul>
@@ -152,7 +185,11 @@ const { open, close: closeTask } = useTaskPanel();
                 </template>
             </EmptyState>
 
-            <p v-if="loadFailed" class="mx-4 flex items-center gap-2 text-sm text-muted-foreground md:mx-6" role="status">
+            <p
+                v-if="loadFailed"
+                class="mx-4 flex items-center gap-2 text-sm text-muted-foreground md:mx-6"
+                role="status"
+            >
                 More tasks did not load.
                 <button
                     type="button"

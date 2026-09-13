@@ -9,11 +9,13 @@ import { index as myTasks } from '@/routes/my-tasks';
 import { show as showProject } from '@/routes/projects';
 import { show as showTask } from '@/routes/tasks';
 
-const props = defineProps<TaskDetail & {
-    members: TaskAssignee[];
-    priorities: string[];
-    activity?: TaskFeed;
-}>();
+const props = defineProps<
+    TaskDetail & {
+        members: TaskAssignee[];
+        priorities: string[];
+        activity?: TaskFeed;
+    }
+>();
 
 const page = usePage();
 
@@ -21,10 +23,14 @@ const page = usePage();
 useRealtime({
     channels: () => {
         if (props.placements.length > 0) {
-            return props.placements.map((placement) => `project.${placement.project.id}`);
+            return props.placements.map(
+                (placement) => `project.${placement.project.id}`,
+            );
         }
 
-        return page.props.workspace === null ? [] : [`workspace.${page.props.workspace.id}`];
+        return page.props.workspace === null
+            ? []
+            : [`workspace.${page.props.workspace.id}`];
     },
 });
 
@@ -33,7 +39,11 @@ const back = (): { url: string; label: string; component: string } => {
 
     return placement === undefined
         ? { url: myTasks().url, label: 'My Tasks', component: 'my-tasks/Index' }
-        : { url: showProject(placement.project.id).url, label: placement.project.name, component: 'projects/Show' };
+        : {
+              url: showProject(placement.project.id).url,
+              label: placement.project.name,
+              component: 'projects/Show',
+          };
 };
 
 const detail = (): TaskDetail => ({
@@ -53,9 +63,11 @@ const detail = (): TaskDetail => ({
     can: props.can,
 });
 
-const leave = (): void => router.visit(back().url, { component: back().component });
+const leave = (): void =>
+    router.visit(back().url, { component: back().component });
 
-const openTask = (taskId: string): void => router.visit(showTask(taskId).url, { component: 'tasks/Show' });
+const openTask = (taskId: string): void =>
+    router.visit(showTask(taskId).url, { component: 'tasks/Show' });
 </script>
 
 <template>
@@ -77,7 +89,12 @@ const openTask = (taskId: string): void => router.visit(showTask(taskId).url, { 
             </Link>
         </div>
 
-        <TaskDetailToolbar :detail="detail()" variant="page" class="sticky top-0 z-10" @deleted="leave" />
+        <TaskDetailToolbar
+            :detail="detail()"
+            variant="page"
+            class="sticky top-0 z-10"
+            @deleted="leave"
+        />
 
         <TaskDetailBody
             :detail="detail()"

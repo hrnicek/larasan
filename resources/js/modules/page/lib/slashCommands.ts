@@ -26,7 +26,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Plain paragraph',
         icon: Type,
         aliases: ['text', 'paragraph', 'plain'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).setParagraph().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).setParagraph().run(),
     },
     {
         key: 'heading-1',
@@ -34,7 +35,13 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Section title',
         icon: Heading1,
         aliases: ['h1', 'title', 'heading'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 1 }).run(),
+        run: (editor, range) =>
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .setNode('heading', { level: 1 })
+                .run(),
     },
     {
         key: 'heading-2',
@@ -42,7 +49,13 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Subsection',
         icon: Heading2,
         aliases: ['h2', 'heading'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 2 }).run(),
+        run: (editor, range) =>
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .setNode('heading', { level: 2 })
+                .run(),
     },
     {
         key: 'heading-3',
@@ -50,7 +63,13 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Smaller subsection',
         icon: Heading3,
         aliases: ['h3', 'heading'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).setNode('heading', { level: 3 }).run(),
+        run: (editor, range) =>
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .setNode('heading', { level: 3 })
+                .run(),
     },
     {
         key: 'bullet-list',
@@ -58,7 +77,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Items in no order',
         icon: List,
         aliases: ['bullet', 'unordered', 'ul'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).toggleBulletList().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).toggleBulletList().run(),
     },
     {
         key: 'ordered-list',
@@ -66,7 +86,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Items in order',
         icon: ListOrdered,
         aliases: ['number', 'ordered', 'ol'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).toggleOrderedList().run(),
     },
     {
         key: 'task-list',
@@ -74,7 +95,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Items to tick off',
         icon: ListTodo,
         aliases: ['todo', 'task', 'checkbox'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).toggleTaskList().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).toggleTaskList().run(),
     },
     {
         key: 'blockquote',
@@ -82,7 +104,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Somebody else’s words',
         icon: Quote,
         aliases: ['quote', 'blockquote'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).toggleBlockquote().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).toggleBlockquote().run(),
     },
     {
         key: 'code-block',
@@ -90,7 +113,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Code, kept as written',
         icon: Code,
         aliases: ['code', 'snippet'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
     },
     {
         key: 'table',
@@ -98,12 +122,13 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'Three columns to start',
         icon: TableIcon,
         aliases: ['table', 'grid'],
-        run: (editor, range) => editor
-            .chain()
-            .focus()
-            .deleteRange(range)
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run(),
+        run: (editor, range) =>
+            editor
+                .chain()
+                .focus()
+                .deleteRange(range)
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run(),
     },
     {
         key: 'divider',
@@ -111,7 +136,8 @@ export const slashCommands: SlashCommandDefinition[] = [
         hint: 'A line between things',
         icon: Minus,
         aliases: ['divider', 'rule', 'hr', 'separator'],
-        run: (editor, range) => editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
+        run: (editor, range) =>
+            editor.chain().focus().deleteRange(range).setHorizontalRule().run(),
     },
 ];
 

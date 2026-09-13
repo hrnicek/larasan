@@ -3,7 +3,11 @@ import { router } from '@inertiajs/vue3';
 import { Plus, X } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import TaskTagController from '@/actions/App/Http/Controllers/Tag/TaskTagController';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import { accentChipClass, accentVars } from '@/lib/accentColor';
 import type { TaskTag } from '@/modules/task/types';
 
@@ -37,7 +41,10 @@ const matches = computed<TaskTag[]>(() => {
 const isNew = computed(() => {
     const needle = query.value.trim().toLowerCase();
 
-    return needle !== '' && !props.available.some((tag) => tag.name.toLowerCase() === needle);
+    return (
+        needle !== '' &&
+        !props.available.some((tag) => tag.name.toLowerCase() === needle)
+    );
 });
 
 const canInvent = computed(() => props.canCreate && isNew.value);
@@ -54,7 +61,9 @@ function open(next: boolean): void {
 function attach(payload: { tag: string } | { name: string }): void {
     open(false);
 
-    router.post(TaskTagController.store.url(props.taskId), payload, { preserveScroll: true });
+    router.post(TaskTagController.store.url(props.taskId), payload, {
+        preserveScroll: true,
+    });
 }
 
 function confirm(): void {
@@ -70,7 +79,10 @@ function confirm(): void {
 }
 
 const remove = (tag: TaskTag): void => {
-    router.delete(TaskTagController.destroy.url({ task: props.taskId, tag: tag.id }), { preserveScroll: true });
+    router.delete(
+        TaskTagController.destroy.url({ task: props.taskId, tag: tag.id }),
+        { preserveScroll: true },
+    );
 };
 </script>
 
@@ -112,7 +124,9 @@ const remove = (tag: TaskTag): void => {
                     type="text"
                     maxlength="40"
                     class="mb-1 h-8 w-full rounded-md border border-input bg-transparent px-2 text-sm focus:outline-none"
-                    :placeholder="canCreate ? 'Find or create a tag' : 'Find a tag'"
+                    :placeholder="
+                        canCreate ? 'Find or create a tag' : 'Find a tag'
+                    "
                     aria-label="Find or create a tag"
                     @keydown.enter.prevent="confirm"
                 />
@@ -127,7 +141,7 @@ const remove = (tag: TaskTag): void => {
                             <span
                                 class="rounded-md px-2 py-0.5 text-xs font-medium"
                                 :class="accentChipClass(tag.color)"
-            :style="accentVars(tag.color)"
+                                :style="accentVars(tag.color)"
                             >
                                 {{ tag.name }}
                             </span>
@@ -149,11 +163,19 @@ const remove = (tag: TaskTag): void => {
                     v-else-if="!matches.length"
                     class="px-2 py-1.5 text-xs text-muted-foreground"
                 >
-                    {{ query.trim() ? 'No tag by that name.' : 'Every tag is already on this task.' }}
+                    {{
+                        query.trim()
+                            ? 'No tag by that name.'
+                            : 'Every tag is already on this task.'
+                    }}
                 </p>
             </PopoverContent>
         </Popover>
 
-        <span v-else-if="!tags.length" class="px-1.5 text-sm text-muted-foreground">None</span>
+        <span
+            v-else-if="!tags.length"
+            class="px-1.5 text-sm text-muted-foreground"
+            >None</span
+        >
     </div>
 </template>

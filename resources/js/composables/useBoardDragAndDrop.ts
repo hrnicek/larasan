@@ -17,7 +17,10 @@ export type DragSurface = {
     reloadKey: string;
 };
 
-const BOARD: DragSurface = { cardSelector: '[data-task-card]', reloadKey: 'board' };
+const BOARD: DragSurface = {
+    cardSelector: '[data-task-card]',
+    reloadKey: 'board',
+};
 
 export type BoardDrag = {
     draggingId: Ref<string | null>;
@@ -25,7 +28,12 @@ export type BoardDrag = {
     dropTarget: Ref<DropTarget | null>;
     pickUp: (event: PointerEvent, card: BoardCardData) => void;
     /** `rollbackTo` is the board as it was when the card was picked up, not after the last step. */
-    commit: (placementId: string, columnKey: string, afterId: string | null, rollbackTo: BoardColumnData[]) => void;
+    commit: (
+        placementId: string,
+        columnKey: string,
+        afterId: string | null,
+        rollbackTo: BoardColumnData[],
+    ) => void;
     snapshot: () => BoardColumnData[];
     moveTo: (placementId: string, columnKey: string) => void;
 };
@@ -34,7 +42,10 @@ const keyOf = (columnId: string | null): string => columnId ?? 'ungrouped';
 
 // Pointer events rather than HTML5 drag and drop, which cannot be driven synthetically and has no
 // touch support. A drop sends its neighbour, never an index. See ADR-0009.
-export function useBoardDragAndDrop(columns: Ref<BoardColumnData[]>, enabled: () => boolean): BoardDrag {
+export function useBoardDragAndDrop(
+    columns: Ref<BoardColumnData[]>,
+    enabled: () => boolean,
+): BoardDrag {
     return useTaskDragAndDrop(columns, enabled, BOARD) as BoardDrag;
 }
 
@@ -50,7 +61,9 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 
     const find = (placementId: string): { column: C; index: number } | null => {
         for (const column of columns.value) {
-            const index = column.tasks.findIndex((card) => card.placementId === placementId);
+            const index = column.tasks.findIndex(
+                (card) => card.placementId === placementId,
+            );
 
             if (index !== -1) {
                 return { column, index };
@@ -60,17 +73,29 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
         return null;
     };
 
-    const snapshot = (): C[] => columns.value.map((column) => ({ ...column, tasks: [...column.tasks] }));
+    const snapshot = (): C[] =>
+        columns.value.map((column) => ({
+            ...column,
+            tasks: [...column.tasks],
+        }));
 
-    const targetUnder = (x: number, y: number, carried: string): DropTarget | null => {
-        const column = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-column-key]');
+    const targetUnder = (
+        x: number,
+        y: number,
+        carried: string,
+    ): DropTarget | null => {
+        const column = document
+            .elementFromPoint(x, y)
+            ?.closest<HTMLElement>('[data-column-key]');
 
         if (!column) {
             return null;
         }
 
         // The carried card is skipped, or releasing over its own slot would name it as its own neighbour.
-        const before = Array.from(column.querySelectorAll<HTMLElement>(surface.cardSelector))
+        const before = Array.from(
+            column.querySelectorAll<HTMLElement>(surface.cardSelector),
+        )
             .filter((card) => card.dataset.placementId !== carried)
             .find((card) => {
                 const box = card.getBoundingClientRect();
@@ -108,20 +133,36 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
         );
     };
 
-    const move = (placementId: string, targetKey: string, beforeId: string | null): void => {
+    const move = (
+        placementId: string,
+        targetKey: string,
+        beforeId: string | null,
+    ): void => {
         const origin = find(placementId);
-        const target = columns.value.find((column) => keyOf(column.id) === targetKey);
+        const target = columns.value.find(
+            (column) => keyOf(column.id) === targetKey,
+        );
 
-        if (origin === null || target === undefined || beforeId === placementId) {
+        if (
+            origin === null ||
+            target === undefined ||
+            beforeId === placementId
+        ) {
             return;
         }
 
-        const others = target.tasks.filter((card) => card.placementId !== placementId);
-        const index = beforeId === null
-            ? others.length
-            : others.findIndex((card) => card.placementId === beforeId);
+        const others = target.tasks.filter(
+            (card) => card.placementId !== placementId,
+        );
+        const index =
+            beforeId === null
+                ? others.length
+                : others.findIndex((card) => card.placementId === beforeId);
 
-        if (index === -1 || (origin.column === target && origin.index === index)) {
+        if (
+            index === -1 ||
+            (origin.column === target && origin.index === index)
+        ) {
             return;
         }
 
@@ -130,7 +171,12 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
 
         target.tasks.splice(index, 0, card);
 
-        send(placementId, target.id, others[index - 1]?.placementId ?? null, previous);
+        send(
+            placementId,
+            target.id,
+            others[index - 1]?.placementId ?? null,
+            previous,
+        );
     };
 
     const reset = (): void => {
@@ -144,19 +190,31 @@ export function useTaskDragAndDrop<T extends Movable, C extends Grouped<T>>(
         overColumn,
         dropTarget,
         snapshot,
-        moveTo: (placementId: string, columnKey: string): void => move(placementId, columnKey, null),
+        moveTo: (placementId: string, columnKey: string): void =>
+            move(placementId, columnKey, null),
 
-        commit(placementId: string, columnKey: string, afterId: string | null, rollbackTo: C[]): void {
-            const target = columns.value.find((column) => keyOf(column.id) === columnKey);
+        commit(
+            placementId: string,
+            columnKey: string,
+            afterId: string | null,
+            rollbackTo: C[],
+        ): void {
+            const target = columns.value.find(
+                (column) => keyOf(column.id) === columnKey,
+            );
 
             if (target === undefined) {
                 return;
             }
 
-            const was = rollbackTo.find((column) => column.tasks.some((card) => card.placementId === placementId));
+            const was = rollbackTo.find((column) =>
+                column.tasks.some((card) => card.placementId === placementId),
+            );
 
             if (was !== undefined && keyOf(was.id) === columnKey) {
-                const index = was.tasks.findIndex((card) => card.placementId === placementId);
+                const index = was.tasks.findIndex(
+                    (card) => card.placementId === placementId,
+                );
 
                 if ((was.tasks[index - 1]?.placementId ?? null) === afterId) {
                     return;

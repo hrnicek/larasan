@@ -21,7 +21,9 @@ const { variant = 'rail' } = defineProps<{ variant?: 'rail' | 'drawer' }>();
 
 // The drawer is never collapsed; computed locally because a component cannot inject its own provide.
 const inherited = useCollapsed();
-const collapsed = computed<boolean>(() => variant !== 'drawer' && inherited.value);
+const collapsed = computed<boolean>(
+    () => variant !== 'drawer' && inherited.value,
+);
 
 provideCollapsed(collapsed);
 
@@ -30,10 +32,31 @@ const unread = computed<number>(() => page.props.unreadNotifications);
 useInboxRealtime();
 
 const primary = computed(() => [
-    { label: 'Home', href: dashboard().url, icon: Home, component: 'Dashboard' },
-    { label: 'My Tasks', href: MyTasksController.index.url(), icon: CheckSquare, component: 'my-tasks/Index' },
-    { label: 'Inbox', href: InboxController.index.url(), icon: Bell, badge: unread.value, component: 'inbox/Index' },
-    { label: 'Projects', href: projectIndex().url, icon: FolderKanban, component: 'projects/Index' },
+    {
+        label: 'Home',
+        href: dashboard().url,
+        icon: Home,
+        component: 'Dashboard',
+    },
+    {
+        label: 'My Tasks',
+        href: MyTasksController.index.url(),
+        icon: CheckSquare,
+        component: 'my-tasks/Index',
+    },
+    {
+        label: 'Inbox',
+        href: InboxController.index.url(),
+        icon: Bell,
+        badge: unread.value,
+        component: 'inbox/Index',
+    },
+    {
+        label: 'Projects',
+        href: projectIndex().url,
+        icon: FolderKanban,
+        component: 'projects/Index',
+    },
 ]);
 </script>
 

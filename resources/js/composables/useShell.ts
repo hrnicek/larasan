@@ -1,6 +1,6 @@
 import { usePage } from '@inertiajs/vue3';
-import { computed, inject, provide, ref    } from 'vue';
-import type {ComputedRef, InjectionKey, Ref} from 'vue';
+import { computed, inject, provide, ref } from 'vue';
+import type { ComputedRef, InjectionKey, Ref } from 'vue';
 
 const COOKIE = 'sidebar_state';
 const ONE_YEAR = 60 * 60 * 24 * 365;
@@ -16,7 +16,8 @@ type Shell = {
 const ShellKey: InjectionKey<Shell> = Symbol('shell');
 
 // Separate from the shell state: the same sidebar inside the mobile drawer is always expanded.
-const CollapsedKey: InjectionKey<ComputedRef<boolean>> = Symbol('shell-collapsed');
+const CollapsedKey: InjectionKey<ComputedRef<boolean>> =
+    Symbol('shell-collapsed');
 
 export function provideCollapsed(collapsed: ComputedRef<boolean>): void {
     provide(CollapsedKey, collapsed);
@@ -26,7 +27,9 @@ export function useCollapsed(): ComputedRef<boolean> {
     const collapsed = inject(CollapsedKey, null);
 
     if (collapsed === null) {
-        throw new Error('useCollapsed() was called outside AppShell, which is the component that provides it.');
+        throw new Error(
+            'useCollapsed() was called outside AppShell, which is the component that provides it.',
+        );
     }
 
     return collapsed;
@@ -63,7 +66,9 @@ export function useShell(): Shell {
     const shell = inject(ShellKey, null);
 
     if (shell === null) {
-        throw new Error('useShell() was called outside AppShell, which is the component that provides it.');
+        throw new Error(
+            'useShell() was called outside AppShell, which is the component that provides it.',
+        );
     }
 
     return shell;

@@ -9,8 +9,8 @@ import EmptyState from '@/components/EmptyState.vue';
 import { Button } from '@/components/ui/button';
 import PageRenameDialog from '@/modules/page/components/PageRenameDialog.vue';
 import PageTreeRow from '@/modules/page/components/PageTreeRow.vue';
-import { placementFor  } from '@/modules/page/lib/movePage';
-import type {MoveDirection} from '@/modules/page/lib/movePage';
+import { placementFor } from '@/modules/page/lib/movePage';
+import type { MoveDirection } from '@/modules/page/lib/movePage';
 import type { PageNode, ProjectPages } from '@/modules/page/types';
 import { show as showProject } from '@/routes/projects';
 
@@ -35,14 +35,22 @@ const addPage = (parent?: PageNode): void => {
     );
 };
 
-const move = ({ page, direction }: { page: PageNode; direction: MoveDirection }): void => {
+const move = ({
+    page,
+    direction,
+}: {
+    page: PageNode;
+    direction: MoveDirection;
+}): void => {
     const placement = placementFor(props.pages.tree, page.id, direction);
 
     if (placement === null) {
         return;
     }
 
-    router.put(PagePlacementController.update.url(page.id), placement, { preserveScroll: true });
+    router.put(PagePlacementController.update.url(page.id), placement, {
+        preserveScroll: true,
+    });
 };
 
 const holds = (node: PageNode, id: string): boolean =>
@@ -56,14 +64,18 @@ const remove = (): void => {
     }
 
     // The redirect back would land on a deleted page when it holds the one being read.
-    const readingItsOwnGrave = props.currentId !== null && holds(page, props.currentId);
+    const readingItsOwnGrave =
+        props.currentId !== null && holds(page, props.currentId);
 
     router.delete(PageController.destroy.url(page.id), {
         preserveScroll: true,
         onFinish: () => (removing.value = null),
         onSuccess: () => {
             if (readingItsOwnGrave) {
-                router.visit(showProject(props.projectId, { query: { view: 'pages' } }).url);
+                router.visit(
+                    showProject(props.projectId, { query: { view: 'pages' } })
+                        .url,
+                );
             }
         },
     });
@@ -72,7 +84,12 @@ const remove = (): void => {
 
 <template>
     <div class="flex min-w-0 flex-col gap-2">
-        <div v-if="variant === 'view' && pages.can.createPage && pages.tree.length" class="flex justify-end">
+        <div
+            v-if="
+                variant === 'view' && pages.can.createPage && pages.tree.length
+            "
+            class="flex justify-end"
+        >
             <Button variant="outline" size="sm" @click="addPage()">
                 <Plus class="size-4" />
                 New page
@@ -80,13 +97,23 @@ const remove = (): void => {
         </div>
 
         <div v-if="variant === 'sidebar' && pages.can.createPage" class="px-2">
-            <Button variant="ghost" size="sm" class="w-full justify-start text-muted-foreground" @click="addPage()">
+            <Button
+                variant="ghost"
+                size="sm"
+                class="w-full justify-start text-muted-foreground"
+                @click="addPage()"
+            >
                 <Plus class="size-4" />
                 New page
             </Button>
         </div>
 
-        <ul v-if="pages.tree.length" role="tree" aria-label="Pages" class="list-none">
+        <ul
+            v-if="pages.tree.length"
+            role="tree"
+            aria-label="Pages"
+            class="list-none"
+        >
             <PageTreeRow
                 v-for="(page, index) in pages.tree"
                 :key="page.id"

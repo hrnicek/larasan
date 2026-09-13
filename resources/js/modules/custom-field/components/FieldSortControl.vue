@@ -7,18 +7,26 @@ const props = defineProps<{
     projectId: string;
     view: string;
     fields: ListFieldColumn[];
-    sort: { field: string | null; direction: string; filters: Record<string, string> };
+    sort: {
+        field: string | null;
+        direction: string;
+        filters: Record<string, string>;
+    };
 }>();
 
 const next = (field: ListFieldColumn): string => {
     const query: Record<string, string> = { view: props.view };
 
     if (props.sort.field !== field.id) {
-        return show(props.projectId, { query: { ...query, sort: field.id, direction: 'asc' } }).url;
+        return show(props.projectId, {
+            query: { ...query, sort: field.id, direction: 'asc' },
+        }).url;
     }
 
     if (props.sort.direction === 'asc') {
-        return show(props.projectId, { query: { ...query, sort: field.id, direction: 'desc' } }).url;
+        return show(props.projectId, {
+            query: { ...query, sort: field.id, direction: 'desc' },
+        }).url;
     }
 
     return show(props.projectId, { query }).url;
@@ -34,7 +42,10 @@ const marker = (field: ListFieldColumn): string => {
 </script>
 
 <template>
-    <nav class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" aria-label="Sort by field">
+    <nav
+        class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+        aria-label="Sort by field"
+    >
         <span>Sort:</span>
 
         <Link

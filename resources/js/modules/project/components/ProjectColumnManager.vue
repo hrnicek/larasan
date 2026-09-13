@@ -14,7 +14,11 @@ const props = defineProps<{
 
 const order = ref<ListColumn[]>([...props.columns]);
 
-watch(() => props.columns, (next) => (order.value = [...next]), { deep: true });
+watch(
+    () => props.columns,
+    (next) => (order.value = [...next]),
+    { deep: true },
+);
 
 /** The redirect omits the drawer's optional props, so the parent reloads them on `changed`. */
 const emit = defineEmits<{ changed: [] }>();
@@ -55,7 +59,7 @@ const lastIndex = computed(() => order.value.length - 1);
 <template>
     <div class="space-y-4">
         <ul class="divide-y rounded-lg border">
-            <li class="text-muted-foreground flex items-center gap-2 px-3 py-2">
+            <li class="flex items-center gap-2 px-3 py-2 text-muted-foreground">
                 <Lock class="size-3.5 shrink-0" aria-hidden="true" />
                 <span class="flex-1 text-sm">Task name</span>
                 <span class="text-xs">Always first</span>
@@ -66,9 +70,14 @@ const lastIndex = computed(() => order.value.length - 1);
                 :key="column.key"
                 class="flex items-center gap-2 px-3 py-1.5"
             >
-                <span class="min-w-0 flex-1 truncate text-sm">{{ column.label }}</span>
+                <span class="min-w-0 flex-1 truncate text-sm">{{
+                    column.label
+                }}</span>
 
-                <div v-if="props.canManage" class="text-muted-foreground flex items-center gap-0.5">
+                <div
+                    v-if="props.canManage"
+                    class="flex items-center gap-0.5 text-muted-foreground"
+                >
                     <Button
                         size="icon-sm"
                         variant="ghost"
@@ -91,8 +100,9 @@ const lastIndex = computed(() => order.value.length - 1);
             </li>
         </ul>
 
-        <p class="text-muted-foreground text-xs">
-            This is the order the list draws its columns in, for everybody who opens the project.
+        <p class="text-xs text-muted-foreground">
+            This is the order the list draws its columns in, for everybody who
+            opens the project.
         </p>
     </div>
 </template>

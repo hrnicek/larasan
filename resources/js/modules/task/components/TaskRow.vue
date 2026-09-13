@@ -21,9 +21,14 @@ const props = defineProps<{
     columns?: ListColumn[];
 }>();
 
-const emit = defineEmits<{ open: [taskId: string]; pickup: [event: PointerEvent, task: TaskRowData] }>();
+const emit = defineEmits<{
+    open: [taskId: string];
+    pickup: [event: PointerEvent, task: TaskRowData];
+}>();
 
-const columns = computed<ListColumn[]>(() => props.columns ?? defaultListColumns);
+const columns = computed<ListColumn[]>(
+    () => props.columns ?? defaultListColumns,
+);
 
 const answerOf = (fieldId: string, type: string | null): string => {
     const value = props.task.fields?.[fieldId];
@@ -38,7 +43,8 @@ const answerOf = (fieldId: string, type: string | null): string => {
 const optimisticCompletion = ref<boolean | null>(null);
 const pending = ref(false);
 
-const completed = () => optimisticCompletion.value ?? props.task.completedAt !== null;
+const completed = () =>
+    optimisticCompletion.value ?? props.task.completedAt !== null;
 
 function toggleCompletion(): void {
     if (!props.editable || pending.value) {
@@ -57,12 +63,19 @@ function toggleCompletion(): void {
     };
 
     if (wasCompleted) {
-        router.delete(TaskController.reopen.url(props.task.id), { preserveScroll: true, ...settle });
+        router.delete(TaskController.reopen.url(props.task.id), {
+            preserveScroll: true,
+            ...settle,
+        });
 
         return;
     }
 
-    router.put(TaskController.complete.url(props.task.id), {}, { preserveScroll: true, ...settle });
+    router.put(
+        TaskController.complete.url(props.task.id),
+        {},
+        { preserveScroll: true, ...settle },
+    );
 }
 </script>
 
@@ -72,8 +85,11 @@ function toggleCompletion(): void {
         data-task-row
         :data-task-id="task.id"
         :data-placement-id="task.placementId"
-        class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm outline-none transition-colors hover:bg-muted/40 focus-visible:bg-accent md:flex-row md:items-stretch md:gap-0 md:px-0 md:py-0"
-        :class="[completed() ? 'text-muted-foreground' : '', dragging ? 'opacity-50' : '']"
+        class="group/row relative flex flex-col gap-1 px-4 py-1.5 text-sm transition-colors outline-none hover:bg-muted/40 focus-visible:bg-accent md:flex-row md:items-stretch md:gap-0 md:px-0 md:py-0"
+        :class="[
+            completed() ? 'text-muted-foreground' : '',
+            dragging ? 'opacity-50' : '',
+        ]"
         @keydown.space.self.prevent="toggleCompletion"
         @keydown.enter.self="emit('open', task.id)"
     >
@@ -90,7 +106,7 @@ function toggleCompletion(): void {
 
         <span
             v-if="index !== undefined"
-            class="hidden items-center text-xs tabular-nums text-muted-foreground/70 md:flex"
+            class="hidden items-center text-xs text-muted-foreground/70 tabular-nums md:flex"
             :class="[listColumns.index, listColumns.cell]"
             aria-hidden="true"
         >
@@ -122,14 +138,22 @@ function toggleCompletion(): void {
                 >
                     <Check
                         class="size-3 transition-opacity"
-                        :class="completed() ? 'opacity-100' : 'opacity-0 group-hover/row:opacity-100'"
+                        :class="
+                            completed()
+                                ? 'opacity-100'
+                                : 'opacity-0 group-hover/row:opacity-100'
+                        "
                     />
                 </span>
             </button>
             <span
                 v-else
                 class="flex size-[18px] shrink-0 items-center justify-center rounded-full border border-input"
-                :class="completed() ? 'border-emerald-600 bg-emerald-600 text-white' : ''"
+                :class="
+                    completed()
+                        ? 'border-emerald-600 bg-emerald-600 text-white'
+                        : ''
+                "
                 aria-hidden="true"
             >
                 <Check v-if="completed()" class="size-3" />
@@ -144,9 +168,16 @@ function toggleCompletion(): void {
                 @click.stop
             />
 
-            <span v-else class="flex min-h-11 min-w-0 items-center truncate md:min-h-6">{{ task.title }}</span>
+            <span
+                v-else
+                class="flex min-h-11 min-w-0 items-center truncate md:min-h-6"
+                >{{ task.title }}</span
+            >
 
-            <span v-if="task.comments > 0" class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+            <span
+                v-if="task.comments > 0"
+                class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+            >
                 <MessageSquare class="size-3.5" aria-hidden="true" />
                 {{ task.comments }}
                 <span class="sr-only">comments</span>
@@ -168,16 +199,26 @@ function toggleCompletion(): void {
                 <span
                     v-if="column.kind === 'field'"
                     class="hidden items-center text-xs text-muted-foreground md:flex"
-                    :class="[listColumns.field, listColumns.cell, listColumns.hover]"
+                    :class="[
+                        listColumns.field,
+                        listColumns.cell,
+                        listColumns.hover,
+                    ]"
                     :title="`${column.label}: ${answerOf(column.key, column.type)}`"
                 >
-                    <span class="truncate">{{ answerOf(column.key, column.type) }}</span>
+                    <span class="truncate">{{
+                        answerOf(column.key, column.type)
+                    }}</span>
                 </span>
 
                 <div
                     v-else-if="column.kind === 'assignee'"
                     class="flex items-center"
-                    :class="[listColumns.assignee, listColumns.cell, listColumns.hover]"
+                    :class="[
+                        listColumns.assignee,
+                        listColumns.cell,
+                        listColumns.hover,
+                    ]"
                 >
                     <AssigneePicker
                         :task-id="task.id"
@@ -190,15 +231,27 @@ function toggleCompletion(): void {
                 <div
                     v-else-if="column.kind === 'due'"
                     class="flex items-center"
-                    :class="[listColumns.due, listColumns.cell, listColumns.hover]"
+                    :class="[
+                        listColumns.due,
+                        listColumns.cell,
+                        listColumns.hover,
+                    ]"
                 >
-                    <DueDatePicker :task-id="task.id" :due-at="task.dueAt" :editable="editable" />
+                    <DueDatePicker
+                        :task-id="task.id"
+                        :due-at="task.dueAt"
+                        :editable="editable"
+                    />
                 </div>
 
                 <div
                     v-else
                     class="flex items-center"
-                    :class="[listColumns.priority, listColumns.cell, listColumns.hover]"
+                    :class="[
+                        listColumns.priority,
+                        listColumns.cell,
+                        listColumns.hover,
+                    ]"
                 >
                     <PriorityControl
                         :task-id="task.id"

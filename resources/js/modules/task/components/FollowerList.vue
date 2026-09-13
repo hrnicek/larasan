@@ -4,7 +4,11 @@ import { UserPlus } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import TaskFollowerController from '@/actions/App/Http/Controllers/Task/TaskFollowerController';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
@@ -15,7 +19,9 @@ const props = defineProps<{
 }>();
 
 const shown = computed<TaskAssignee[]>(() => props.followers.slice(0, 3));
-const hidden = computed<number>(() => Math.max(props.followers.length - shown.value.length, 0));
+const hidden = computed<number>(() =>
+    Math.max(props.followers.length - shown.value.length, 0),
+);
 
 const working = ref(false);
 
@@ -31,7 +37,10 @@ const toggle = (): void => {
     };
 
     if (props.following) {
-        router.delete(TaskFollowerController.destroy.url(props.taskId), options);
+        router.delete(
+            TaskFollowerController.destroy.url(props.taskId),
+            options,
+        );
 
         return;
     }
@@ -66,7 +75,9 @@ const toggle = (): void => {
             </PopoverTrigger>
 
             <PopoverContent align="end" class="w-64 p-0">
-                <p class="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
+                <p
+                    class="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground"
+                >
                     Watching this task
                 </p>
 
@@ -78,8 +89,14 @@ const toggle = (): void => {
                     >
                         <UserAvatar :user="follower" size="sm" />
                         <span class="min-w-0 flex-1">
-                            <span class="block truncate text-sm">{{ follower.name }}</span>
-                            <span v-if="follower.email" class="block truncate text-xs text-muted-foreground">{{ follower.email }}</span>
+                            <span class="block truncate text-sm">{{
+                                follower.name
+                            }}</span>
+                            <span
+                                v-if="follower.email"
+                                class="block truncate text-xs text-muted-foreground"
+                                >{{ follower.email }}</span
+                            >
                         </span>
                     </li>
                 </ul>

@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { projectIconComponent, projectIconLabel, projectIconNames } from '@/lib/projectIcon';
+import {
+    projectIconComponent,
+    projectIconLabel,
+    projectIconNames,
+} from '@/lib/projectIcon';
 
 const props = withDefaults(
     defineProps<{
@@ -16,14 +20,20 @@ const emit = defineEmits<{ 'update:modelValue': [string | null] }>();
 const tile = computed(() => (props.size === 'sm' ? 'size-8' : 'size-9'));
 const glyph = computed(() => (props.size === 'sm' ? 'size-4' : 'size-[18px]'));
 const grid = computed(() =>
-    props.size === 'sm' ? 'grid max-h-56 grid-cols-7 gap-1 overflow-y-auto' : 'flex flex-wrap gap-1.5',
+    props.size === 'sm'
+        ? 'grid max-h-56 grid-cols-7 gap-1 overflow-y-auto'
+        : 'flex flex-wrap gap-1.5',
 );
 </script>
 
 <template>
     <div>
         <div class="flex h-6 items-center justify-between">
-            <h3 class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Icon</h3>
+            <h3
+                class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
+            >
+                Icon
+            </h3>
 
             <button
                 v-if="props.modelValue"
@@ -42,7 +52,12 @@ const grid = computed(() =>
                 :key="name"
                 type="button"
                 class="flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :class="[tile, props.modelValue === name ? 'bg-accent text-foreground ring-1 ring-primary-ring' : '']"
+                :class="[
+                    tile,
+                    props.modelValue === name
+                        ? 'bg-accent text-foreground ring-1 ring-primary-ring'
+                        : '',
+                ]"
                 :title="projectIconLabel(name)"
                 :aria-label="projectIconLabel(name)"
                 :aria-pressed="props.modelValue === name"

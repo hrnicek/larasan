@@ -27,7 +27,9 @@ export type PagedRows<T extends Row> = {
     loadMore: () => void;
 };
 
-export function usePagedRows<T extends Row>(options: PagedRowsOptions<T>): PagedRows<T> {
+export function usePagedRows<T extends Row>(
+    options: PagedRowsOptions<T>,
+): PagedRows<T> {
     const rows = ref([...options.rows()]) as Ref<T[]>;
     const pageOf = new Map<string, number>();
 
@@ -52,7 +54,9 @@ export function usePagedRows<T extends Row>(options: PagedRowsOptions<T>): Paged
 
     const byPage = (incoming: T[], page: number): T[] => {
         const fresh = new Set(incoming.map((row) => row.id));
-        const others = rows.value.filter((row) => !fresh.has(row.id) && pageOf.get(row.id) !== page);
+        const others = rows.value.filter(
+            (row) => !fresh.has(row.id) && pageOf.get(row.id) !== page,
+        );
 
         return [
             ...others.filter((row) => (pageOf.get(row.id) ?? 0) < page),
@@ -61,33 +65,39 @@ export function usePagedRows<T extends Row>(options: PagedRowsOptions<T>): Paged
         ];
     };
 
-    watch([options.rows, () => options.scope?.()], ([incoming, scope], [, previousScope]) => {
-        const meta = options.meta();
+    watch(
+        [options.rows, () => options.scope?.()],
+        ([incoming, scope], [, previousScope]) => {
+            const meta = options.meta();
 
-        if (scope !== previousScope) {
-            pageOf.clear();
+            if (scope !== previousScope) {
+                pageOf.clear();
+                remember(incoming, meta.page);
+                rows.value = [...incoming];
+                loadedPage.value = meta.page;
+                hasMore.value = meta.hasMore;
+                loadFailed.value = false;
+
+                return;
+            }
+
+            const known = new Set(rows.value.map((row) => row.id));
+            const added = incoming.filter((row) => !known.has(row.id));
+
+            if (meta.page >= loadedPage.value) {
+                loadedPage.value = meta.page;
+                hasMore.value = meta.hasMore;
+            }
+
+            rows.value =
+                options.placement === 'stable'
+                    ? inPlace(incoming, added, meta.page)
+                    : byPage(incoming, meta.page);
             remember(incoming, meta.page);
-            rows.value = [...incoming];
-            loadedPage.value = meta.page;
-            hasMore.value = meta.hasMore;
-            loadFailed.value = false;
 
-            return;
-        }
-
-        const known = new Set(rows.value.map((row) => row.id));
-        const added = incoming.filter((row) => !known.has(row.id));
-
-        if (meta.page >= loadedPage.value) {
-            loadedPage.value = meta.page;
-            hasMore.value = meta.hasMore;
-        }
-
-        rows.value = options.placement === 'stable' ? inPlace(incoming, added, meta.page) : byPage(incoming, meta.page);
-        remember(incoming, meta.page);
-
-        options.onAdded?.(added, meta.page);
-    });
+            options.onAdded?.(added, meta.page);
+        },
+    );
 
     const loadMore = (): void => {
         if (!hasMore.value || loading.value) {

@@ -66,20 +66,26 @@ const detach = (): void => {
 
     working.value = true;
 
-    router.delete(PlacementController.destroy.url(detaching.value.placementId), {
-        preserveScroll: true,
-        preserveState: true,
-        onFinish: () => {
-            working.value = false;
-            detaching.value = null;
+    router.delete(
+        PlacementController.destroy.url(detaching.value.placementId),
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => {
+                working.value = false;
+                detaching.value = null;
+            },
         },
-    });
+    );
 };
 </script>
 
 <template>
     <section class="flex flex-col gap-1">
-        <TaskSectionHeading title="Projects" :count="placements.length ? String(placements.length) : null">
+        <TaskSectionHeading
+            title="Projects"
+            :count="placements.length ? String(placements.length) : null"
+        >
             <template v-if="editable && availableProjects.length" #add>
                 <DropdownMenu>
                     <DropdownMenuTrigger as-child>
@@ -120,7 +126,9 @@ const detach = (): void => {
                     aria-hidden="true"
                 />
 
-                <span class="truncate text-sm font-medium">{{ placement.project.name }}</span>
+                <span class="truncate text-sm font-medium">{{
+                    placement.project.name
+                }}</span>
 
                 <DropdownMenu v-if="editable && placement.canChange">
                     <DropdownMenuTrigger
@@ -128,13 +136,20 @@ const detach = (): void => {
                         :disabled="working"
                         :aria-label="`Move this task to another section of ${placement.project.name}`"
                     >
-                        <span class="truncate">{{ placement.section?.name ?? 'No section' }}</span>
-                        <ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+                        <span class="truncate">{{
+                            placement.section?.name ?? 'No section'
+                        }}</span>
+                        <ChevronDown
+                            class="size-3 shrink-0"
+                            aria-hidden="true"
+                        />
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent align="start" class="w-56">
                         <DropdownMenuItem
-                            :class="placement.section === null ? 'bg-accent' : ''"
+                            :class="
+                                placement.section === null ? 'bg-accent' : ''
+                            "
                             @select="move(placement.placementId, null)"
                         >
                             No section
@@ -143,7 +158,11 @@ const detach = (): void => {
                         <DropdownMenuItem
                             v-for="section in placement.sections"
                             :key="section.id"
-                            :class="section.id === placement.section?.id ? 'bg-accent' : ''"
+                            :class="
+                                section.id === placement.section?.id
+                                    ? 'bg-accent'
+                                    : ''
+                            "
                             @select="move(placement.placementId, section.id)"
                         >
                             {{ section.name }}
@@ -151,7 +170,10 @@ const detach = (): void => {
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                <span v-else class="truncate text-xs tracking-wide text-muted-foreground uppercase">
+                <span
+                    v-else
+                    class="truncate text-xs tracking-wide text-muted-foreground uppercase"
+                >
                     {{ placement.section?.name ?? 'No section' }}
                 </span>
 
@@ -167,14 +189,22 @@ const detach = (): void => {
                             ? 'This is the last project — the task will only be reachable from My Tasks and search.'
                             : undefined
                     "
-                    @click="detaching = { placementId: placement.placementId, name: placement.project.name }"
+                    @click="
+                        detaching = {
+                            placementId: placement.placementId,
+                            name: placement.project.name,
+                        }
+                    "
                 >
                     <X class="size-4" />
                 </Button>
             </li>
         </ul>
 
-        <p v-else class="border-b border-border py-2 text-sm text-muted-foreground">
+        <p
+            v-else
+            class="border-b border-border py-2 text-sm text-muted-foreground"
+        >
             In no project — reachable from My Tasks and search.
         </p>
 

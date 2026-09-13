@@ -7,7 +7,11 @@ import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import CommentForm from '@/modules/comment/components/CommentForm.vue';
 import CommentLine from '@/modules/comment/components/CommentLine.vue';
-import type { TaskAssignee, TaskFeed, TaskFeedEntry } from '@/modules/task/types';
+import type {
+    TaskAssignee,
+    TaskFeed,
+    TaskFeedEntry,
+} from '@/modules/task/types';
 
 const props = defineProps<{
     taskId: string;
@@ -24,12 +28,16 @@ const oldestFirst = ref(true);
 
 const lines = computed<TaskFeedEntry[]>(() => {
     const entries = props.feed?.entries ?? [];
-    const shown = tab.value === 'comments' ? entries.filter((entry) => entry.kind === 'comment') : entries;
+    const shown =
+        tab.value === 'comments'
+            ? entries.filter((entry) => entry.kind === 'comment')
+            : entries;
 
     return oldestFirst.value ? [...shown].reverse() : [...shown];
 });
 
-const nameOf = (id: unknown): string | null => props.people.find((person) => person.id === id)?.name ?? null;
+const nameOf = (id: unknown): string | null =>
+    props.people.find((person) => person.id === id)?.name ?? null;
 
 const describe = (entry: TaskFeedEntry): string => {
     const changed = entry.properties?.changed;
@@ -43,11 +51,15 @@ const describe = (entry: TaskFeedEntry): string => {
         case 'task.reopened':
             return 'reopened this task';
         case 'task.assigned':
-            return entry.properties?.assignee_id === null ? 'unassigned this task' : 'assigned this task';
+            return entry.properties?.assignee_id === null
+                ? 'unassigned this task'
+                : 'assigned this task';
         case 'task.collaborator_added': {
             const name = nameOf(collaboratorId);
 
-            return name === null ? 'added a collaborator' : `added ${name} as a collaborator`;
+            return name === null
+                ? 'added a collaborator'
+                : `added ${name} as a collaborator`;
         }
         case 'task.collaborator_removed': {
             if (entry.actor?.id === collaboratorId) {
@@ -56,14 +68,18 @@ const describe = (entry: TaskFeedEntry): string => {
 
             const name = nameOf(collaboratorId);
 
-            return name === null ? 'removed a collaborator' : `took ${name} off this task`;
+            return name === null
+                ? 'removed a collaborator'
+                : `took ${name} off this task`;
         }
         case 'task.attached_to_project':
             return 'added this task to a project';
         case 'task.detached_from_project':
             return 'removed this task from a project';
         case 'task.updated':
-            return Array.isArray(changed) ? `changed ${changed.join(', ')}` : 'changed this task';
+            return Array.isArray(changed)
+                ? `changed ${changed.join(', ')}`
+                : 'changed this task';
         default:
             return 'did something';
     }
@@ -97,7 +113,11 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
             <button
                 type="button"
                 class="mb-1.5 ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="oldestFirst ? 'Showing oldest first. Show newest first' : 'Showing newest first. Show oldest first'"
+                :aria-label="
+                    oldestFirst
+                        ? 'Showing oldest first. Show newest first'
+                        : 'Showing newest first. Show oldest first'
+                "
                 @click="oldestFirst = !oldestFirst"
             >
                 <ArrowDownUp class="size-3.5" aria-hidden="true" />
@@ -117,18 +137,33 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
 
                 <ul v-if="lines.length" class="flex flex-col gap-4">
                     <template v-for="entry in lines" :key="entry.id">
-                        <CommentLine v-if="entry.kind === 'comment'" :entry="entry" :people="people" />
+                        <CommentLine
+                            v-if="entry.kind === 'comment'"
+                            :entry="entry"
+                            :people="people"
+                        />
 
-                        <li v-else class="flex items-center gap-2 text-sm text-muted-foreground">
+                        <li
+                            v-else
+                            class="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
                             <UserAvatar
                                 v-if="entry.actor"
-                                :user="{ name: entry.actor.name, avatar: entry.actor.avatar }"
+                                :user="{
+                                    name: entry.actor.name,
+                                    avatar: entry.actor.avatar,
+                                }"
                                 size="sm"
                             />
                             <span class="min-w-0">
-                                <span class="font-medium text-foreground">{{ entry.actor?.name ?? 'Someone' }}</span>
+                                <span class="font-medium text-foreground">{{
+                                    entry.actor?.name ?? 'Someone'
+                                }}</span>
                                 {{ describe(entry) }} ·
-                                <time class="text-xs" :title="fullFeedTime(entry.createdAt)">
+                                <time
+                                    class="text-xs"
+                                    :title="fullFeedTime(entry.createdAt)"
+                                >
                                     {{ formatFeedTime(entry.createdAt) }}
                                 </time>
                             </span>
@@ -137,7 +172,11 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
                 </ul>
 
                 <p v-else class="text-sm text-muted-foreground">
-                    {{ tab === 'comments' ? 'Nobody has said anything yet.' : 'Nothing has happened yet.' }}
+                    {{
+                        tab === 'comments'
+                            ? 'Nobody has said anything yet.'
+                            : 'Nothing has happened yet.'
+                    }}
                 </p>
             </Deferred>
         </div>

@@ -31,7 +31,9 @@ const beginDrag = usePointerDrag();
 let rollback: TaskAttachment[] = [];
 
 const idAt = (x: number, y: number): string | null => {
-    const tile = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-attachment-tile]');
+    const tile = document
+        .elementFromPoint(x, y)
+        ?.closest<HTMLElement>('[data-attachment-tile]');
 
     return tile?.dataset.attachmentTile ?? null;
 };
@@ -123,7 +125,11 @@ const pickUp = (event: PointerEvent, image: TaskAttachment): void => {
                 @click="emit('open', image.id)"
             >
                 <img
-                    :src="AttachmentController.preview.url(image.id, { query: { size: 'thumb' } })"
+                    :src="
+                        AttachmentController.preview.url(image.id, {
+                            query: { size: 'thumb' },
+                        })
+                    "
                     :alt="image.name"
                     loading="lazy"
                     decoding="async"

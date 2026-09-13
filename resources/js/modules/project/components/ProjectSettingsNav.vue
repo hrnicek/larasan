@@ -65,7 +65,9 @@ function go(id: string): void {
     active.value = id;
 
     element.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            ? 'auto'
+            : 'smooth',
         block: 'start',
     });
 
@@ -75,12 +77,18 @@ function go(id: string): void {
 
 <template>
     <nav
-        class="flex flex-row gap-1 overflow-x-auto pb-1 [scrollbar-width:thin] lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
+        class="flex [scrollbar-width:thin] flex-row gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
         aria-label="Project settings"
     >
         <!-- The group needs `shrink-0` too, or below `lg` its items overflow onto the next group. -->
-        <div v-for="group in props.groups" :key="group.label" class="flex shrink-0 flex-row gap-1 lg:flex-col lg:gap-0.5">
-            <p class="hidden px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase lg:block">
+        <div
+            v-for="group in props.groups"
+            :key="group.label"
+            class="flex shrink-0 flex-row gap-1 lg:flex-col lg:gap-0.5"
+        >
+            <p
+                class="hidden px-2.5 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase lg:block"
+            >
                 {{ group.label }}
             </p>
 

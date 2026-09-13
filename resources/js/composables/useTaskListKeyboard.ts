@@ -5,8 +5,9 @@ export function useTaskListKeyboard(container: () => HTMLElement | null): {
         Array.from(root.querySelectorAll<HTMLElement>('[data-task-row]'));
 
     const isTyping = (target: EventTarget | null): boolean =>
-        target instanceof HTMLElement
-        && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
     return {
         onKeydown(event: KeyboardEvent): void {
@@ -17,7 +18,9 @@ export function useTaskListKeyboard(container: () => HTMLElement | null): {
             }
 
             const rows = rowsOf(root);
-            const current = (event.target as HTMLElement).closest<HTMLElement>('[data-task-row]');
+            const current = (event.target as HTMLElement).closest<HTMLElement>(
+                '[data-task-row]',
+            );
 
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 if (rows.length === 0) {
@@ -35,8 +38,11 @@ export function useTaskListKeyboard(container: () => HTMLElement | null): {
             }
 
             if (event.key === 'n' && current !== null) {
-                const column = current.closest<HTMLElement>('[data-task-section]');
-                const add = column?.querySelector<HTMLElement>('[data-add-task]');
+                const column = current.closest<HTMLElement>(
+                    '[data-task-section]',
+                );
+                const add =
+                    column?.querySelector<HTMLElement>('[data-add-task]');
 
                 if (add !== null && add !== undefined) {
                     event.preventDefault();

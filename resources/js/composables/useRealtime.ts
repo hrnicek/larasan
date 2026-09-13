@@ -14,7 +14,8 @@ type PrivateChannel = ReturnType<Echo<'reverb'>['private']>;
 /** Window in which a burst of events collapses into one refetch. */
 const COALESCE_MS = 250;
 
-export type RealtimeConnection = 'idle' | 'connecting' | 'connected' | 'offline';
+export type RealtimeConnection =
+    'idle' | 'connecting' | 'connected' | 'offline';
 
 const connection = ref<RealtimeConnection>('idle');
 
@@ -26,11 +27,16 @@ let hasConnected = false;
 // Echo does not type its connector's pusher-js connection.
 type SocketConnection = {
     state: string;
-    bind(event: string, handler: (payload: { current: string; previous: string }) => void): void;
+    bind(
+        event: string,
+        handler: (payload: { current: string; previous: string }) => void,
+    ): void;
 };
 
 const socketOf = (echo: Echo<'reverb'>): SocketConnection | null => {
-    const connector = echo.connector as unknown as { pusher?: { connection?: SocketConnection } };
+    const connector = echo.connector as unknown as {
+        pusher?: { connection?: SocketConnection };
+    };
 
     return connector.pusher?.connection ?? null;
 };
@@ -161,7 +167,10 @@ export function useRealtime(options: {
 
     const onInvalidated = (event: ViewInvalidated): void => {
         // The actor's own response already carried the change.
-        if (event.actorId !== null && event.actorId === page.props.auth.user?.id) {
+        if (
+            event.actorId !== null &&
+            event.actorId === page.props.auth.user?.id
+        ) {
             return;
         }
 
@@ -175,14 +184,19 @@ export function useRealtime(options: {
     });
 }
 
-export function useInboxRealtime(only: string[] = ['unreadNotifications']): void {
+export function useInboxRealtime(
+    only: string[] = ['unreadNotifications'],
+): void {
     const page = usePage();
     const refetch = coalesced(() => router.reload({ only }));
 
     onReconnect(refetch);
 
     useSubscription(
-        () => (page.props.auth.user === null ? [] : [`user.${page.props.auth.user.id}`]),
+        () =>
+            page.props.auth.user === null
+                ? []
+                : [`user.${page.props.auth.user.id}`],
         (channel) => {
             channel.notification(refetch);
 
@@ -257,7 +271,9 @@ function useSubscription(
 
     const join = async (): Promise<void> => {
         const attempt = ++latestJoin;
-        const names = [...new Set(toValue(channels).filter((name) => name.length > 0))];
+        const names = [
+            ...new Set(toValue(channels).filter((name) => name.length > 0)),
+        ];
 
         if (names.length === 0) {
             leave();
@@ -287,5 +303,8 @@ function useSubscription(
         disposed = true;
         leave();
     });
-    watch(() => toValue(channels).join('|'), () => void join());
+    watch(
+        () => toValue(channels).join('|'),
+        () => void join(),
+    );
 }

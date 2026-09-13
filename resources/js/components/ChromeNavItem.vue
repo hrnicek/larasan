@@ -2,7 +2,11 @@
 import { Link, router } from '@inertiajs/vue3';
 import type { Component } from 'vue';
 import { computed } from 'vue';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useCollapsed } from '@/composables/useShell';
 
 const props = defineProps<{
@@ -17,7 +21,9 @@ const props = defineProps<{
 
 const collapsed = useCollapsed();
 
-const instant = computed<string | undefined>(() => (props.active ? undefined : props.component));
+const instant = computed<string | undefined>(() =>
+    props.active ? undefined : props.component,
+);
 
 const warm = (): void => {
     if (instant.value !== undefined) {
@@ -35,7 +41,10 @@ const warm = (): void => {
                 :prefetch="instant === undefined ? false : 'click'"
                 :aria-current="active ? 'page' : undefined"
                 class="group/nav flex h-9 items-center gap-2.5 rounded-md px-2 text-[13px] font-medium text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none"
-                :class="[active && 'bg-chrome-accent text-chrome-foreground', collapsed && 'justify-center px-0']"
+                :class="[
+                    active && 'bg-chrome-accent text-chrome-foreground',
+                    collapsed && 'justify-center px-0',
+                ]"
                 @pointerenter="warm"
                 @focus="warm"
             >
@@ -57,6 +66,8 @@ const warm = (): void => {
             </Link>
         </TooltipTrigger>
 
-        <TooltipContent v-if="collapsed" side="right">{{ label }}</TooltipContent>
+        <TooltipContent v-if="collapsed" side="right">{{
+            label
+        }}</TooltipContent>
     </Tooltip>
 </template>

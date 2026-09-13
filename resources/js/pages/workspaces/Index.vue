@@ -5,7 +5,10 @@ import WorkspaceInvitationController from '@/actions/App/Http/Controllers/Worksp
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { formatFeedTime } from '@/lib/feedTime';
-import type { WorkspaceInvitation, WorkspaceSummary } from '@/modules/workspace/types';
+import type {
+    WorkspaceInvitation,
+    WorkspaceSummary,
+} from '@/modules/workspace/types';
 import { create, edit, switchMethod } from '@/routes/workspaces';
 
 defineProps<{
@@ -25,7 +28,11 @@ function accept(invitation: WorkspaceInvitation): void {
 }
 
 function decline(invitation: WorkspaceInvitation): void {
-    router.post(WorkspaceInvitationController.decline.url(invitation.id), {}, { preserveScroll: true });
+    router.post(
+        WorkspaceInvitationController.decline.url(invitation.id),
+        {},
+        { preserveScroll: true },
+    );
 }
 
 function invitedBy(invitation: WorkspaceInvitation): string {
@@ -54,12 +61,17 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                     class="flex flex-wrap items-center justify-between gap-3 p-4"
                 >
                     <div class="min-w-0">
-                        <p class="truncate font-medium">{{ invitation.workspace }}</p>
-                        <p class="text-muted-foreground truncate text-xs">
+                        <p class="truncate font-medium">
+                            {{ invitation.workspace }}
+                        </p>
+                        <p class="truncate text-xs text-muted-foreground">
                             {{ invitedBy(invitation) }}
-                            <template v-if="invitation.hasExpired"> · expired</template>
+                            <template v-if="invitation.hasExpired">
+                                · expired</template
+                            >
                             <template v-else-if="invitation.expiresAt">
-                                · expires {{ formatFeedTime(invitation.expiresAt) }}
+                                · expires
+                                {{ formatFeedTime(invitation.expiresAt) }}
                             </template>
                         </p>
                     </div>
@@ -83,7 +95,7 @@ function invitedBy(invitation: WorkspaceInvitation): string {
             v-if="workspaces.length === 0"
             class="rounded-lg border border-dashed p-8 text-center"
         >
-            <p class="text-muted-foreground text-sm">
+            <p class="text-sm text-muted-foreground">
                 You are not a member of any workspace yet.
             </p>
             <Button as-child class="mt-4">
@@ -100,7 +112,9 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                 >
                     <div class="min-w-0">
                         <p class="truncate font-medium">{{ workspace.name }}</p>
-                        <p class="text-muted-foreground truncate text-xs">{{ workspace.slug }}</p>
+                        <p class="truncate text-xs text-muted-foreground">
+                            {{ workspace.slug }}
+                        </p>
                     </div>
 
                     <Button
@@ -108,7 +122,12 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                         as-child
                         variant="outline"
                     >
-                        <Link :href="edit()" component="settings/Workspace" prefetch="click">Settings</Link>
+                        <Link
+                            :href="edit()"
+                            component="settings/Workspace"
+                            prefetch="click"
+                            >Settings</Link
+                        >
                     </Button>
                     <Button v-else variant="ghost" @click="open(workspace)">
                         Open

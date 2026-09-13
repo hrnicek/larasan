@@ -2,7 +2,8 @@ import { defineAsyncComponent } from 'vue';
 
 const board = () => import('@/modules/project/components/BoardColumn.vue');
 const grid = () => import('@/modules/project/components/CalendarGrid.vue');
-const toolbar = () => import('@/modules/project/components/CalendarToolbar.vue');
+const toolbar = () =>
+    import('@/modules/project/components/CalendarToolbar.vue');
 const files = () => import('@/modules/project/components/FilesTable.vue');
 const pages = () => import('@/modules/page/components/PagesTree.vue');
 

@@ -6,7 +6,12 @@ import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 
 const props = defineProps<{
-    project: { id: string; name: string; color: string | null; icon: string | null };
+    project: {
+        id: string;
+        name: string;
+        color: string | null;
+        icon: string | null;
+    };
 }>();
 
 const saving = ref(false);

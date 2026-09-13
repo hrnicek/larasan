@@ -29,7 +29,13 @@ const linking = ref(false);
 const href = ref('');
 const hrefField = ref<HTMLInputElement | null>(null);
 
-type Mark = { key: string; label: string; icon: Component; run: () => void; active: () => boolean };
+type Mark = {
+    key: string;
+    label: string;
+    icon: Component;
+    run: () => void;
+    active: () => boolean;
+};
 
 const marks = computed<Mark[]>(() => [
     {
@@ -85,14 +91,33 @@ const languages: { value: string; label: string }[] = [
     { value: 'yaml', label: 'YAML' },
 ];
 
-const language = computed<string>(() => (props.editor.getAttributes('codeBlock').language as string) ?? '');
+const language = computed<string>(
+    () => (props.editor.getAttributes('codeBlock').language as string) ?? '',
+);
 
 const setLanguage = (value: string): void => {
-    props.editor.chain().focus().updateAttributes('codeBlock', { language: value === '' ? null : value }).run();
+    props.editor
+        .chain()
+        .focus()
+        .updateAttributes('codeBlock', {
+            language: value === '' ? null : value,
+        })
+        .run();
 };
 
-const tableActions: { key: string; label: string; icon: Component; run: () => void; destructive?: boolean }[] = [
-    { key: 'row', label: 'Add row below', icon: Rows3, run: () => props.editor.chain().focus().addRowAfter().run() },
+const tableActions: {
+    key: string;
+    label: string;
+    icon: Component;
+    run: () => void;
+    destructive?: boolean;
+}[] = [
+    {
+        key: 'row',
+        label: 'Add row below',
+        icon: Rows3,
+        run: () => props.editor.chain().focus().addRowAfter().run(),
+    },
     {
         key: 'column',
         label: 'Add column to the right',
@@ -139,9 +164,14 @@ const openLink = async (): Promise<void> => {
 // Mirrors the schemes the server keeps, so a refused link is not silently dropped on save.
 const allowed = (candidate: string): boolean => {
     const trimmed = candidate.trim();
-    const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(trimmed)?.[1]?.toLowerCase();
+    const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/
+        .exec(trimmed)?.[1]
+        ?.toLowerCase();
 
-    return trimmed !== '' && (scheme === undefined || ['http', 'https', 'mailto'].includes(scheme));
+    return (
+        trimmed !== '' &&
+        (scheme === undefined || ['http', 'https', 'mailto'].includes(scheme))
+    );
 };
 
 const applyLink = (): void => {
@@ -151,7 +181,12 @@ const applyLink = (): void => {
         return;
     }
 
-    props.editor.chain().focus().extendMarkRange('link').setLink({ href: candidate }).run();
+    props.editor
+        .chain()
+        .focus()
+        .extendMarkRange('link')
+        .setLink({ href: candidate })
+        .run();
     linking.value = false;
 };
 
@@ -185,7 +220,11 @@ watch(
                     :key="mark.key"
                     type="button"
                     class="grid size-7 place-items-center rounded transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    :class="mark.active() ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                    :class="
+                        mark.active()
+                            ? 'bg-accent text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                    "
                     :aria-label="mark.label"
                     :aria-pressed="mark.active()"
                     @mousedown.prevent
@@ -199,8 +238,14 @@ watch(
                 <button
                     type="button"
                     class="grid size-7 place-items-center rounded transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    :class="editor.isActive('link') ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'"
-                    :aria-label="editor.isActive('link') ? 'Edit link' : 'Add link'"
+                    :class="
+                        editor.isActive('link')
+                            ? 'bg-accent text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                    "
+                    :aria-label="
+                        editor.isActive('link') ? 'Edit link' : 'Add link'
+                    "
                     @mousedown.prevent
                     @click="openLink()"
                 >
@@ -223,7 +268,7 @@ watch(
 
                 <button
                     type="button"
-                    class="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+                    class="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-40"
                     aria-label="Apply link"
                     :disabled="!allowed(href)"
                     @mousedown.prevent
@@ -256,15 +301,23 @@ watch(
         </template>
 
         <template v-else-if="mode === 'code'">
-            <label class="sr-only" for="page-code-language">Code language</label>
+            <label class="sr-only" for="page-code-language"
+                >Code language</label
+            >
 
             <select
                 id="page-code-language"
                 class="h-7 rounded border border-input bg-background px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 :value="language"
-                @change="setLanguage(($event.target as HTMLSelectElement).value)"
+                @change="
+                    setLanguage(($event.target as HTMLSelectElement).value)
+                "
             >
-                <option v-for="option in languages" :key="option.value" :value="option.value">
+                <option
+                    v-for="option in languages"
+                    :key="option.value"
+                    :value="option.value"
+                >
                     {{ option.label }}
                 </option>
             </select>
@@ -276,7 +329,11 @@ watch(
                 :key="action.key"
                 type="button"
                 class="grid size-7 place-items-center rounded text-muted-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :class="action.destructive ? 'hover:text-destructive' : 'hover:text-foreground'"
+                :class="
+                    action.destructive
+                        ? 'hover:text-destructive'
+                        : 'hover:text-foreground'
+                "
                 :aria-label="action.label"
                 :title="action.label"
                 @mousedown.prevent

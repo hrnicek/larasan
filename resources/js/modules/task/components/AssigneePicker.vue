@@ -4,7 +4,11 @@ import { Check, UserPlus, X } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
 import UserAvatar from '@/components/UserAvatar.vue';
 import type { TaskAssignee } from '@/modules/task/types';
 
@@ -24,7 +28,11 @@ const input = ref<HTMLInputElement | null>(null);
 const listId = 'assignee-options';
 
 /** Case- and accent-insensitive, the same rule as server-side search. See ADR-0012. */
-const flatten = (value: string): string => value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+const flatten = (value: string): string =>
+    value
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
 
 const matches = computed<TaskAssignee[]>(() => {
     const term = flatten(query.value.trim());
@@ -33,7 +41,11 @@ const matches = computed<TaskAssignee[]>(() => {
         return props.members;
     }
 
-    return props.members.filter((member) => flatten(member.name).includes(term) || flatten(member.email ?? '').includes(term));
+    return props.members.filter(
+        (member) =>
+            flatten(member.name).includes(term) ||
+            flatten(member.email ?? '').includes(term),
+    );
 });
 
 watch(matches, () => (highlighted.value = 0));
@@ -83,14 +95,17 @@ function unassign(): void {
 function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowDown') {
         event.preventDefault();
-        highlighted.value = (highlighted.value + 1) % Math.max(matches.value.length, 1);
+        highlighted.value =
+            (highlighted.value + 1) % Math.max(matches.value.length, 1);
 
         return;
     }
 
     if (event.key === 'ArrowUp') {
         event.preventDefault();
-        highlighted.value = (highlighted.value - 1 + matches.value.length) % Math.max(matches.value.length, 1);
+        highlighted.value =
+            (highlighted.value - 1 + matches.value.length) %
+            Math.max(matches.value.length, 1);
 
         return;
     }
@@ -116,9 +131,17 @@ function onKeydown(event: KeyboardEvent): void {
         <Popover v-model:open="open">
             <PopoverTrigger
                 :disabled="saving"
-                :aria-label="assignee ? `Assigned to ${assignee.name}. Change assignee` : 'Unassigned. Assign someone'"
-                :title="variant === 'field' ? undefined : (assignee?.name ?? 'Unassigned')"
-                class="flex min-h-11 items-center gap-1.5 rounded-md text-left transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
+                :aria-label="
+                    assignee
+                        ? `Assigned to ${assignee.name}. Change assignee`
+                        : 'Unassigned. Assign someone'
+                "
+                :title="
+                    variant === 'field'
+                        ? undefined
+                        : (assignee?.name ?? 'Unassigned')
+                "
+                class="flex min-h-11 items-center gap-1.5 rounded-md text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-8"
                 :class="
                     variant === 'field'
                         ? 'h-8 border border-border px-1.5 pr-2 text-sm hover:bg-accent'
@@ -127,7 +150,9 @@ function onKeydown(event: KeyboardEvent): void {
             >
                 <template v-if="assignee">
                     <UserAvatar :user="assignee" size="sm" />
-                    <span v-if="variant === 'field'" class="truncate">{{ assignee.name }}</span>
+                    <span v-if="variant === 'field'" class="truncate">{{
+                        assignee.name
+                    }}</span>
                 </template>
 
                 <template v-else>
@@ -136,7 +161,11 @@ function onKeydown(event: KeyboardEvent): void {
                     >
                         <UserPlus class="size-3.5" />
                     </span>
-                    <span v-if="variant === 'field'" class="text-muted-foreground">Unassigned</span>
+                    <span
+                        v-if="variant === 'field'"
+                        class="text-muted-foreground"
+                        >Unassigned</span
+                    >
                 </template>
             </PopoverTrigger>
 
@@ -156,7 +185,11 @@ function onKeydown(event: KeyboardEvent): void {
                     />
                 </div>
 
-                <ul :id="listId" role="listbox" class="max-h-64 overflow-y-auto p-1">
+                <ul
+                    :id="listId"
+                    role="listbox"
+                    class="max-h-64 overflow-y-auto p-1"
+                >
                     <li
                         v-for="(member, index) in matches"
                         :key="member.id"
@@ -167,7 +200,11 @@ function onKeydown(event: KeyboardEvent): void {
                         <button
                             type="button"
                             class="flex w-full items-center gap-2 rounded-md py-1.5 pr-2 pl-3 text-left transition-colors"
-                            :class="index === highlighted ? 'bg-accent' : 'hover:bg-accent/60'"
+                            :class="
+                                index === highlighted
+                                    ? 'bg-accent'
+                                    : 'hover:bg-accent/60'
+                            "
                             @click="assign(member.id)"
                             @mousemove="highlighted = index"
                         >
@@ -178,14 +215,27 @@ function onKeydown(event: KeyboardEvent): void {
                             />
                             <UserAvatar :user="member" size="sm" />
                             <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium">{{ member.name }}</span>
-                                <span v-if="member.email" class="block truncate text-xs text-muted-foreground">{{ member.email }}</span>
+                                <span
+                                    class="block truncate text-sm font-medium"
+                                    >{{ member.name }}</span
+                                >
+                                <span
+                                    v-if="member.email"
+                                    class="block truncate text-xs text-muted-foreground"
+                                    >{{ member.email }}</span
+                                >
                             </span>
-                            <Check v-if="member.id === assignee?.id" class="size-4 shrink-0 text-primary" />
+                            <Check
+                                v-if="member.id === assignee?.id"
+                                class="size-4 shrink-0 text-primary"
+                            />
                         </button>
                     </li>
 
-                    <li v-if="matches.length === 0" class="px-3 py-6 text-center text-sm text-muted-foreground">
+                    <li
+                        v-if="matches.length === 0"
+                        class="px-3 py-6 text-center text-sm text-muted-foreground"
+                    >
                         Nobody here matches “{{ query }}”.
                     </li>
                 </ul>

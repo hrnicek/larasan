@@ -68,9 +68,13 @@ export const projectIconNames = Object.keys(projectIcons) as ProjectIconName[];
 
 /** Null for no icon or an unknown one; the caller draws the name's initial instead. */
 export function projectIconComponent(icon: string | null): Component | null {
-    return icon === null ? null : (projectIcons[icon as ProjectIconName] ?? null);
+    return icon === null
+        ? null
+        : (projectIcons[icon as ProjectIconName] ?? null);
 }
 
 export function projectIconLabel(icon: string): string {
-    return icon.replace(/-/g, ' ').replace(/^./, (character) => character.toUpperCase());
+    return icon
+        .replace(/-/g, ' ')
+        .replace(/^./, (character) => character.toUpperCase());
 }

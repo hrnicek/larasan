@@ -76,7 +76,14 @@ export type SavedSearch = {
 
 export type RecentItem =
     | { kind: 'tasks'; id: string; title: string; completed: boolean }
-    | { kind: 'projects'; id: string; title: string; color: string | null; icon: string | null; archived: boolean };
+    | {
+          kind: 'projects';
+          id: string;
+          title: string;
+          color: string | null;
+          icon: string | null;
+          archived: boolean;
+      };
 
 export type SearchAnswer = {
     results: SearchResults;

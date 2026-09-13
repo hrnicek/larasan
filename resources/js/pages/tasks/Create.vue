@@ -7,7 +7,13 @@ import ModalShell from '@/components/ModalShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
 
 const props = defineProps<{
@@ -26,7 +32,12 @@ const form = useForm<{ title: string; section: string | null }>({
     section: props.section,
 });
 
-const selected = computed(() => props.targetProjects.find((project) => project.id === chosenProject.value) ?? null);
+const selected = computed(
+    () =>
+        props.targetProjects.find(
+            (project) => project.id === chosenProject.value,
+        ) ?? null,
+);
 
 watch(chosenProject, (id) => {
     chosenSection.value = null;
@@ -46,16 +57,28 @@ function submit(): void {
         return;
     }
 
-    form.post(ProjectTaskController.store.url(chosenProject.value), { preserveScroll: true });
+    form.post(ProjectTaskController.store.url(chosenProject.value), {
+        preserveScroll: true,
+    });
 }
 </script>
 
 <template>
-    <ModalShell title="Add a task" description="Where it goes decides who sees it" v-slot="{ close }">
+    <ModalShell
+        title="Add a task"
+        description="Where it goes decides who sees it"
+        v-slot="{ close }"
+    >
         <form class="space-y-5" @submit.prevent="submit">
             <div class="grid gap-2">
                 <Label for="task-title">Task name</Label>
-                <Input id="task-title" v-model="form.title" required autofocus placeholder="Draft the new home page" />
+                <Input
+                    id="task-title"
+                    v-model="form.title"
+                    required
+                    autofocus
+                    placeholder="Draft the new home page"
+                />
                 <InputError :message="form.errors.title" />
             </div>
 
@@ -67,16 +90,27 @@ function submit(): void {
                         <SelectValue placeholder="Choose a project" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="option in targetProjects" :key="option.id" :value="option.id">
+                        <SelectItem
+                            v-for="option in targetProjects"
+                            :key="option.id"
+                            :value="option.id"
+                        >
                             <span class="flex items-center gap-2">
-                                <span class="size-2.5 shrink-0 rounded-[3px]" :class="accentDotClass(option.color)" :style="accentVars(option.color)" />
+                                <span
+                                    class="size-2.5 shrink-0 rounded-[3px]"
+                                    :class="accentDotClass(option.color)"
+                                    :style="accentVars(option.color)"
+                                />
                                 {{ option.name }}
                             </span>
                         </SelectItem>
                     </SelectContent>
                 </Select>
 
-                <p v-if="targetProjects.length === 0" class="text-sm text-muted-foreground">
+                <p
+                    v-if="targetProjects.length === 0"
+                    class="text-sm text-muted-foreground"
+                >
                     There is no project here you can add to yet.
                 </p>
             </div>
@@ -88,7 +122,11 @@ function submit(): void {
                         <SelectValue placeholder="No section" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="option in sections" :key="option.id" :value="option.id">
+                        <SelectItem
+                            v-for="option in sections"
+                            :key="option.id"
+                            :value="option.id"
+                        >
                             {{ option.name }}
                         </SelectItem>
                     </SelectContent>
@@ -97,8 +135,14 @@ function submit(): void {
             </div>
 
             <div class="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="ghost" @click="close">Cancel</Button>
-                <Button type="submit" :disabled="form.processing || chosenProject === null">Add task</Button>
+                <Button type="button" variant="ghost" @click="close"
+                    >Cancel</Button
+                >
+                <Button
+                    type="submit"
+                    :disabled="form.processing || chosenProject === null"
+                    >Add task</Button
+                >
             </div>
         </form>
     </ModalShell>

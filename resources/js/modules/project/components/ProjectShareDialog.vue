@@ -94,7 +94,10 @@ function changeLevel(member: ProjectMember, next: string): void {
     }
 
     router.put(
-        ProjectMemberController.update.url({ project: props.projectId, membership: member.membershipId }),
+        ProjectMemberController.update.url({
+            project: props.projectId,
+            membership: member.membershipId,
+        }),
         { access_level: next },
         { preserveScroll: true, onSuccess: reload },
     );
@@ -102,7 +105,10 @@ function changeLevel(member: ProjectMember, next: string): void {
 
 function revoke(member: ProjectMember): void {
     router.delete(
-        ProjectMemberController.destroy.url({ project: props.projectId, membership: member.membershipId }),
+        ProjectMemberController.destroy.url({
+            project: props.projectId,
+            membership: member.membershipId,
+        }),
         { preserveScroll: true, onSuccess: reload },
     );
 }
@@ -136,7 +142,10 @@ async function copyLink(): Promise<void> {
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
                 <DialogTitle>Share {{ props.projectName }}</DialogTitle>
-                <DialogDescription>Who may reach this project, and what they may do here</DialogDescription>
+                <DialogDescription
+                    >Who may reach this project, and what they may do
+                    here</DialogDescription
+                >
             </DialogHeader>
 
             <div v-if="share === null" class="space-y-3" aria-hidden="true">
@@ -147,17 +156,30 @@ async function copyLink(): Promise<void> {
 
             <template v-else>
                 <!-- `min-w-0` and `w-full` stop long select options from widening the dialog's grid track. -->
-                <div v-if="share.canManage" class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+                <div
+                    v-if="share.canManage"
+                    class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end"
+                >
                     <div class="grid min-w-0 flex-1 gap-2">
-                        <Label for="share-person">Add someone from this workspace</Label>
+                        <Label for="share-person"
+                            >Add someone from this workspace</Label
+                        >
                         <select
                             id="share-person"
                             v-model="chosen"
-                            class="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                            class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                         >
                             <option value="">Choose a person…</option>
-                            <option v-for="person in share.candidates" :key="person.id" :value="person.id">
-                                {{ person.email ? `${person.name} — ${person.email}` : person.name }}
+                            <option
+                                v-for="person in share.candidates"
+                                :key="person.id"
+                                :value="person.id"
+                            >
+                                {{
+                                    person.email
+                                        ? `${person.name} — ${person.email}`
+                                        : person.name
+                                }}
                             </option>
                         </select>
                     </div>
@@ -167,9 +189,13 @@ async function copyLink(): Promise<void> {
                         <select
                             id="share-level"
                             v-model="level"
-                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                            class="h-9 rounded-md border border-input bg-background px-3 text-sm"
                         >
-                            <option v-for="value in share.accessLevels" :key="value" :value="value">
+                            <option
+                                v-for="value in share.accessLevels"
+                                :key="value"
+                                :value="value"
+                            >
                                 {{ labelFor(value) }}
                             </option>
                         </select>
@@ -180,14 +206,19 @@ async function copyLink(): Promise<void> {
 
                 <p
                     v-if="share.canManage && !share.candidates.length"
-                    class="text-muted-foreground text-xs"
+                    class="text-xs text-muted-foreground"
                 >
-                    Everybody in this workspace already has access. Somebody new is invited in
-                    workspace settings first.
+                    Everybody in this workspace already has access. Somebody new
+                    is invited in workspace settings first.
                 </p>
 
-                <div class="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm">
-                    <component :is="share.visibility === 'private' ? Lock : Globe" class="size-4 text-muted-foreground" />
+                <div
+                    class="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                >
+                    <component
+                        :is="share.visibility === 'private' ? Lock : Globe"
+                        class="size-4 text-muted-foreground"
+                    />
                     <span class="flex-1">
                         {{
                             share.visibility === 'private'
@@ -198,20 +229,36 @@ async function copyLink(): Promise<void> {
                 </div>
 
                 <ul class="max-h-72 divide-y overflow-y-auto rounded-lg border">
-                    <li v-for="member in share.members" :key="member.membershipId" class="flex items-center gap-3 p-3">
-                        <UserAvatar :user="{ name: member.name, avatar: member.avatar }" size="sm" />
+                    <li
+                        v-for="member in share.members"
+                        :key="member.membershipId"
+                        class="flex items-center gap-3 p-3"
+                    >
+                        <UserAvatar
+                            :user="{ name: member.name, avatar: member.avatar }"
+                            size="sm"
+                        />
 
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-medium">
                                 {{ member.name }}
-                                <span v-if="member.isYou" class="text-muted-foreground text-xs">(you)</span>
+                                <span
+                                    v-if="member.isYou"
+                                    class="text-xs text-muted-foreground"
+                                    >(you)</span
+                                >
                             </p>
-                            <p v-if="member.email" class="text-muted-foreground truncate text-xs">{{ member.email }}</p>
+                            <p
+                                v-if="member.email"
+                                class="truncate text-xs text-muted-foreground"
+                            >
+                                {{ member.email }}
+                            </p>
                         </div>
 
                         <span
                             v-if="!share.canManage || member.isLastOwner"
-                            class="text-muted-foreground shrink-0 text-sm"
+                            class="shrink-0 text-sm text-muted-foreground"
                         >
                             {{ labelFor(member.accessLevel) }}
                         </span>
@@ -219,11 +266,21 @@ async function copyLink(): Promise<void> {
                         <template v-else>
                             <select
                                 :value="member.accessLevel"
-                                class="border-input bg-background h-8 shrink-0 rounded-md border px-2 text-sm"
+                                class="h-8 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
                                 :aria-label="`Access for ${member.name}`"
-                                @change="changeLevel(member, ($event.target as HTMLSelectElement).value)"
+                                @change="
+                                    changeLevel(
+                                        member,
+                                        ($event.target as HTMLSelectElement)
+                                            .value,
+                                    )
+                                "
                             >
-                                <option v-for="value in share.accessLevels" :key="value" :value="value">
+                                <option
+                                    v-for="value in share.accessLevels"
+                                    :key="value"
+                                    :value="value"
+                                >
                                     {{ labelFor(value) }}
                                 </option>
                             </select>
@@ -242,7 +299,10 @@ async function copyLink(): Promise<void> {
 
                 <div class="flex items-center justify-end">
                     <Button variant="outline" size="sm" @click="copyLink">
-                        <component :is="copied ? Check : Link2" class="size-4" />
+                        <component
+                            :is="copied ? Check : Link2"
+                            class="size-4"
+                        />
                         {{ copied ? 'Link copied' : 'Copy project link' }}
                     </Button>
                 </div>

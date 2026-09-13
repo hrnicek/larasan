@@ -16,7 +16,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { formatFeedTime } from '@/lib/feedTime';
-import type { WorkspaceMember, WorkspacePendingInvitation } from '@/modules/workspace/types';
+import type {
+    WorkspaceMember,
+    WorkspacePendingInvitation,
+} from '@/modules/workspace/types';
 
 const props = defineProps<{
     members: WorkspaceMember[];
@@ -38,7 +41,11 @@ function changeRole(id: string, role: string, current: string): void {
         return;
     }
 
-    router.put(WorkspaceMemberController.update.url(id), { role }, { preserveScroll: true });
+    router.put(
+        WorkspaceMemberController.update.url(id),
+        { role },
+        { preserveScroll: true },
+    );
 }
 
 function confirmRemoval(): void {
@@ -64,11 +71,18 @@ function confirmCancellation(): void {
 }
 
 function resend(invitation: WorkspacePendingInvitation): void {
-    router.post(WorkspaceMemberController.resend.url(invitation.id), {}, { preserveScroll: true });
+    router.post(
+        WorkspaceMemberController.resend.url(invitation.id),
+        {},
+        { preserveScroll: true },
+    );
 }
 
 function invitationState(invitation: WorkspacePendingInvitation): string {
-    const sender = invitation.invitedBy === null ? 'Invited' : `Invited by ${invitation.invitedBy}`;
+    const sender =
+        invitation.invitedBy === null
+            ? 'Invited'
+            : `Invited by ${invitation.invitedBy}`;
 
     if (invitation.hasExpired) {
         return `${sender} · expired`;
@@ -102,7 +116,13 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
         >
             <div class="grid flex-1 gap-2">
                 <Label for="email">Invite by email</Label>
-                <Input id="email" name="email" type="email" required placeholder="person@example.com" />
+                <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="person@example.com"
+                />
                 <InputError :message="errors.email" />
             </div>
 
@@ -111,14 +131,18 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                 <select
                     id="role"
                     name="role"
-                    class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                    class="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
-                    <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
+                    <option v-for="role in roles" :key="role" :value="role">
+                        {{ role }}
+                    </option>
                 </select>
                 <InputError :message="errors.role" />
             </div>
 
-            <Button type="submit" :disabled="processing">Send invitation</Button>
+            <Button type="submit" :disabled="processing"
+                >Send invitation</Button
+            >
         </Form>
 
         <ul class="divide-y rounded-lg border">
@@ -130,17 +154,28 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                 <div class="min-w-0">
                     <p class="truncate font-medium">
                         {{ member.name }}
-                        <span v-if="member.isYou" class="text-muted-foreground text-xs">(you)</span>
+                        <span
+                            v-if="member.isYou"
+                            class="text-xs text-muted-foreground"
+                            >(you)</span
+                        >
                     </p>
-                    <p v-if="member.email" class="text-muted-foreground truncate text-xs">
+                    <p
+                        v-if="member.email"
+                        class="truncate text-xs text-muted-foreground"
+                    >
                         {{ member.email }}
                     </p>
                 </div>
 
                 <div class="flex items-center gap-2">
                     <span
-                        v-if="!can.manageMembers || member.role === 'owner' || member.isYou"
-                        class="text-muted-foreground text-sm"
+                        v-if="
+                            !can.manageMembers ||
+                            member.role === 'owner' ||
+                            member.isYou
+                        "
+                        class="text-sm text-muted-foreground"
                     >
                         {{ member.role }}
                     </span>
@@ -148,20 +183,35 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                     <Select
                         v-else
                         :model-value="member.role"
-                        @update:model-value="(role) => changeRole(member.id, String(role), member.role)"
+                        @update:model-value="
+                            (role) =>
+                                changeRole(member.id, String(role), member.role)
+                        "
                     >
-                        <SelectTrigger class="w-36" :aria-label="`Role for ${member.name}`">
+                        <SelectTrigger
+                            class="w-36"
+                            :aria-label="`Role for ${member.name}`"
+                        >
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-for="role in roles" :key="role" :value="role">
+                            <SelectItem
+                                v-for="role in roles"
+                                :key="role"
+                                :value="role"
+                            >
                                 {{ role }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
 
                     <Button
-                        v-if="can.manageMembers && !member.isLastOwner && !member.isYou && (member.role !== 'owner' || viewerIsOwner)"
+                        v-if="
+                            can.manageMembers &&
+                            !member.isLastOwner &&
+                            !member.isYou &&
+                            (member.role !== 'owner' || viewerIsOwner)
+                        "
                         variant="ghost"
                         @click="removing = member"
                     >
@@ -185,13 +235,15 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                             {{ invitation.name ?? invitation.email }}
                             <span
                                 v-if="!invitation.hasAccount"
-                                class="text-muted-foreground text-xs"
+                                class="text-xs text-muted-foreground"
                             >
                                 (no account yet)
                             </span>
                         </p>
-                        <p class="text-muted-foreground truncate text-xs">
-                            <template v-if="invitation.name">{{ invitation.email }} · </template>
+                        <p class="truncate text-xs text-muted-foreground">
+                            <template v-if="invitation.name"
+                                >{{ invitation.email }} ·
+                            </template>
                             {{ invitationState(invitation) }}
                         </p>
                     </div>
@@ -199,20 +251,38 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                     <div class="flex items-center gap-2">
                         <Select
                             :model-value="invitation.role"
-                            @update:model-value="(role) => changeRole(invitation.id, String(role), invitation.role)"
+                            @update:model-value="
+                                (role) =>
+                                    changeRole(
+                                        invitation.id,
+                                        String(role),
+                                        invitation.role,
+                                    )
+                            "
                         >
-                            <SelectTrigger class="w-36" :aria-label="`Role for ${invitation.email}`">
+                            <SelectTrigger
+                                class="w-36"
+                                :aria-label="`Role for ${invitation.email}`"
+                            >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem v-for="role in roles" :key="role" :value="role">
+                                <SelectItem
+                                    v-for="role in roles"
+                                    :key="role"
+                                    :value="role"
+                                >
                                     {{ role }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
 
-                        <Button variant="outline" @click="resend(invitation)">Resend</Button>
-                        <Button variant="ghost" @click="cancelling = invitation">Cancel</Button>
+                        <Button variant="outline" @click="resend(invitation)"
+                            >Resend</Button
+                        >
+                        <Button variant="ghost" @click="cancelling = invitation"
+                            >Cancel</Button
+                        >
                     </div>
                 </li>
             </ul>

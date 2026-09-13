@@ -35,17 +35,27 @@ const ancestors = computed<PageNode[]>(() => {
 
 <template>
     <nav aria-label="Breadcrumb" class="min-w-0">
-        <ol class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+        <ol
+            class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground"
+        >
             <li class="min-w-0 shrink-0">
                 <Link
-                    :href="showProject(project.id, { query: { view: 'pages' } }).url"
+                    :href="
+                        showProject(project.id, { query: { view: 'pages' } })
+                            .url
+                    "
                     component="projects/Show"
                     prefetch="click"
                     class="truncate transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                >{{ project.name }}</Link>
+                    >{{ project.name }}</Link
+                >
             </li>
 
-            <li v-for="ancestor in ancestors" :key="ancestor.id" class="flex min-w-0 items-center gap-1">
+            <li
+                v-for="ancestor in ancestors"
+                :key="ancestor.id"
+                class="flex min-w-0 items-center gap-1"
+            >
                 <ChevronRight class="size-3.5 shrink-0" aria-hidden="true" />
 
                 <Link
@@ -53,7 +63,8 @@ const ancestors = computed<PageNode[]>(() => {
                     component="pages/Show"
                     prefetch="click"
                     class="truncate transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                >{{ ancestor.title }}</Link>
+                    >{{ ancestor.title }}</Link
+                >
             </li>
         </ol>
     </nav>

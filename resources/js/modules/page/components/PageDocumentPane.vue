@@ -2,21 +2,38 @@
 import { PanelLeft } from '@lucide/vue';
 import { defineAsyncComponent, ref, shallowRef } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import PageBreadcrumb from '@/modules/page/components/PageBreadcrumb.vue';
 import PageSaveState from '@/modules/page/components/PageSaveState.vue';
 import PageTitleField from '@/modules/page/components/PageTitleField.vue';
 import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
 import { usePageAutosave } from '@/modules/page/composables/usePageAutosave';
-import type { PageDetail, PageDocument, ProjectPages } from '@/modules/page/types';
+import type {
+    PageDetail,
+    PageDocument,
+    ProjectPages,
+} from '@/modules/page/types';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 
-const PageEditor = defineAsyncComponent(() => import('@/modules/page/components/PageEditor.vue'));
+const PageEditor = defineAsyncComponent(
+    () => import('@/modules/page/components/PageEditor.vue'),
+);
 
 const props = defineProps<{
     page: PageDetail;
-    project: { id: string; name: string; color: string | null; icon: string | null };
+    project: {
+        id: string;
+        name: string;
+        color: string | null;
+        icon: string | null;
+    };
     pages: ProjectPages;
 }>();
 
@@ -51,7 +68,12 @@ const empty = (): boolean => {
                     class="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none lg:hidden"
                 >
                     <PanelLeft class="size-4" aria-hidden="true" />
-                    <ProjectTile :name="project.name" :color="project.color" :icon="project.icon" class="size-5" />
+                    <ProjectTile
+                        :name="project.name"
+                        :color="project.color"
+                        :icon="project.icon"
+                        class="size-5"
+                    />
                     <span class="truncate">{{ project.name }}</span>
                 </SheetTrigger>
 
@@ -89,7 +111,10 @@ const empty = (): boolean => {
 
         <p v-if="page.updatedAt" class="pb-4 text-xs text-muted-foreground">
             Last changed
-            <time :datetime="page.updatedAt" :title="fullFeedTime(page.updatedAt)">
+            <time
+                :datetime="page.updatedAt"
+                :title="fullFeedTime(page.updatedAt)"
+            >
                 {{ formatFeedTime(page.updatedAt) }}
             </time>
             <template v-if="page.updatedBy"> by {{ page.updatedBy }}</template>
@@ -100,11 +125,14 @@ const empty = (): boolean => {
             class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
         >
             <p class="text-foreground">
-                Somebody else saved this page while you were writing. Reload to see their version — anything you
-                typed since is only in this window.
+                Somebody else saved this page while you were writing. Reload to
+                see their version — anything you typed since is only in this
+                window.
             </p>
 
-            <Button size="sm" variant="outline" @click="emit('reload')">Reload</Button>
+            <Button size="sm" variant="outline" @click="emit('reload')"
+                >Reload</Button
+            >
         </div>
 
         <p v-if="!editable() && empty()" class="text-sm text-muted-foreground">

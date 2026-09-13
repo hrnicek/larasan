@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { accentContentTileClass, accentTileClass, accentVars } from '@/lib/accentColor';
+import {
+    accentContentTileClass,
+    accentTileClass,
+    accentVars,
+} from '@/lib/accentColor';
 import { projectIconComponent } from '@/lib/projectIcon';
 
 const props = withDefaults(
@@ -16,7 +20,10 @@ const props = withDefaults(
 );
 
 const sizes = {
-    sm: { box: 'size-6 rounded-md text-[11px] font-semibold', glyph: 'size-3.5' },
+    sm: {
+        box: 'size-6 rounded-md text-[11px] font-semibold',
+        glyph: 'size-3.5',
+    },
     md: { box: 'size-7 rounded-md text-xs font-bold', glyph: 'size-4' },
     lg: { box: 'size-9 rounded-lg text-sm font-bold', glyph: 'size-[18px]' },
 } as const;
@@ -24,7 +31,9 @@ const sizes = {
 const glyph = computed(() => projectIconComponent(props.icon));
 
 const tint = computed(() =>
-    props.surface === 'chrome' ? accentTileClass(props.color) : accentContentTileClass(props.color),
+    props.surface === 'chrome'
+        ? accentTileClass(props.color)
+        : accentContentTileClass(props.color),
 );
 
 const tintVars = computed(() => accentVars(props.color));

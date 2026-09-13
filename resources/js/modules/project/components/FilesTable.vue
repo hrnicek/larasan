@@ -33,7 +33,9 @@ const props = defineProps<{
 const emit = defineEmits<{ open: [taskId: string] }>();
 
 const navigations = ref(0);
-const busy = computed<boolean>(() => props.loading === true || navigations.value > 0);
+const busy = computed<boolean>(
+    () => props.loading === true || navigations.value > 0,
+);
 
 const tracked = {
     onStart: (): void => {
@@ -112,7 +114,12 @@ const orderBy = (key: string | null): void => {
     router.get(
         `${window.location.pathname}?${params.toString()}`,
         {},
-        { only: ['files'], preserveScroll: true, preserveState: true, ...tracked },
+        {
+            only: ['files'],
+            preserveScroll: true,
+            preserveState: true,
+            ...tracked,
+        },
     );
 };
 

@@ -3,7 +3,13 @@ import { Form } from '@inertiajs/vue3';
 import SavedSearchController from '@/actions/App/Http/Controllers/Search/SavedSearchController';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -17,11 +23,17 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
 </script>
 
 <template>
-    <Dialog :open="props.open" @update:open="(next) => emit('update:open', next)">
+    <Dialog
+        :open="props.open"
+        @update:open="(next) => emit('update:open', next)"
+    >
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
                 <DialogTitle>Save this search</DialogTitle>
-                <DialogDescription>It becomes a chip in the palette, with the filters it has now.</DialogDescription>
+                <DialogDescription
+                    >It becomes a chip in the palette, with the filters it has
+                    now.</DialogDescription
+                >
             </DialogHeader>
 
             <Form
@@ -32,8 +44,18 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
                 v-slot="{ errors, processing }"
             >
                 <input type="hidden" name="term" :value="props.term" />
-                <input v-if="props.filters.project" type="hidden" name="project" :value="props.filters.project" />
-                <input v-if="props.filters.assignee" type="hidden" name="assignee" :value="props.filters.assignee" />
+                <input
+                    v-if="props.filters.project"
+                    type="hidden"
+                    name="project"
+                    :value="props.filters.project"
+                />
+                <input
+                    v-if="props.filters.assignee"
+                    type="hidden"
+                    name="assignee"
+                    :value="props.filters.assignee"
+                />
                 <input
                     v-if="props.filters.completed !== undefined"
                     type="hidden"
@@ -43,13 +65,26 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
 
                 <div class="grid gap-2">
                     <Label for="saved-search-name">Name</Label>
-                    <Input id="saved-search-name" name="name" :default-value="props.term" required autofocus />
+                    <Input
+                        id="saved-search-name"
+                        name="name"
+                        :default-value="props.term"
+                        required
+                        autofocus
+                    />
                     <InputError :message="errors.name" />
                 </div>
 
                 <div class="flex justify-end gap-2">
-                    <Button type="button" variant="ghost" @click="emit('update:open', false)">Cancel</Button>
-                    <Button type="submit" :disabled="processing">Save search</Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        @click="emit('update:open', false)"
+                        >Cancel</Button
+                    >
+                    <Button type="submit" :disabled="processing"
+                        >Save search</Button
+                    >
                 </div>
             </Form>
         </DialogContent>

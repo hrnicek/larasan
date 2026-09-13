@@ -10,7 +10,9 @@ const { show: openSearch } = useCommandPalette();
 </script>
 
 <template>
-    <header class="flex h-13 shrink-0 items-center gap-2 border-b border-chrome-border bg-chrome px-2 text-chrome-foreground sm:px-3">
+    <header
+        class="flex h-13 shrink-0 items-center gap-2 border-b border-chrome-border bg-chrome px-2 text-chrome-foreground sm:px-3"
+    >
         <button
             type="button"
             class="hidden size-8 shrink-0 items-center justify-center rounded-md text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none md:inline-flex"
@@ -38,7 +40,10 @@ const { show: openSearch } = useCommandPalette();
         >
             <SearchIcon class="size-4 shrink-0" />
             <span class="truncate">Search</span>
-            <kbd class="ml-auto hidden shrink-0 rounded border border-chrome-border px-1.5 py-0.5 font-sans text-[10px] tracking-wide sm:inline">⌘K</kbd>
+            <kbd
+                class="ml-auto hidden shrink-0 rounded border border-chrome-border px-1.5 py-0.5 font-sans text-[10px] tracking-wide sm:inline"
+                >⌘K</kbd
+            >
         </button>
     </header>
 </template>

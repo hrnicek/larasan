@@ -17,7 +17,10 @@ const props = defineProps<{
     can: { manage: boolean };
 }>();
 
-const form = useForm<{ name: string; color: string | null }>({ name: '', color: null });
+const form = useForm<{ name: string; color: string | null }>({
+    name: '',
+    color: null,
+});
 
 function submit(): void {
     form.post(TagController.store.url(), {
@@ -27,7 +30,10 @@ function submit(): void {
 }
 
 const editing = ref<string | null>(null);
-const edit = useForm<{ name: string; color: string | null }>({ name: '', color: null });
+const edit = useForm<{ name: string; color: string | null }>({
+    name: '',
+    color: null,
+});
 
 function startEditing(tag: WorkspaceTag): void {
     editing.value = tag.id;
@@ -85,24 +91,40 @@ function confirmDeletion(): void {
             description="The words this workspace uses for its work, and the colours they are drawn in"
         />
 
-        <form v-if="props.can.manage" class="space-y-4 rounded-lg border p-4" @submit.prevent="submit">
+        <form
+            v-if="props.can.manage"
+            class="space-y-4 rounded-lg border p-4"
+            @submit.prevent="submit"
+        >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
                 <div class="grid flex-1 gap-2">
                     <Label for="tag-name">Name</Label>
-                    <Input id="tag-name" v-model="form.name" required maxlength="40" placeholder="Bug" />
+                    <Input
+                        id="tag-name"
+                        v-model="form.name"
+                        required
+                        maxlength="40"
+                        placeholder="Bug"
+                    />
                     <InputError :message="form.errors.name" />
                 </div>
 
-                <Button type="submit" :disabled="form.processing">Add tag</Button>
+                <Button type="submit" :disabled="form.processing"
+                    >Add tag</Button
+                >
             </div>
 
             <AccentColorGrid v-model="form.color" :disabled="form.processing" />
             <InputError :message="form.errors.color" />
         </form>
 
-        <p v-if="!props.tags.length" class="text-muted-foreground rounded-lg border border-dashed p-6 text-sm">
-            No tags yet. A tag is one word about a piece of work — a bug, a client, a release — and
-            every board and every search can filter by it.
+        <p
+            v-if="!props.tags.length"
+            class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+        >
+            No tags yet. A tag is one word about a piece of work — a bug, a
+            client, a release — and every board and every search can filter by
+            it.
         </p>
 
         <ul v-else class="divide-y rounded-lg border">
@@ -110,7 +132,9 @@ function confirmDeletion(): void {
                 <div v-if="editing === tag.id" class="space-y-4">
                     <div class="flex flex-wrap items-end gap-2">
                         <div class="min-w-48 flex-1">
-                            <Label :for="`name-${tag.id}`" class="sr-only">Tag name</Label>
+                            <Label :for="`name-${tag.id}`" class="sr-only"
+                                >Tag name</Label
+                            >
                             <Input
                                 :id="`name-${tag.id}`"
                                 v-model="edit.name"
@@ -121,11 +145,24 @@ function confirmDeletion(): void {
                             <InputError :message="edit.errors.name" />
                         </div>
 
-                        <Button size="sm" :disabled="edit.processing" @click="save(tag.id)">Save</Button>
-                        <Button size="sm" variant="ghost" @click="editing = null">Cancel</Button>
+                        <Button
+                            size="sm"
+                            :disabled="edit.processing"
+                            @click="save(tag.id)"
+                            >Save</Button
+                        >
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            @click="editing = null"
+                            >Cancel</Button
+                        >
                     </div>
 
-                    <AccentColorGrid v-model="edit.color" :disabled="edit.processing" />
+                    <AccentColorGrid
+                        v-model="edit.color"
+                        :disabled="edit.processing"
+                    />
                 </div>
 
                 <div v-else class="flex flex-wrap items-center gap-3">
@@ -137,13 +174,30 @@ function confirmDeletion(): void {
                         {{ tag.name }}
                     </span>
 
-                    <span class="text-muted-foreground flex-1 truncate text-xs">
-                        {{ tag.taskCount === 1 ? 'on 1 task' : `on ${tag.taskCount} tasks` }}
+                    <span class="flex-1 truncate text-xs text-muted-foreground">
+                        {{
+                            tag.taskCount === 1
+                                ? 'on 1 task'
+                                : `on ${tag.taskCount} tasks`
+                        }}
                     </span>
 
-                    <div v-if="props.can.manage" class="flex shrink-0 items-center gap-0.5">
-                        <Button size="sm" variant="ghost" @click="startEditing(tag)">Edit</Button>
-                        <Button size="sm" variant="ghost" @click="deleting = tag">Delete</Button>
+                    <div
+                        v-if="props.can.manage"
+                        class="flex shrink-0 items-center gap-0.5"
+                    >
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            @click="startEditing(tag)"
+                            >Edit</Button
+                        >
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            @click="deleting = tag"
+                            >Delete</Button
+                        >
                     </div>
                 </div>
             </li>

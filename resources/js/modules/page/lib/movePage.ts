@@ -4,7 +4,12 @@ export type MoveDirection = 'up' | 'down' | 'in' | 'out';
 
 export type Placement = { parent: string | null; after: string | null };
 
-type Position = { siblings: PageNode[]; index: number; parent: PageNode | null; grandparent: PageNode | null };
+type Position = {
+    siblings: PageNode[];
+    index: number;
+    parent: PageNode | null;
+    grandparent: PageNode | null;
+};
 
 function locate(
     tree: PageNode[],
@@ -30,7 +35,11 @@ function locate(
 }
 
 // A parent and an anchor rather than a position. See ADR-0009.
-export function placementFor(tree: PageNode[], pageId: string, direction: MoveDirection): Placement | null {
+export function placementFor(
+    tree: PageNode[],
+    pageId: string,
+    direction: MoveDirection,
+): Placement | null {
     const at = locate(tree, pageId);
 
     if (at === null) {
@@ -43,10 +52,17 @@ export function placementFor(tree: PageNode[], pageId: string, direction: MoveDi
     switch (direction) {
         case 'up':
             // Behind the sibling two above, or at the front.
-            return index === 0 ? null : { parent: parentId, after: index >= 2 ? siblings[index - 2].id : null };
+            return index === 0
+                ? null
+                : {
+                      parent: parentId,
+                      after: index >= 2 ? siblings[index - 2].id : null,
+                  };
 
         case 'down':
-            return index >= siblings.length - 1 ? null : { parent: parentId, after: siblings[index + 1].id };
+            return index >= siblings.length - 1
+                ? null
+                : { parent: parentId, after: siblings[index + 1].id };
 
         case 'in': {
             const target = index === 0 ? null : siblings[index - 1];
@@ -61,6 +77,8 @@ export function placementFor(tree: PageNode[], pageId: string, direction: MoveDi
         }
 
         case 'out':
-            return parent === null ? null : { parent: grandparent?.id ?? null, after: parent.id };
+            return parent === null
+                ? null
+                : { parent: grandparent?.id ?? null, after: parent.id };
     }
 }
