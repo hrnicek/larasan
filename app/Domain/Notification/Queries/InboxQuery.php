@@ -14,6 +14,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Task\Models\Task;
+use App\Domain\Task\Queries\ReachableTasks;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,18 +22,19 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-/**
- * @phpstan-type InboxActor array{id: int, name: string, email: string}
- */
 final readonly class InboxQuery
 {
     public const PER_PAGE = 25;
 
     private const EXCERPT_LENGTH = 160;
 
-    public function __construct(private VisibleProjectsForUser $visibleProjects) {}
+    public function __construct(
+        private VisibleProjectsForUser $visibleProjects,
+        private ReachableTasks $reachableTasks,
+    ) {}
 
     /**
      * @return array{
@@ -49,11 +51,12 @@ final readonly class InboxQuery
 
         $actors = $this->actors($rows);
         $subjects = $this->subjects($rows, $workspace, $reader);
-        $excerpts = $this->excerpts($rows, $subjects, $workspace, $reader);
+        $excerpts = $this->excerpts($rows, $subjects, $workspace);
+        $people = PersonSummary::for($workspace, $reader);
 
         return [
             'notifications' => array_values($rows
-                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects, $excerpts, $workspace, $reader))
+                ->map(fn (DatabaseNotification $notification): array => $this->row($notification, $actors, $subjects, $excerpts, $people))
                 ->all()),
             'meta' => [
                 'page' => $notifications->currentPage(),
@@ -133,19 +136,23 @@ final readonly class InboxQuery
             ->query($workspace, $reader, includeArchived: true)
             ->select('projects.id');
 
+        $reachable = DB::query()
+            ->fromSub($this->reachableTasks->idsFor($workspace, $reader)->whereIn('tasks.id', $ids), 'reach')
+            ->whereColumn('reach.id', 'tasks.id')
+            ->selectRaw('count(*) > 0');
+
         return Task::query()
+            ->where('workspace_id', $workspace->id)
             ->whereIn('id', $ids)
-            ->withCount([
-                'placements',
-                'placements as reachable_placements_count' => fn (Builder $placements) => $placements->whereIn('project_id', $visible),
-            ])
+            ->select(['id', 'workspace_id', 'title'])
+            ->selectSub($reachable, 'reachable')
             ->with([
                 // Constrained so a project the reader cannot open is never named.
                 'projects' => fn (Relation $projects) => $projects
                     ->whereIn('projects.id', $visible)
                     ->select(['projects.id', 'projects.name', 'projects.color']),
             ])
-            ->get(['id', 'workspace_id', 'title'])
+            ->get()
             ->keyBy('id');
     }
 
@@ -154,14 +161,14 @@ final readonly class InboxQuery
      * @param  Collection<string, Task>  $subjects
      * @return Collection<string, string>
      */
-    private function excerpts(Collection $rows, Collection $subjects, Workspace $workspace, User $reader): Collection
+    private function excerpts(Collection $rows, Collection $subjects, Workspace $workspace): Collection
     {
         $ids = $rows
-            ->filter(function (DatabaseNotification $notification) use ($subjects, $workspace, $reader): bool {
+            ->filter(function (DatabaseNotification $notification) use ($subjects): bool {
                 $taskId = $this->taskId($notification);
                 $task = $taskId === null ? null : $subjects->get($taskId);
 
-                return $task !== null && $this->reaches($task, $workspace, $reader);
+                return $task !== null && $this->reaches($task);
             })
             ->map(fn (DatabaseNotification $notification): ?string => $this->commentId($notification))
             ->filter()
@@ -187,7 +194,7 @@ final readonly class InboxQuery
      * @param  Collection<string, string>  $excerpts
      * @return array<string, mixed>
      */
-    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects, Collection $excerpts, Workspace $workspace, User $reader): array
+    private function row(DatabaseNotification $notification, Collection $actors, Collection $subjects, Collection $excerpts, PersonSummary $people): array
     {
         $actorId = $this->actorId($notification);
         $actor = $actorId === null ? null : $actors->get($actorId);
@@ -201,35 +208,39 @@ final readonly class InboxQuery
             'createdAt' => $notification->created_at?->toIso8601String(),
             'readAt' => $notification->read_at?->toIso8601String(),
             'read' => $notification->read_at !== null,
-            'actor' => PersonSummary::fromNullable($actor),
+            'actor' => $people->ofNullable($actor),
             'excerpt' => $commentId === null ? null : $excerpts->get($commentId),
-            'subject' => $task === null ? null : [
-                'type' => 'task',
-                'id' => $task->id,
-                'title' => $task->title,
-                'url' => $this->reaches($task, $workspace, $reader) ? route('tasks.show', $task->id) : null,
-                'projects' => array_values($task->projects
-                    ->map(fn (Project $project): array => [
-                        'id' => $project->id,
-                        'name' => $project->name,
-                        'color' => $project->color?->value,
-                    ])
-                    ->all()),
-            ],
+            'subject' => $task === null ? null : $this->subject($task),
         ];
     }
 
     /**
-     * Mirrors `TaskPolicy::view()` using the placement counts loaded in `subjects()`.
+     * @return array{type: string, id: string|null, title: string|null, url: string|null, projects: list<array<string, mixed>>}
      */
-    private function reaches(Task $task, Workspace $workspace, User $reader): bool
+    private function subject(Task $task): array
     {
-        if ((int) ($task->reachable_placements_count ?? 0) > 0) {
-            return true;
+        if (! $this->reaches($task)) {
+            return ['type' => 'task', 'id' => null, 'title' => null, 'url' => null, 'projects' => []];
         }
 
-        return (int) ($task->placements_count ?? 0) === 0
-            && $workspace->membershipFor($reader)?->role->isGuest() === false;
+        return [
+            'type' => 'task',
+            'id' => $task->id,
+            'title' => $task->title,
+            'url' => route('tasks.show', $task->id),
+            'projects' => array_values($task->projects
+                ->map(fn (Project $project): array => [
+                    'id' => $project->id,
+                    'name' => $project->name,
+                    'color' => $project->color?->value,
+                ])
+                ->all()),
+        ];
+    }
+
+    private function reaches(Task $task): bool
+    {
+        return $task->getAttribute('reachable') === true;
     }
 
     private function shortType(DatabaseNotification $notification): string

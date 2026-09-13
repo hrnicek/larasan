@@ -17,6 +17,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 final readonly class MyTasksQuery
 {
@@ -44,10 +45,11 @@ final readonly class MyTasksQuery
         $tasks = $this->paginate($workspace, $actor, $tab, $page, $perPage);
 
         $workspaceMayUpdate = $workspace->membershipFor($actor)?->allows(Capability::TaskUpdate) === true;
+        $people = PersonSummary::for($workspace, $actor);
 
         return [
             'tasks' => array_values($tasks->getCollection()
-                ->map(fn (Task $task): array => $this->row($task, $workspaceMayUpdate))
+                ->map(fn (Task $task): array => $this->row($task, $workspaceMayUpdate, $people))
                 ->all()),
             'meta' => [
                 'tab' => $tab->value,
@@ -73,17 +75,20 @@ final readonly class MyTasksQuery
             ->query($workspace, $actor, includeArchived: true)
             ->select('projects.id');
 
-        $changeable = $this->changeableProjects
-            ->query($workspace, $actor, Capability::TaskUpdate)
-            ->select('projects.id');
+        $governedByAChangeableProject = DB::query()
+            ->fromSub($this->reachableTasks->governedBy(
+                Task::query()->where('tasks.workspace_id', $workspace->id)->select('tasks.id'),
+                $this->changeableProjects->query($workspace, $actor, Capability::TaskUpdate)->select('projects.id'),
+                includeWorkspaceWork: true,
+            ), 'editable')
+            ->whereColumn('editable.id', 'tasks.id')
+            ->selectRaw('count(*) > 0');
 
         $query = Task::query()
             ->where('workspace_id', $workspace->id)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
+            ->selectSub($governedByAChangeableProject, 'governed_by_a_changeable_project')
             ->withCount('comments')
-            ->withCount('placements')
-            ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
-                ->whereIn('project_id', $changeable)])
             ->with([
                 PersonSummary::eager('assignee'),
                 'tags:id,name,color',
@@ -93,11 +98,12 @@ final readonly class MyTasksQuery
                     ->with('project:id,name,color'),
             ]);
 
+        // An assignee or a starrer may since have lost access to the task.
+        $this->reachableTasks->constrain($query, $workspace, $actor);
+
         if ($tab->isAboutAssignment()) {
             $query->where('assignee_id', $actor->id);
         } else {
-            // Starred tasks are not necessarily assigned to the actor, so reach must be checked explicitly.
-            $this->reachableTasks->constrain($query, $workspace, $actor);
             $query->whereHas('stars', fn (Builder $stars): Builder => $stars->where('user_id', $actor->id));
         }
 
@@ -145,18 +151,13 @@ final readonly class MyTasksQuery
 
     private function canUpdate(Task $task, bool $workspaceMayUpdate): bool
     {
-        if (! $workspaceMayUpdate) {
-            return false;
-        }
-
-        return (int) ($task->placements_count ?? 0) === 0
-            || (bool) ($task->on_a_changeable_board ?? false);
+        return $workspaceMayUpdate && $task->getAttribute('governed_by_a_changeable_project') === true;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function row(Task $task, bool $workspaceMayUpdate): array
+    private function row(Task $task, bool $workspaceMayUpdate, PersonSummary $people): array
     {
         $assignee = $task->assignee;
 
@@ -168,7 +169,7 @@ final readonly class MyTasksQuery
             'completedAt' => $task->completed_at?->toIso8601String(),
             'priority' => $task->priority->value,
             'comments' => (int) ($task->comments_count ?? 0),
-            'assignee' => PersonSummary::fromNullable($assignee),
+            'assignee' => $people->ofNullable($assignee),
             'tags' => array_values($task->tags
                 ->map(fn (Tag $tag): array => [
                     'id' => $tag->id,

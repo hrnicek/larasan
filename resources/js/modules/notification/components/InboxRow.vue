@@ -93,9 +93,10 @@ const open = (): void => {
                     </span>
                     {{ ` ${kind.verb} ` }}
                     <span
-                        v-if="notification.subject"
+                        v-if="notification.subject?.title"
                         :class="notification.read ? 'font-medium text-foreground/85' : 'font-semibold'"
                     >{{ notification.subject.title }}</span>
+                    <span v-else-if="notification.subject" class="italic">a task</span>
                     <span v-else class="italic">something that has since been removed</span>
                 </span>
 

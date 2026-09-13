@@ -120,6 +120,13 @@ class AppServiceProvider extends ServiceProvider
             $model::saved($flushTaskAccess);
             $model::deleted($flushTaskAccess);
         }
+
+        // An unplaced task takes its reach from its ancestors, so a new parent changes the answer. See ADR-0023.
+        Task::saved(function (Task $task) use ($flushTaskAccess): void {
+            if ($task->wasChanged('parent_id')) {
+                $flushTaskAccess();
+            }
+        });
     }
 
     /** `notifiable_id` is a morph column and cannot carry a foreign key, so the cleanup happens here. */

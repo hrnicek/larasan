@@ -87,10 +87,12 @@ it('tells each row whether the reader may tick it off', function (): void {
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace, WorkspaceRole::Member);
     $guest = memberOf($workspace, WorkspaceRole::Guest);
+    $given = Project::factory()->in($workspace)->private()->create();
+    ProjectMembership::factory()->in($given)->forUser($guest)->withAccess(ProjectAccessLevel::Editor)->create();
 
-    foreach ([$member, $guest] as $actor) {
-        Task::factory()->in($workspace)->create(['assignee_id' => $actor->id, 'due_at' => now()]);
-    }
+    Task::factory()->in($workspace)->create(['assignee_id' => $member->id, 'due_at' => now()]);
+    $guestsTask = Task::factory()->in($workspace)->create(['assignee_id' => $guest->id, 'due_at' => now()]);
+    TaskProjectMembership::factory()->placing($guestsTask, $given)->create();
 
     $this->actingAs($member)
         ->get(route('my-tasks.index'))

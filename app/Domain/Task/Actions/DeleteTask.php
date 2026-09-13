@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Task\Actions;
 
+use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Events\TaskDeleted;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
@@ -21,16 +22,49 @@ final readonly class DeleteTask
             throw TaskException::cannotDeleteTask();
         }
 
-        $taskId = $task->id;
         $workspaceId = $task->workspace_id;
 
-        DB::transaction(function () use ($task): void {
-            // A soft delete never triggers the foreign key's ON DELETE SET NULL, so children are detached here.
-            $task->children()->update(['parent_id' => null]);
+        $deletedIds = DB::transaction(function () use ($task): array {
+            // Unplaced subtasks take their reach from this task, so promoting them would widen who can read them. See ADR-0023.
+            $deleting = $this->withUnplacedDescendants($task);
 
-            $task->delete();
+            // A soft delete never triggers the foreign key's ON DELETE SET NULL, so the placed subtasks are promoted here.
+            Task::query()
+                ->where('workspace_id', $task->workspace_id)
+                ->whereIn('parent_id', $deleting)
+                ->whereNotIn('id', $deleting)
+                ->update(['parent_id' => null]);
+
+            Task::query()->whereKey($deleting)->get()->each(fn (Task $doomed): ?bool => $doomed->delete());
+
+            return $deleting;
         });
 
-        $this->events->dispatch(new TaskDeleted($taskId, $workspaceId, $actor->id));
+        foreach ($deletedIds as $deletedId) {
+            $this->events->dispatch(new TaskDeleted($deletedId, $workspaceId, $actor->id));
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function withUnplacedDescendants(Task $task): array
+    {
+        $ids = [$task->id];
+        $level = [$task->id];
+
+        for ($depth = 0; $depth < ParentChain::MAX_DEPTH && $level !== []; $depth++) {
+            $level = array_values(Task::query()
+                ->where('workspace_id', $task->workspace_id)
+                ->whereIn('parent_id', $level)
+                ->whereNotIn('id', $ids)
+                ->whereDoesntHave('placements')
+                ->pluck('id')
+                ->all());
+
+            $ids = [...$ids, ...$level];
+        }
+
+        return $ids;
     }
 }

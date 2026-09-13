@@ -126,7 +126,7 @@ it('names only the projects the reader can reach', function (): void {
     expect(array_column($row['projects'], 'name'))->toBe(['Open']);
 });
 
-it('keeps a task whose only project the reader cannot open', function (): void {
+it('leaves out a task whose only project the reader cannot open', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $private = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
@@ -134,10 +134,7 @@ it('keeps a task whose only project the reader cannot open', function (): void {
     $task = Task::factory()->in($workspace)->create(['title' => 'Assigned to me', 'assignee_id' => $actor->id, 'due_at' => now()]);
     TaskProjectMembership::factory()->placing($task, $private)->create();
 
-    $rows = myTasks($workspace, $actor)['tasks'];
-
-    expect(array_column($rows, 'title'))->toBe(['Assigned to me'])
-        ->and($rows[0]['projects'])->toBe([]);
+    expect(myTasks($workspace, $actor)['tasks'])->toBe([]);
 });
 
 it('pages without reading everything', function (): void {

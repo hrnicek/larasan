@@ -33,4 +33,9 @@ final class PlacementException extends DomainException implements DomainRefusal
     {
         return new self('That task is not in this workspace.');
     }
+
+    public static function cannotLeaveItsOnlyPrivateProject(): self
+    {
+        return new self('This task is only in this private project. Add it to another project first, or delete it.');
+    }
 }

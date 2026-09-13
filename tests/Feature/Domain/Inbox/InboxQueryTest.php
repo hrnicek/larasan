@@ -239,7 +239,7 @@ it('has nothing to say when nothing has happened', function (): void {
     ]);
 });
 
-it('gives a line no address when the reader can no longer reach the task', function (): void {
+it('gives a line no address and no name when the reader can no longer reach the task', function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Owner);
     $reader = memberOf($workspace, WorkspaceRole::Member);
@@ -253,7 +253,8 @@ it('gives a line no address when the reader can no longer reach the task', funct
 
     $subject = inbox($workspace, $reader)['notifications'][0]['subject'];
 
-    expect($subject['title'])->toBe('Still mine')
+    expect($subject['id'])->toBeNull()
+        ->and($subject['title'])->toBeNull()
         ->and($subject['url'])->toBeNull();
 });
 
@@ -263,6 +264,7 @@ it('gives a guest an address for what they were given', function (): void {
     $guest = memberOf($workspace, WorkspaceRole::Guest);
     $project = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
     ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Viewer)->create();
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess(ProjectAccessLevel::Editor)->create();
 
     $task = Task::factory()->in($workspace)->create(['title' => 'Given']);
     TaskProjectMembership::factory()->placing($task, $project)->create();
