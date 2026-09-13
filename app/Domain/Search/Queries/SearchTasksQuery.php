@@ -16,6 +16,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -61,7 +62,7 @@ final readonly class SearchTasksQuery
 
         return [
             'tasks' => array_values($results->getCollection()
-                ->map(fn (Task $task): array => $this->row($task, $mayUpdate && $this->onAChangeableBoard($task), $people))
+                ->map(fn (Task $task): array => $this->row($task, $mayUpdate && $this->governedByAChangeableProject($task), $people))
                 ->all()),
             'meta' => [
                 'term' => $term,
@@ -142,15 +143,20 @@ final readonly class SearchTasksQuery
     ): LengthAwarePaginator {
         $visible = $this->reachable->projectIds($workspace, $actor);
 
+        $governedByAChangeableProject = DB::query()
+            ->fromSub($this->reachable->governedBy(
+                Task::query()->where('tasks.workspace_id', $workspace->id)->select('tasks.id'),
+                $this->changeableProjects->query($workspace, $actor, Capability::TaskUpdate)->select('projects.id'),
+                includeWorkspaceWork: true,
+            ), 'editable')
+            ->whereColumn('editable.id', 'tasks.id')
+            ->selectRaw('count(*) > 0');
+
         $tasks = $this->reachable
             ->constrain(Task::query(), $workspace, $actor)
             ->select(['id', 'workspace_id', 'title', 'due_at', 'priority', 'completed_at', 'assignee_id'])
+            ->selectSub($governedByAChangeableProject, 'governed_by_a_changeable_project')
             ->withCount('comments')
-            ->withCount('placements')
-            ->withExists(['placements as on_a_changeable_board' => fn (Builder $placements): Builder => $placements
-                ->whereIn('project_id', $this->changeableProjects
-                    ->query($workspace, $actor, Capability::TaskUpdate)
-                    ->select('projects.id'))])
             ->with([
                 PersonSummary::eager('assignee'),
                 'tags:id,name,color',
@@ -223,13 +229,9 @@ final readonly class SearchTasksQuery
         ];
     }
 
-    /**
-     * A task in no project is workspace-level work and counts as changeable.
-     */
-    private function onAChangeableBoard(Task $task): bool
+    private function governedByAChangeableProject(Task $task): bool
     {
-        return (int) ($task->placements_count ?? 0) === 0
-            || (bool) ($task->on_a_changeable_board ?? false);
+        return $task->getAttribute('governed_by_a_changeable_project') === true;
     }
 
     /**

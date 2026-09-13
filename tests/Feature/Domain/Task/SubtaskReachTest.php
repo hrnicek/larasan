@@ -50,11 +50,12 @@ function unplacedSubtaskOf(Workspace $workspace, Task $parent, string $title): T
  */
 function reachableTitles(Workspace $workspace, User $actor): array
 {
-    return app(ReachableTasks::class)
+    return array_values(app(ReachableTasks::class)
         ->constrain(Task::query(), $workspace, $actor)
         ->orderBy('title')
-        ->pluck('title')
-        ->all();
+        ->get(['tasks.title'])
+        ->map(fn (Task $task): string => $task->title)
+        ->all());
 }
 
 it('keeps a member outside a private project out of a subtask of one of its tasks', function (string $ability): void {

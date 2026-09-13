@@ -244,3 +244,22 @@ it('carries the tags a result row draws', function (): void {
         'color' => $task->tags()->sole()->color?->value,
     ]]);
 });
+
+it('lets an unplaced subtask be updated only where its parent s project allows changes', function (ProjectAccessLevel $access, bool $canUpdate): void {
+    $workspace = Workspace::factory()->create();
+    $actor = memberOf($workspace);
+    $project = Project::factory()->in($workspace)->create();
+    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
+
+    $parent = Task::factory()->in($workspace)->create(['title' => 'Release plan']);
+    TaskProjectMembership::factory()->placing($parent, $project)->create();
+    Task::factory()->in($workspace)->create(['title' => 'Fix the login screen', 'parent_id' => $parent->id]);
+
+    $rows = app(SearchTasksQuery::class)($workspace, $actor, 'login')['tasks'];
+
+    expect(array_column($rows, 'title'))->toBe(['Fix the login screen'])
+        ->and($rows[0]['canUpdate'])->toBe($canUpdate);
+})->with([
+    'editor' => [ProjectAccessLevel::Editor, true],
+    'viewer' => [ProjectAccessLevel::Viewer, false],
+]);
