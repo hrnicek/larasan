@@ -11,20 +11,8 @@ use App\Domain\Task\Events\TaskUpdated;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Event;
-
-/**
- * @return array{Task, User}
- */
-function taskEditableBy(WorkspaceRole $role = WorkspaceRole::Member): array
-{
-    $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, $role);
-
-    return [Task::factory()->in($workspace)->create(['title' => 'Untouched']), $actor];
-}
 
 it('updates the fields it owns', function (): void {
     [$task, $actor] = taskEditableBy();
@@ -120,7 +108,7 @@ it('detaches a subtask when no parent is given', function (): void {
     expect($task->fresh()?->parent_id)->toBeNull();
 });
 
-it('refuses a parent that is one of the task s own subtasks', function (): void {
+it("refuses a parent that is one of the task's own subtasks", function (): void {
     [$task, $actor] = taskEditableBy();
     $child = Task::factory()->childOf($task)->create();
 

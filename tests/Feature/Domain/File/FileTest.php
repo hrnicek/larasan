@@ -27,20 +27,20 @@ it('refuses to have its location or its size mass assigned', function (): void {
     }
 });
 
-it('reads a task s attachments oldest first', function (): void {
+it("reads a task's attachments in position order", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
 
-    foreach (['First', 'Second', 'Third'] as $name) {
+    foreach (['Third' => 3000, 'First' => 1000, 'Second' => 2000] as $name => $position) {
         $file = File::factory()->in($workspace)->create(['original_name' => $name]);
-        Attachment::factory()->attaching($file, $task)->create();
+        Attachment::factory()->attaching($file, $task)->create(['position' => $position]);
     }
 
     expect($task->attachments()->with('file')->get()->map(fn (Attachment $a): string => $a->file->original_name)->all())
         ->toBe(['First', 'Second', 'Third']);
 });
 
-it('keeps another subject s attachments out', function (): void {
+it("keeps another subject's attachments out", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
     $other = Task::factory()->in($workspace)->create();

@@ -6,7 +6,6 @@ use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\WorkspaceRole;
-use App\Domain\Tag\Actions\AttachTagToTask;
 use App\Domain\Tag\Actions\DetachTagFromTask;
 use App\Domain\Tag\Events\TaskTagged;
 use App\Domain\Tag\Events\TaskUntagged;
@@ -16,11 +15,6 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
-
-function tagTask(Task $task, Tag $tag, User $actor): void
-{
-    app(AttachTagToTask::class)->handle($task, $tag, $actor);
-}
 
 function untagTask(Task $task, Tag $tag, User $actor): void
 {

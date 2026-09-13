@@ -36,9 +36,7 @@ it('finds a project by the slug somebody pasted', function (): void {
     Project::factory()->in($workspace)->create(['name' => 'Website relaunch', 'slug' => 'website-relaunch']);
 
     expect(projectResults($workspace, $actor, 'website-relaunch'))->toHaveCount(1);
-})->with([
-    'somebody who pastes a URL fragment is looking for the project it addresses',
-]);
+});
 
 it('never returns a private project the actor was not given', function (): void {
     $workspace = Workspace::factory()->create();
@@ -71,9 +69,7 @@ it('gives a guest only the projects they were given', function (): void {
     Project::factory()->in($workspace)->create(['name' => 'Website relaunch']);
 
     expect(projectResults($workspace, $guest, 'website'))->toBe([]);
-})->with([
-    'workspace visibility grants a guest nothing',
-]);
+});
 
 it('finds an archived project and says that it is archived', function (): void {
     $workspace = Workspace::factory()->create();
@@ -84,9 +80,7 @@ it('finds an archived project and says that it is archived', function (): void {
 
     expect($results)->toHaveCount(1)
         ->and($results[0]['archived'])->toBeTrue();
-})->with([
-    'a search that hid archived work would be hiding work rather than tidying it',
-]);
+});
 
 it('returns nothing for an empty term', function (): void {
     $workspace = Workspace::factory()->create();

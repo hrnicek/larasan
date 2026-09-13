@@ -31,9 +31,7 @@ it('keeps a search, with its kind and its filters', function (): void {
         ->and($search->filters)->toBe(['completed' => false])
         ->and($search->user_id)->toBe($actor->id)
         ->and($search->workspace_id)->toBe($workspace->id);
-})->with([
-    'a saved search is a term, a kind and the filters that were on when it was kept',
-]);
+});
 
 it('refuses a second search with the same name', function (): void {
     $workspace = Workspace::factory()->create();
@@ -46,9 +44,7 @@ it('refuses a second search with the same name', function (): void {
         ->assertSessionHasErrors('name');
 
     expect(SavedSearch::query()->count())->toBe(1);
-})->with([
-    'two chips reading "Overdue" are two chips nobody can tell apart',
-]);
+});
 
 it('lets the database refuse the duplicate the check cannot', function (): void {
     $workspace = Workspace::factory()->create();
@@ -102,7 +98,7 @@ it('forgets a search its owner asks it to', function (): void {
     expect(SavedSearch::query()->count())->toBe(0);
 });
 
-it('refuses to forget somebody else’s search', function (): void {
+it("refuses to forget somebody else's search", function (): void {
     $workspace = Workspace::factory()->create();
     $owner = memberOf($workspace);
     $other = memberOf($workspace);
@@ -113,16 +109,12 @@ it('refuses to forget somebody else’s search', function (): void {
         ->assertForbidden();
 
     expect(SavedSearch::query()->count())->toBe(1);
-})->with([
-    'a saved search is a bookmark: it belongs to the person who kept it and to nobody else',
-]);
+});
 
 it('resolves the policy the framework has to find on its own', function (): void {
+    // No policy is registered explicitly; the framework guesses it from the Models namespace.
     expect(Gate::getPolicyFor(SavedSearch::class))->toBeInstanceOf(SavedSearchPolicy::class);
-})->with([
-    'app/Domain/<Context>/Policies is not the layout the framework documents, so a namespace move
-    would stop authorizing in silence',
-]);
+});
 
 it('offers the chips on the empty field and not beside every keystroke', function (): void {
     $workspace = Workspace::factory()->create();

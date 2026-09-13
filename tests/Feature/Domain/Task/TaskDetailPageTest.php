@@ -86,7 +86,7 @@ it('lets a guest read a task in a project they were given', function (): void {
             ->where('can.comment', false));
 });
 
-it('sends the lists the detail s own controls need', function (): void {
+it("sends the lists the detail's own controls need", function (): void {
     [$workspace, , $actor] = placeableProject();
     $member = memberOf($workspace, WorkspaceRole::Member);
     $task = Task::factory()->in($workspace)->create();
@@ -297,7 +297,7 @@ it('tells the panel whether a comment form belongs on the screen', function (
     'viewer' => [ProjectAccessLevel::Viewer, false],
 ]);
 
-it('sends a task s tags and the workspace vocabulary to pick from', function (): void {
+it("sends a task's tags and the workspace vocabulary to pick from", function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
     $applied = Tag::factory()->in($workspace)->named('Bug')->create(['color' => ProjectColor::Rose]);

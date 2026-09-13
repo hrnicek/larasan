@@ -3,38 +3,10 @@
 declare(strict_types=1);
 
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-
-/**
- * @param  array<string, mixed>  $overrides
- */
-function insertFile(Workspace $workspace, ?User $uploader = null, array $overrides = []): string
-{
-    $id = (string) Str::uuid7();
-
-    DB::table('files')->insert([
-        'id' => $id,
-        'workspace_id' => $workspace->id,
-        'uploaded_by' => $uploader?->id,
-        'disk' => 'attachments',
-        'path' => "workspaces/{$workspace->id}/".Str::uuid7(),
-        'original_name' => 'quarterly plan.pdf',
-        'mime_type' => 'application/pdf',
-        'extension' => 'pdf',
-        'size' => 42_000,
-        'checksum' => str_repeat('a', 64),
-        'metadata' => json_encode([], JSON_THROW_ON_ERROR),
-        'created_at' => now(),
-        'updated_at' => now(),
-        ...$overrides,
-    ]);
-
-    return $id;
-}
 
 it('records the disk beside the path', function (): void {
     // Stored per file so changing the attachments disk does not strand earlier uploads. See ADR-0007.

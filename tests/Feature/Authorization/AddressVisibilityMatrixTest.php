@@ -61,14 +61,14 @@ function peopleAroundTheTask(array $props): array
 {
     $detail = $props['taskDetail'] ?? $props;
 
-    return [
+    return array_values([
         ...$props['members'],
         $detail['task']['assignee'],
         $detail['task']['creator'],
         ...$detail['collaborators'],
         ...$detail['followers'],
         ...array_column($detail['attachments'], 'uploader'),
-    ];
+    ]);
 }
 
 /**
@@ -106,7 +106,7 @@ dataset('readers', [
     'a member sees addresses' => [WorkspaceRole::Member, true],
 ]);
 
-it('sends colleagues addresses with the task panel only to a reader who is not a guest', function (string $route, WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses with the task panel only to a reader who is not a guest", function (string $route, WorkspaceRole $role, bool $shown): void {
     [$project, $task, $reader] = taskAmongColleagues($role);
 
     $parameters = $route === 'projects.show'
@@ -126,7 +126,7 @@ it('sends colleagues addresses with the task panel only to a reader who is not a
     'a project' => ['projects.show'],
 ])->with('readers');
 
-it('sends colleagues addresses on a task s own page only to a reader who is not a guest', function (WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses on a task's own page only to a reader who is not a guest", function (WorkspaceRole $role, bool $shown): void {
     [, $task, $reader] = taskAmongColleagues($role);
 
     $this->actingAs($reader)
@@ -137,7 +137,7 @@ it('sends colleagues addresses on a task s own page only to a reader who is not 
         });
 })->with('readers');
 
-it('sends the project s members addresses in the share dialog only to a reader who is not a guest', function (WorkspaceRole $role, bool $shown): void {
+it("sends the project's members' addresses in the share dialog only to a reader who is not a guest", function (WorkspaceRole $role, bool $shown): void {
     [$project, , $reader] = taskAmongColleagues($role);
 
     $share = $this->actingAs($reader)
@@ -153,7 +153,7 @@ it('sends the project s members addresses in the share dialog only to a reader w
     expectAddresses($share['members'], $shown);
 })->with('readers');
 
-it('returns colleagues addresses from a people search only to a reader who is not a guest', function (WorkspaceRole $role, bool $shown): void {
+it("returns colleagues' addresses from a people search only to a reader who is not a guest", function (WorkspaceRole $role, bool $shown): void {
     [, , $reader] = taskAmongColleagues($role);
 
     $people = $this->actingAs($reader)
@@ -166,7 +166,7 @@ it('returns colleagues addresses from a people search only to a reader who is no
     expectAddresses($people, $shown);
 })->with('readers');
 
-it('sends colleagues addresses on a project view only to a reader who is not a guest', function (string $view, string $path, WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses on a project view only to a reader who is not a guest", function (string $view, string $path, WorkspaceRole $role, bool $shown): void {
     [$project, , $reader] = taskAmongColleagues($role);
 
     $this->actingAs($reader)
@@ -182,7 +182,7 @@ it('sends colleagues addresses on a project view only to a reader who is not a g
     'the files' => ['files', 'files.files.*.uploader'],
 ])->with('readers');
 
-it('sends colleagues addresses on the search screen only to a reader who is not a guest', function (WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses on the search screen only to a reader who is not a guest", function (WorkspaceRole $role, bool $shown): void {
     [, , $reader] = taskAmongColleagues($role);
 
     $this->actingAs($reader)
@@ -193,7 +193,7 @@ it('sends colleagues addresses on the search screen only to a reader who is not 
         });
 })->with('readers');
 
-it('sends colleagues addresses in the palette s tasks and messages only to a reader who is not a guest', function (string $kind, string $term, string $path, WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses in the palette's tasks and messages only to a reader who is not a guest", function (string $kind, string $term, string $path, WorkspaceRole $role, bool $shown): void {
     [, , $reader] = taskAmongColleagues($role);
 
     $answer = $this->actingAs($reader)
@@ -207,7 +207,7 @@ it('sends colleagues addresses in the palette s tasks and messages only to a rea
     'messages' => ['messages', 'remark', 'results.messages.*.author'],
 ])->with('readers');
 
-it('sends colleagues addresses in a task s activity only to a reader who is not a guest', function (WorkspaceRole $role, bool $shown): void {
+it("sends colleagues' addresses in a task's activity only to a reader who is not a guest", function (WorkspaceRole $role, bool $shown): void {
     [, $task, $reader] = taskAmongColleagues($role);
 
     $activity = $this->actingAs($reader)

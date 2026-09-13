@@ -8,24 +8,6 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Workspace\Actions\ChangeWorkspaceMemberRole;
 use App\Domain\Workspace\Models\Workspace;
-use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Support\Facades\DB;
-
-/**
- * @return list<string>
- */
-function queriesDuring(Closure $work): array
-{
-    $sql = [];
-
-    DB::listen(function (QueryExecuted $query) use (&$sql): void {
-        $sql[] = $query->sql;
-    });
-
-    $work();
-
-    return $sql;
-}
 
 /**
  * @param  list<string>  $queries
@@ -49,7 +31,7 @@ function directLookupsOf(array $queries, string $table): int
 it('reads each membership once for a whole settings request', function (): void {
     [$project, $actor] = projectEditableBy(ProjectAccessLevel::Owner, WorkspaceRole::Owner);
 
-    $queries = queriesDuring(function () use ($project, $actor): void {
+    $queries = queriesWhile(function () use ($project, $actor): void {
         $this->actingAs($actor)->get(route('projects.edit', $project))->assertOk();
     });
 
@@ -66,7 +48,7 @@ it('reads each membership once per actor, not once for everybody', function (): 
 
     $registry = app(MembershipRegistry::class);
 
-    $queries = queriesDuring(function () use ($registry, $project, $actor, $other): void {
+    $queries = queriesWhile(function () use ($registry, $project, $actor, $other): void {
         $registry->forWorkspace($project->workspace, $actor);
         $registry->forWorkspace($project->workspace, $actor);
         $registry->forWorkspace($project->workspace, $other);
@@ -79,7 +61,7 @@ it('remembers that somebody is not a member without asking twice', function (): 
     $workspace = Workspace::factory()->createOne();
     $stranger = memberOf(Workspace::factory()->createOne());
 
-    $queries = queriesDuring(function () use ($workspace, $stranger): void {
+    $queries = queriesWhile(function () use ($workspace, $stranger): void {
         $workspace->membershipFor($stranger);
         $workspace->membershipFor($stranger);
     });
@@ -102,7 +84,6 @@ it('forgets an answer the moment the membership changes', function (): void {
         WorkspaceRole::Admin,
     );
 
-    // No nullsafe: the ?? throw above already tells PHPStan this cannot be null.
     expect($workspace->membershipFor($member)->role)->toBe(WorkspaceRole::Admin);
 });
 

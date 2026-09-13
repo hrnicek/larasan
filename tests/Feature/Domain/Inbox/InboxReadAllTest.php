@@ -51,7 +51,7 @@ it('leaves the moment they first saw the ones they had already read', function (
     expect($seen->fresh()?->read_at?->toIso8601String())->toBe($originally);
 });
 
-it('leaves another workspace s inbox alone', function (): void {
+it("leaves another workspace's inbox alone", function (): void {
     $workspace = Workspace::factory()->create();
     $elsewhere = Workspace::factory()->create();
     $actor = memberOf($workspace);
@@ -73,7 +73,7 @@ it('leaves another workspace s inbox alone', function (): void {
         ->and($unread->first()?->workspace_id)->toBe($elsewhere->id);
 });
 
-it('leaves everybody else s inbox alone', function (): void {
+it("leaves everybody else's inbox alone", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $reader = memberOf($workspace);

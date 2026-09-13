@@ -177,7 +177,7 @@ it('remembers a task page when it opens but not when its activity arrives', func
     expect(RecentItem::query()->where('user_id', $actor->id)->pluck('subject_id')->all())->toBe([$task->id]);
 });
 
-it('loads a task page s activity without reading its member list', function (): void {
+it("loads a task page's activity without reading its member list", function (): void {
     [$actor, , $task] = boardToReload();
 
     $full = sqlOf(fn () => $this->actingAs($actor)->get(route('tasks.show', $task))->assertOk());

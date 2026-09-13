@@ -128,9 +128,7 @@ it('locks the moved task and the whole chain above its new parent, in key order,
 
     app(UpdateTask::class)->handle($moved, $actor, new UpdateTaskData(parentId: $parent->id, fields: ['parent_id']));
 
-    expect($locks)->not->toBeEmpty();
-
-    $lock = $locks[array_key_last($locks)];
+    $lock = collect($locks)->last() ?? $this->fail('No row lock was taken on tasks.');
     $ids = [$root->id, $middle->id, $parent->id, $moved->id];
 
     expect($lock->bindings)->toContain(...$ids)

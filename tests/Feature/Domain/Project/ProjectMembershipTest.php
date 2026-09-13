@@ -236,7 +236,7 @@ it('holds the last-owner rule for a caller without a request', function (): void
         ->toThrow(ProjectException::class, 'A project needs at least one owner.');
 });
 
-it('sends the project s faces with the screen', function (): void {
+it("sends the project's faces with the screen", function (): void {
     [, $project, $owner, $other] = projectWithOwner();
     app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor);
 
@@ -341,20 +341,19 @@ it('locks the owner rows before it removes or demotes an owner', function (strin
     match ($change) {
         'revoke' => app(RevokeProjectAccess::class)->handle($project, $owner, $membership),
         'demote' => app(GrantProjectAccess::class)->handle($project, $owner, $other, ProjectAccessLevel::Editor),
+        default => throw new InvalidArgumentException("Unknown change [{$change}]."),
     };
 
     DB::disableQueryLog();
 
-    $statements = collect(DB::getQueryLog())->pluck('query');
+    $statements = array_column(DB::getQueryLog(), 'query');
 
-    $ownerLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "project_memberships"')
+    $ownerLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "project_memberships"')
         && str_contains($sql, '"access_level" = ?')
         && str_ends_with($sql, 'for update'));
 
-    $write = $statements->search(fn (string $sql): bool => str_starts_with($sql, 'delete from "project_memberships"')
+    $write = indexOfStatement($statements, fn (string $sql): bool => str_starts_with($sql, 'delete from "project_memberships"')
         || str_starts_with($sql, 'update "project_memberships"'));
 
-    expect($ownerLock)->toBeInt()
-        ->and($write)->toBeInt()
-        ->and($ownerLock)->toBeLessThan($write);
+    expect($ownerLock)->toBeLessThan($write);
 })->with(['revoke', 'demote']);

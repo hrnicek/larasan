@@ -14,8 +14,6 @@ use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
-use Illuminate\Database\Events\QueryExecuted;
-use Illuminate\Support\Facades\DB;
 
 /**
  * @return array{Workspace, User}
@@ -76,22 +74,6 @@ function realisticWorkspace(int $tasks): array
     $actor->forceFill(['current_workspace_id' => $workspace->id])->save();
 
     return [$workspace, $actor];
-}
-
-/**
- * @return list<string>
- */
-function queriesWhile(callable $work): array
-{
-    $queries = [];
-
-    DB::listen(function (QueryExecuted $query) use (&$queries): void {
-        $queries[] = $query->sql;
-    });
-
-    $work();
-
-    return $queries;
 }
 
 function screenUrl(string $screen, Workspace $workspace): string

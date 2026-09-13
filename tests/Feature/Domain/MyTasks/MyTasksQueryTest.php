@@ -9,19 +9,9 @@ use App\Domain\Shared\Enums\ProjectVisibility;
 use App\Domain\Shared\Enums\TaskPriority;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
-use App\Domain\Task\Queries\MyTasksQuery;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
-
-/**
- * @return array{tasks: list<array<string, mixed>>, meta: array<string, mixed>}
- */
-function myTasks(Workspace $workspace, User $actor, MyTasksTab $tab = MyTasksTab::Today, int $page = 1, int $perPage = 25): array
-{
-    return app(MyTasksQuery::class)($workspace, $actor, $tab, $page, $perPage);
-}
 
 it('shows only what is due today', function (): void {
     $workspace = Workspace::factory()->create();
@@ -87,14 +77,14 @@ it('reads a finished list newest first', function (): void {
     expect(array_column(myTasks($workspace, $actor, MyTasksTab::Completed)['tasks'], 'title'))->toBe(['Newer', 'Older']);
 });
 
-it('shows nobody else s work', function (): void {
+it("shows nobody else's work", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $other = memberOf($workspace);
 
     Task::factory()->in($workspace)->create(['title' => 'Mine', 'assignee_id' => $actor->id, 'due_at' => now()]);
     Task::factory()->in($workspace)->create(['title' => 'Theirs', 'assignee_id' => $other->id, 'due_at' => now()]);
-    Task::factory()->in($workspace)->create(['title' => 'Nobody s', 'due_at' => now()]);
+    Task::factory()->in($workspace)->create(['title' => "Nobody's", 'due_at' => now()]);
 
     expect(array_column(myTasks($workspace, $actor)['tasks'], 'title'))->toBe(['Mine']);
 });
@@ -138,6 +128,8 @@ it('leaves out a task whose only project the reader cannot open', function (): v
 });
 
 it('pages without reading everything', function (): void {
+    $this->travelTo(today()->setTime(12, 0));
+
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 

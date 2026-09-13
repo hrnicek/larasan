@@ -167,20 +167,18 @@ it('locks the project row before it touches a card, and scopes the rewrite to th
 
     DB::disableQueryLog();
 
-    $log = collect(DB::getQueryLog());
+    $log = DB::getQueryLog();
+    $statements = array_column($log, 'query');
 
-    $projectLock = $log->search(fn (array $entry): bool => str_contains($entry['query'], 'from "projects"')
-        && str_ends_with($entry['query'], 'for no key update'));
+    $projectLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "projects"')
+        && str_ends_with($sql, 'for no key update'));
 
-    $firstCardStatement = $log->search(fn (array $entry): bool => str_contains($entry['query'], 'task_project_memberships'));
+    $firstCardStatement = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'task_project_memberships'));
 
-    $rewrite = $log->first(fn (array $entry): bool => str_starts_with(trim($entry['query']), 'update task_project_memberships'));
+    $rewrite = indexOfStatement($statements, fn (string $sql): bool => str_starts_with(trim($sql), 'update task_project_memberships'));
 
-    expect($projectLock)->toBeInt()
-        ->and($firstCardStatement)->toBeInt()
-        ->and($projectLock)->toBeLessThan($firstCardStatement)
-        ->and($rewrite)->not->toBeNull()
-        ->and($rewrite['bindings'])->toContain($project->id);
+    expect($projectLock)->toBeLessThan($firstCardStatement)
+        ->and($log[$rewrite]['bindings'])->toContain($project->id);
 });
 
 it('recovers when an append took the end of the ungrouped bucket between the read and the write', function (): void {

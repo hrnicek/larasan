@@ -70,11 +70,9 @@ it('tells only the project when a card moves inside it', function (): void {
         ViewInvalidated::class,
         fn (ViewInvalidated $broadcast): bool => $broadcast->channels === ["project.{$project->id}"],
     );
-})->with([
-    'a private projects board must not announce its cards to the workspace',
-]);
+});
 
-it('announces every section change on the projects channel alone', function (string $eventClass, string $change): void {
+it("announces every section change on the project's channel alone", function (string $eventClass, string $change): void {
     Event::fake([ViewInvalidated::class]);
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
@@ -125,10 +123,7 @@ it('tells the workspace about a visible project and only the project about a pri
         fn (ViewInvalidated $broadcast): bool => $broadcast->subjectId === $private->id
             && $broadcast->channels === ["project.{$private->id}"],
     );
-})->with([
-    'a private projects name in a workspace payload is the existence of the project, which
-    nobody outside it may learn',
-]);
+});
 
 it('names archiving and restoring as the two different things they are', function (): void {
     Event::fake([ViewInvalidated::class]);
@@ -152,10 +147,7 @@ it('says nothing when the project it was told about is gone', function (): void 
         ViewInvalidated::class,
         fn (ViewInvalidated $broadcast): bool => $broadcast->channels === [],
     );
-})->with([
-    'a broadcast with no channel is delivered nowhere, which is the right amount of noise for
-    a subject nobody can look at',
-]);
+});
 
 it('reaches the board through the endpoint a drag actually calls', function (): void {
     Event::fake([ViewInvalidated::class]);
@@ -173,7 +165,4 @@ it('reaches the board through the endpoint a drag actually calls', function (): 
             && $broadcast->channels === ["project.{$project->id}"]
             && $broadcast->actorId === $actor->id,
     );
-})->with([
-    'the listeners are registered in a map nobody reads at runtime unless it is exercised, so
-    one case goes the whole way: request, action, domain event, listener, broadcast',
-]);
+});

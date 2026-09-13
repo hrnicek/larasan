@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Placement\Actions\AttachTaskToProject;
 use App\Domain\Placement\Events\TaskAttachedToProject;
 use App\Domain\Placement\Exceptions\PlacementException;
 use App\Domain\Placement\Models\TaskProjectMembership;
@@ -14,30 +13,8 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-
-/**
- * @return array{Workspace, Project, User}
- */
-function placeableProject(
-    ProjectAccessLevel $access = ProjectAccessLevel::Editor,
-    WorkspaceRole $role = WorkspaceRole::Member,
-): array {
-    $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, $role);
-    $project = Project::factory()->in($workspace)->create();
-
-    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
-
-    return [$workspace, $project, $actor];
-}
-
-function attach(Task $task, Project $project, User $actor): TaskProjectMembership
-{
-    return app(AttachTaskToProject::class)->handle($task, $project, $actor);
-}
 
 it('puts a task in a project without taking it out of the workspace', function (): void {
     [$workspace, $project, $actor] = placeableProject();
@@ -191,19 +168,16 @@ it('locks the project row before it reads the end of the bucket or writes the ca
 
     DB::disableQueryLog();
 
-    $statements = collect(DB::getQueryLog())->pluck('query');
+    $statements = array_column(DB::getQueryLog(), 'query');
 
-    $projectLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+    $projectLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "projects"')
         && str_ends_with($sql, 'for no key update'));
 
-    $tailRead = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "task_project_memberships"')
+    $tailRead = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "task_project_memberships"')
         && str_contains($sql, '"section_id" is null'));
 
-    $insert = $statements->search(fn (string $sql): bool => str_starts_with($sql, 'insert into "task_project_memberships"'));
+    $insert = indexOfStatement($statements, fn (string $sql): bool => str_starts_with($sql, 'insert into "task_project_memberships"'));
 
-    expect($projectLock)->toBeInt()
-        ->and($tailRead)->toBeInt()
-        ->and($insert)->toBeInt()
-        ->and($projectLock)->toBeLessThan($tailRead)
+    expect($projectLock)->toBeLessThan($tailRead)
         ->and($tailRead)->toBeLessThan($insert);
 });

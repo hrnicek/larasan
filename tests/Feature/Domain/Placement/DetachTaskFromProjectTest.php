@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Placement\Actions\DetachTaskFromProject;
 use App\Domain\Placement\Events\TaskDetachedFromProject;
 use App\Domain\Placement\Exceptions\PlacementException;
 use App\Domain\Placement\Models\TaskProjectMembership;
@@ -12,13 +11,7 @@ use App\Domain\Section\Models\Section;
 use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Support\Facades\Event;
-
-function detach(Task $task, Project $project, User $actor): void
-{
-    app(DetachTaskFromProject::class)->handle($task, $project, $actor);
-}
 
 function attachDirectly(Task $task, Project $project): TaskProjectMembership
 {

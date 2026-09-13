@@ -62,7 +62,7 @@ it('announces a task that sits in no project on the workspace channel', function
     expect(channelsOfLastBroadcast())->toBe(["workspace.{$workspace->id}"]);
 });
 
-it('announces a placed task on its projects channels and never on the workspace', function (): void {
+it("announces a placed task on its projects' channels and never on the workspace", function (): void {
     Event::fake([ViewInvalidated::class]);
     [$workspace, $task, $actor] = looseTask();
     $project = Project::factory()->in($workspace)->create();
@@ -73,7 +73,7 @@ it('announces a placed task on its projects channels and never on the workspace'
     expect(channelsOfLastBroadcast())->toBe(["project.{$project->id}"]);
 });
 
-it('never puts a private projects task on the workspace channel', function (): void {
+it("never puts a private project's task on the workspace channel", function (): void {
     Event::fake([ViewInvalidated::class]);
     [$workspace, $task, $actor] = looseTask();
     $private = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
@@ -84,10 +84,7 @@ it('never puts a private projects task on the workspace channel', function (): v
     expect(channelsOfLastBroadcast())
         ->toBe(["project.{$private->id}"])
         ->not->toContain("workspace.{$workspace->id}");
-})->with([
-    'the id of a task in a project nobody was given would tell every member it exists, which
-    is what the private project was for',
-]);
+});
 
 it('announces a task in two projects on both, and only both', function (): void {
     Event::fake([ViewInvalidated::class]);
@@ -137,6 +134,7 @@ it('announces every task change a shared screen draws', function (string $eventC
 ]);
 
 it('still reaches the board when the task it describes is already deleted', function (): void {
+    // Tasks are soft-deleted and their placements survive, so the affected project is still known.
     Event::fake([ViewInvalidated::class]);
     [$workspace, $task, $actor] = looseTask();
     $project = Project::factory()->in($workspace)->create();
@@ -146,10 +144,7 @@ it('still reaches the board when the task it describes is already deleted', func
     event(new TaskDeleted($task->id, $workspace->id, $actor->id));
 
     expect(channelsOfLastBroadcast())->toBe(["project.{$project->id}"]);
-})->with([
-    'deleting is soft and the placement outlives the task, so the column that has to lose the
-    card is still knowable',
-]);
+});
 
 it('announces a comment on the channels of the task it was left on', function (): void {
     Event::fake([ViewInvalidated::class]);
@@ -167,10 +162,7 @@ it('announces a comment on the channels of the task it was left on', function ()
             && $broadcast->channels === ["project.{$project->id}"]
             && $broadcast->subjectId === $task->id,
     );
-})->with([
-    'the comment text is not in the payload: a channel is a wider audience than a thread, and
-    the panel refetches anyway',
-]);
+});
 
 it('carries ids and an actor, and nothing else', function (): void {
     Event::fake([ViewInvalidated::class]);
@@ -191,7 +183,4 @@ it('carries ids and an actor, and nothing else', function (): void {
 
         return true;
     });
-})->with([
-    'the changed field names are deliberately absent — a subscriber refetches, and a list of
-    columns is a payload somebody has to prove is safe for everyone on the channel',
-]);
+});

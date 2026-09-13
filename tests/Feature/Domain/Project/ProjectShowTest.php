@@ -117,7 +117,7 @@ it('expands the column a reader asked for', function (): void {
             ->where('board.columns.0.hasMore', false));
 });
 
-it('lets the url override the project s own view for one request', function (): void {
+it("lets the url override the project's own view for one request", function (): void {
     [, $project, $actor] = placeableProject();
     $project->forceFill(['default_view' => ProjectDefaultView::List])->save();
 

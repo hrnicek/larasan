@@ -2,52 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
-
-/**
- * @param  array<string, mixed>  $overrides
- */
-function insertCustomField(Workspace $workspace, string $name, array $overrides = []): string
-{
-    $id = (string) Str::uuid7();
-
-    DB::table('custom_fields')->insert([
-        'id' => $id,
-        'workspace_id' => $workspace->id,
-        'name' => $name,
-        'type' => CustomFieldType::Text->value,
-        'created_at' => now(),
-        'updated_at' => now(),
-        ...$overrides,
-    ]);
-
-    return $id;
-}
-
-/**
- * @param  array<string, mixed>  $overrides
- */
-function insertOption(string $fieldId, string $label, int $position, array $overrides = []): string
-{
-    $id = (string) Str::uuid7();
-
-    DB::table('custom_field_options')->insert([
-        'id' => $id,
-        'custom_field_id' => $fieldId,
-        'label' => $label,
-        'color' => null,
-        'position' => $position,
-        'created_at' => now(),
-        'updated_at' => now(),
-        ...$overrides,
-    ]);
-
-    return $id;
-}
 
 it('belongs to a workspace and goes with it', function (): void {
     $workspace = Workspace::factory()->create();

@@ -64,7 +64,7 @@ it('keeps an assigned subtask of a project the reader belongs to', function (): 
     expect(array_column(myTasks($workspace, $actor)['tasks'], 'title'))->toBe(['Mine']);
 });
 
-it('leaves a guest s assigned task out once it is on no project they were given', function (): void {
+it("leaves a guest's assigned task out once it is on no project they were given", function (): void {
     $workspace = Workspace::factory()->create();
     $guest = memberOf($workspace, WorkspaceRole::Guest);
 
@@ -73,7 +73,7 @@ it('leaves a guest s assigned task out once it is on no project they were given'
     expect(myTasks($workspace, $guest)['tasks'])->toBe([]);
 });
 
-it('lets an unplaced subtask be ticked off only where its parent s project allows changes', function (ProjectAccessLevel $access, bool $canUpdate): void {
+it("lets an unplaced subtask be ticked off only where its parent's project allows changes", function (ProjectAccessLevel $access, bool $canUpdate): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $project = Project::factory()->in($workspace)->create();

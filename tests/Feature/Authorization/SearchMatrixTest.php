@@ -71,7 +71,7 @@ it('answers a search the same way for each role and each placement', function (
     'guest, no project' => [WorkspaceRole::Guest, 'nowhere', false],
 ]);
 
-it('never returns another workspace s task, whatever the term', function (WorkspaceRole $role): void {
+it("never returns another workspace's task, whatever the term", function (WorkspaceRole $role): void {
     $workspace = Workspace::factory()->create();
     $elsewhere = Workspace::factory()->create();
     $actor = memberOf($workspace, $role);

@@ -140,7 +140,7 @@ it('hides a field from another workspace behind a 404 for every role', function 
     'guest' => [WorkspaceRole::Guest],
 ]);
 
-it('keeps one workspace s answers out of another s reach', function (): void {
+it("keeps one workspace's answers out of another's reach", function (): void {
     [$task, $field, $actor] = matrixFieldTask(WorkspaceRole::Owner, ProjectAccessLevel::Owner);
     $this->actingAs($actor)->put(route('tasks.custom-fields.update', [$task, $field]), ['value' => 'Two days']);
 

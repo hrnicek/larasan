@@ -4,15 +4,23 @@ declare(strict_types=1);
 
 use App\Models\User;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Tests\TestCase;
 
-function attemptAvatarUpload(User $user): TestResponse
+/**
+ * @return TestResponse<Response>
+ */
+function attemptAvatarUpload(TestCase $test, User $user): TestResponse
 {
-    return test()->actingAs($user)->post(route('avatar.store'));
+    return $test->actingAs($user)->post(route('avatar.store'));
 }
 
-function attemptPasswordChange(User $user): TestResponse
+/**
+ * @return TestResponse<Response>
+ */
+function attemptPasswordChange(TestCase $test, User $user): TestResponse
 {
-    return test()->actingAs($user)->put(route('user-password.update'), [
+    return $test->actingAs($user)->put(route('user-password.update'), [
         'current_password' => 'wrong-password',
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
@@ -23,32 +31,32 @@ it('bounds avatar uploads without spending the password budget', function (): vo
     $user = User::factory()->create();
 
     foreach (range(1, 20) as $ignored) {
-        expect(attemptAvatarUpload($user)->status())->not->toBe(429);
+        expect(attemptAvatarUpload($this, $user)->status())->not->toBe(429);
     }
 
-    attemptAvatarUpload($user)->assertTooManyRequests();
+    attemptAvatarUpload($this, $user)->assertTooManyRequests();
 
-    attemptPasswordChange($user)->assertSessionHasErrors('current_password');
+    attemptPasswordChange($this, $user)->assertSessionHasErrors('current_password');
 });
 
 it('bounds password changes without spending the avatar budget', function (): void {
     $user = User::factory()->create();
 
     foreach (range(1, 6) as $ignored) {
-        attemptPasswordChange($user)->assertSessionHasErrors('current_password');
+        attemptPasswordChange($this, $user)->assertSessionHasErrors('current_password');
     }
 
-    attemptPasswordChange($user)->assertTooManyRequests();
+    attemptPasswordChange($this, $user)->assertTooManyRequests();
 
-    expect(attemptAvatarUpload($user)->status())->not->toBe(429);
+    expect(attemptAvatarUpload($this, $user)->status())->not->toBe(429);
 });
 
 it('counts each person separately', function (): void {
     $user = User::factory()->create();
 
     foreach (range(1, 6) as $ignored) {
-        attemptPasswordChange($user);
+        attemptPasswordChange($this, $user);
     }
 
-    attemptPasswordChange(User::factory()->create())->assertSessionHasErrors('current_password');
+    attemptPasswordChange($this, User::factory()->create())->assertSessionHasErrors('current_password');
 });

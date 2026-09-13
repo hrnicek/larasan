@@ -181,7 +181,7 @@ it('leaves a task on no board and under no parent to the whole workspace', funct
         ->and(reachableTitles($workspace, $guest))->toBe([]);
 });
 
-it('treats unplaced tasks caught in a parent loop as nobody s workspace work', function (): void {
+it("treats unplaced tasks caught in a parent loop as nobody's workspace work", function (): void {
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace, WorkspaceRole::Member);
     $first = Task::factory()->in($workspace)->create(['title' => 'First']);

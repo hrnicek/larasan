@@ -22,7 +22,7 @@ it('refuses to have its type mass assigned', function (): void {
         ->toThrow(MassAssignmentException::class);
 });
 
-it('refuses to have a value s task, field or column mass assigned', function (): void {
+it("refuses to have a value's task, field or column mass assigned", function (): void {
     foreach (['task_id', 'custom_field_id', 'value_text', 'value_number'] as $attribute) {
         expect(fn (): TaskCustomFieldValue => (new TaskCustomFieldValue)->fill([$attribute => 'anything']))
             ->toThrow(MassAssignmentException::class);
@@ -40,7 +40,7 @@ it('reads its options in the order the screen draws them', function (): void {
     expect($field->options()->pluck('label')->all())->toBe(['Draft', 'Review', 'Done']);
 });
 
-it('reads an answer through the field s own type', function (): void {
+it("reads an answer through the field's own type", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
 

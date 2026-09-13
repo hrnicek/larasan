@@ -12,7 +12,6 @@ use App\Domain\Project\Exceptions\ProjectException;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Enums\CustomFieldType;
 use App\Domain\Shared\Enums\WorkspaceRole;
-use App\Domain\Workspace\Models\Workspace;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
@@ -183,8 +182,7 @@ it('refuses a payload that is not a list of keys', function (): void {
 });
 
 it('leaves the lists that belong to no project alone', function (): void {
-    [$workspace, $actor] = workspaceWith(WorkspaceRole::Owner);
-    Workspace::query()->whereKey($workspace->id)->exists();
+    [, $actor] = workspaceWith(WorkspaceRole::Owner);
 
     $this->actingAs($actor)
         ->get(route('my-tasks.index'))

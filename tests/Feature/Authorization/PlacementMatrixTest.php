@@ -126,7 +126,8 @@ it('answers each role and access level the same way at every placement endpoint'
     'guest as viewer detach' => [WorkspaceRole::Guest, ProjectAccessLevel::Viewer, 'detach', 'forbidden'],
     'guest as no member attach' => [WorkspaceRole::Guest, null, 'attach', 'missing'],
     'guest as no member move' => [WorkspaceRole::Guest, null, 'move', 'missing'],
-    'guest as no member detach' => [WorkspaceRole::Guest, null, 'detach', 'missing'], ]);
+    'guest as no member detach' => [WorkspaceRole::Guest, null, 'detach', 'missing'],
+]);
 
 it('answers a card from another workspace exactly as it answers one that does not exist', function (): void {
     $workspace = Workspace::factory()->create();
@@ -147,9 +148,7 @@ it('answers a card from another workspace exactly as it answers one that does no
     expect($foreign->status())->toBe($missing->status())
         ->and(session('errors')?->get('task'))->not->toBeEmpty()
         ->and($project->placements()->count())->toBe(0);
-})->with([
-    'the validation rule is scoped to the project workspace, so both are simply invalid',
-]);
+});
 
 it('refuses another workspace card even to somebody who owns a project there', function (): void {
     [$placement] = matrixPlacement(WorkspaceRole::Owner, ProjectAccessLevel::Owner);

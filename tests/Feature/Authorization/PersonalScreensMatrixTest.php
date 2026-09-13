@@ -35,7 +35,7 @@ it('turns away a revoked membership at both screens', function (WorkspaceRole $r
     'guest' => [WorkspaceRole::Guest],
 ]);
 
-it('keeps one person s notifications out of everybody else s reach', function (WorkspaceRole $role): void {
+it("keeps one person's notifications out of everybody else's reach", function (WorkspaceRole $role): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Owner);
     $reader = memberOf($workspace, WorkspaceRole::Member);

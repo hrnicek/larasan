@@ -81,7 +81,9 @@ dataset('task operations', [
         false,
     ],
     'delete' => [
-        fn (Task $task, User $actor): mixed => app(DeleteTask::class)->handle($task, $actor),
+        function (Task $task, User $actor): void {
+            app(DeleteTask::class)->handle($task, $actor);
+        },
         'permission to delete',
         false,
     ],

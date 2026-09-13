@@ -93,7 +93,7 @@ it('says whether that was the last thing pointing at the file', function (): voi
         && $event->actorId === $uploader->id);
 });
 
-it('lets a moderator remove somebody else s file', function (): void {
+it("lets a moderator remove somebody else's file", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
     $admin = memberOf($workspace, WorkspaceRole::Admin);

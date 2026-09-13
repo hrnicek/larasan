@@ -211,7 +211,7 @@ it('takes their project access with them', function (): void {
         ->and($project->isVisibleTo($member))->toBeFalse();
 });
 
-it('leaves everybody else s project access alone', function (): void {
+it("leaves everybody else's project access alone", function (): void {
     $workspace = Workspace::factory()->create();
     $owner = memberOf($workspace, WorkspaceRole::Owner);
     $going = memberOf($workspace, WorkspaceRole::Member);

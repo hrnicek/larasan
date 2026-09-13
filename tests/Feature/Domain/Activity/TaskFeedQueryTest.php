@@ -35,7 +35,6 @@ it('interleaves comments and activities by time', function (): void {
     Comment::factory()->on($task)->create(['body' => 'Second', 'created_at' => now()->subMinutes(2)]);
     Activity::factory()->on($task)->ofType(ActivityType::TaskReopened)->create(['created_at' => now()->subMinute()]);
 
-    // Newest first.
     expect(array_column(feedOf($task)['entries'], 'kind'))
         ->toBe(['activity', 'comment', 'activity', 'comment']);
 });
@@ -119,7 +118,7 @@ it('says which comments were edited', function (): void {
     expect(array_column(feedOf($task)['entries'], 'edited'))->toBe([false, true]);
 });
 
-it('hands back an activity s properties as data rather than a string', function (): void {
+it("hands back an activity's properties as data rather than a string", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
     Activity::factory()->on($task)->ofType(ActivityType::TaskUpdated, ['changed' => ['title']])->create();
@@ -130,7 +129,7 @@ it('hands back an activity s properties as data rather than a string', function 
         ->and($entry['properties'])->toBe(['changed' => ['title']]);
 });
 
-it('keeps another task s thread out', function (): void {
+it("keeps another task's thread out", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
     $other = Task::factory()->in($workspace)->create();

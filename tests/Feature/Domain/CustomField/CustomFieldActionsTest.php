@@ -7,7 +7,6 @@ use App\Domain\CustomField\Actions\DefineCustomField;
 use App\Domain\CustomField\Actions\DeleteCustomField;
 use App\Domain\CustomField\Actions\DetachFieldFromProject;
 use App\Domain\CustomField\Actions\RenameCustomField;
-use App\Domain\CustomField\Actions\SetTaskCustomFieldValue;
 use App\Domain\CustomField\Exceptions\CustomFieldException;
 use App\Domain\CustomField\Models\CustomField;
 use App\Domain\CustomField\Models\CustomFieldOption;
@@ -22,34 +21,9 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
-
-/**
- * @param  list<string>  $options
- * @return array{Task, CustomField, User, Project}
- */
-function fieldOnATask(CustomFieldType $type = CustomFieldType::Text, array $options = []): array
-{
-    // Defining a field needs custom_field.manage, which only owners and admins hold. See ADR-0010.
-    [$workspace, $project, $actor] = placeableProject(role: WorkspaceRole::Owner);
-
-    $field = app(DefineCustomField::class)->handle($workspace, $actor, 'Estimate', $type, $options);
-    app(AttachFieldToProject::class)->handle($project, $field, $actor);
-
-    $task = Task::factory()->in($workspace)->create();
-    TaskProjectMembership::factory()->placing($task, $project)->create();
-
-    return [$task, $field, $actor, $project];
-}
-
-function setValue(Task $task, CustomField $field, User $actor, mixed $value): ?TaskCustomFieldValue
-{
-    return app(SetTaskCustomFieldValue::class)->handle($task, $field, $actor, $value);
-}
 
 it('defines a field with its choices in one go', function (): void {
     [$workspace, , $actor] = placeableProject(role: WorkspaceRole::Owner);
@@ -94,7 +68,7 @@ it('reports a database failure other than a duplicate name as what it is', funct
     $tooLong = str_repeat('a', 256);
 
     expect(fn (): CustomField => app(DefineCustomField::class)->handle($workspace, $actor, $tooLong, CustomFieldType::Text))
-        ->toThrow(fn (QueryException $exception) => expect($exception)->not->toBeInstanceOf(UniqueConstraintViolationException::class));
+        ->toThrow(QueryException::class, 'value too long');
 
     expect(fn (): CustomField => app(RenameCustomField::class)->handle($field, $actor, $tooLong))
         ->toThrow(QueryException::class);
@@ -190,7 +164,7 @@ it('removes the row when an answer is cleared', function (): void {
     expect($task->customFieldValues()->count())->toBe(0);
 });
 
-it('accepts only this field s own choices', function (): void {
+it("accepts only this field's own choices", function (): void {
     [$task, $field, $actor] = fieldOnATask(CustomFieldType::Select, ['Draft', 'Done']);
     $strangerOption = CustomFieldOption::factory()->create();
 
@@ -202,7 +176,7 @@ it('accepts only this field s own choices', function (): void {
     expect(setValue($task, $field, $actor, $own?->id)?->value($field))->toBe($own?->id);
 });
 
-it('refuses a field the task s projects do not show', function (): void {
+it("refuses a field the task's projects do not show", function (): void {
     [$task, , $actor] = fieldOnATask();
     $workspace = $task->workspace;
     $unattached = app(DefineCustomField::class)->handle($workspace, $actor, 'Risk', CustomFieldType::Text);
@@ -229,7 +203,7 @@ it('refuses a field shown only on a project the actor cannot see', function (): 
 
     ProjectMembership::factory()->in($private)->forUser($editor)->withAccess(ProjectAccessLevel::Viewer)->create();
 
-    expect(setValue($task, $field, $editor->fresh(), 'Seen')?->value($field))->toBe('Seen');
+    expect(setValue($task, $field, $editor->refresh(), 'Seen')?->value($field))->toBe('Seen');
 });
 
 it('refuses a value from somebody who may not edit the task', function (): void {
@@ -248,7 +222,7 @@ it('refuses a value on a task in another workspace', function (): void {
         ->toThrow(CustomFieldException::class, 'That field is not in this workspace.');
 });
 
-it('carries a project s fields as columns and each row s answers', function (): void {
+it("carries a project's fields as columns and each row's answers", function (): void {
     [$task, $field, $actor, $project] = fieldOnATask(CustomFieldType::Number);
     setValue($task, $field, $actor, '12.5');
 

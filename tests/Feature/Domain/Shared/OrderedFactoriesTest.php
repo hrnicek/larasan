@@ -35,7 +35,7 @@ it('builds several placements in one bucket of a project', function (): void {
     expect($placements->pluck('position')->all())->toBe([SparsePosition::GAP, 2 * SparsePosition::GAP, 3 * SparsePosition::GAP]);
 });
 
-it('builds several placements in one section, with tasks from the section s workspace', function (): void {
+it("builds several placements in one section, with tasks from the section's workspace", function (): void {
     $section = Section::factory()->create();
 
     $placements = TaskProjectMembership::factory()->inSection($section)->count(3)->create();
@@ -46,7 +46,7 @@ it('builds several placements in one section, with tasks from the section s work
         ->and($workspaces)->toBe([$section->project->workspace_id]);
 });
 
-it('builds a project for a given task in that task s workspace', function (): void {
+it("builds a project for a given task in that task's workspace", function (): void {
     $task = Task::factory()->create();
 
     $placement = TaskProjectMembership::factory()->create(['task_id' => $task->id]);

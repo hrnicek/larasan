@@ -48,9 +48,7 @@ it('answers with one kind when the tab asks for one', function (): void {
         ->assertJsonPath('meta.kind', 'tasks')
         ->assertJsonCount(1, 'results.tasks')
         ->assertJsonMissingPath('results.projects');
-})->with([
-    'a tab is a kind, and asking four questions to draw one list is three questions wasted',
-]);
+});
 
 it('refuses a kind it does not have', function (): void {
     $workspace = Workspace::factory()->create();
@@ -122,10 +120,7 @@ it('answers tasks from PostgreSQL when the engine cannot be reached', function (
     $log->shouldHaveReceived('warning')
         ->withArgs(fn (string $message): bool => $message === 'Search fell back for one kind.')
         ->times(count(SearchKind::cases()));
-})->with([
-    'search dying entirely because a container restarted is a worse failure than a narrower
-    answer',
-]);
+});
 
 it('stops a held-down key', function (): void {
     $workspace = Workspace::factory()->create();
@@ -138,9 +133,7 @@ it('stops a held-down key', function (): void {
     $this->actingAs($actor)
         ->getJson(route('search.suggestions', ['q' => 'invoice']))
         ->assertStatus(429);
-})->with([
-    'this is the one address in the application a held-down key can call',
-]);
+});
 
 it('names the kinds one place, and the query answers exactly those', function (): void {
     $workspace = Workspace::factory()->create();
@@ -161,9 +154,7 @@ it('answers the empty field the palette opens with', function (): void {
         ->assertOk()
         ->assertJsonPath('meta.term', '')
         ->assertJsonCount(0, 'results.tasks');
-})->with([
-    'the palette asks before anybody has typed, because that is where the saved searches are',
-]);
+});
 
 it('reads an empty kind as no kind at all', function (): void {
     $workspace = Workspace::factory()->create();
@@ -175,6 +166,4 @@ it('reads an empty kind as no kind at all', function (): void {
         ->assertOk()
         ->assertJsonPath('meta.kind', null)
         ->assertJsonCount(1, 'results.tasks');
-})->with([
-    'a form that sends everything it has sends the empty ones too',
-]);
+});

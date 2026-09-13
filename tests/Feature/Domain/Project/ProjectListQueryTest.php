@@ -206,7 +206,7 @@ it('shows nothing from another project', function (): void {
         ->and($list['sections'][0]['tasks'][0]['title'])->toBe('Mine');
 });
 
-it('counts a row s comments and leaves the removed ones out', function (): void {
+it("counts a row's comments and leaves the removed ones out", function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
     TaskProjectMembership::factory()->placing($task, $project)->create();

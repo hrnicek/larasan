@@ -31,9 +31,7 @@ it('finds a message by what it says, and names the task it was said on', functio
     expect($results)->toHaveCount(1)
         ->and($results[0]['excerpt'])->toBe('The invoice went out twice')
         ->and($results[0]['task']['title'])->toBe('Fix the login screen');
-})->with([
-    'a comment on its own is a line with no context',
-]);
+});
 
 it('never returns a message on a task the actor cannot reach', function (): void {
     $workspace = Workspace::factory()->create();
@@ -44,11 +42,10 @@ it('never returns a message on a task the actor cannot reach', function (): void
     Comment::factory()->on($task)->create(['body' => 'The invoice went out twice']);
 
     expect(messageResults($workspace, $actor, 'invoice'))->toBe([]);
-})->with([
-    'a comment is readable exactly when the thing it was said on is',
-]);
+});
 
 it('stops returning a message the moment its project closes, without reindexing', function (): void {
+    // Reach is checked when results are hydrated, not when they are indexed.
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $project = Project::factory()->in($workspace)->create();
@@ -61,9 +58,7 @@ it('stops returning a message the moment its project closes, without reindexing'
     Comment::withoutSyncingToSearch(fn () => $project->update(['visibility' => 'private']));
 
     expect(messageResults($workspace, $actor, 'invoice'))->toBe([]);
-})->with([
-    'reach is read at hydration, so a permission change lands before the index hears about it',
-]);
+});
 
 it('never returns a message from another workspace', function (): void {
     $workspace = Workspace::factory()->create();

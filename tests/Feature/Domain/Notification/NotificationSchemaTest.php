@@ -32,7 +32,7 @@ function insertNotification(Workspace $workspace, User $notifiable, array $overr
     return $id;
 }
 
-it('carries the workspace the framework s own table does not', function (): void {
+it("carries the workspace the framework's own table does not", function (): void {
     // Laravel's default notifications table has no workspace, but the Inbox and badge are per workspace.
     expect(Schema::hasColumn('notifications', 'workspace_id'))->toBeTrue();
 });
@@ -86,7 +86,7 @@ it('indexes the inbox read and the badge read, and neither prefix', function ():
         ->and($indexes)->not->toContain(['notifiable_type', 'notifiable_id']);
 });
 
-it('plans the badge s unread count as an index scan', function (): void {
+it("plans the badge's unread count as an index scan", function (): void {
     $workspace = Workspace::factory()->create();
     $member = memberOf($workspace);
     $rows = [];

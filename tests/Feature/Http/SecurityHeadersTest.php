@@ -39,7 +39,7 @@ it('sends the same headers on a signed-in page, an Inertia visit and a stale-ass
         ->assertHeader('X-Content-Type-Options', 'nosniff');
 });
 
-it('keeps the manifest s content type', function (): void {
+it("keeps the manifest's content type", function (): void {
     $this->get(route('manifest'))
         ->assertOk()
         ->assertHeader('Content-Type', 'application/manifest+json')

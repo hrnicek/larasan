@@ -58,15 +58,14 @@ it('finds a colleague by email', function (): void {
 });
 
 it('never returns somebody who belongs to another workspace', function (): void {
+    // The index holds every user in the installation, so the membership join is the tenant boundary.
     $workspace = Workspace::factory()->create();
     $actor = pinnedMemberOf($workspace, 'Actor Zero');
     $elsewhere = Workspace::factory()->create();
     pinnedMemberOf($elsewhere, 'Jana Nováková');
 
     expect(personResults($workspace, $actor, 'Jana'))->toBe([]);
-})->with([
-    'the index holds every user in the installation, so the join is the boundary',
-]);
+});
 
 it('never returns somebody whose membership no longer grants access', function (): void {
     $workspace = Workspace::factory()->create();
@@ -94,9 +93,7 @@ it('includes the person doing the searching', function (): void {
     $actor = pinnedMemberOf($workspace, 'Jana Nováková');
 
     expect(personResults($workspace, $actor, 'Jana'))->toHaveCount(1);
-})->with([
-    '"assign to me" is a thing people search for',
-]);
+});
 
 it('says which role a person holds here', function (): void {
     $workspace = Workspace::factory()->create();
@@ -115,9 +112,7 @@ it('ships no more of a user row than a result draws', function (): void {
 
     expect(array_keys(personResults($workspace, $actor, 'Jana')[0]))
         ->toEqualCanonicalizing(['id', 'name', 'email', 'avatar', 'role']);
-})->with([
-    'a user row carries a password hash, two-factor secrets and recovery codes',
-]);
+});
 
 it('does not queue an indexing job when only the current workspace changed', function (): void {
     $workspace = Workspace::factory()->create();
@@ -133,10 +128,7 @@ it('does not queue an indexing job when only the current workspace changed', fun
 
     $person->update(['name' => 'Jana Svobodová']);
     Queue::assertPushed(MakeSearchable::class);
-})->with([
-    'a person moving between two workspaces would otherwise queue a job per move, for a document
-    whose two fields did not change',
-]);
+});
 
 it('finds a colleague with their face, not only their initials', function (): void {
     $workspace = Workspace::factory()->create();
@@ -161,7 +153,7 @@ it('does not let a guest find a colleague by their address', function (): void {
         ->and(array_column(personResults($workspace, $guest, 'Jana'), 'name'))->toBe(['Jana Nováková']);
 });
 
-it('asks Meilisearch to match a guest s search on names only and keeps its typo tolerance', function (WorkspaceRole $role, ?array $attributes): void {
+it("asks Meilisearch to match a guest's search on names only and keeps its typo tolerance", function (WorkspaceRole $role, ?array $attributes): void {
     $workspace = Workspace::factory()->create();
     $reader = memberOf($workspace, $role);
     $colleague = pinnedMemberOf($workspace, 'Jana Nováková');
@@ -176,6 +168,9 @@ it('asks Meilisearch to match a guest s search on names only and keeps its typo 
             parent::__construct($client);
         }
 
+        /**
+         * @param  ScoutBuilder<User>  $builder
+         */
         public function search(ScoutBuilder $builder): mixed
         {
             $this->options = $builder->options;

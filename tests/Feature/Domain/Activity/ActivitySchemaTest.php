@@ -93,7 +93,7 @@ it('indexes the feed read, in the feed order, and both cascades', function (): v
         ->and($indexes)->toContain(['workspace_id']);
 });
 
-it('plans a task s history as an ordered index scan', function (): void {
+it("plans a task's history as an ordered index scan", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
 

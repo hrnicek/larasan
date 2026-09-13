@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Placement\Actions\MoveTaskInProject;
 use App\Domain\Placement\Events\TaskPlacementMoved;
 use App\Domain\Placement\Exceptions\PlacementException;
 use App\Domain\Placement\Models\TaskProjectMembership;
@@ -12,13 +11,7 @@ use App\Domain\Shared\Enums\ProjectAccessLevel;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Support\Facades\Event;
-
-function moveInto(TaskProjectMembership $placement, User $actor, ?Section $section): TaskProjectMembership
-{
-    return app(MoveTaskInProject::class)->handle($placement, $actor, $section);
-}
 
 it('puts a card in a column', function (): void {
     [$workspace, $project, $actor] = placeableProject();

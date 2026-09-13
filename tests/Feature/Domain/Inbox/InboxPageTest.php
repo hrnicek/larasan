@@ -58,7 +58,7 @@ it('shows the workspace the reader is standing in', function (): void {
             ->where('notifications.0.subject.title', 'Here'));
 });
 
-it('never renders somebody else s inbox', function (): void {
+it("never renders somebody else's inbox", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $reader = memberOf($workspace);

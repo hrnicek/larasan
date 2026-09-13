@@ -135,7 +135,7 @@ it('refuses a filter that is not a list of ids', function (): void {
         ->assertSessionHasErrors('tags.0');
 });
 
-it('draws each card s tags without a query per card', function (): void {
+it("draws each card's tags without a query per card", function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $bug = Tag::factory()->in($workspace)->named('Bug')->create();
     $urgent = Tag::factory()->in($workspace)->named('Urgent')->create();
@@ -155,7 +155,7 @@ it('draws each card s tags without a query per card', function (): void {
         ->and(count($queries))->toBeLessThanOrEqual(9);
 });
 
-it('draws a row s tags in the list too', function (): void {
+it("draws a row's tags in the list too", function (): void {
     [$workspace, $project, $actor] = placeableProject();
     $bug = Tag::factory()->in($workspace)->named('Bug')->create(['color' => ProjectColor::Rose]);
     taggedCard($project, $actor, 'Tagged', [$bug], 1);

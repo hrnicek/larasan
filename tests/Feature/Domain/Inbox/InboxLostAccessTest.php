@@ -63,7 +63,7 @@ it('names neither a subtask nor its id when it inherits a private project the re
         ->and($subject['url'])->toBeNull();
 });
 
-it('still names a subtask the reader reaches through its parent s project', function (): void {
+it("still names a subtask the reader reaches through its parent's project", function (): void {
     [$private, $owner] = projectFor(WorkspaceRole::Owner, ProjectAccessLevel::Owner, visibility: ProjectVisibility::Private);
     $workspace = $private->workspace;
     $reader = memberOf($workspace);
@@ -82,7 +82,7 @@ it('still names a subtask the reader reaches through its parent s project', func
         ->and($subject['url'])->toBe(route('tasks.show', $subtask->id));
 });
 
-it('shows a guest who told them without that person s address', function (): void {
+it("shows a guest who told them without that person's address", function (): void {
     [$private, $owner] = projectFor(WorkspaceRole::Owner, ProjectAccessLevel::Owner, visibility: ProjectVisibility::Private);
     $workspace = $private->workspace;
     $guest = memberOf($workspace, WorkspaceRole::Guest);

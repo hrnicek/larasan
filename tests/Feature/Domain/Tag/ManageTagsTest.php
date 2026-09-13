@@ -12,7 +12,6 @@ use App\Domain\Tag\Exceptions\TagException;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Database\QueryException;
-use Illuminate\Database\UniqueConstraintViolationException;
 
 it('adds a word to the workspace vocabulary', function (): void {
     [$workspace, , $actor] = placeableProject();
@@ -100,7 +99,7 @@ it('reports a database failure other than a duplicate name as what it is', funct
     $tooLong = str_repeat('a', 256);
 
     expect(fn (): Tag => app(CreateTag::class)->handle($workspace, $actor, $tooLong))
-        ->toThrow(fn (QueryException $exception) => expect($exception)->not->toBeInstanceOf(UniqueConstraintViolationException::class));
+        ->toThrow(QueryException::class, 'value too long');
 
     expect(fn (): Tag => app(UpdateTag::class)->handle($tag, $actor, $tooLong))
         ->toThrow(QueryException::class);

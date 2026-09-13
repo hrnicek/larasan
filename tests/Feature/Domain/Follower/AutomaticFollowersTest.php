@@ -81,7 +81,7 @@ it('follows for a guest exactly as for anybody else', function (): void {
     expect($task->followers()->pluck('users.id')->all())->toBe([$guest->id]);
 });
 
-it('leaves other people s watching alone', function (): void {
+it("leaves other people's watching alone", function (): void {
     [$workspace, , $actor] = placeableProject();
     $other = memberOf($workspace);
     $task = Task::factory()->in($workspace)->create();

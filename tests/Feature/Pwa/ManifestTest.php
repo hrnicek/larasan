@@ -10,9 +10,7 @@ it('serves a manifest anybody can read, signed in or not', function (): void {
     $response->assertOk();
 
     expect($response->headers->get('content-type'))->toContain('application/manifest+json');
-})->with([
-    'the browser fetches it before anybody has signed in, so it cannot sit behind auth',
-]);
+});
 
 it('names the application the application is called', function (): void {
     config(['app.name' => 'Something Else']);
@@ -21,17 +19,13 @@ it('names the application the application is called', function (): void {
         'name' => 'Something Else',
         'short_name' => 'Something Else',
     ]);
-})->with([
-    'the whole reason it is a route: a hard-coded name drifts from APP_NAME and nobody looks',
-]);
+});
 
 it('opens on a screen that exists', function (): void {
     $start = (string) $this->get(route('manifest'))->json('start_url');
 
     $this->get($start)->assertRedirect(route('login'));
-})->with([
-    'an installed app that opens on a 404 is one nobody opens twice',
-]);
+});
 
 it('declares the icons it ships, including a maskable one', function (): void {
     /** @var list<array{src: string, sizes: string, type: string, purpose: string}> $icons */
@@ -46,10 +40,7 @@ it('declares the icons it ships, including a maskable one', function (): void {
         expect(File::exists($path))->toBeTrue("the manifest names {$icon['src']}, which is not there")
             ->and(File::size($path))->toBeGreaterThan(0);
     }
-})->with([
-    'a maskable icon that ignores the safe area is a logo with its edges cut off on Android, and
-    an icon the manifest names but nobody shipped is an install prompt that never appears',
-]);
+});
 
 it('is linked from the page the browser loads first', function (): void {
     $head = (string) File::get(resource_path('views/app.blade.php'));
@@ -99,11 +90,7 @@ it('ships one icon family rather than two', function (): void {
         ->and($shape['corner']['alpha'])->toBe(0, 'iOS composites a transparent icon onto a colour nobody chose')
         ->and(sprintf('#%02x%02x%02x', $shape['corner']['red'], $shape['corner']['green'], $shape['corner']['blue']))
         ->toBe($themeColor);
-})->with([
-    'the icon that predates the manifest was the red mark on transparency at 166px — a second,
-    older answer to the same question, which is what this asserts is gone; the tile and the
-    browser chrome are now asserted to be one colour rather than two that happen to match',
-]);
+});
 
 it('keeps the icons a browser tab asks for', function (): void {
     expect(File::exists(public_path('favicon.ico')))->toBeTrue()

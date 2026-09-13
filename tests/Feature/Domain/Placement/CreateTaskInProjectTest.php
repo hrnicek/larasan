@@ -219,15 +219,13 @@ it('locks the project row before it locks or writes any card, when it files the 
 
     DB::disableQueryLog();
 
-    $statements = collect(DB::getQueryLog())->pluck('query');
+    $statements = array_column(DB::getQueryLog(), 'query');
 
-    $projectLock = $statements->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+    $projectLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "projects"')
         && str_ends_with($sql, 'for no key update'));
 
-    $firstCardLockOrWrite = $statements->search(fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
+    $firstCardLockOrWrite = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
         && (str_ends_with($sql, 'for update') || str_starts_with($sql, 'insert') || str_starts_with($sql, 'update')));
 
-    expect($projectLock)->toBeInt()
-        ->and($firstCardLockOrWrite)->toBeInt()
-        ->and($projectLock)->toBeLessThan($firstCardLockOrWrite);
+    expect($projectLock)->toBeLessThan($firstCardLockOrWrite);
 });

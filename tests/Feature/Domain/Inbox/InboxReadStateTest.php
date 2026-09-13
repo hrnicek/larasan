@@ -47,7 +47,7 @@ it('keeps the moment they first saw it', function (): void {
     expect($notification->fresh()?->read_at?->toIso8601String())->toBe($first?->toIso8601String());
 });
 
-it('refuses to let anybody mark somebody else s notification read', function (): void {
+it("refuses to let anybody mark somebody else's notification read", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $reader = memberOf($workspace);

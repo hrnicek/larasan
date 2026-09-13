@@ -107,7 +107,7 @@ it('refuses every operation while the membership is not active', function (
     'expired' => WorkspaceMembershipStatus::Expired,
 ])->with(['create', 'update', 'complete', 'assign', 'collaborate', 'delete']);
 
-it('hides another workspace s task at every endpoint that names one', function (string $operation): void {
+it("hides another workspace's task at every endpoint that names one", function (string $operation): void {
     [$task] = matrixTask(WorkspaceRole::Owner);
     $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
 

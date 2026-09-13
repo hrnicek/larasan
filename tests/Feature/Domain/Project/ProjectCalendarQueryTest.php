@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\Placement\Models\TaskProjectMembership;
 use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\ProjectCalendarQuery;
-use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Tag\Models\Tag;
 use App\Domain\Task\Actions\DeleteTask;
 use App\Domain\Task\Models\Task;
@@ -47,17 +46,13 @@ function day(array $calendar, string $date): array
     return $found;
 }
 
-/**
- * Ungrouped placement positions are unique per project, so every card takes its own slot.
- */
-function due(Workspace $workspace, Project $project, string $date, string $title, ?int $slot = null): TaskProjectMembership
+function due(Workspace $workspace, Project $project, string $date, string $title): TaskProjectMembership
 {
     return TaskProjectMembership::factory()
         ->placing(
             Task::factory()->in($workspace)->dueAt(CarbonImmutable::parse($date))->create(['title' => $title]),
             $project,
         )
-        ->at(($slot ?? nextCalendarSlot()) * SparsePosition::GAP)
         ->create();
 }
 
@@ -65,15 +60,7 @@ function unscheduled(Workspace $workspace, Project $project, string $title): Tas
 {
     return TaskProjectMembership::factory()
         ->placing(Task::factory()->in($workspace)->create(['title' => $title]), $project)
-        ->at(nextCalendarSlot() * SparsePosition::GAP)
         ->create();
-}
-
-function nextCalendarSlot(): int
-{
-    static $slot = 0;
-
-    return ++$slot;
 }
 
 it('draws whole weeks around the month, Monday first', function (): void {
@@ -124,7 +111,7 @@ it('stops a day at a page and says how many it did not draw', function (): void 
     [$workspace, $project, $actor] = placeableProject();
 
     foreach (range(1, ProjectCalendarQuery::PER_DAY + 3) as $slot) {
-        due($workspace, $project, '2026-07-07 09:00', "Card {$slot}", $slot);
+        due($workspace, $project, '2026-07-07 09:00', "Card {$slot}");
     }
 
     $cell = day(calendarOf($project, $actor), '2026-07-07');

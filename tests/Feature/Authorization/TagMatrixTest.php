@@ -142,7 +142,7 @@ it('refuses everybody whose membership is no longer live', function (WorkspaceRo
     'guest' => [WorkspaceRole::Guest],
 ]);
 
-it('keeps a task s followers out of another tenant s reach', function (): void {
+it("keeps a task's followers out of another tenant's reach", function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
     $stranger = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);

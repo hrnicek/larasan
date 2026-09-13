@@ -51,7 +51,7 @@ it('removes a comment without removing the row', function (): void {
         ->and(DB::table('comments')->where('id', $comment->id)->whereNotNull('deleted_at')->exists())->toBeTrue();
 });
 
-it('refuses an edit of somebody else s comment', function (): void {
+it("refuses an edit of somebody else's comment", function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
     $comment = Comment::factory()->on($task)->create(['body' => 'First thought']);

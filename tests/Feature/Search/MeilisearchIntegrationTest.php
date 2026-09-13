@@ -10,17 +10,20 @@ use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\ParallelTesting;
 use Laravel\Scout\EngineManager;
 use Meilisearch\Client as MeilisearchClient;
 
 function meilisearchAnswers(): bool
 {
+    static $answers = [];
+
+    $host = rtrim((string) config('scout.meilisearch.host'), '/');
+
     try {
-        return Http::timeout(2)
-            ->get(rtrim((string) config('scout.meilisearch.host'), '/').'/health')
-            ->successful();
+        return $answers[$host] ??= Http::timeout(2)->get($host.'/health')->successful();
     } catch (Throwable) {
-        return false;
+        return $answers[$host] = false;
     }
 }
 
@@ -45,12 +48,14 @@ beforeEach(function (): void {
         $this->markTestSkipped('No Meilisearch on '.config('scout.meilisearch.host').'.');
     }
 
-    config(['scout.driver' => 'meilisearch', 'scout.prefix' => 'pm_suite_']);
+    $prefix = 'pm_suite_'.(ParallelTesting::token() ?: '0').'_';
+
+    config(['scout.driver' => 'meilisearch', 'scout.prefix' => $prefix]);
     app()->forgetInstance(EngineManager::class);
 
     // Meilisearch does not reject a filter on an undeclared attribute; it returns the wrong set.
     try {
-        app(EngineManager::class)->engine()->createIndex('pm_suite_tasks');
+        app(EngineManager::class)->engine()->createIndex($prefix.'tasks');
     } catch (Throwable) {
         // The index already exists.
     }
@@ -73,9 +78,7 @@ it('forgives a typo the database never would', function (): void {
 
     expect($results)->toHaveCount(1)
         ->and($results[0]['title'])->toBe('Fix the login screen');
-})->with([
-    'a person who has mistyped does not know whether the thing they are looking for exists',
-]);
+});
 
 it('does not hand over a task the index still holds and the database no longer allows', function (): void {
     $workspace = Workspace::factory()->create();
@@ -95,9 +98,7 @@ it('does not hand over a task the index still holds and the database no longer a
 
     expect(app(TaskResults::class)($workspace, $actor, 'login'))->toBe([])
         ->and(Task::search('login')->keys()->all())->toContain($task->id);
-})->with([
-    'the index can make an answer shorter; it must never be able to make one wider (ADR-0016)',
-]);
+});
 
 it('lets the search screen forgive a typo, and counts what it found exactly', function (): void {
     $workspace = Workspace::factory()->create();
@@ -117,10 +118,7 @@ it('lets the search screen forgive a typo, and counts what it found exactly', fu
         ->and($answer['meta']['degraded'])->toBeFalse()
         ->and($answer['meta']['capped'])->toBeFalse()
         ->and($answer['meta']['total'])->toBe(count($answer['tasks']));
-})->with([
-    'the screen matches through the engine and pages against the database, so the total is a
-    number rather than an estimate',
-]);
+});
 
 it('says so when it had to answer from the database instead', function (): void {
     $workspace = Workspace::factory()->create();
@@ -136,6 +134,4 @@ it('says so when it had to answer from the database instead', function (): void 
 
     expect($answer['meta']['degraded'])->toBeTrue()
         ->and($answer['tasks'])->toHaveCount(1);
-})->with([
-    'narrower is better than nothing, and the screen says which it is showing',
-]);
+});

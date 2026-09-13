@@ -104,7 +104,7 @@ it('removes a comment from the thread and keeps the row', function (): void {
         ->and(DB::table('comments')->where('id', $comment->id)->whereNotNull('deleted_at')->exists())->toBeTrue();
 });
 
-it('lets a moderator delete somebody else s comment', function (): void {
+it("lets a moderator delete somebody else's comment", function (): void {
     [$comment, , $workspace] = threadWithAComment();
     $admin = memberOf($workspace, WorkspaceRole::Admin);
 

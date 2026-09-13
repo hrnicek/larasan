@@ -49,9 +49,7 @@ it('costs the same request whether they held five tasks or fifty', function (): 
     [$small, $large] = $counts;
 
     expect($large)->toBe($small, "removing somebody holding fifty tasks made {$large} queries and five made {$small}");
-})->with([
-    'it was four queries per task: twenty tasks were 86 and forty were 166',
-]);
+});
 
 it('revokes the membership before the queue has run', function (): void {
     [$workspace, $owner, $leaving, $membership] = memberHolding(3);
@@ -63,10 +61,7 @@ it('revokes the membership before the queue has run', function (): void {
         ->and(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(3)
         // Filtered by name: creating the tasks also queued indexing jobs.
         ->and(DB::table('jobs')->where('payload', 'like', '%ReleaseRemovedMembersWork%')->count())->toBe(1);
-})->with([
-    'a removal that waits on a queue is a security answer arriving late; the tasks keeping a
-    stale name for a moment is a label, not a grant',
-]);
+});
 
 it('unassigns everything they held when the job runs', function (): void {
     [$workspace, $owner, $leaving, $membership] = memberHolding(4);
@@ -96,11 +91,9 @@ it('leaves their work alone if they were invited back before the job ran', funct
     ])->handle(app(Dispatcher::class));
 
     expect(Task::query()->where('assignee_id', $leaving->id)->count())->toBe(3);
-})->with([
-    'taking the work away would undo a decision somebody made after the removal',
-]);
+});
 
-it('leaves somebody elses work alone', function (): void {
+it("leaves somebody else's work alone", function (): void {
     [$workspace, $owner, $leaving, $membership] = memberHolding(2);
     $staying = memberOf($workspace, WorkspaceRole::Member);
     $theirs = Task::factory()->in($workspace)->create(['assignee_id' => $staying->id]);

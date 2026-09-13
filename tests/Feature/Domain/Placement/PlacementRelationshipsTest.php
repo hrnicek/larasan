@@ -35,7 +35,7 @@ it('reads one task in two projects as one task', function (): void {
         ->and(Task::query()->count())->toBe(1);
 });
 
-it('reads a project s tasks without copying them', function (): void {
+it("reads a project's tasks without copying them", function (): void {
     [$workspace, $project] = board();
     $task = Task::factory()->in($workspace)->create(['title' => 'Shared']);
     TaskProjectMembership::factory()->placing($task, $project)->create();
@@ -63,7 +63,7 @@ it('draws a column in position order, not insertion order', function (): void {
         ->toBe(['First', 'Second', 'Third']);
 });
 
-it('keeps another project s cards out of a column', function (): void {
+it("keeps another project's cards out of a column", function (): void {
     [$workspace, $project, $section] = board();
     $elsewhere = Project::factory()->in($workspace)->create();
     $mine = Task::factory()->in($workspace)->create();
@@ -112,7 +112,7 @@ it('eager loads a board without a query per card', function (): void {
         ->and($placements->pluck('section.name')->unique()->all())->toBe([$section->name]);
 });
 
-it('refuses to lazy load a placement s task', function (): void {
+it("refuses to lazy load a placement's task", function (): void {
     [$workspace, $project] = board();
 
     foreach (range(1, 2) as $slot) {

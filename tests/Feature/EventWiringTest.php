@@ -54,5 +54,5 @@ it('registers every domain listener for some event', function (): void {
             ->replace(DIRECTORY_SEPARATOR, '\\'));
 
     expect($listeners)->not->toBeEmpty()
-        ->and($listeners->diff($registered)->values()->all())->toBe([]);
+        ->and($listeners->reject(fn (string $listener): bool => $registered->contains($listener))->values()->all())->toBe([]);
 });

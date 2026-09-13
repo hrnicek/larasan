@@ -96,7 +96,7 @@ it('indexes the feed read, in the feed order, and nothing that is a prefix of it
         ->and($indexes)->toContain(['author_id']);
 });
 
-it('plans a task s comments as an ordered index scan', function (): void {
+it("plans a task's comments as an ordered index scan", function (): void {
     $workspace = Workspace::factory()->create();
     $author = memberOf($workspace);
 

@@ -16,29 +16,7 @@ use App\Domain\Shared\Enums\WorkspaceRole;
 use App\Domain\Shared\Ordering\SparsePosition;
 use App\Domain\Shared\ValueObjects\AccentColor;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Support\Facades\Event;
-
-/**
- * @return array{Project, User}
- */
-function projectEditableBy(
-    ProjectAccessLevel $access = ProjectAccessLevel::Editor,
-    WorkspaceRole $role = WorkspaceRole::Member,
-): array {
-    $workspace = Workspace::factory()->create();
-    $actor = memberOf($workspace, $role);
-    $project = Project::factory()->in($workspace)->create();
-
-    ProjectMembership::factory()->in($project)->forUser($actor)->withAccess($access)->create();
-
-    return [$project, $actor];
-}
-
-function addSection(Project $project, User $actor, string $name = 'Backlog'): Section
-{
-    return app(CreateSection::class)->handle($project, $actor, new CreateSectionData(name: $name));
-}
 
 it('appends a section to the end of the project', function (): void {
     [$project, $actor] = projectEditableBy();

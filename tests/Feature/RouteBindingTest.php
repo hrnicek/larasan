@@ -14,10 +14,7 @@ it('declares no binding where route caching would lose it', function (): void {
         ->all();
 
     expect($offenders)->toBe([]);
-})->with([
-    'a route file is not read when the route table is cached, and a binding that silently stops
-    running takes the tenant check with it',
-]);
+});
 
 it('registers every parameter the routes bind', function (string $parameter): void {
     expect(Route::getBindingCallback($parameter))->not->toBeNull();

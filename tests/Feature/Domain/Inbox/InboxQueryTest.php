@@ -16,27 +16,9 @@ use App\Domain\Task\Actions\AssignTask;
 use App\Domain\Task\Actions\FollowTask;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
-use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
-/**
- * @return array{notifications: list<array<string, mixed>>, meta: array<string, mixed>}
- */
-function inbox(Workspace $workspace, User $reader, int $page = 1, int $perPage = 25): array
-{
-    return app(InboxQuery::class)($workspace, $reader, $page, $perPage);
-}
-
-function assignTo(Workspace $workspace, User $actor, User $assignee, string $title = 'Fix login'): Task
-{
-    $task = Task::factory()->in($workspace)->create(['title' => $title]);
-
-    app(AssignTask::class)->handle($task, $actor, $assignee);
-
-    return $task;
-}
 
 it('reads being put on a task beside its assignee, and who did it', function (): void {
     $workspace = Workspace::factory()->create();
@@ -109,7 +91,7 @@ it('puts unread first and newest within that', function (): void {
     expect($titles)->toBe(['Newer unread', 'Older unread', 'Already read']);
 });
 
-it('never returns somebody else s notifications', function (): void {
+it("never returns somebody else's notifications", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $reader = memberOf($workspace);
@@ -122,7 +104,7 @@ it('never returns somebody else s notifications', function (): void {
         ->toBe(['Mine']);
 });
 
-it('never returns the same person s notifications from another workspace', function (): void {
+it("never returns the same person's notifications from another workspace", function (): void {
     $workspace = Workspace::factory()->create();
     $elsewhere = Workspace::factory()->create();
     $actor = memberOf($workspace);

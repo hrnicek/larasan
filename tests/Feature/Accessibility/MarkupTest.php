@@ -96,10 +96,7 @@ it('gives every screen a heading to be found by', function (): void {
     }
 
     expect($without)->toBe([]);
-})->with([
-    'a screen with no h1 is a screen a reader cannot name — and four of them had none until this
-    check was written',
-]);
+});
 
 it('names every control that is only an icon', function (): void {
     $unnamed = [];
@@ -137,10 +134,7 @@ it('names every control that is only an icon', function (): void {
     }
 
     expect($unnamed)->toBe([]);
-})->with([
-    'an icon is a picture until somebody says what it does; three of these were unnamed until
-    this check was written',
-]);
+});
 
 it('renders no HTML it did not build, except the one place it does', function (): void {
     $offenders = collect(File::allFiles(resource_path('js')))

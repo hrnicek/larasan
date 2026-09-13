@@ -53,10 +53,7 @@ it('costs the same whether the column holds ten cards or forty', function (): vo
     [$small, $large] = $counts;
 
     expect($large)->toBe($small, "deleting a column of forty made {$large} queries and one of ten made {$small}");
-})->with([
-    'the loop this replaced cost one write per card: twenty cards were twenty-seven queries and
-    forty were forty-seven',
-]);
+});
 
 it('keeps the cards in the order the column had them', function (): void {
     [$section, $project, $actor, $titles] = columnOf(5);
@@ -72,10 +69,7 @@ it('keeps the cards in the order the column had them', function (): void {
         ->all();
 
     expect($order)->toBe($titles);
-})->with([
-    'a set-based rewrite is exactly where an order quietly changes, so it is asserted rather
-    than assumed',
-]);
+});
 
 it('appends them after whatever the ungrouped bucket already held', function (): void {
     [$section, $project, $actor, $titles] = columnOf(3);
@@ -113,6 +107,4 @@ it('leaves the positions sparse enough to insert between', function (): void {
     }
 
     expect($gaps)->each->toBe(TaskProjectMembership::POSITION_GAP);
-})->with([
-    'ADR-0009 survives the rewrite: a move is one write because there is room between neighbours',
-]);
+});

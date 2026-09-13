@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\Placement\Actions\MoveTaskInProject;
 use App\Domain\Placement\Data\PlacementTarget;
 use App\Domain\Placement\Exceptions\PlacementException;
 use App\Domain\Placement\Models\TaskProjectMembership;
@@ -32,25 +31,6 @@ function column(int $count = 3): array
     }
 
     return [$section, $cards, $actor, $project];
-}
-
-function moveTo(
-    TaskProjectMembership $placement,
-    User $actor,
-    ?Section $section,
-    PlacementTarget $target,
-): TaskProjectMembership {
-    return app(MoveTaskInProject::class)->handle($placement, $actor, $section, $target);
-}
-
-/**
- * @return array<int, string>
- */
-function orderIn(Section $section): array
-{
-    return $section->placements()->with('task')->get()
-        ->map(fn (TaskProjectMembership $card): string => (string) $card->task->title)
-        ->all();
 }
 
 it('places a card after the one the user dropped it on', function (): void {
@@ -259,15 +239,13 @@ it('locks the project row before any card, whichever way the card crosses', func
     foreach ($moves as $move) {
         $statements = $statementsWhile($move);
 
-        $projectLock = collect($statements)->search(fn (string $sql): bool => str_contains($sql, 'from "projects"')
+        $projectLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, 'from "projects"')
             && str_ends_with($sql, 'for no key update'));
 
-        $firstCardLock = collect($statements)->search(fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
+        $firstCardLock = indexOfStatement($statements, fn (string $sql): bool => str_contains($sql, '"task_project_memberships"')
             && (str_ends_with($sql, 'for update') || str_starts_with($sql, 'update')));
 
-        expect($projectLock)->toBeInt()
-            ->and($firstCardLock)->toBeInt()
-            ->and($projectLock)->toBeLessThan($firstCardLock);
+        expect($projectLock)->toBeLessThan($firstCardLock);
     }
 
     expect(orderIn($section))->toBe(['B', 'C', 'A']);

@@ -61,7 +61,7 @@ it('stays while the task is only soft-deleted', function (): void {
     expect(DB::table('task_tag')->count())->toBe(1);
 });
 
-it('reads a task s tags in a stable order', function (): void {
+it("reads a task's tags in a stable order", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
 

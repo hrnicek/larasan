@@ -37,7 +37,7 @@ it('draws a mention with the name the person has now', function (): void {
     expect(mentionFeed($task, $author))->toBe(['Ask @[Jana Svobodová](user:'.$jana->id.')']);
 });
 
-it('never reads a stranger s name through a token nobody checked', function (): void {
+it("never reads a stranger's name through a token nobody checked", function (): void {
     [$workspace, , $author] = placeableProject();
     $stranger = memberOf(Workspace::factory()->create(), user: User::factory()->create(['name' => 'Private Person']));
     $task = Task::factory()->in($workspace)->create();

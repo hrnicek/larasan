@@ -115,7 +115,7 @@ it('never returns a task in a project the actor was not given', function (): voi
     expect(found($workspace, $actor, 'login'))->toBe([]);
 });
 
-it('returns a private project s task to somebody who was given it', function (): void {
+it("returns a private project's task to somebody who was given it", function (): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace, WorkspaceRole::Member);
     $private = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Private]);
@@ -245,7 +245,7 @@ it('carries the tags a result row draws', function (): void {
     ]]);
 });
 
-it('lets an unplaced subtask be updated only where its parent s project allows changes', function (ProjectAccessLevel $access, bool $canUpdate): void {
+it("lets an unplaced subtask be updated only where its parent's project allows changes", function (ProjectAccessLevel $access, bool $canUpdate): void {
     $workspace = Workspace::factory()->create();
     $actor = memberOf($workspace);
     $project = Project::factory()->in($workspace)->create();

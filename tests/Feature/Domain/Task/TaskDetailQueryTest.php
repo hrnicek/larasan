@@ -271,7 +271,7 @@ it('lists what is attached, with the permissions the controls render from', func
         ->and(array_column(detailOf($task, $guest)['attachments'], 'canDelete'))->toBe([false, false]);
 });
 
-it('reads a task s attachments without a query per file', function (): void {
+it("reads a task's attachments without a query per file", function (): void {
     [$workspace, , $actor] = placeableProject();
     $task = Task::factory()->in($workspace)->create();
 

@@ -21,7 +21,7 @@ it('hangs from its subject and its author', function (): void {
         ->and($comment->workspace_id)->toBe($workspace->id);
 });
 
-it('reads a task s comments in the order they were said', function (): void {
+it("reads a task's comments in the order they were said", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
 
@@ -33,7 +33,7 @@ it('reads a task s comments in the order they were said', function (): void {
     expect($task->comments()->pluck('body')->all())->toBe(['First', 'Second', 'Third']);
 });
 
-it('keeps another subject s comments out', function (): void {
+it("keeps another subject's comments out", function (): void {
     $workspace = Workspace::factory()->create();
     $task = Task::factory()->in($workspace)->create();
     $other = Task::factory()->in($workspace)->create();

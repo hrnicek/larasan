@@ -25,9 +25,7 @@ it('refuses a guest the workspace channel', function (): void {
     [$workspace, $guest] = workspaceWith(WorkspaceRole::Guest);
 
     $this->subscribeTo($guest, "private-workspace.{$workspace->id}")->assertForbidden();
-})->with([
-    'the workspace channel carries tasks that sit in no project, which a guest may not see',
-]);
+});
 
 it('refuses a membership that no longer grants access', function (WorkspaceMembershipStatus $status): void {
     [$workspace, $user] = workspaceWith(WorkspaceRole::Member, $status);
@@ -61,14 +59,11 @@ it('lets a member subscribe to a workspace-visible project', function (): void {
 });
 
 it('refuses a guest a workspace-visible project they were not given', function (): void {
+    // The project binder treats an unreachable project as missing, so a 403 would confirm the id exists.
     [$project, $guest] = projectFor(WorkspaceRole::Guest);
 
     $this->subscribeTo($guest, "private-project.{$project->id}")->assertNotFound();
-})->with([
-    'a project channel resolves through the same route binder the HTTP layer uses, so an
-    invisible project is indistinguishable from one that does not exist — 403 would confirm
-    the id',
-]);
+});
 
 it('lets a guest subscribe to a private project they were given', function (): void {
     [$project, $guest] = projectFor(WorkspaceRole::Guest, ProjectAccessLevel::Viewer, ProjectVisibility::Private);
@@ -80,9 +75,7 @@ it('refuses a private project to a workspace owner who was not given it', functi
     [$project, $owner] = projectFor(WorkspaceRole::Owner, null, ProjectVisibility::Private);
 
     $this->subscribeTo($owner, "private-project.{$project->id}")->assertNotFound();
-})->with([
-    'a private project is private to the workspace, owners included (ADR-0006)',
-]);
+});
 
 it('refuses a project grant that outlived its workspace membership', function (): void {
     [$project, $user] = projectFor(
@@ -102,7 +95,7 @@ it('refuses another workspace project to a member of their own', function (): vo
     $this->subscribeTo($member, "private-project.{$elsewhere->id}")->assertNotFound();
 });
 
-it('lets a user subscribe to their own channel and to nobody elses', function (): void {
+it("lets a user subscribe to their own channel and to nobody else's", function (): void {
     $user = User::factory()->create();
     $other = User::factory()->create();
 
@@ -111,32 +104,26 @@ it('lets a user subscribe to their own channel and to nobody elses', function ()
 });
 
 it('refuses a user channel whose id is not a number without asking the database', function (): void {
+    // users.id is a bigint, so querying PostgreSQL with a non-numeric id would error instead of refusing.
     $user = User::factory()->create();
 
     $this->subscribeTo($user, 'private-user.not-a-number')->assertForbidden();
-})->with([
-    'users.id is a bigint, so a query would be a 500 rather than a refusal',
-]);
+});
 
 it('refuses a channel for a subject that does not exist', function (): void {
+    // A workspace binds implicitly and answers 403; a project resolves through the scoped binder and answers 404, as over HTTP.
     [, $member] = workspaceWith(WorkspaceRole::Member);
     $missing = (string) Str::uuid7();
 
     $this->subscribeTo($member, "private-workspace.{$missing}")->assertForbidden();
     $this->subscribeTo($member, "private-project.{$missing}")->assertNotFound();
-})->with([
-    'the codes differ because the resolutions do: a workspace binds implicitly and answers
-    403, a project resolves through the binder in routes/projects.php and answers 404 —
-    the same two answers the HTTP layer gives',
-]);
+});
 
 it('refuses a channel whose id is not a uuid rather than erroring', function (): void {
     [, $member] = workspaceWith(WorkspaceRole::Member);
 
     $this->subscribeTo($member, 'private-workspace.not-a-uuid')->assertNotFound();
-})->with([
-    'the codes differ deliberately: a valid id nobody owns is 403, an id that cannot exist is 404',
-]);
+});
 
 it('refuses a channel nothing declares', function (): void {
     [$project, $member] = projectFor(WorkspaceRole::Member);
@@ -148,9 +135,7 @@ it('refuses the framework default user channel, which nothing declares any more'
     $user = User::factory()->create();
 
     $this->subscribeTo($user, "private-App.Models.User.{$user->id}")->assertForbidden();
-})->with([
-    'ADR-0008 names one user channel, and User::receivesBroadcastNotificationsOn returns it',
-]);
+});
 
 it('refuses a subscription from an account that is not signed in', function (): void {
     $workspace = Workspace::factory()->create();
@@ -166,9 +151,7 @@ it('refuses a subscription from an account that never verified its address', fun
     $unverified = memberOf($workspace, WorkspaceRole::Member, user: User::factory()->unverified()->create());
 
     $this->subscribeTo($unverified, "private-workspace.{$workspace->id}")->assertForbidden();
-})->with([
-    'the socket is behind the same coarse gate the screens are',
-]);
+});
 
 it('names one user channel, which the notification broadcast targets', function (): void {
     $user = User::factory()->create();
@@ -203,7 +186,7 @@ it('answers the workspace channel by membership and role', function (): void {
         ))->toBeFalse();
 });
 
-it('answers the project channel by the projects own visibility rule', function (): void {
+it("answers the project channel by the project's own visibility rule", function (): void {
     $callback = channelCallback('project.{project}');
     $workspace = Workspace::factory()->create();
     $visible = Project::factory()->in($workspace)->create(['visibility' => ProjectVisibility::Workspace]);
@@ -222,6 +205,7 @@ it('answers the project channel by the projects own visibility rule', function (
 });
 
 it('answers the user channel by identity, comparing as text', function (): void {
+    // An int cast would read every unparseable id as 0.
     $callback = channelCallback('user.{userId}');
     $user = User::factory()->create();
     $other = User::factory()->create();
@@ -232,14 +216,9 @@ it('answers the user channel by identity, comparing as text', function (): void 
         ->and($callback($user, $user->id.'abc'))->toBeFalse()
         ->and($callback($user, ' '.$user->id))->toBeFalse()
         ->and($callback($user, ''))->toBeFalse();
-})->with([
-    'users.id is a bigint: a model binding would ask PostgreSQL for a non-numeric id and
-    get a 500 rather than a refusal, and an int cast would turn every unparseable id into 0',
-]);
+});
 
 it('declares exactly the three channels ADR-0008 names', function (): void {
     expect(array_keys(broadcastChannels()))
         ->toEqualCanonicalizing(['workspace.{workspace}', 'project.{project}', 'user.{userId}']);
-})->with([
-    'a fourth channel is a fourth door, and this fails until somebody documents it here',
-]);
+});

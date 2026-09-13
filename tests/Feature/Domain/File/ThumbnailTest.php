@@ -35,6 +35,11 @@ function blankGreyscalePng(int $width, int $height): string
     $chunk = fn (string $type, string $data): string => pack('N', strlen($data)).$type.$data.pack('N', crc32($type.$data));
 
     $deflate = deflate_init(ZLIB_ENCODING_DEFLATE);
+
+    if ($deflate === false) {
+        throw new RuntimeException('zlib could not start a deflate stream.');
+    }
+
     $row = str_repeat("\0", $width + 1);
     $pixels = '';
 

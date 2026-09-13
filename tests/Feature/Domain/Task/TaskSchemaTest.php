@@ -123,7 +123,7 @@ it('refuses a parent from another workspace only in the domain, not the database
     expect(DB::table('tasks')->where('id', $id)->exists())->toBeTrue();
 });
 
-it('indexes one person s open work in one workspace', function (): void {
+it("indexes one person's open work in one workspace", function (): void {
     $indexes = collect(Schema::getIndexes('tasks'))->pluck('columns');
 
     expect($indexes)->toContain(['workspace_id', 'assignee_id', 'completed_at']);

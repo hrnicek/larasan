@@ -84,10 +84,7 @@ function prefixIndexes(): array
 
 it('carries no index that is a prefix of another on the same table', function (): void {
     expect(prefixIndexes())->toBe([]);
-})->with([
-    'the cost of an index is paid on every write, and a prefix of another index is paid for
-    twice',
-]);
+});
 
 it('notices when an index is a prefix of another', function (): void {
     // PostgreSQL DDL is transactional, so the probe index is rolled back with the test.
@@ -98,9 +95,7 @@ it('notices when an index is a prefix of another', function (): void {
     expect($redundant)->toContain(
         'projects.projects_prefix_probe (workspace_id) is a prefix of projects_workspace_id_archived_at_index',
     );
-})->with([
-    'a schema check that cannot fail is a schema check nobody should trust',
-]);
+});
 
 /**
  * A partial index counts only when its predicate is "column IS NOT NULL", which the key lookup always implies.
@@ -164,7 +159,8 @@ it('plans my tasks on an index that finds the assignee', function (): void {
         ->and($plan)->toMatch('/Index Cond: .*assignee_id = /');
 });
 
-it('plans the inbox on the workspace index rather than the frameworks own', function (): void {
+it("plans the inbox on the workspace index rather than the framework's own", function (): void {
+    // The framework index leads with notifiable_type, which every row in this application shares.
     $workspace = Workspace::factory()->create();
     $reader = memberOf($workspace);
 
@@ -178,10 +174,7 @@ it('plans the inbox on the workspace index rather than the frameworks own', func
     );
 
     expect($plan)->toContain('notifications_workspace_id_notifiable_id_read_at_index');
-})->with([
-    'the Inbox is per workspace, and the framework index leads with notifiable_type — which
-    every row in this application shares',
-]);
+});
 
 it('plans a comment thread on its own index', function (): void {
     $workspace = Workspace::factory()->create();

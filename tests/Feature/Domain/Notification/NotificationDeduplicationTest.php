@@ -64,10 +64,7 @@ it('still tells each person watching, once each', function (): void {
     app(NotifyWatchersOfComment::class)->handle($event);
 
     expect(DB::table('notifications')->count())->toBe(3);
-})->with([
-    'the key is per person: the same comment notifies everybody watching, and each of them is
-    entitled to their own line',
-]);
+});
 
 it('lets two different comments on one task through', function (): void {
     $workspace = Workspace::factory()->create();
@@ -83,9 +80,7 @@ it('lets two different comments on one task through', function (): void {
     }
 
     expect($watcher->notifications()->count())->toBe(2);
-})->with([
-    'deduplication that swallowed the second comment would be a bug wearing a fix as a disguise',
-]);
+});
 
 it('refuses a second row at the database, not only in the channel', function (): void {
     $workspace = Workspace::factory()->create();
@@ -102,7 +97,4 @@ it('refuses a second row at the database, not only in the channel', function ():
     ])))->toThrow(QueryException::class);
 
     expect(DB::table('notifications')->count())->toBe(1);
-})->with([
-    'a check in the channel is two workers away from failing; the unique index is what makes it
-    impossible rather than unlikely',
-]);
+});

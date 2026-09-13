@@ -165,9 +165,7 @@ it('caches every address the build actually emits', function (): void {
 
     expect($emitted)->not->toBeEmpty();
     expect(cacheDecisions($emitted))->each->toBeTrue();
-})->with([
-    'the allow-list has to match what Vite emits, or the worker is a cache that never hits',
-]);
+});
 
 it('never caches a page, a payload or anything a person is signed in to', function (): void {
     // A cached authenticated page would be served to the next user of a shared device.
@@ -193,10 +191,7 @@ it('never caches a page, a payload or anything a person is signed in to', functi
     ];
 
     expect(cacheDecisions($forbidden))->each->toBeFalse();
-})->with([
-    'a block-list is a list of the responses somebody thought of; this asserts the allow-list
-    refuses the ones nobody did',
-]);
+});
 
 it('answers a failed navigation with the shell rather than the browser error page', function (): void {
     $worker = File::get(public_path('sw.js'));
@@ -207,9 +202,7 @@ it('answers a failed navigation with the shell rather than the browser error pag
         ->toContain('caches.match(OFFLINE)');
 
     expect(File::exists(public_path('offline.html')))->toBeTrue();
-})->with([
-    'a fallback fetched at the moment it is needed is a fallback that never arrives',
-]);
+});
 
 it('holds a fallback with nothing in it that belongs to anybody', function (): void {
     $fallback = File::get(public_path('offline.html'));
@@ -225,10 +218,7 @@ it('holds a fallback with nothing in it that belongs to anybody', function (): v
 
     expect($fallback)->toContain('No connection')
         ->toContain("addEventListener('online'");
-})->with([
-    'the cached document has to be one nobody can be identified from, or the worker is caching a
-    page after all',
-]);
+});
 
 it('deletes the caches it no longer uses', function (): void {
     $worker = File::get(public_path('sw.js'));

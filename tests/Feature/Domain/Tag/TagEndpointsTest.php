@@ -21,7 +21,6 @@ it('renders the workspace vocabulary with what each tag would cost to delete', f
         ->get(route('tags.index'))
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/Tags')
-            // Ordered by name.
             ->where('tags.0.name', 'Bug')
             ->where('tags.0.color', ProjectColor::Rose->value)
             ->where('tags.0.taskCount', 1)

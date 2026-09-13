@@ -66,9 +66,7 @@ it('moves a row rather than keeping two when the same thing is opened twice', fu
     $this->actingAs($actor)->get(route('tasks.show', $task))->assertOk();
 
     expect(RecentItem::query()->count())->toBe(1);
-})->with([
-    'the palette asks what somebody was in, not how often they were in it',
-]);
+});
 
 it('keeps the most recent first', function (): void {
     $workspace = Workspace::factory()->create();
@@ -96,9 +94,7 @@ it('never offers something the actor may no longer open', function (): void {
     $project->update(['visibility' => 'private']);
 
     expect(recentsFor($workspace, $actor))->toBe([]);
-})->with([
-    'a list of things somebody used to be allowed to see is the same leak a stale index would be',
-]);
+});
 
 it('never offers a private project to somebody who lost their membership', function (): void {
     $workspace = Workspace::factory()->create();
@@ -149,10 +145,7 @@ it('stops the table growing without a reader', function (): void {
     }
 
     expect(RecentItem::query()->count())->toBe(RecordRecentlyOpened::KEPT);
-})->with([
-    'the list has an owner and a size a person can hold in their head, so it trims itself rather
-    than needing a scheduled sweep',
-]);
+});
 
 it('offers them on the empty field and not beside every keystroke', function (): void {
     $workspace = Workspace::factory()->create();

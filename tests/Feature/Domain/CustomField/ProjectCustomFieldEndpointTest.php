@@ -158,7 +158,7 @@ it('answers a field id that is not one with a validation error', function (): vo
         ->assertSessionHasErrors('field');
 });
 
-it('turns away a workspace that is not the actor s', function (): void {
+it("turns away a workspace that is not the actor's", function (): void {
     $workspace = Workspace::factory()->create();
     $outsider = memberOf(Workspace::factory()->create(), WorkspaceRole::Owner);
     $project = Project::factory()->in($workspace)->create();

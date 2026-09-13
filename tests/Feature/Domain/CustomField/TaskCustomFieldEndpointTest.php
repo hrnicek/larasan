@@ -38,7 +38,7 @@ it('clears a value with the same request and nothing in it', function (): void {
     expect(TaskCustomFieldValue::query()->count())->toBe(0);
 });
 
-it('refuses a value the field s type cannot hold', function (): void {
+it("refuses a value the field's type cannot hold", function (): void {
     [$task, $field, $actor] = fieldOnATask(CustomFieldType::Number);
 
     $this->actingAs($actor)
@@ -108,7 +108,7 @@ it('hides a field from another workspace behind a 404', function (): void {
         ->assertNotFound();
 });
 
-it('refuses a field this task s projects do not show', function (): void {
+it("refuses a field this task's projects do not show", function (): void {
     [$task, , $actor] = fieldOnATask();
     $unattached = app(DefineCustomField::class)->handle($task->workspace, $actor, 'Risk', CustomFieldType::Text);
 
@@ -136,7 +136,7 @@ it('sends the fields and the answers to the task detail', function (): void {
     expect($project->customFields()->count())->toBe(1);
 });
 
-it('names a field only once even when two of the task s projects show it', function (): void {
+it("names a field only once even when two of the task's projects show it", function (): void {
     [$task, $field, $actor] = fieldOnATask();
     $second = Project::factory()->in($task->workspace)->create();
     ProjectMembership::factory()->in($second)->forUser($actor)
