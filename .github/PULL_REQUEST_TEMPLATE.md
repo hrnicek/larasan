@@ -18,5 +18,4 @@ Closes #
 
 ## Decisions
 
-- [ ] This does not contradict an ADR in `docs/adr/`, or it carries a superseding one
 - [ ] No new dependency, or the pull request explains why the framework cannot do it

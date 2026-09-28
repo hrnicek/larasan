@@ -47,40 +47,6 @@ it('draws the mark in the brand plum where it cannot inherit a colour', function
         ->toContain('#8C2A87');
 });
 
-it('ships the brand kit the README points at', function (string $file): void {
-    $path = base_path("docs/brand/{$file}");
-
-    expect(File::exists($path))->toBeTrue("docs/brand/{$file} is named in the brand README and is not there")
-        ->and(File::size($path))->toBeGreaterThan(0);
-})->with([
-    'larasan-mark.svg',
-    'larasan-mark-mono.svg',
-    'larasan-wordmark.svg',
-    'larasan-lockup.svg',
-    'larasan-lockup-dark.svg',
-    'larasan-lockup-stacked.svg',
-    'larasan-banner-light.png',
-    'larasan-banner-dark.png',
-    'larasan-og.png',
-    'larasan-avatar.png',
-]);
-
-it('draws the same mark in the brand kit as in the application', function (string $file): void {
-    $kit = markPathData((string) File::get(base_path("docs/brand/{$file}")));
-    $component = markPathData((string) File::get(resource_path('js/components/AppLogoIcon.vue')));
-
-    expect($kit)->toContain($component[0]);
-})->with(['larasan-mark.svg', 'larasan-mark-mono.svg']);
-
-it('sets the wordmark as outlines rather than as text', function (): void {
-    // GitHub does not load fonts for SVG, so live text would render in a fallback font.
-    $wordmark = (string) File::get(base_path('docs/brand/larasan-wordmark.svg'));
-
-    expect($wordmark)->not->toContain('<text')
-        ->and($wordmark)->not->toContain('font-family')
-        ->and($wordmark)->toContain('<path');
-});
-
 it('colours the svg favicon for renderers that read stylesheets and for those that do not', function (): void {
     $favicon = (string) File::get(public_path('favicon.svg'));
 

@@ -1,10 +1,4 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/larasan-banner-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/brand/larasan-banner-light.png">
-    <img alt="Larasan" src="docs/brand/larasan-banner-light.png" width="720">
-  </picture>
-</p>
+<h1 align="center">Larasan</h1>
 
 <p align="center">
   <a href="#license"><img alt="MIT licensed" src="https://img.shields.io/badge/license-MIT-8C2A87"></a>
@@ -44,19 +38,19 @@ Two positions follow from it:
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-board.webp">
-    <img alt="Project board with Triage, In progress, Blocked and Done sections" src="docs/screenshots/board.webp" width="900">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/screenshots/dark-board.webp">
+    <img alt="Project board with Triage, In progress, Blocked and Done sections" src=".github/screenshots/board.webp" width="900">
   </picture>
 </p>
 
 <table>
   <tr>
-    <td><img alt="List view with custom fields, assignee, due date and priority" src="docs/screenshots/list.webp"></td>
-    <td><img alt="Task detail panel over the board" src="docs/screenshots/task.webp"></td>
+    <td><img alt="List view with custom fields, assignee, due date and priority" src=".github/screenshots/list.webp"></td>
+    <td><img alt="Task detail panel over the board" src=".github/screenshots/task.webp"></td>
   </tr>
   <tr>
-    <td><img alt="Files attached across a project's tasks" src="docs/screenshots/files.webp"></td>
-    <td><img alt="A page hanging from a project, with its sibling pages" src="docs/screenshots/page.webp"></td>
+    <td><img alt="Files attached across a project's tasks" src=".github/screenshots/files.webp"></td>
+    <td><img alt="A page hanging from a project, with its sibling pages" src=".github/screenshots/page.webp"></td>
   </tr>
 </table>
 
@@ -139,22 +133,12 @@ suite.
 
 ## Contributing
 
-Start with [CONTRIBUTING.md](CONTRIBUTING.md). Two things worth knowing before you open anything:
+Start with [CONTRIBUTING.md](CONTRIBUTING.md). One thing worth knowing before you open anything:
 
-- **The repository documents its own decisions.** [`docs/adr/`](docs/adr/) holds the architectural
-  decision records, [`docs/architecture/`](docs/architecture/) the shape of the system,
-  [`docs/conventions/`](docs/conventions/) how code is written here, and
-  [`docs/ui/design-system.md`](docs/ui/design-system.md) the visual rules. If a change contradicts
-  one of those, the ADR is the thing to argue with first.
 - **No new dependency without a conversation.** The stack is fixed on purpose, and most additions
   turn out to be something the framework already does.
 
-## Brand
-
-The mark, the wordmark and the assets are in [`docs/brand/`](docs/brand/), with the rules for
-using them. The reasoning behind the name and the mark is
-[ADR-0018](docs/adr/0018-name-and-mark-larasan.md); the colour, typography and elevation system is
-[ADR-0014](docs/adr/0014-brand-and-visual-language.md).
+## Trademark
 
 Larasan is an independent project. It is built on Laravel and is not affiliated with, endorsed by,
 or sponsored by Laravel.

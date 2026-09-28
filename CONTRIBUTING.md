@@ -39,7 +39,7 @@ docker compose exec laravel.test npm run dev
 `./vendor/bin/sail` wraps all of it: `sail up -d`, `sail artisan …`, `sail test`, `sail npm run
 dev`. `compose.yaml` runs Horizon and Reverb as their own containers, so queued work and realtime
 behave as they do in production. Meilisearch is search only — stop that container and the
-application still serves, which is the point of ADR-0016.
+application still serves.
 
 ### On the host
 
@@ -81,21 +81,15 @@ a green local run is a green pull request. Under Docker it is
 ## What a change should look like
 
 - **Tests are part of the change, not a follow-up.** A bug fix carries a regression test that is
-  demonstrated to fail before the fix. A new domain slice carries the five kinds of test named in
-  [`docs/conventions/testing.md`](docs/conventions/testing.md) — endpoint, Action, policy in both
+  demonstrated to fail before the fix. A new domain slice carries the five kinds of test — endpoint, Action, policy in both
   directions, workspace isolation with a valid id from another workspace, and the database
   constraint itself.
-- **Logic goes in an Action or a Query, not a controller.** See
-  [`docs/conventions/backend.md`](docs/conventions/backend.md).
+- **Logic goes in an Action or a Query, not a controller.**
 - **No new dependency without a conversation.** The stack is fixed on purpose, and most additions
   turn out to be something the framework already does.
 - **No `dd()`, `dump()`, `ray()` or stray `console.log`.** No commented-out code.
 - **Comments are rare.** PHPDoc only for types native declarations cannot express; an inline
-  comment only for a non-obvious why, in one short sentence. Never narration of the line below —
-  see [`docs/conventions/code-style.md`](docs/conventions/code-style.md).
-
-The rest is in [`docs/conventions/`](docs/conventions/). It is short, and reading it will save you
-a review round.
+  comment only for a non-obvious why, in one short sentence. Never narration of the line below.
 
 ## Commit messages
 
@@ -106,18 +100,10 @@ feat(tasks): add task creation action
 fix(auth): enforce workspace isolation
 test(tasks): cover dependency cycles
 refactor(tasks): extract task detail query
-docs(adr): record the ordering strategy
 ```
 
 The subject says what changed. The body says why, when why is not obvious, and names the
 verification that was run.
-
-## Architectural decisions
-
-`docs/adr/` holds the architectural decision records. If your change reverses one — for example by
-putting `project_id` on `tasks`, which [ADR-0003](docs/adr/0003-task-project-membership.md)
-forbids — the pull request needs a superseding ADR that argues the case. That is not a hurdle; it
-is how the next person finds out why.
 
 ## Reporting a vulnerability
 

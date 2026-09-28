@@ -28,9 +28,3 @@ body:
     attributes:
       label: What you tried instead
       description: The workaround you are using today, if there is one.
-  - type: checkboxes
-    id: decisions
-    attributes:
-      label: Decisions
-      options:
-        - label: I have checked `docs/adr/` for a decision this would reverse.
