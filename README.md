@@ -40,6 +40,22 @@ Two positions follow from it:
 - **Realtime is a transport, never the source of truth.** A dropped websocket degrades live
   updates. It never degrades data.
 
+## Screenshots
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-board.webp">
+    <img alt="Project board with Triage, In progress, Blocked and Done sections" src="docs/screenshots/board.webp" width="900">
+  </picture>
+</p>
+
+<table>
+  <tr>
+    <td><img alt="List view with custom fields, assignee, due date and priority" src="docs/screenshots/list.webp"></td>
+    <td><img alt="Task detail panel over the board" src="docs/screenshots/task.webp"></td>
+  </tr>
+</table>
+
 ## What is in it
 
 Workspaces and memberships · projects with per-project access levels · sections · tasks with
