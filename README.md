@@ -54,6 +54,10 @@ Two positions follow from it:
     <td><img alt="List view with custom fields, assignee, due date and priority" src="docs/screenshots/list.webp"></td>
     <td><img alt="Task detail panel over the board" src="docs/screenshots/task.webp"></td>
   </tr>
+  <tr>
+    <td><img alt="Files attached across a project's tasks" src="docs/screenshots/files.webp"></td>
+    <td><img alt="A page hanging from a project, with its sibling pages" src="docs/screenshots/page.webp"></td>
+  </tr>
 </table>
 
 ## What is in it
