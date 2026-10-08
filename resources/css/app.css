@@ -1,0 +1,496 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+/* Inertia Modal ships compiled, so its utility classes are only visible in its bundle. */
+@source '../../node_modules/@inertiaui/modal-vue/dist/inertiaui-modal.js';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-sans:
+        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-lg: var(--radius);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-sm: calc(var(--radius) - 4px);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-active: var(--primary-active);
+    --color-primary-ring: var(--primary-ring);
+    --color-primary-subtle: var(--primary-subtle);
+    --color-primary-subtle-foreground: var(--primary-subtle-foreground);
+
+    /* The chrome is dark in both themes (ADR-0014), so it cannot borrow the canvas tokens. */
+    --color-chrome: var(--chrome);
+    --color-chrome-foreground: var(--chrome-foreground);
+    --color-chrome-muted-foreground: var(--chrome-muted-foreground);
+    --color-chrome-accent: var(--chrome-accent);
+    --color-chrome-border: var(--chrome-border);
+    --color-chrome-primary: var(--chrome-primary);
+    --color-chrome-primary-foreground: var(--chrome-primary-foreground);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+/* Custom hex accents (ADR-0021): mixing with --foreground darkens in light mode, lightens in dark. */
+@layer components {
+    .accent-dot {
+        background-color: var(--custom-accent, var(--muted-foreground));
+    }
+
+    .accent-band {
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 12%,
+            transparent
+        );
+    }
+
+    .accent-chip,
+    .accent-content-tile {
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 16%,
+            transparent
+        );
+        color: color-mix(
+            in oklab,
+            var(--custom-accent, currentColor) 72%,
+            var(--foreground)
+        );
+    }
+
+    .accent-tile {
+        background-color: color-mix(
+            in oklab,
+            var(--custom-accent, transparent) 22%,
+            transparent
+        );
+        color: color-mix(
+            in oklab,
+            var(--custom-accent, currentColor) 45%,
+            var(--chrome-foreground)
+        );
+    }
+}
+
+/* Opacity only: any transform would make the screen the containing block of its fixed descendants. */
+@keyframes screen-in {
+    from {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    [data-screen-canvas][data-entering] > * {
+        animation: screen-in 160ms ease-out;
+    }
+
+    [data-screen-pending],
+    [data-screen-canvas] > [data-screen-pending] {
+        animation: screen-in 200ms ease-out 120ms both;
+    }
+}
+
+@layer utilities {
+    body,
+    html {
+        --font-sans:
+            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
+    }
+}
+
+:root {
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(0 0% 3.9%);
+    --card: hsl(0 0% 100%);
+    --card-foreground: hsl(0 0% 3.9%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 3.9%);
+    --primary: oklch(0.47 0.17 330);
+    --primary-foreground: oklch(0.985 0 0);
+    --primary-hover: oklch(0.42 0.17 330);
+    --primary-active: oklch(0.37 0.15 330);
+    --primary-ring: oklch(0.55 0.19 330);
+    --primary-subtle: oklch(0.965 0.022 330);
+    --primary-subtle-foreground: oklch(0.4 0.15 330);
+    --secondary: hsl(0 0% 92.1%);
+    --secondary-foreground: hsl(0 0% 9%);
+    --muted: hsl(0 0% 96.1%);
+    --muted-foreground: hsl(0 0% 43.2%);
+    --accent: hsl(0 0% 96.1%);
+    --accent-foreground: hsl(0 0% 9%);
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 92.8%);
+    --input: hsl(0 0% 89.8%);
+    --ring: oklch(0.55 0.19 330);
+    --chart-1: hsl(12 76% 61%);
+    --chart-2: hsl(173 58% 39%);
+    --chart-3: hsl(197 37% 24%);
+    --chart-4: hsl(43 74% 66%);
+    --chart-5: hsl(27 87% 67%);
+    --radius: 0.625rem;
+    --chrome: oklch(0.205 0.012 285);
+    --chrome-foreground: oklch(0.985 0.002 285);
+    --chrome-muted-foreground: oklch(0.72 0.012 285);
+    --chrome-accent: oklch(0.28 0.012 285);
+    --chrome-border: oklch(0.3 0.012 285);
+    --chrome-primary: oklch(0.72 0.16 330);
+    --chrome-primary-foreground: oklch(0.19 0.03 330);
+}
+
+:root.dark {
+    --background: oklch(0.205 0 0);
+    --foreground: hsl(0 0% 98%);
+    --card: oklch(0.245 0 0);
+    --card-foreground: hsl(0 0% 98%);
+    --popover: oklch(0.245 0 0);
+    --popover-foreground: hsl(0 0% 98%);
+    --primary: oklch(0.72 0.16 330);
+    --primary-foreground: oklch(0.19 0.03 330);
+    --primary-hover: oklch(0.78 0.14 330);
+    --primary-active: oklch(0.84 0.11 330);
+    --primary-ring: oklch(0.72 0.16 330);
+    --primary-subtle: oklch(0.3 0.06 330);
+    --primary-subtle-foreground: oklch(0.87 0.09 330);
+    --secondary: hsl(0 0% 14.9%);
+    --secondary-foreground: hsl(0 0% 98%);
+    --muted: hsl(0 0% 18%);
+    --muted-foreground: hsl(0 0% 66%);
+    --accent: hsl(0 0% 26%);
+    --accent-foreground: hsl(0 0% 98%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 22%);
+    --input: hsl(0 0% 24%);
+    --ring: oklch(0.72 0.16 330);
+    --chart-1: hsl(220 70% 50%);
+    --chart-2: hsl(160 60% 45%);
+    --chart-3: hsl(30 80% 55%);
+    --chart-4: hsl(280 65% 60%);
+    --chart-5: hsl(340 75% 55%);
+    --chrome: oklch(0.14 0.008 285);
+    --chrome-foreground: oklch(0.985 0.002 285);
+    --chrome-muted-foreground: oklch(0.72 0.012 285);
+    --chrome-accent: oklch(0.22 0.008 285);
+    --chrome-border: oklch(0.25 0.008 285);
+    --chrome-primary: oklch(0.72 0.16 330);
+    --chrome-primary-foreground: oklch(0.19 0.03 330);
+}
+
+/*
+  Surface schemes (ADR-0019). Selectors are not anchored to :root so a swatch can render any scheme.
+  Each scheme needs a light and a dark block, and never overrides brand tokens such as --primary.
+*/
+
+[data-theme='meridian'] {
+    --background: oklch(0.985 0.016 200);
+    --foreground: oklch(0.19 0.018 220);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.19 0.018 220);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.19 0.018 220);
+    --secondary: oklch(0.918 0.03 200);
+    --secondary-foreground: oklch(0.19 0.018 220);
+    --muted: oklch(0.95 0.026 200);
+    --muted-foreground: oklch(0.455 0.02 215);
+    --accent: oklch(0.932 0.034 200);
+    --accent-foreground: oklch(0.19 0.018 220);
+    --border: oklch(0.896 0.032 200);
+    --input: oklch(0.866 0.036 200);
+    --chrome: oklch(0.285 0.085 205);
+    --chrome-foreground: oklch(0.975 0.008 200);
+    --chrome-muted-foreground: oklch(0.76 0.055 200);
+    --chrome-accent: oklch(0.34 0.09 205);
+    --chrome-border: oklch(0.38 0.09 205);
+}
+
+.dark [data-theme='meridian'],
+[data-theme='meridian'].dark {
+    --background: oklch(0.225 0.038 215);
+    --foreground: oklch(0.965 0.008 200);
+    --card: oklch(0.265 0.038 215);
+    --card-foreground: oklch(0.965 0.008 200);
+    --popover: oklch(0.265 0.038 215);
+    --popover-foreground: oklch(0.965 0.008 200);
+    --secondary: oklch(0.272 0.038 215);
+    --secondary-foreground: oklch(0.965 0.008 200);
+    --muted: oklch(0.297 0.04 215);
+    --muted-foreground: oklch(0.75 0.02 210);
+    --accent: oklch(0.335 0.045 215);
+    --accent-foreground: oklch(0.965 0.008 200);
+    --border: oklch(0.335 0.045 215);
+    --input: oklch(0.355 0.045 215);
+    --chrome: oklch(0.175 0.062 205);
+    --chrome-foreground: oklch(0.975 0.008 200);
+    --chrome-muted-foreground: oklch(0.74 0.05 205);
+    --chrome-accent: oklch(0.24 0.062 205);
+    --chrome-border: oklch(0.28 0.062 205);
+}
+
+[data-theme='ember'] {
+    --background: oklch(0.98 0.026 75);
+    --foreground: oklch(0.2 0.018 45);
+    --card: oklch(0.998 0.005 75);
+    --card-foreground: oklch(0.2 0.018 45);
+    --popover: oklch(0.998 0.005 75);
+    --popover-foreground: oklch(0.2 0.018 45);
+    --secondary: oklch(0.912 0.042 72);
+    --secondary-foreground: oklch(0.2 0.018 45);
+    --muted: oklch(0.946 0.036 72);
+    --muted-foreground: oklch(0.46 0.024 50);
+    --accent: oklch(0.928 0.046 70);
+    --accent-foreground: oklch(0.2 0.018 45);
+    --border: oklch(0.89 0.044 70);
+    --input: oklch(0.858 0.05 70);
+    --chrome: oklch(0.27 0.095 45);
+    --chrome-foreground: oklch(0.98 0.01 75);
+    --chrome-muted-foreground: oklch(0.775 0.06 60);
+    --chrome-accent: oklch(0.325 0.1 45);
+    --chrome-border: oklch(0.365 0.1 45);
+}
+
+.dark [data-theme='ember'],
+[data-theme='ember'].dark {
+    --background: oklch(0.222 0.032 50);
+    --foreground: oklch(0.968 0.01 75);
+    --card: oklch(0.262 0.032 50);
+    --card-foreground: oklch(0.968 0.01 75);
+    --popover: oklch(0.262 0.032 50);
+    --popover-foreground: oklch(0.968 0.01 75);
+    --secondary: oklch(0.269 0.032 50);
+    --secondary-foreground: oklch(0.968 0.01 75);
+    --muted: oklch(0.294 0.034 50);
+    --muted-foreground: oklch(0.745 0.022 55);
+    --accent: oklch(0.332 0.04 50);
+    --accent-foreground: oklch(0.968 0.01 75);
+    --border: oklch(0.332 0.04 50);
+    --input: oklch(0.352 0.04 50);
+    --chrome: oklch(0.172 0.058 45);
+    --chrome-foreground: oklch(0.98 0.01 75);
+    --chrome-muted-foreground: oklch(0.76 0.05 55);
+    --chrome-accent: oklch(0.235 0.058 45);
+    --chrome-border: oklch(0.275 0.058 45);
+}
+
+[data-theme='nocturne'] {
+    --background: oklch(0.982 0.018 275);
+    --foreground: oklch(0.185 0.022 280);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.185 0.022 280);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.185 0.022 280);
+    --secondary: oklch(0.914 0.036 275);
+    --secondary-foreground: oklch(0.185 0.022 280);
+    --muted: oklch(0.948 0.03 275);
+    --muted-foreground: oklch(0.452 0.026 278);
+    --accent: oklch(0.93 0.04 275);
+    --accent-foreground: oklch(0.185 0.022 280);
+    --border: oklch(0.892 0.038 275);
+    --input: oklch(0.86 0.044 275);
+    --chrome: oklch(0.245 0.135 278);
+    --chrome-foreground: oklch(0.975 0.008 275);
+    --chrome-muted-foreground: oklch(0.775 0.07 278);
+    --chrome-accent: oklch(0.3 0.14 278);
+    --chrome-border: oklch(0.345 0.14 278);
+}
+
+.dark [data-theme='nocturne'],
+[data-theme='nocturne'].dark {
+    --background: oklch(0.218 0.045 280);
+    --foreground: oklch(0.965 0.008 275);
+    --card: oklch(0.258 0.045 280);
+    --card-foreground: oklch(0.965 0.008 275);
+    --popover: oklch(0.258 0.045 280);
+    --popover-foreground: oklch(0.965 0.008 275);
+    --secondary: oklch(0.265 0.045 280);
+    --secondary-foreground: oklch(0.965 0.008 275);
+    --muted: oklch(0.29 0.048 280);
+    --muted-foreground: oklch(0.748 0.026 278);
+    --accent: oklch(0.33 0.055 280);
+    --accent-foreground: oklch(0.965 0.008 275);
+    --border: oklch(0.33 0.055 280);
+    --input: oklch(0.35 0.055 280);
+    --chrome: oklch(0.16 0.085 278);
+    --chrome-foreground: oklch(0.975 0.008 275);
+    --chrome-muted-foreground: oklch(0.76 0.06 278);
+    --chrome-accent: oklch(0.215 0.085 278);
+    --chrome-border: oklch(0.255 0.085 278);
+}
+
+[data-theme='moss'] {
+    --background: oklch(0.982 0.02 130);
+    --foreground: oklch(0.192 0.018 150);
+    --card: oklch(0.999 0.004 130);
+    --card-foreground: oklch(0.192 0.018 150);
+    --popover: oklch(0.999 0.004 130);
+    --popover-foreground: oklch(0.192 0.018 150);
+    --secondary: oklch(0.915 0.038 133);
+    --secondary-foreground: oklch(0.192 0.018 150);
+    --muted: oklch(0.948 0.032 132);
+    --muted-foreground: oklch(0.458 0.022 150);
+    --accent: oklch(0.931 0.042 132);
+    --accent-foreground: oklch(0.192 0.018 150);
+    --border: oklch(0.894 0.04 132);
+    --input: oklch(0.862 0.046 132);
+    --chrome: oklch(0.29 0.085 152);
+    --chrome-foreground: oklch(0.978 0.008 130);
+    --chrome-muted-foreground: oklch(0.775 0.055 145);
+    --chrome-accent: oklch(0.345 0.09 152);
+    --chrome-border: oklch(0.385 0.09 152);
+}
+
+.dark [data-theme='moss'],
+[data-theme='moss'].dark {
+    --background: oklch(0.222 0.032 152);
+    --foreground: oklch(0.968 0.008 130);
+    --card: oklch(0.262 0.032 152);
+    --card-foreground: oklch(0.968 0.008 130);
+    --popover: oklch(0.262 0.032 152);
+    --popover-foreground: oklch(0.968 0.008 130);
+    --secondary: oklch(0.269 0.032 152);
+    --secondary-foreground: oklch(0.968 0.008 130);
+    --muted: oklch(0.294 0.034 152);
+    --muted-foreground: oklch(0.748 0.022 150);
+    --accent: oklch(0.332 0.04 152);
+    --accent-foreground: oklch(0.968 0.008 130);
+    --border: oklch(0.332 0.04 152);
+    --input: oklch(0.352 0.04 152);
+    --chrome: oklch(0.175 0.055 152);
+    --chrome-foreground: oklch(0.978 0.008 130);
+    --chrome-muted-foreground: oklch(0.76 0.05 150);
+    --chrome-accent: oklch(0.235 0.055 152);
+    --chrome-border: oklch(0.275 0.055 152);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer components {
+    .rich-text {
+        @apply text-sm leading-relaxed;
+    }
+
+    .rich-text > * + * {
+        @apply mt-2;
+    }
+
+    .rich-text p {
+        @apply min-h-5;
+    }
+
+    .rich-text h1 {
+        @apply text-lg font-semibold;
+    }
+
+    .rich-text h2 {
+        @apply text-base font-semibold;
+    }
+
+    .rich-text h3 {
+        @apply text-sm font-semibold;
+    }
+
+    .rich-text a {
+        @apply text-primary underline underline-offset-2;
+    }
+
+    .rich-text ol {
+        @apply list-decimal pl-5;
+    }
+
+    .rich-text ul {
+        @apply list-disc pl-5;
+    }
+
+    /* Quill 2 writes every list as `<ol>` and says which kind it is on the line. */
+    .rich-text li[data-list='bullet'] {
+        @apply list-disc;
+    }
+
+    .rich-text li[data-list='ordered'] {
+        @apply list-decimal;
+    }
+
+    .rich-text ol:has(> li[data-list]) {
+        @apply list-none;
+    }
+
+    .rich-text blockquote {
+        @apply border-l-2 border-border pl-3 text-muted-foreground;
+    }
+
+    .rich-text pre {
+        @apply overflow-x-auto rounded-md bg-muted p-3 font-mono text-xs;
+    }
+
+    .rich-text code {
+        @apply rounded bg-muted px-1 py-0.5 font-mono text-xs;
+    }
+}

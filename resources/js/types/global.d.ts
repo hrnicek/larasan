@@ -1,0 +1,33 @@
+import type { SidebarProject } from '@/modules/project/types';
+import type { WorkspaceSummary } from '@/modules/workspace/types';
+import type { Auth } from '@/types/auth';
+
+declare module 'vite/client' {
+    interface ImportMetaEnv {
+        readonly VITE_REVERB_APP_KEY: string;
+        readonly VITE_REVERB_HOST: string;
+        readonly VITE_REVERB_PORT: string;
+        readonly VITE_REVERB_SCHEME: string;
+        [key: string]: string | boolean | undefined;
+    }
+
+    interface ImportMeta {
+        readonly env: ImportMetaEnv;
+        readonly glob: <T>(pattern: string) => Record<string, () => Promise<T>>;
+    }
+}
+
+declare module '@inertiajs/core' {
+    export interface InertiaConfig {
+        sharedPageProps: {
+            name: string;
+            auth: Auth;
+            sidebarOpen: boolean;
+            workspace: WorkspaceSummary | null;
+            workspaces: WorkspaceSummary[];
+            projects: SidebarProject[];
+            unreadNotifications: number;
+            [key: string]: unknown;
+        };
+    }
+}

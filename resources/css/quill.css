@@ -1,0 +1,100 @@
+/* Quill's Snow theme mapped to theme tokens. `TaskDescriptionField` places the toolbar below the text. */
+.ql-toolbar.ql-snow,
+.ql-container.ql-snow {
+    border: 0;
+}
+
+.ql-container.ql-snow {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.ql-editor {
+    padding: 0.5rem;
+    min-height: 6rem;
+    line-height: 1.625;
+}
+
+.ql-editor p + p,
+.ql-editor > * + * {
+    margin-top: 0.5rem;
+}
+
+.ql-editor a {
+    color: var(--primary);
+}
+
+.ql-editor blockquote {
+    border-left: 2px solid var(--border);
+    padding-left: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.ql-editor pre.ql-syntax,
+.ql-editor pre {
+    background: var(--muted);
+    border-radius: 0.375rem;
+    color: var(--foreground);
+    padding: 0.75rem;
+}
+
+.ql-editor.ql-blank::before {
+    color: var(--muted-foreground);
+    font-style: normal;
+    left: 0.5rem;
+    right: 0.5rem;
+}
+
+.ql-toolbar.ql-snow {
+    border-top: 1px solid var(--border);
+    padding: 0.25rem;
+}
+
+.ql-snow .ql-stroke {
+    stroke: var(--muted-foreground);
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+    fill: var(--muted-foreground);
+}
+
+.ql-snow .ql-picker {
+    color: var(--muted-foreground);
+}
+
+.ql-snow.ql-toolbar button:hover,
+.ql-snow.ql-toolbar button.ql-active {
+    border-radius: 0.25rem;
+    background: var(--accent);
+}
+
+.ql-snow.ql-toolbar button:hover .ql-stroke,
+.ql-snow.ql-toolbar button.ql-active .ql-stroke {
+    stroke: var(--foreground);
+}
+
+.ql-snow.ql-toolbar button:hover .ql-fill,
+.ql-snow.ql-toolbar button.ql-active .ql-fill {
+    fill: var(--foreground);
+}
+
+.ql-snow .ql-tooltip {
+    background: var(--popover, var(--background));
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.15);
+    color: var(--foreground);
+}
+
+.ql-snow .ql-tooltip input[type='text'] {
+    background: transparent;
+    border: 1px solid var(--input);
+    border-radius: 0.25rem;
+    color: var(--foreground);
+}
+
+.ql-snow .ql-tooltip a.ql-action,
+.ql-snow .ql-tooltip a.ql-remove {
+    color: var(--primary);
+}

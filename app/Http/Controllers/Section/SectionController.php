@@ -1,0 +1,65 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Section;
+
+use App\Domain\Project\Models\Project;
+use App\Domain\Section\Actions\CreateSection;
+use App\Domain\Section\Actions\DeleteSection;
+use App\Domain\Section\Actions\MoveSection;
+use App\Domain\Section\Actions\RenameSection;
+use App\Domain\Section\Data\CreateSectionData;
+use App\Domain\Section\Data\UpdateSectionData;
+use App\Domain\Section\Models\Section;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Section\MoveSectionRequest;
+use App\Http\Requests\Section\StoreSectionRequest;
+use App\Http\Requests\Section\UpdateSectionRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Inertia\Inertia;
+
+class SectionController extends Controller
+{
+    public function store(StoreSectionRequest $request, Project $project, CreateSection $createSection): RedirectResponse
+    {
+        $createSection->handle($project, $this->actor($request), CreateSectionData::fromRequest($request));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Section added.')]);
+
+        return back();
+    }
+
+    public function update(UpdateSectionRequest $request, Section $section, RenameSection $renameSection): RedirectResponse
+    {
+        $renameSection->handle($section, $this->actor($request), UpdateSectionData::fromRequest($request));
+
+        return back();
+    }
+
+    public function move(MoveSectionRequest $request, Section $section, MoveSection $moveSection): RedirectResponse
+    {
+        $after = $request->string('after')->value() ?: null;
+
+        $moveSection->handle(
+            $section,
+            $this->actor($request),
+            $after === null ? null : $section->project->sections()->whereKey($after)->firstOrFail(),
+        );
+
+        return back();
+    }
+
+    public function destroy(Request $request, Section $section, DeleteSection $deleteSection): RedirectResponse
+    {
+        Gate::authorize('delete', $section);
+
+        $deleteSection->handle($section, $this->actor($request));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('Section deleted.')]);
+
+        return back();
+    }
+}

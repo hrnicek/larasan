@@ -1,0 +1,312 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Domain\File\Models\Attachment;
+use App\Domain\File\Models\File;
+use App\Domain\Placement\Models\TaskProjectMembership;
+use App\Domain\Project\Models\Project;
+use App\Domain\Project\Models\ProjectMembership;
+use App\Domain\Project\Queries\ProjectFilesQuery;
+use App\Domain\Shared\Enums\ProjectAccessLevel;
+use App\Domain\Shared\Enums\ProjectFileSort;
+use App\Domain\Shared\Enums\WorkspaceRole;
+use App\Domain\Task\Actions\DeleteTask;
+use App\Domain\Task\Models\Task;
+use App\Domain\Workspace\Models\Workspace;
+use App\Models\User;
+
+/**
+ * @return array<string, mixed>
+ */
+function filesOf(
+    Project $project,
+    User $actor,
+    int $page = 1,
+    ?ProjectFileSort $sort = null,
+    ?bool $descending = null,
+    int $perPage = ProjectFilesQuery::PER_PAGE,
+): array {
+    return app(ProjectFilesQuery::class)($project, $actor, $page, $sort, $descending, $perPage);
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function hanging(Workspace $workspace, Task $task, ?User $uploader = null, array $attributes = []): Attachment
+{
+    $file = File::factory()->in($workspace);
+
+    if ($uploader instanceof User) {
+        $file = $file->by($uploader);
+    }
+
+    return Attachment::factory()->attaching($file->create($attributes), $task)->create();
+}
+
+/**
+ * @param  array<string, mixed>  $files
+ * @return list<string>
+ */
+function drawn(array $files): array
+{
+    /** @var list<array<string, mixed>> $rows */
+    $rows = $files['files'];
+
+    return array_map(fn (array $row): string => (string) $row['name'], $rows);
+}
+
+it('lists what hangs off the tasks this project holds', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create(['title' => 'Write the brief']);
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'brief.pdf']);
+
+    $files = filesOf($project, $actor);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = $files['files'];
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows[0]['name'])->toBe('brief.pdf')
+        ->and($rows[0]['task'])->toBe(['id' => $task->id, 'title' => 'Write the brief'])
+        ->and($rows[0]['uploader']['id'])->toBe($actor->id)
+        ->and($rows[0]['kind'])->toBe('pdf')
+        ->and($rows[0]['attachedAt'])->not->toBeNull();
+});
+
+it('leaves out a file hanging off a task in another project', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $mine = Task::factory()->in($workspace)->create();
+    attach($mine, $project, $actor);
+
+    $elsewhere = Project::factory()->in($workspace)->create();
+    $theirs = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($theirs, $elsewhere)->create();
+
+    hanging($workspace, $mine, $actor, ['original_name' => 'mine.pdf']);
+    hanging($workspace, $theirs, $actor, ['original_name' => 'theirs.pdf']);
+
+    expect(drawn(filesOf($project, $actor)))->toBe(['mine.pdf']);
+});
+
+it('leaves out a file whose file belongs to another workspace', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'ours.pdf']);
+
+    // An attachment the domain never writes, proving the query itself scopes by workspace.
+    $elsewhere = Workspace::factory()->create();
+    hanging($elsewhere, $task, null, ['original_name' => 'somebody elses.pdf']);
+
+    expect(drawn(filesOf($project, $actor)))->toBe(['ours.pdf']);
+});
+
+it('stops drawing a file once its task is deleted', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+    hanging($workspace, $task, $actor);
+
+    app(DeleteTask::class)->handle($task, $actor);
+
+    expect(filesOf($project, $actor)['files'])->toBe([]);
+});
+
+it('stops drawing a file once the file is removed', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+    $attachment = hanging($workspace, $task, $actor);
+
+    $attachment->file->delete();
+
+    expect(filesOf($project, $actor)['files'])->toBe([]);
+});
+
+it('draws one row per attachment when one file hangs from two tasks', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $first = Task::factory()->in($workspace)->create(['title' => 'First']);
+    $second = Task::factory()->in($workspace)->create(['title' => 'Second']);
+    attach($first, $project, $actor);
+    attach($second, $project, $actor);
+
+    $file = File::factory()->in($workspace)->by($actor)->create(['original_name' => 'shared.pdf']);
+    Attachment::factory()->attaching($file, $first)->create();
+    Attachment::factory()->attaching($file, $second)->create();
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows)->toHaveCount(2)
+        ->and(collect($rows)->pluck('task.title')->sort()->values()->all())->toBe(['First', 'Second']);
+});
+
+it('reads the kind from the type the upload was sniffed as', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, [
+        'original_name' => 'chart.xlsx',
+        'mime_type' => 'image/png',
+        'extension' => 'xlsx',
+    ]);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows[0]['kind'])->toBe('image');
+});
+
+it('says nothing about an uploader who has left rather than inventing one', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    $uploader = memberOf($workspace);
+    hanging($workspace, $task, $uploader);
+
+    $uploader->delete();
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows[0]['uploader'])->toBeNull();
+});
+
+it('bounds the page and says how much it did not draw', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    foreach (range(1, 5) as $index) {
+        hanging($workspace, $task, $actor, ['original_name' => "file {$index}.pdf"]);
+    }
+
+    $first = filesOf($project, $actor, page: 1, perPage: 2);
+    $last = filesOf($project, $actor, page: 3, perPage: 2);
+
+    expect($first['files'])->toHaveCount(2)
+        ->and($first['meta'])->toBe([
+            'page' => 1,
+            'perPage' => 2,
+            'total' => 5,
+            'hasMore' => true,
+            'sort' => 'added',
+            'direction' => 'desc',
+        ])
+        ->and($last['files'])->toHaveCount(1)
+        ->and($last['meta']['hasMore'])->toBeFalse();
+});
+
+it('lets a guest remove what they uploaded and nothing else', function (): void {
+    [$workspace, $project] = placeableProject();
+    $guest = memberOf($workspace, WorkspaceRole::Guest);
+    ProjectMembership::factory()->in($project)->forUser($guest)->withAccess(ProjectAccessLevel::Commenter)->create();
+
+    $task = Task::factory()->in($workspace)->create();
+    TaskProjectMembership::factory()->placing($task, $project)->create();
+
+    hanging($workspace, $task, $guest, ['original_name' => 'theirs.pdf']);
+    hanging($workspace, $task, memberOf($workspace), ['original_name' => 'somebody elses.pdf']);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $guest)['files'];
+
+    expect(collect($rows)->pluck('canDelete', 'name')->all())
+        ->toBe(['somebody elses.pdf' => false, 'theirs.pdf' => true]);
+});
+
+it('lets a member remove anything, because the workspace moderates its files', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, memberOf($workspace), ['original_name' => 'somebody elses.pdf']);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows[0]['canDelete'])->toBeTrue();
+});
+
+it('opens on the newest file, because that is the one being looked for', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    $first = hanging($workspace, $task, $actor, ['original_name' => 'older.pdf']);
+    $first->forceFill(['created_at' => now()->subDay()])->save();
+    hanging($workspace, $task, $actor, ['original_name' => 'newer.pdf']);
+
+    expect(drawn(filesOf($project, $actor)))->toBe(['newer.pdf', 'older.pdf'])
+        ->and(filesOf($project, $actor)['meta']['sort'])->toBe('added')
+        ->and(filesOf($project, $actor)['meta']['direction'])->toBe('desc');
+});
+
+it('orders by name from A to Z unless told otherwise', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'zebra.pdf']);
+    hanging($workspace, $task, $actor, ['original_name' => 'aardvark.pdf']);
+
+    expect(drawn(filesOf($project, $actor, sort: ProjectFileSort::Name)))
+        ->toBe(['aardvark.pdf', 'zebra.pdf'])
+        ->and(drawn(filesOf($project, $actor, sort: ProjectFileSort::Name, descending: true)))
+        ->toBe(['zebra.pdf', 'aardvark.pdf']);
+});
+
+it('orders by size from the largest, because that is what the question means', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    hanging($workspace, $task, $actor, ['original_name' => 'small.pdf', 'size' => 1_024]);
+    hanging($workspace, $task, $actor, ['original_name' => 'huge.pdf', 'size' => 90_000_000]);
+
+    expect(drawn(filesOf($project, $actor, sort: ProjectFileSort::Size)))->toBe(['huge.pdf', 'small.pdf'])
+        ->and(drawn(filesOf($project, $actor, sort: ProjectFileSort::Size, descending: false)))
+        ->toBe(['small.pdf', 'huge.pdf']);
+});
+
+it('keeps the ordering across the pages it cuts', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+
+    foreach (['d.pdf', 'b.pdf', 'a.pdf', 'c.pdf'] as $name) {
+        hanging($workspace, $task, $actor, ['original_name' => $name]);
+    }
+
+    $first = filesOf($project, $actor, page: 1, sort: ProjectFileSort::Name, perPage: 2);
+    $second = filesOf($project, $actor, page: 2, sort: ProjectFileSort::Name, perPage: 2);
+
+    expect(drawn($first))->toBe(['a.pdf', 'b.pdf'])
+        ->and(drawn($second))->toBe(['c.pdf', 'd.pdf']);
+});
+
+it('draws the uploader with their face, not only their initials', function (): void {
+    [$workspace, $project, $actor] = placeableProject();
+    $task = Task::factory()->in($workspace)->create();
+    attach($task, $project, $actor);
+    $uploader = memberOf($workspace, user: User::factory()->withAvatarPreset(8)->create());
+
+    hanging($workspace, $task, $uploader);
+
+    /** @var list<array<string, mixed>> $rows */
+    $rows = filesOf($project, $actor)['files'];
+
+    expect($rows[0]['uploader'])->toBe([
+        'id' => $uploader->id,
+        'name' => $uploader->name,
+        'email' => $uploader->email,
+        'avatar' => asset('img/avatars/8.svg'),
+    ]);
+});
