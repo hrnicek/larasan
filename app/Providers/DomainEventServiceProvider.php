@@ -51,7 +51,9 @@ use App\Domain\Task\Listeners\BroadcastTaskChange;
 use App\Domain\Task\Listeners\FollowAssignedTask;
 use App\Domain\Task\Listeners\FollowCollaboratedTask;
 use App\Domain\Task\Listeners\FollowCommentedTask;
+use App\Domain\Workspace\Events\WorkspaceInvitationAnswered;
 use App\Domain\Workspace\Listeners\ClaimInvitationsForVerifiedEmail;
+use App\Domain\Workspace\Listeners\NotifyOwnersOfJoinedMember;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -110,6 +112,8 @@ class DomainEventServiceProvider extends ServiceProvider
         CommentEdited::class => [NotifyMentionedPeople::class],
 
         FileAttached::class => [GenerateThumbnail::class],
+
+        WorkspaceInvitationAnswered::class => [NotifyOwnersOfJoinedMember::class],
 
         Verified::class => [ClaimInvitationsForVerifiedEmail::class],
     ];
