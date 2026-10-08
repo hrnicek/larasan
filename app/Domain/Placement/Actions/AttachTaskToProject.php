@@ -34,6 +34,11 @@ final readonly class AttachTaskToProject
             throw PlacementException::taskBelongsToAnotherWorkspace();
         }
 
+        // A task is editable when any of its boards allows it (ADR-0020), so a new board must not be a way around the old one.
+        if ($actor->cannot('update', $task)) {
+            throw PlacementException::cannotChangeTask();
+        }
+
         $existing = $this->existing($task, $project);
 
         if ($existing !== null) {

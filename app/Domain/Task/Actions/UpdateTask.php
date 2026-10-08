@@ -25,8 +25,8 @@ final readonly class UpdateTask
             throw TaskException::cannotUpdateTask();
         }
 
-        $changed = DB::transaction(function () use ($task, $data): array {
-            $parent = $data->changes('parent_id') ? $this->parentFor($task, $data->parentId) : null;
+        $changed = DB::transaction(function () use ($task, $actor, $data): array {
+            $parent = $data->changes('parent_id') ? $this->parentFor($task, $actor, $data->parentId) : null;
 
             // A null clears a nullable field; a field absent from the payload is left untouched.
             $task->fill($this->changed($data, [
@@ -72,7 +72,7 @@ final readonly class UpdateTask
         );
     }
 
-    private function parentFor(Task $task, ?string $parentId): ?Task
+    private function parentFor(Task $task, User $actor, ?string $parentId): ?Task
     {
         if ($parentId === null) {
             return null;
@@ -86,6 +86,11 @@ final readonly class UpdateTask
 
         if ($parent === null || $parent->workspace_id !== $task->workspace_id) {
             throw TaskException::parentBelongsToAnotherWorkspace();
+        }
+
+        // Moving a task under a parent puts it in that parent's project (ADR-0023).
+        if ($actor->cannot('update', $parent)) {
+            throw TaskException::cannotChangeParent();
         }
 
         $parentOf = $this->tree->lockChainFrom($task->workspace_id, $parent->id, alsoLock: $task->id);

@@ -36,7 +36,7 @@ final readonly class CreateTask
             : User::query()->find($data->assigneeId) ?? throw TaskException::assigneeIsNotAMember();
 
         return DB::transaction(function () use ($workspace, $creator, $data, $assignee): Task {
-            $parent = $this->parentIn($workspace, $data->parentId);
+            $parent = $this->parentIn($workspace, $creator, $data->parentId);
 
             $task = new Task([
                 'parent_id' => $parent?->id,
@@ -60,7 +60,7 @@ final readonly class CreateTask
         });
     }
 
-    private function parentIn(Workspace $workspace, ?string $parentId): ?Task
+    private function parentIn(Workspace $workspace, User $creator, ?string $parentId): ?Task
     {
         if ($parentId === null) {
             return null;
@@ -71,6 +71,11 @@ final readonly class CreateTask
         // The self-referencing foreign key cannot enforce that the parent is in the same workspace.
         if ($parent === null || $parent->workspace_id !== $workspace->id) {
             throw TaskException::parentBelongsToAnotherWorkspace();
+        }
+
+        // A subtask is governed by its parent's project (ADR-0023), so adding one changes that project.
+        if ($creator->cannot('update', $parent)) {
+            throw TaskException::cannotChangeParent();
         }
 
         $parentOf = $this->tree->lockChainFrom($workspace->id, $parent->id);

@@ -14,6 +14,11 @@ final class PlacementException extends DomainException implements DomainRefusal
         return new self('You do not have permission to change what this project holds.');
     }
 
+    public static function cannotChangeTask(): self
+    {
+        return new self('You do not have permission to change that task, so it cannot be added to another project.');
+    }
+
     public static function sectionBelongsToAnotherProject(): self
     {
         return new self('That section is not in this project.');

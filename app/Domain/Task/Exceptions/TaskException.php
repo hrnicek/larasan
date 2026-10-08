@@ -44,6 +44,11 @@ final class TaskException extends DomainException implements DomainRefusal
         return new self('Subtasks cannot be nested that deeply.');
     }
 
+    public static function cannotChangeParent(): self
+    {
+        return new self('You do not have permission to change that task, so it cannot take a subtask.');
+    }
+
     public static function parentBelongsToAnotherWorkspace(): self
     {
         return new self('A task can only be a subtask of a task in the same workspace.');
