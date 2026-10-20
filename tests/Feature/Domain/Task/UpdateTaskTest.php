@@ -8,6 +8,7 @@ use App\Domain\Task\Actions\UpdateTask;
 use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
+use App\Domain\Task\Exceptions\DescriptionConflict;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Domain\Workspace\Models\Workspace;
@@ -235,6 +236,49 @@ it('stores only the markup the allowlist names', function (): void {
         ->assertRedirect();
 
     expect($task->fresh()?->description)->toBe('<p>Ship it</p>');
+});
+
+it('refuses a stale description without overwriting the other writer', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill(['description' => '<p>Original</p>'])->save();
+
+    app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(
+        description: '<p>First writer</p>',
+        fields: ['description'],
+        expectedDescription: '<p>Original</p>',
+        checksDescription: true,
+    ));
+
+    expect(fn (): Task => app(UpdateTask::class)->handle($task, $actor, new UpdateTaskData(
+        description: '<p>Second writer</p>',
+        fields: ['description'],
+        expectedDescription: '<p>Original</p>',
+        checksDescription: true,
+    )))->toThrow(DescriptionConflict::class);
+
+    expect($task->fresh()?->description)->toBe('<p>First writer</p>');
+});
+
+it('shows a description conflict in the form while keeping the saved version', function (): void {
+    [$task, $actor] = taskEditableBy();
+    $task->forceFill(['description' => '<p>Original</p>'])->save();
+
+    $this->actingAs($actor)
+        ->put(route('tasks.update', $task), [
+            'description' => '<p>First writer</p>',
+            'description_original' => '<p>Original</p>',
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($actor)
+        ->from(route('tasks.show', $task))
+        ->put(route('tasks.update', $task), [
+            'description' => '<p>Second writer</p>',
+            'description_original' => '<p>Original</p>',
+        ])
+        ->assertSessionHasErrors('description');
+
+    expect($task->fresh()?->description)->toBe('<p>First writer</p>');
 });
 
 it('treats the empty document the editor sends as no description', function (): void {

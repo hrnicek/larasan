@@ -35,6 +35,7 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             // The limit counts rich-text markup, not only prose.
             'description' => ['nullable', 'string', 'max:20000'],
+            'description_original' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'priority' => ['nullable', Rule::enum(TaskPriority::class)],
             'due_at' => ['nullable', 'date'],
             'parent_id' => [

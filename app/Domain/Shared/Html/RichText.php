@@ -50,7 +50,7 @@ final readonly class RichText
 
         // The XML encoding declaration stops DOMDocument from reading UTF-8 as Latin-1.
         $document->loadHTML(
-            '<?xml encoding="UTF-8"?><div id="rich-text-root">'.$html.'</div>',
+            '<?xml encoding="UTF-8"?><div id="rich-text-root">'.str_replace("\0", '', $html).'</div>',
             LIBXML_HTML_NODEFDTD | LIBXML_HTML_NOIMPLIED
         );
 

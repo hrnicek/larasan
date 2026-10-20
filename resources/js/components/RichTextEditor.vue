@@ -17,6 +17,20 @@ const toolbar = [
     ['link'],
     ['clean'],
 ];
+
+// Match the server's allowlist, including headings and inline code in existing descriptions.
+const formats = [
+    'bold',
+    'italic',
+    'underline',
+    'strike',
+    'list',
+    'header',
+    'blockquote',
+    'code',
+    'code-block',
+    'link',
+];
 </script>
 
 <template>
@@ -25,6 +39,7 @@ const toolbar = [
         content-type="html"
         theme="snow"
         :toolbar="toolbar"
+        :options="{ formats }"
         :placeholder="placeholder"
         @ready="focusOnReady"
     />
