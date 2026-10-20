@@ -26,6 +26,16 @@ const panel = ref<HTMLElement | null>(null);
 let restoreFocusToTask: string | null = null;
 
 const scrolled = ref(false);
+const descriptionPending = ref(false);
+
+const close = (): void => {
+    if (
+        !descriptionPending.value ||
+        window.confirm('Discard the unsaved description?')
+    ) {
+        emit('close');
+    }
+};
 
 const onScroll = (event: Event): void => {
     scrolled.value = (event.target as HTMLElement).scrollTop > 56;
@@ -33,8 +43,15 @@ const onScroll = (event: Event): void => {
 
 const onKeydown = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
+        if (
+            event.target instanceof Element &&
+            event.target.closest('.ql-tooltip') !== null
+        ) {
+            return;
+        }
+
         event.preventDefault();
-        emit('close');
+        close();
 
         return;
     }
@@ -112,7 +129,7 @@ onUnmounted(() => {
         <div class="fixed inset-x-0 top-13 bottom-0 z-40">
             <div
                 class="absolute inset-0 bg-black/25 backdrop-blur-[1px]"
-                @click="emit('close')"
+                @click="close"
             />
 
             <section
@@ -132,7 +149,7 @@ onUnmounted(() => {
                     :detail="detail"
                     variant="panel"
                     :collapsed="scrolled"
-                    @close="emit('close')"
+                    @close="close"
                     @deleted="emit('close')"
                 />
 
@@ -146,6 +163,9 @@ onUnmounted(() => {
                         :members="members"
                         :priorities="priorities"
                         @open="(taskId) => emit('open', taskId)"
+                        @pending-change="
+                            (pending) => (descriptionPending = pending)
+                        "
                     />
 
                     <TaskActivitySkeleton v-if="activity === undefined" />

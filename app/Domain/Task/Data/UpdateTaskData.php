@@ -24,6 +24,8 @@ final readonly class UpdateTaskData
         public ?CarbonImmutable $dueAt = null,
         public ?string $parentId = null,
         public array $fields = self::EVERY_FIELD,
+        public ?string $expectedDescription = null,
+        public bool $checksDescription = false,
     ) {}
 
     public function changes(string $field): bool
@@ -43,6 +45,10 @@ final readonly class UpdateTaskData
                 self::EVERY_FIELD,
                 fn (string $field): bool => $request->exists($field),
             )),
+            expectedDescription: $request->input('description_original') === null
+                ? null
+                : $request->string('description_original')->value(),
+            checksDescription: $request->exists('description_original'),
         );
     }
 }

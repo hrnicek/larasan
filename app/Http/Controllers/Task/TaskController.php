@@ -16,6 +16,7 @@ use App\Domain\Task\Actions\DeleteTask;
 use App\Domain\Task\Actions\UpdateTask;
 use App\Domain\Task\Data\CreateTaskData;
 use App\Domain\Task\Data\UpdateTaskData;
+use App\Domain\Task\Exceptions\DescriptionConflict;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Domain\Task\Queries\TaskDetailQuery;
@@ -107,10 +108,17 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Task $task, UpdateTask $updateTask): RedirectResponse
     {
-        $this->translating(
-            fn () => $updateTask->handle($task, $this->actor($request), UpdateTaskData::fromRequest($request)),
-            'parent_id',
-        );
+        try {
+            $this->translating(
+                fn () => $updateTask->handle($task, $this->actor($request), UpdateTaskData::fromRequest($request)),
+                'parent_id',
+            );
+        } catch (DescriptionConflict $exception) {
+            throw ValidationException::withMessages([
+                'description' => $exception->getMessage(),
+                'description_conflict' => '1',
+            ]);
+        }
 
         return back();
     }
