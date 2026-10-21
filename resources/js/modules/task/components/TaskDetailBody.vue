@@ -25,7 +25,10 @@ const props = defineProps<{
     priorities: string[];
 }>();
 
-const emit = defineEmits<{ open: [taskId: string] }>();
+const emit = defineEmits<{
+    open: [taskId: string];
+    pendingChange: [pending: boolean];
+}>();
 
 const viewer = computed(() => {
     const user = usePage().props.auth.user;
@@ -148,6 +151,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     :editable="fieldsEditable"
                     placeholder="What is this task about?"
                     class="-mx-2"
+                    @pending-change="
+                        (pending) => emit('pendingChange', pending)
+                    "
                 />
             </section>
 

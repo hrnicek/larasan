@@ -13,6 +13,9 @@ final readonly class LinkHref
 
     public static function sanitize(string $href): ?string
     {
+        // DOMDocument uses HTML4 entities; browsers also decode HTML5 entities such as &colon;.
+        $href = html_entity_decode($href, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
         // Browsers drop tab and newline anywhere in a URL and trim control characters, so `java\tscript:` still runs.
         $href = trim((string) preg_replace('/[\x00-\x1F]+/', '', $href), ' ');
 

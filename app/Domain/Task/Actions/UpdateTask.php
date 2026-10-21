@@ -9,6 +9,7 @@ use App\Domain\Task\Ancestry\ParentChain;
 use App\Domain\Task\Ancestry\TaskTree;
 use App\Domain\Task\Data\UpdateTaskData;
 use App\Domain\Task\Events\TaskUpdated;
+use App\Domain\Task\Exceptions\DescriptionConflict;
 use App\Domain\Task\Exceptions\TaskException;
 use App\Domain\Task\Models\Task;
 use App\Models\User;
@@ -26,6 +27,18 @@ final readonly class UpdateTask
         }
 
         $changed = DB::transaction(function () use ($task, $actor, $data): array {
+            if ($data->changes('description') && $data->checksDescription) {
+                $current = Task::query()
+                    ->where('workspace_id', $task->workspace_id)
+                    ->whereKey($task->id)
+                    ->lockForUpdate()
+                    ->firstOrFail(['description']);
+
+                if ($current->description !== $data->expectedDescription) {
+                    throw new DescriptionConflict;
+                }
+            }
+
             $parent = $data->changes('parent_id') ? $this->parentFor($task, $actor, $data->parentId) : null;
 
             // A null clears a nullable field; a field absent from the payload is left untouched.
