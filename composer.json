@@ -12,12 +12,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "hrnicek/larasan-mcp": "^0.1",
         "inertiajs/inertia-laravel": "^3.0",
         "inertiaui/modal": "^3.0.0",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.37.2",
         "laravel/framework": "^13.17",
         "laravel/horizon": "^5.48",
+        "laravel/passport": "^13.10",
         "laravel/reverb": "^1.11",
         "laravel/scout": "^11.6",
         "laravel/tinker": "^3.0",
@@ -125,5 +127,12 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "name": "larasan-mcp",
+            "type": "vcs",
+            "url": "https://github.com/hrnicek/larasan-mcp"
+        }
+    ]
 }
