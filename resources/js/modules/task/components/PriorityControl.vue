@@ -8,6 +8,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     taskId: string;
@@ -16,6 +17,17 @@ const props = defineProps<{
     editable: boolean;
     variant?: 'inline' | 'field';
 }>();
+
+const labelOf = (value: string): string => {
+    const labels: Record<string, string> = {
+        low: t('Low'),
+        medium: t('Medium'),
+        high: t('High'),
+        urgent: t('Urgent'),
+    };
+
+    return labels[value] ?? value;
+};
 
 const open = ref(false);
 const saving = ref(false);
@@ -42,7 +54,7 @@ function change(priority: string): void {
         v-if="!editable"
         class="text-muted-foreground capitalize"
         :class="variant === 'field' ? 'text-sm' : 'text-xs'"
-        >{{ priority }}</span
+        >{{ labelOf(priority) }}</span
     >
 
     <DropdownMenu v-else v-model:open="open">
@@ -54,9 +66,11 @@ function change(priority: string): void {
                     : 'px-1 text-xs'
             "
             :disabled="saving"
-            :aria-label="`Priority: ${priority}`"
+            :aria-label="
+                t('Priority: :priority', { priority: labelOf(priority) })
+            "
         >
-            {{ priority }}
+            {{ labelOf(priority) }}
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end">
@@ -67,7 +81,7 @@ function change(priority: string): void {
                 :class="option === priority ? 'bg-accent' : ''"
                 @select="change(option)"
             >
-                {{ option }}
+                {{ labelOf(option) }}
             </DropdownMenuItem>
         </DropdownMenuContent>
     </DropdownMenu>

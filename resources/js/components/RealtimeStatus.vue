@@ -8,13 +8,14 @@ import {
 } from '@/components/ui/tooltip';
 import { useRealtimeConnection } from '@/composables/useRealtime';
 import { useCollapsed } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 
 const connection = useRealtimeConnection();
 const collapsed = useCollapsed();
 
 const label = computed<string | null>(() =>
     connection.value === 'offline'
-        ? 'Live updates paused — reconnecting'
+        ? t('Live updates paused — reconnecting')
         : null,
 );
 </script>

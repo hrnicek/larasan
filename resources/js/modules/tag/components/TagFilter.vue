@@ -10,6 +10,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 import type { TaskTag } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
@@ -57,13 +58,15 @@ const cleared = computed<string>(
                 "
             >
                 <ListFilter class="size-4" />
-                <span>{{ count > 0 ? `Filter: ${count}` : 'Filter' }}</span>
+                <span>{{
+                    count > 0 ? t('Filter: :count', { count }) : t('Filter')
+                }}</span>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="start" class="w-56">
-                <DropdownMenuLabel class="text-xs text-muted-foreground"
-                    >Tags</DropdownMenuLabel
-                >
+                <DropdownMenuLabel class="text-xs text-muted-foreground">{{
+                    t('Tags')
+                }}</DropdownMenuLabel>
 
                 <DropdownMenuItem
                     v-for="tag in available"
@@ -95,7 +98,7 @@ const cleared = computed<string>(
             v-if="count > 0"
             :href="cleared"
             class="inline-flex h-8 items-center rounded-r-md border border-l-0 border-primary/40 bg-primary-subtle px-1.5 text-primary-subtle-foreground transition-colors hover:bg-primary/15 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            aria-label="Clear the filter"
+            :aria-label="t('Clear the filter')"
         >
             <X class="size-3.5" />
         </Link>

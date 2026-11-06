@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
 import { useRealtime } from '@/composables/useRealtime';
+import { t } from '@/lib/i18n';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
 import type { TaskAssignee, TaskDetail, TaskFeed } from '@/modules/task/types';
@@ -38,7 +39,11 @@ const back = (): { url: string; label: string; component: string } => {
     const placement = props.placements[0];
 
     return placement === undefined
-        ? { url: myTasks().url, label: 'My Tasks', component: 'my-tasks/Index' }
+        ? {
+              url: myTasks().url,
+              label: t('My Tasks'),
+              component: 'my-tasks/Index',
+          }
         : {
               url: showProject(placement.project.id).url,
               label: placement.project.name,

@@ -10,6 +10,7 @@ import {
 import UserAvatar from '@/components/UserAvatar.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCollapsed } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 
 const page = usePage();
 const collapsed = useCollapsed();
@@ -22,7 +23,7 @@ const user = computed(() => page.props.auth.user);
         <DropdownMenuTrigger
             class="flex h-11 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-chrome-accent focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none data-[state=open]:bg-chrome-accent"
             :class="collapsed && 'justify-center px-0'"
-            :aria-label="`Account menu for ${user.name}`"
+            :aria-label="t('Account menu for :name', { name: user.name })"
         >
             <UserAvatar :user="user" />
 

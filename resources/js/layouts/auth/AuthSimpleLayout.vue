@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import LocalePicker from '@/components/LocalePicker.vue';
 import { home } from '@/routes';
 
 defineProps<{
@@ -35,6 +36,9 @@ defineProps<{
                     </div>
                 </div>
                 <slot />
+                <div class="flex justify-center">
+                    <LocalePicker />
+                </div>
             </div>
         </div>
     </div>

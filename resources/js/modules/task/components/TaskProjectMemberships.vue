@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
@@ -83,7 +84,7 @@ const detach = (): void => {
 <template>
     <section class="flex flex-col gap-1">
         <TaskSectionHeading
-            title="Projects"
+            :title="t('Projects')"
             :count="placements.length ? String(placements.length) : null"
         >
             <template v-if="editable && availableProjects.length" #add>
@@ -94,7 +95,7 @@ const detach = (): void => {
                             size="icon-sm"
                             class="size-7 text-muted-foreground"
                             :disabled="working"
-                            aria-label="Add this task to a project"
+                            :aria-label="t('Add this task to a project')"
                         >
                             <Plus class="size-4" />
                         </Button>
@@ -134,10 +135,14 @@ const detach = (): void => {
                     <DropdownMenuTrigger
                         class="inline-flex min-w-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50"
                         :disabled="working"
-                        :aria-label="`Move this task to another section of ${placement.project.name}`"
+                        :aria-label="
+                            t('Move this task to another section of :project', {
+                                project: placement.project.name,
+                            })
+                        "
                     >
                         <span class="truncate">{{
-                            placement.section?.name ?? 'No section'
+                            placement.section?.name ?? t('No section')
                         }}</span>
                         <ChevronDown
                             class="size-3 shrink-0"
@@ -152,7 +157,7 @@ const detach = (): void => {
                             "
                             @select="move(placement.placementId, null)"
                         >
-                            No section
+                            {{ t('No section') }}
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
@@ -174,7 +179,7 @@ const detach = (): void => {
                     v-else
                     class="truncate text-xs tracking-wide text-muted-foreground uppercase"
                 >
-                    {{ placement.section?.name ?? 'No section' }}
+                    {{ placement.section?.name ?? t('No section') }}
                 </span>
 
                 <Button
@@ -183,10 +188,16 @@ const detach = (): void => {
                     size="icon-sm"
                     class="ml-auto size-7 text-muted-foreground focus-visible:opacity-100 md:opacity-0 md:group-hover/placement:opacity-100"
                     :disabled="working"
-                    :aria-label="`Remove from ${placement.project.name}`"
+                    :aria-label="
+                        t('Remove from :project', {
+                            project: placement.project.name,
+                        })
+                    "
                     :title="
                         placements.length === 1
-                            ? 'This is the last project — the task will only be reachable from My Tasks and search.'
+                            ? t(
+                                  'This is the last project — the task will only be reachable from My Tasks and search.',
+                              )
                             : undefined
                     "
                     @click="
@@ -205,7 +216,7 @@ const detach = (): void => {
             v-else
             class="border-b border-border py-2 text-sm text-muted-foreground"
         >
-            In no project — reachable from My Tasks and search.
+            {{ t('In no project — reachable from My Tasks and search.') }}
         </p>
 
         <div class="py-2">
@@ -214,10 +225,16 @@ const detach = (): void => {
 
         <ConfirmDialog
             :open="detaching !== null"
-            :title="`Remove from ${detaching?.name}?`"
-            description="The task itself is not deleted. If this was its last project it stays reachable from My Tasks and from search."
-            confirm-label="Remove"
-            cancel-label="Keep it"
+            :title="
+                t('Remove from :project?', { project: detaching?.name ?? '' })
+            "
+            :description="
+                t(
+                    'The task itself is not deleted. If this was its last project it stays reachable from My Tasks and from search.',
+                )
+            "
+            :confirm-label="t('Remove')"
+            :cancel-label="t('Keep it')"
             :pending="working"
             @update:open="(next) => !next && (detaching = null)"
             @confirm="detach"

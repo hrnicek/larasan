@@ -4,6 +4,7 @@ import { ChevronRight, CircleCheck, Plus } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
 import type { TaskDetail } from '@/modules/task/types';
 
@@ -86,7 +87,7 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
 <template>
     <section class="flex flex-col gap-1">
         <TaskSectionHeading
-            title="Subtasks"
+            :title="t('Subtasks')"
             :count="subtasks.length ? `${done} / ${subtasks.length}` : null"
         >
             <template v-if="editable" #add>
@@ -94,7 +95,7 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                     variant="ghost"
                     size="icon-sm"
                     class="size-7 text-muted-foreground"
-                    aria-label="Add a subtask"
+                    :aria-label="t('Add a subtask')"
                     @click="start"
                 >
                     <Plus class="size-4" />
@@ -123,8 +124,8 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                     :aria-pressed="subtask.completedAt !== null"
                     :aria-label="
                         subtask.completedAt
-                            ? `Reopen ${subtask.title}`
-                            : `Complete ${subtask.title}`
+                            ? t('Reopen :title', { title: subtask.title })
+                            : t('Complete :title', { title: subtask.title })
                     "
                     @click="toggle(subtask)"
                 >
@@ -157,7 +158,7 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                 ref="input"
                 v-model="title"
                 type="text"
-                placeholder="Subtask name"
+                :placeholder="t('Subtask name')"
                 :disabled="saving"
                 class="w-full rounded-md border border-input bg-transparent px-2 py-1.5 text-sm disabled:opacity-50"
                 @keydown.enter.prevent="submit"
@@ -172,12 +173,12 @@ const toggle = (subtask: TaskDetail['subtasks'][number]): void => {
                 @click="start"
             >
                 <Plus class="size-4" aria-hidden="true" />
-                Add subtask
+                {{ t('Add subtask') }}
             </button>
         </div>
 
         <p v-else-if="!subtasks.length" class="text-sm text-muted-foreground">
-            No subtasks.
+            {{ t('No subtasks.') }}
         </p>
     </section>
 </template>

@@ -6,6 +6,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { t } from '@/lib/i18n';
 
 // Zones come from the server's `DateTimeZone::listIdentifiers()`, so every option passes the `timezone` rule.
 const props = defineProps<{
@@ -187,8 +188,10 @@ function onKeydown(event: KeyboardEvent): void {
                     role="combobox"
                     aria-expanded="true"
                     :aria-controls="listId"
-                    aria-label="Search time zones by city, region or offset"
-                    placeholder="City, region or UTC+2"
+                    :aria-label="
+                        t('Search time zones by city, region or offset')
+                    "
+                    :placeholder="t('City, region or UTC+2')"
                     class="h-8 w-full rounded-md bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
                     @keydown="onKeydown"
                 />
@@ -248,7 +251,7 @@ function onKeydown(event: KeyboardEvent): void {
                     v-if="matches.length === 0"
                     class="px-3 py-6 text-center text-sm text-muted-foreground"
                 >
-                    No time zone matches “{{ query }}”.
+                    {{ t('No time zone matches “:query”.', { query }) }}
                 </li>
             </ul>
         </PopoverContent>

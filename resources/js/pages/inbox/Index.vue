@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePagedRows } from '@/composables/usePagedRows';
+import { currentLocale, t, tc } from '@/lib/i18n';
 import InboxRow from '@/modules/notification/components/InboxRow.vue';
 import type { InboxNotification } from '@/modules/notification/types';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -35,9 +36,26 @@ const props = defineProps<{
 const page = usePage();
 
 const unread = computed<number>(() => props.meta.unread);
-const workspaceName = computed<string>(
-    () => page.props.workspace?.name ?? 'this workspace',
-);
+const description = computed<string>(() => {
+    const workspace = page.props.workspace?.name;
+
+    if (unread.value > 0) {
+        return workspace === undefined
+            ? tc(
+                  ':count unread in this workspace|:count unread in this workspace',
+                  unread.value,
+              )
+            : tc(
+                  ':count unread in :workspace|:count unread in :workspace',
+                  unread.value,
+                  { workspace },
+              );
+    }
+
+    return workspace === undefined
+        ? t('Everything in this workspace has been seen')
+        : t('Everything in :workspace has been seen', { workspace });
+});
 
 // The New group is drawn from unread-on-arrival rather than `read`, so a row read here stays in place.
 const arrivedUnread = ref(
@@ -98,18 +116,18 @@ const dayLabel = (at: Date): string => {
     const daysAgo = Math.round((startOfDay(now) - startOfDay(at)) / 86_400_000);
 
     if (daysAgo === 0) {
-        return 'Today';
+        return t('Today');
     }
 
     if (daysAgo === 1) {
-        return 'Yesterday';
+        return t('Yesterday');
     }
 
     if (daysAgo > 1 && daysAgo < 7) {
-        return at.toLocaleDateString(undefined, { weekday: 'long' });
+        return at.toLocaleDateString(currentLocale(), { weekday: 'long' });
     }
 
-    return at.toLocaleDateString(undefined, {
+    return at.toLocaleDateString(currentLocale(), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -132,7 +150,7 @@ const groups = computed<Group[]>(() => {
         if (!earlier.has(key)) {
             earlier.set(key, {
                 key,
-                label: at === null ? 'Earlier' : dayLabel(at),
+                label: at === null ? t('Earlier') : dayLabel(at),
                 rows: [],
                 timeStyle: 'clock',
             });
@@ -146,7 +164,7 @@ const groups = computed<Group[]>(() => {
             ? [
                   {
                       key: 'new',
-                      label: 'New',
+                      label: t('New'),
                       rows: fresh,
                       timeStyle: 'relative' as const,
                   },
@@ -251,16 +269,9 @@ const onKeydown = (event: KeyboardEvent): void => {
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="Inbox" />
+        <Head :title="t('Inbox')" />
 
-        <PageHeader
-            title="Inbox"
-            :description="
-                unread > 0
-                    ? `${unread} unread in ${workspaceName}`
-                    : `Everything in ${workspaceName} has been seen`
-            "
-        >
+        <PageHeader :title="t('Inbox')" :description="description">
             <template v-if="unread > 0" #actions>
                 <button
                     type="button"
@@ -268,7 +279,7 @@ const onKeydown = (event: KeyboardEvent): void => {
                     @click="markAllRead"
                 >
                     <CheckCheck class="size-4" />
-                    Mark all read
+                    {{ t('Mark all read') }}
                 </button>
             </template>
         </PageHeader>
@@ -342,13 +353,13 @@ const onKeydown = (event: KeyboardEvent): void => {
                     class="flex items-center gap-2 text-sm text-muted-foreground"
                     role="status"
                 >
-                    Older notifications did not load.
+                    {{ t('Older notifications did not load.') }}
                     <button
                         type="button"
                         class="font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                         @click="loadMore"
                     >
-                        Try again
+                        {{ t('Try again') }}
                     </button>
                 </p>
 
@@ -358,16 +369,16 @@ const onKeydown = (event: KeyboardEvent): void => {
                     class="inline-flex h-8 items-center rounded-md border border-border px-3 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @click="loadMore"
                 >
-                    Show {{ remaining }} older
+                    {{ tc('Show :count older|Show :count older', remaining) }}
                 </button>
 
                 <p
                     class="ml-auto hidden items-center gap-1.5 text-xs text-muted-foreground md:flex"
                 >
-                    <kbd class="inbox-key">↑</kbd
-                    ><kbd class="inbox-key">↓</kbd> move
-                    <kbd class="inbox-key ml-2">Enter</kbd> open
-                    <kbd class="inbox-key ml-2">E</kbd> mark read
+                    <kbd class="inbox-key">↑</kbd><kbd class="inbox-key">↓</kbd>
+                    {{ t('move') }} <kbd class="inbox-key ml-2">Enter</kbd>
+                    {{ t('open') }} <kbd class="inbox-key ml-2">E</kbd>
+                    {{ t('mark read') }}
                 </p>
             </div>
         </div>
@@ -376,8 +387,12 @@ const onKeydown = (event: KeyboardEvent): void => {
             v-else
             class="mx-4 mt-6 md:mx-6"
             :icon="BellOff"
-            title="You're all caught up"
-            description="Comments, assignments and mentions land here. Nothing is waiting."
+            :title="t('You\'re all caught up')"
+            :description="
+                t(
+                    'Comments, assignments and mentions land here. Nothing is waiting.',
+                )
+            "
         />
 
         <TaskDetailPanel

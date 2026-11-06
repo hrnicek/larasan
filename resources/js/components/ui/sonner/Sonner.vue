@@ -2,6 +2,7 @@
 import type { ToasterProps } from "vue-sonner"
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon, XIcon } from "@lucide/vue"
 import { Toaster as Sonner } from "vue-sonner"
+import { t } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 import 'vue-sonner/style.css';
@@ -19,6 +20,8 @@ const props = defineProps<ToasterProps>()
       '--border-radius': 'var(--radius)',
     }"
     v-bind="props"
+    :container-aria-label="props.containerAriaLabel ?? t('Notifications')"
+    :toast-options="{ closeButtonAriaLabel: t('Close toast'), ...props.toastOptions }"
   >
     <template #success-icon>
       <CircleCheckIcon class="size-4" />

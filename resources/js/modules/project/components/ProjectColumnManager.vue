@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Lock } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import ProjectColumnController from '@/actions/App/Http/Controllers/Project/ProjectColumnController';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 import type { ListColumn } from '@/modules/task/listColumns';
 
 const props = defineProps<{
@@ -61,8 +62,8 @@ const lastIndex = computed(() => order.value.length - 1);
         <ul class="divide-y rounded-lg border">
             <li class="flex items-center gap-2 px-3 py-2 text-muted-foreground">
                 <Lock class="size-3.5 shrink-0" aria-hidden="true" />
-                <span class="flex-1 text-sm">Task name</span>
-                <span class="text-xs">Always first</span>
+                <span class="flex-1 text-sm">{{ t('Task name') }}</span>
+                <span class="text-xs">{{ t('Always first') }}</span>
             </li>
 
             <li
@@ -82,7 +83,7 @@ const lastIndex = computed(() => order.value.length - 1);
                         size="icon-sm"
                         variant="ghost"
                         :disabled="index === 0 || pending"
-                        :aria-label="`Move ${column.label} up`"
+                        :aria-label="t('Move :name up', { name: column.label })"
                         @click="move(index, -1)"
                     >
                         <ChevronUp class="size-4" />
@@ -91,7 +92,9 @@ const lastIndex = computed(() => order.value.length - 1);
                         size="icon-sm"
                         variant="ghost"
                         :disabled="index === lastIndex || pending"
-                        :aria-label="`Move ${column.label} down`"
+                        :aria-label="
+                            t('Move :name down', { name: column.label })
+                        "
                         @click="move(index, 1)"
                     >
                         <ChevronDown class="size-4" />
@@ -101,8 +104,11 @@ const lastIndex = computed(() => order.value.length - 1);
         </ul>
 
         <p class="text-xs text-muted-foreground">
-            This is the order the list draws its columns in, for everybody who
-            opens the project.
+            {{
+                t(
+                    'This is the order the list draws its columns in, for everybody who opens the project.',
+                )
+            }}
         </p>
     </div>
 </template>

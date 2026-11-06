@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     /** Distinct from the shared sidebar `projects` prop. */
@@ -65,29 +66,29 @@ function submit(): void {
 
 <template>
     <ModalShell
-        title="Add a task"
-        description="Where it goes decides who sees it"
+        :title="t('Add a task')"
+        :description="t('Where it goes decides who sees it')"
         v-slot="{ close }"
     >
         <form class="space-y-5" @submit.prevent="submit">
             <div class="grid gap-2">
-                <Label for="task-title">Task name</Label>
+                <Label for="task-title">{{ t('Task name') }}</Label>
                 <Input
                     id="task-title"
                     v-model="form.title"
                     required
                     autofocus
-                    placeholder="Draft the new home page"
+                    :placeholder="t('Draft the new home page')"
                 />
                 <InputError :message="form.errors.title" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="task-project">Project</Label>
+                <Label for="task-project">{{ t('Project') }}</Label>
 
                 <Select v-model="chosenProject">
                     <SelectTrigger id="task-project" class="w-full">
-                        <SelectValue placeholder="Choose a project" />
+                        <SelectValue :placeholder="t('Choose a project')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -111,15 +112,15 @@ function submit(): void {
                     v-if="targetProjects.length === 0"
                     class="text-sm text-muted-foreground"
                 >
-                    There is no project here you can add to yet.
+                    {{ t('There is no project here you can add to yet.') }}
                 </p>
             </div>
 
             <div v-if="selected && sections.length > 0" class="grid gap-2">
-                <Label for="task-section">Section</Label>
+                <Label for="task-section">{{ t('Section') }}</Label>
                 <Select v-model="chosenSection">
                     <SelectTrigger id="task-section" class="w-full">
-                        <SelectValue placeholder="No section" />
+                        <SelectValue :placeholder="t('No section')" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem
@@ -135,13 +136,13 @@ function submit(): void {
             </div>
 
             <div class="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="ghost" @click="close"
-                    >Cancel</Button
-                >
+                <Button type="button" variant="ghost" @click="close">{{
+                    t('Cancel')
+                }}</Button>
                 <Button
                     type="submit"
                     :disabled="form.processing || chosenProject === null"
-                    >Add task</Button
+                    >{{ t('Add task') }}</Button
                 >
             </div>
         </form>

@@ -7,6 +7,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
 import ProjectAppearancePicker from '@/modules/project/components/ProjectAppearancePicker.vue';
 import ProjectCustomizeSheet from '@/modules/project/components/ProjectCustomizeSheet.vue';
 import ProjectMemberFaces from '@/modules/project/components/ProjectMemberFaces.vue';
@@ -64,13 +65,13 @@ function toggleStar(): void {
                 v-if="project.archived"
                 class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
             >
-                Archived
+                {{ t('Archived') }}
             </span>
 
             <DropdownMenu>
                 <DropdownMenuTrigger
                     class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    :aria-label="`Actions for ${project.name}`"
+                    :aria-label="t('Actions for :name', { name: project.name })"
                 >
                     <MoreHorizontal class="size-4" />
                 </DropdownMenuTrigger>
@@ -82,8 +83,8 @@ function toggleStar(): void {
                         />
                         {{
                             project.starred
-                                ? 'Remove from starred'
-                                : 'Add to starred'
+                                ? t('Remove from starred')
+                                : t('Add to starred')
                         }}
                     </DropdownMenuItem>
 
@@ -96,7 +97,7 @@ function toggleStar(): void {
                             <Settings
                                 class="mr-2 size-4 text-muted-foreground"
                             />
-                            Project settings
+                            {{ t('Project settings') }}
                         </Link>
                     </DropdownMenuItem>
                 </DropdownMenuContent>

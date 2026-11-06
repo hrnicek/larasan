@@ -7,12 +7,16 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Project\Queries\VisibleProjectsForUser;
 use App\Domain\Shared\Access\MembershipRegistry;
 use App\Domain\Shared\Enums\Capability;
+use App\Domain\Shared\Enums\Locale;
 use App\Domain\Shared\Payloads\PersonSummary;
 use App\Domain\Workspace\Models\Workspace;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Inertia\OnceProp;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -72,7 +76,24 @@ class HandleInertiaRequests extends Middleware
                 ? 0
                 : app(InboxQuery::class)->unreadCount($workspace, $request->user()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'locale' => App::getLocale(),
+            'locales' => Locale::options(),
+            'translations' => $this->translations(),
         ];
+    }
+
+    /**
+     * The client keeps the dictionary across visits. The key names the language and the file's
+     * contents, so switching language or deploying new strings is what makes it fetch again.
+     */
+    private function translations(): OnceProp
+    {
+        $locale = App::getLocale();
+        $path = lang_path($locale.'.json');
+        $version = is_file($path) ? (string) hash_file('xxh3', $path) : 'source';
+
+        return Inertia::once(fn (): array => app('translator')->getLoader()->load($locale, '*', '*'))
+            ->as("translations.{$locale}.{$version}");
     }
 
     /**

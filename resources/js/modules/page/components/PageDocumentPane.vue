@@ -10,6 +10,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import { t } from '@/lib/i18n';
 import PageBreadcrumb from '@/modules/page/components/PageBreadcrumb.vue';
 import PageSaveState from '@/modules/page/components/PageSaveState.vue';
 import PageTitleField from '@/modules/page/components/PageTitleField.vue';
@@ -79,7 +80,7 @@ const empty = (): boolean => {
 
                 <SheetContent side="left" class="w-80 overflow-y-auto p-0">
                     <SheetHeader class="px-4 pt-4 pb-2">
-                        <SheetTitle>Pages</SheetTitle>
+                        <SheetTitle>{{ t('Pages') }}</SheetTitle>
                     </SheetHeader>
 
                     <PageTreePanel
@@ -110,14 +111,16 @@ const empty = (): boolean => {
         />
 
         <p v-if="page.updatedAt" class="pb-4 text-xs text-muted-foreground">
-            Last changed
+            {{ t('Last changed') }}
             <time
                 :datetime="page.updatedAt"
                 :title="fullFeedTime(page.updatedAt)"
             >
                 {{ formatFeedTime(page.updatedAt) }}
             </time>
-            <template v-if="page.updatedBy"> by {{ page.updatedBy }}</template>
+            <template v-if="page.updatedBy">
+                {{ t('by :name', { name: page.updatedBy }) }}</template
+            >
         </p>
 
         <div
@@ -125,18 +128,20 @@ const empty = (): boolean => {
             class="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm"
         >
             <p class="text-foreground">
-                Somebody else saved this page while you were writing. Reload to
-                see their version — anything you typed since is only in this
-                window.
+                {{
+                    t(
+                        'Somebody else saved this page while you were writing. Reload to see their version — anything you typed since is only in this window.',
+                    )
+                }}
             </p>
 
-            <Button size="sm" variant="outline" @click="emit('reload')"
-                >Reload</Button
-            >
+            <Button size="sm" variant="outline" @click="emit('reload')">{{
+                t('Reload')
+            }}</Button>
         </div>
 
         <p v-if="!editable() && empty()" class="text-sm text-muted-foreground">
-            Nothing has been written on this page yet.
+            {{ t('Nothing has been written on this page yet.') }}
         </p>
 
         <PageEditor

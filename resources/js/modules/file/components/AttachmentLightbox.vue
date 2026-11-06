@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatFileSize } from '@/lib/fileSize';
+import { t } from '@/lib/i18n';
 import type { TaskAttachment } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -81,7 +82,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     <DialogDescription class="text-xs text-muted-foreground">
                         {{ formatFileSize(current.size) }}
                         <template v-if="images.length > 1">
-                            · {{ index + 1 }} of {{ images.length }}</template
+                            ·
+                            {{
+                                t(':position of :total', {
+                                    position: index + 1,
+                                    total: images.length,
+                                })
+                            }}</template
                         >
                     </DialogDescription>
                 </div>
@@ -96,7 +103,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     :download="current.name"
                 >
                     <Download class="size-4" aria-hidden="true" />
-                    Download
+                    {{ t('Download') }}
                 </Button>
             </div>
 
@@ -119,7 +126,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     <button
                         type="button"
                         class="absolute left-1 inline-flex size-9 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                        aria-label="Previous image"
+                        :aria-label="t('Previous image')"
                         @click="step(-1)"
                     >
                         <ChevronLeft class="size-5" />
@@ -128,7 +135,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     <button
                         type="button"
                         class="absolute right-1 inline-flex size-9 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm backdrop-blur transition-colors hover:bg-background focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                        aria-label="Next image"
+                        :aria-label="t('Next image')"
                         @click="step(1)"
                     >
                         <ChevronRight class="size-5" />

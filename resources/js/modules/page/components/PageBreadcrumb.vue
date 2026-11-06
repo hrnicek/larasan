@@ -2,6 +2,8 @@
 import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed } from 'vue';
+import { t } from '@/lib/i18n';
+import { pageTitle } from '@/modules/page/lib/untitled';
 import type { PageNode } from '@/modules/page/types';
 import pageRoutes from '@/routes/pages';
 import { show as showProject } from '@/routes/projects';
@@ -34,7 +36,7 @@ const ancestors = computed<PageNode[]>(() => {
 </script>
 
 <template>
-    <nav aria-label="Breadcrumb" class="min-w-0">
+    <nav :aria-label="t('Breadcrumb')" class="min-w-0">
         <ol
             class="flex min-w-0 items-center gap-1 text-sm text-muted-foreground"
         >
@@ -63,7 +65,7 @@ const ancestors = computed<PageNode[]>(() => {
                     component="pages/Show"
                     prefetch="click"
                     class="truncate transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    >{{ ancestor.title }}</Link
+                    >{{ pageTitle(ancestor.title) }}</Link
                 >
             </li>
         </ol>

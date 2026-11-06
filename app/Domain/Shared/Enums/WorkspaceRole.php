@@ -94,6 +94,17 @@ enum WorkspaceRole: string
         };
     }
 
+    /** The role as a lowercase noun in the current language, for running text such as "join as a :role". */
+    public function noun(): string
+    {
+        return match ($this) {
+            self::Owner => __('owner'),
+            self::Admin => __('admin'),
+            self::Member => __('member'),
+            self::Guest => __('guest'),
+        };
+    }
+
     public function allows(Capability $capability): bool
     {
         return in_array($capability, $this->capabilities(), strict: true);

@@ -1,5 +1,6 @@
 import { nextTick, onScopeDispose, ref } from 'vue';
 import type { Ref } from 'vue';
+import { t } from '@/lib/i18n';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 export type BoardKeyboardMove = {
@@ -9,7 +10,8 @@ export type BoardKeyboardMove = {
 };
 
 const keyOf = (column: BoardColumnData): string => column.id ?? 'ungrouped';
-const nameOf = (column: BoardColumnData): string => column.name ?? 'No section';
+const nameOf = (column: BoardColumnData): string =>
+    column.name ?? t('No section');
 const cardOf = (placementId: string): string =>
     `[data-task-card][data-placement-id="${placementId}"]`;
 
@@ -49,7 +51,11 @@ export function useBoardKeyboardMove(
     };
 
     const announce = (column: BoardColumnData, index: number): void => {
-        announcement.value = `${nameOf(column)}, position ${index + 1} of ${column.tasks.length}`;
+        announcement.value = t(':column, position :position of :total', {
+            column: nameOf(column),
+            position: index + 1,
+            total: column.tasks.length,
+        });
     };
 
     // Vue recreates the card's element when it changes column, which drops its focus.
@@ -84,7 +90,7 @@ export function useBoardKeyboardMove(
     const cancel = (): void => {
         release();
         columns.value = origin;
-        announcement.value = 'Cancelled.';
+        announcement.value = t('Cancelled.');
     };
 
     // Moving the card detaches its element for a moment, so focus is judged after keepFocus has run.
@@ -142,13 +148,23 @@ export function useBoardKeyboardMove(
 
                 if (carrying.value === null) {
                     hold(placementId);
-                    announcement.value = `Picked up. ${nameOf(column)}, position ${index + 1} of ${column.tasks.length}.`;
+                    announcement.value = t(
+                        'Picked up. :column, position :position of :total.',
+                        {
+                            column: nameOf(column),
+                            position: index + 1,
+                            total: column.tasks.length,
+                        },
+                    );
 
                     return;
                 }
 
                 release();
-                announcement.value = `Dropped in ${nameOf(column)}, position ${index + 1}.`;
+                announcement.value = t(
+                    'Dropped in :column, position :position.',
+                    { column: nameOf(column), position: index + 1 },
+                );
 
                 move.commit(
                     placementId,

@@ -3,6 +3,7 @@ import Suggestion from '@tiptap/suggestion';
 import { Editor, EditorContent, Extension } from '@tiptap/vue-3';
 import type { Range } from '@tiptap/vue-3';
 import { onBeforeUnmount, ref, shallowRef, toRaw, watch } from 'vue';
+import { t } from '@/lib/i18n';
 import PageSelectionToolbar from '@/modules/page/components/PageSelectionToolbar.vue';
 import PageSlashMenu from '@/modules/page/components/PageSlashMenu.vue';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
@@ -21,7 +22,7 @@ const props = withDefaults(
         editable?: boolean;
         placeholder?: string;
     }>(),
-    { editable: true, placeholder: 'Write, or press / for blocks' },
+    { editable: true },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [document: PageDocument] }>();
@@ -43,7 +44,7 @@ const editor = shallowRef<Editor>();
 let emitted: PageDocument | null = null;
 
 const insert = (command: SlashCommand, over?: Range): void => {
-    const chosen = slashCommands.find(
+    const chosen = slashCommands().find(
         (candidate) => candidate.key === command.key,
     );
     const range = over ?? menu.value?.range;
@@ -198,13 +199,18 @@ const readSelection = (): void => {
 editor.value = new Editor({
     content: props.modelValue,
     editable: props.editable,
-    extensions: [...pageExtensions(props.placeholder), slashMenu],
+    extensions: [
+        ...pageExtensions(
+            props.placeholder ?? t('Write, or press / for blocks'),
+        ),
+        slashMenu,
+    ],
     editorProps: {
         attributes: {
             class: 'page-document outline-none',
             role: 'textbox',
             'aria-multiline': 'true',
-            'aria-label': 'Page content',
+            'aria-label': t('Page content'),
         },
     },
     onUpdate: ({ editor: instance }) => {

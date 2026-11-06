@@ -17,6 +17,7 @@ import {
     SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 import { reloadOptional } from '@/lib/optionalProps';
 import ProjectFieldManager from '@/modules/custom-field/components/ProjectFieldManager.vue';
 import ProjectColumnManager from '@/modules/project/components/ProjectColumnManager.vue';
@@ -48,17 +49,18 @@ function reload(): void {
 
 const headings = {
     root: {
-        title: 'Customize',
-        description: 'View and edit features on this project',
+        title: t('Customize'),
+        description: t('View and edit features on this project'),
     },
     fields: {
-        title: 'Fields',
-        description:
+        title: t('Fields'),
+        description: t(
             'What this project records about a task beyond its title and dates',
+        ),
     },
     columns: {
-        title: 'Columns',
-        description: 'The order the list draws them in',
+        title: t('Columns'),
+        description: t('The order the list draws them in'),
     },
 } as const;
 
@@ -88,7 +90,7 @@ watch(
         <SheetTrigger as-child>
             <Button variant="outline" size="sm">
                 <SlidersHorizontal class="size-4" />
-                Customize
+                {{ t('Customize') }}
             </Button>
         </SheetTrigger>
 
@@ -99,7 +101,7 @@ watch(
                         v-if="section !== 'root'"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label="Back to Customize"
+                        :aria-label="t('Back to Customize')"
                         @click="section = 'root'"
                     >
                         <ChevronLeft class="size-4" />
@@ -122,7 +124,9 @@ watch(
                             class="size-5 shrink-0 text-muted-foreground"
                             aria-hidden="true"
                         />
-                        <span class="flex-1 font-medium">Fields</span>
+                        <span class="flex-1 font-medium">{{
+                            t('Fields')
+                        }}</span>
 
                         <Skeleton
                             v-if="fields === null"
@@ -150,7 +154,9 @@ watch(
                             class="size-5 shrink-0 text-muted-foreground"
                             aria-hidden="true"
                         />
-                        <span class="flex-1 font-medium">Columns</span>
+                        <span class="flex-1 font-medium">{{
+                            t('Columns')
+                        }}</span>
 
                         <Skeleton
                             v-if="columns === null"

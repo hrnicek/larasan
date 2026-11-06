@@ -4,6 +4,7 @@ import { X } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import { usePointerDrag } from '@/composables/usePointerDrag';
+import { t } from '@/lib/i18n';
 import type { TaskAttachment } from '@/modules/task/types';
 
 // The first image is the board card's cover, so the order here is meaningful.
@@ -120,7 +121,7 @@ const pickUp = (event: PointerEvent, image: TaskAttachment): void => {
                     dragging === image.id ? 'opacity-40' : '',
                     canReorder ? 'touch-none' : '',
                 ]"
-                :aria-label="`Open ${image.name}`"
+                :aria-label="t('Open :name', { name: image.name })"
                 @pointerdown="pickUp($event, image)"
                 @click="emit('open', image.id)"
             >
@@ -142,7 +143,7 @@ const pickUp = (event: PointerEvent, image: TaskAttachment): void => {
                 v-if="image.canDelete"
                 type="button"
                 class="absolute top-1 right-1 inline-flex size-6 items-center justify-center rounded-md bg-background/85 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:opacity-0 md:group-hover/tile:opacity-100"
-                :aria-label="`Remove ${image.name}`"
+                :aria-label="t('Remove :name', { name: image.name })"
                 @click.stop="emit('remove', image)"
             >
                 <X class="size-3.5" />

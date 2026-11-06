@@ -1,3 +1,5 @@
+import { currentLocale } from '@/lib/i18n';
+
 const pad = (value: number): string => String(value).padStart(2, '0');
 
 export function today(): string {
@@ -17,7 +19,7 @@ export function isOverdue(day: string | null): boolean {
 export function formatDay(day: string): string {
     const [year, month, date] = day.split('-').map(Number);
 
-    return new Date(year, month - 1, date).toLocaleDateString(undefined, {
+    return new Date(year, month - 1, date).toLocaleDateString(currentLocale(), {
         day: 'numeric',
         month: 'short',
     });

@@ -5,6 +5,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { t } from '@/lib/i18n';
 import ProjectAppearanceFields from '@/modules/project/components/ProjectAppearanceFields.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 
@@ -24,7 +25,9 @@ const open = ref(false);
     <Popover v-model:open="open">
         <PopoverTrigger
             class="rounded-lg focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            :aria-label="`Colour and icon for ${props.project.name}`"
+            :aria-label="
+                t('Colour and icon for :name', { name: props.project.name })
+            "
         >
             <ProjectTile
                 :name="props.project.name"

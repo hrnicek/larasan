@@ -16,6 +16,7 @@ import {
 import type { Editor } from '@tiptap/vue-3';
 import type { Component } from 'vue';
 import { computed, nextTick, ref, watch } from 'vue';
+import { t } from '@/lib/i18n';
 
 // Buttons prevent the default on `mousedown`, so taking focus does not clear the editor's selection.
 const props = defineProps<{
@@ -40,35 +41,35 @@ type Mark = {
 const marks = computed<Mark[]>(() => [
     {
         key: 'bold',
-        label: 'Bold',
+        label: t('Bold'),
         icon: Bold,
         run: () => props.editor.chain().focus().toggleBold().run(),
         active: () => props.editor.isActive('bold'),
     },
     {
         key: 'italic',
-        label: 'Italic',
+        label: t('Italic'),
         icon: Italic,
         run: () => props.editor.chain().focus().toggleItalic().run(),
         active: () => props.editor.isActive('italic'),
     },
     {
         key: 'underline',
-        label: 'Underline',
+        label: t('Underline'),
         icon: UnderlineIcon,
         run: () => props.editor.chain().focus().toggleUnderline().run(),
         active: () => props.editor.isActive('underline'),
     },
     {
         key: 'strike',
-        label: 'Strikethrough',
+        label: t('Strikethrough'),
         icon: Strikethrough,
         run: () => props.editor.chain().focus().toggleStrike().run(),
         active: () => props.editor.isActive('strike'),
     },
     {
         key: 'code',
-        label: 'Code',
+        label: t('Code'),
         icon: Code,
         run: () => props.editor.chain().focus().toggleCode().run(),
         active: () => props.editor.isActive('code'),
@@ -77,7 +78,7 @@ const marks = computed<Mark[]>(() => [
 
 // The server accepts any short language token, so a language is added here only.
 const languages: { value: string; label: string }[] = [
-    { value: '', label: 'Plain text' },
+    { value: '', label: t('Plain text') },
     { value: 'bash', label: 'Shell' },
     { value: 'css', label: 'CSS' },
     { value: 'html', label: 'HTML' },
@@ -114,39 +115,39 @@ const tableActions: {
 }[] = [
     {
         key: 'row',
-        label: 'Add row below',
+        label: t('Add row below'),
         icon: Rows3,
         run: () => props.editor.chain().focus().addRowAfter().run(),
     },
     {
         key: 'column',
-        label: 'Add column to the right',
+        label: t('Add column to the right'),
         icon: Columns3,
         run: () => props.editor.chain().focus().addColumnAfter().run(),
     },
     {
         key: 'header',
-        label: 'Toggle header row',
+        label: t('Toggle header row'),
         icon: Check,
         run: () => props.editor.chain().focus().toggleHeaderRow().run(),
     },
     {
         key: 'delete-row',
-        label: 'Delete row',
+        label: t('Delete row'),
         icon: Rows3,
         run: () => props.editor.chain().focus().deleteRow().run(),
         destructive: true,
     },
     {
         key: 'delete-column',
-        label: 'Delete column',
+        label: t('Delete column'),
         icon: Columns3,
         run: () => props.editor.chain().focus().deleteColumn().run(),
         destructive: true,
     },
     {
         key: 'delete-table',
-        label: 'Delete table',
+        label: t('Delete table'),
         icon: Trash2,
         run: () => props.editor.chain().focus().deleteTable().run(),
         destructive: true,
@@ -211,7 +212,7 @@ watch(
         class="fixed z-50 flex items-center gap-0.5 rounded-md border border-border bg-popover p-1 shadow-md"
         :style="{ top: `${anchor.top}px`, left: `${anchor.left}px` }"
         role="toolbar"
-        aria-label="Formatting"
+        :aria-label="t('Formatting')"
     >
         <template v-if="mode === 'marks'">
             <template v-if="!linking">
@@ -244,7 +245,7 @@ watch(
                             : 'text-muted-foreground hover:text-foreground'
                     "
                     :aria-label="
-                        editor.isActive('link') ? 'Edit link' : 'Add link'
+                        editor.isActive('link') ? t('Edit link') : t('Add link')
                     "
                     @mousedown.prevent
                     @click="openLink()"
@@ -260,7 +261,7 @@ watch(
                     type="url"
                     inputmode="url"
                     placeholder="https://example.com"
-                    aria-label="Link address"
+                    :aria-label="t('Link address')"
                     class="h-7 w-64 rounded border border-input bg-background px-2 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @keydown.enter.prevent="applyLink()"
                     @keydown.esc.prevent="linking = false"
@@ -269,7 +270,7 @@ watch(
                 <button
                     type="button"
                     class="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-40"
-                    aria-label="Apply link"
+                    :aria-label="t('Apply link')"
                     :disabled="!allowed(href)"
                     @mousedown.prevent
                     @click="applyLink()"
@@ -281,7 +282,7 @@ watch(
                     v-if="editor.isActive('link')"
                     type="button"
                     class="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    aria-label="Remove link"
+                    :aria-label="t('Remove link')"
                     @mousedown.prevent
                     @click="removeLink()"
                 >
@@ -291,7 +292,7 @@ watch(
                 <button
                     type="button"
                     class="grid size-7 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    aria-label="Cancel"
+                    :aria-label="t('Cancel')"
                     @mousedown.prevent
                     @click="linking = false"
                 >
@@ -301,9 +302,9 @@ watch(
         </template>
 
         <template v-else-if="mode === 'code'">
-            <label class="sr-only" for="page-code-language"
-                >Code language</label
-            >
+            <label class="sr-only" for="page-code-language">{{
+                t('Code language')
+            }}</label>
 
             <select
                 id="page-code-language"

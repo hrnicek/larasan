@@ -17,6 +17,7 @@ import SearchController from '@/actions/App/Http/Controllers/Search/SearchContro
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { usePagedRows } from '@/composables/usePagedRows';
+import { t, tc } from '@/lib/i18n';
 import SaveSearchDialog from '@/modules/search/components/SaveSearchDialog.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
 import type {
@@ -154,11 +155,15 @@ const keeping = ref(false);
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="Search" />
+        <Head :title="t('Search')" />
 
         <PageHeader
-            title="Search"
-            description="Task names and descriptions, across every project you can reach"
+            :title="t('Search')"
+            :description="
+                t(
+                    'Task names and descriptions, across every project you can reach',
+                )
+            "
         />
 
         <div class="flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
@@ -166,8 +171,8 @@ const keeping = ref(false);
                 v-model="term"
                 type="search"
                 autofocus
-                placeholder="Search tasks…"
-                aria-label="Search tasks"
+                :placeholder="t('Search tasks…')"
+                :aria-label="t('Search tasks')"
                 class="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 @input="onTyping"
                 @keydown.enter.prevent="run()"
@@ -176,7 +181,7 @@ const keeping = ref(false);
             <div class="flex flex-wrap gap-2">
                 <select
                     :value="filters.project ?? ''"
-                    aria-label="Project"
+                    :aria-label="t('Project')"
                     class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @change="
                         filterBy(
@@ -185,7 +190,7 @@ const keeping = ref(false);
                         )
                     "
                 >
-                    <option value="">Any project</option>
+                    <option value="">{{ t('Any project') }}</option>
                     <option
                         v-for="project in filterProjects"
                         :key="project.id"
@@ -197,7 +202,7 @@ const keeping = ref(false);
 
                 <select
                     :value="filters.assignee ?? ''"
-                    aria-label="Assignee"
+                    :aria-label="t('Assignee')"
                     class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @change="
                         filterBy(
@@ -206,7 +211,7 @@ const keeping = ref(false);
                         )
                     "
                 >
-                    <option value="">Anybody</option>
+                    <option value="">{{ t('Anybody') }}</option>
                     <option
                         v-for="member in members"
                         :key="member.id"
@@ -222,7 +227,7 @@ const keeping = ref(false);
                             ? ''
                             : String(filters.completed)
                     "
-                    aria-label="Completion"
+                    :aria-label="t('Completion')"
                     class="h-8 rounded-md border border-input bg-transparent px-2 text-[13px] focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @change="
                         filterBy(
@@ -231,9 +236,9 @@ const keeping = ref(false);
                         )
                     "
                 >
-                    <option value="">Finished or not</option>
-                    <option value="0">Still open</option>
-                    <option value="1">Finished</option>
+                    <option value="">{{ t('Finished or not') }}</option>
+                    <option value="0">{{ t('Still open') }}</option>
+                    <option value="1">{{ t('Finished') }}</option>
                 </select>
 
                 <button
@@ -243,7 +248,7 @@ const keeping = ref(false);
                     @click="keeping = true"
                 >
                     <Bookmark class="size-3.5" />
-                    Save search
+                    {{ t('Save search') }}
                 </button>
 
                 <p
@@ -251,8 +256,11 @@ const keeping = ref(false);
                     class="self-center text-xs text-muted-foreground"
                     :class="canKeep ? '' : 'ml-auto'"
                 >
-                    {{ meta.capped ? `${meta.total}+` : meta.total }}
-                    {{ meta.total === 1 ? 'result' : 'results' }}
+                    {{
+                        meta.capped
+                            ? tc(':count+ result|:count+ results', meta.total)
+                            : tc(':count result|:count results', meta.total)
+                    }}
                 </p>
             </div>
 
@@ -260,8 +268,11 @@ const keeping = ref(false);
                 v-if="meta.degraded && meta.term !== ''"
                 class="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
             >
-                The search engine is unavailable, so these results are matched
-                by whole words and without tolerance for typing mistakes.
+                {{
+                    t(
+                        'The search engine is unavailable, so these results are matched by whole words and without tolerance for typing mistakes.',
+                    )
+                }}
             </p>
 
             <ul
@@ -312,13 +323,17 @@ const keeping = ref(false);
                 :icon="SearchIcon"
                 :title="
                     meta.term === ''
-                        ? 'Search this workspace'
-                        : `Nothing matched “${meta.term}”`
+                        ? t('Search this workspace')
+                        : t('Nothing matched “:term”', { term: meta.term })
                 "
                 :description="
                     meta.term === ''
-                        ? 'Task names and descriptions, across every project you can reach.'
-                        : 'Try fewer words, or part of one — a search matches the beginning of the last word you typed.'
+                        ? t(
+                              'Task names and descriptions, across every project you can reach.',
+                          )
+                        : t(
+                              'Try fewer words, or part of one — a search matches the beginning of the last word you typed.',
+                          )
                 "
             />
 
@@ -327,13 +342,13 @@ const keeping = ref(false);
                 class="flex items-center gap-2 text-sm text-muted-foreground"
                 role="status"
             >
-                More results did not load.
+                {{ t('More results did not load.') }}
                 <button
                     type="button"
                     class="font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @click="loadMore"
                 >
-                    Try again
+                    {{ t('Try again') }}
                 </button>
             </p>
 
@@ -344,7 +359,7 @@ const keeping = ref(false);
                 :disabled="loading"
                 @click="loadMore"
             >
-                {{ loading ? 'Loading…' : 'Load more' }}
+                {{ loading ? t('Loading…') : t('Load more') }}
             </button>
 
             <SaveSearchDialog

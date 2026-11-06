@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from '@/lib/i18n';
 import type { ListColumn } from '@/modules/task/listColumns';
 import {
     defaultListColumns,
@@ -11,7 +12,7 @@ withDefaults(
         columns?: ListColumn[];
         numbered?: boolean;
     }>(),
-    { numbered: true, columns: () => defaultListColumns },
+    { numbered: true, columns: () => defaultListColumns() },
 );
 </script>
 
@@ -29,7 +30,7 @@ withDefaults(
         <span
             class="flex items-center"
             :class="[listColumns.name, listColumns.cell]"
-            >Task name</span
+            >{{ t('Task name') }}</span
         >
 
         <span

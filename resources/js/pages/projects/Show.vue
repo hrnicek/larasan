@@ -13,6 +13,7 @@ import { useCalendarDrag } from '@/composables/useCalendarDrag';
 import { useCollapsedSections } from '@/composables/useCollapsedSections';
 import { useRealtime } from '@/composables/useRealtime';
 import { useTaskListKeyboard } from '@/composables/useTaskListKeyboard';
+import { t } from '@/lib/i18n';
 import FieldSortControl from '@/modules/custom-field/components/FieldSortControl.vue';
 import type { ProjectPages } from '@/modules/page/types';
 import InlineSectionCreate from '@/modules/project/components/InlineSectionCreate.vue';
@@ -249,7 +250,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                     <Plus class="size-4" />
-                    Add task
+                    {{ t('Add task') }}
                 </Link>
 
                 <TagFilter
@@ -295,9 +296,11 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                     class="mx-4 mt-4 flex items-center justify-between rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
                     role="alert"
                 >
-                    <span>Something went wrong loading this project.</span>
+                    <span>{{
+                        t('Something went wrong loading this project.')
+                    }}</span>
                     <button type="button" class="underline" @click="retry">
-                        Try again
+                        {{ t('Try again') }}
                     </button>
                 </div>
 
@@ -313,7 +316,7 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                 <nav
                     v-if="board && columns.length > 1"
                     class="flex gap-2 overflow-x-auto px-4 pt-4 md:hidden md:px-6"
-                    aria-label="Columns"
+                    :aria-label="t('Columns')"
                 >
                     <button
                         v-for="(column, index) in columns"
@@ -330,7 +333,9 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                         "
                         @click="activeColumn = index"
                     >
-                        {{ column.name ?? 'No section' }} ({{ column.count }})
+                        {{ column.name ?? t('No section') }} ({{
+                            column.count
+                        }})
                     </button>
                 </nav>
 
@@ -428,11 +433,13 @@ const { onKeydown } = useTaskListKeyboard(() => listElement.value);
                         v-else
                         class="mx-4 mt-4 md:mx-6"
                         :icon="ListTodo"
-                        title="This project is empty"
+                        :title="t('This project is empty')"
                         :description="
                             creatable()
-                                ? 'Add the first task, or give it a section to group them under.'
-                                : 'Nothing has been put in it yet.'
+                                ? t(
+                                      'Add the first task, or give it a section to group them under.',
+                                  )
+                                : t('Nothing has been put in it yet.')
                         "
                     >
                         <template v-if="creatable()" #action>

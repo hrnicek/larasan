@@ -24,22 +24,22 @@ enum UiTheme: string
     public function label(): string
     {
         return match ($this) {
-            self::Slate => 'Slate',
-            self::Meridian => 'Meridian',
-            self::Ember => 'Ember',
-            self::Nocturne => 'Nocturne',
-            self::Moss => 'Moss',
+            self::Slate => __('Slate'),
+            self::Meridian => __('Meridian'),
+            self::Ember => __('Ember'),
+            self::Nocturne => __('Nocturne'),
+            self::Moss => __('Moss'),
         };
     }
 
     public function description(): string
     {
         return match ($this) {
-            self::Slate => 'Cool neutral surfaces under a graphite rail. The original.',
-            self::Meridian => 'Petrol on cool white. Crisp, and the closest to a drawing board.',
-            self::Ember => 'Burnt umber on ivory. The one to use in a room lit by a lamp.',
-            self::Nocturne => 'Deep indigo, the darkest rail of the five, on a paper with the same blue in it.',
-            self::Moss => 'Forest on a trace of sage. The quietest scheme that still has a colour.',
+            self::Slate => __('Cool neutral surfaces under a graphite rail. The original.'),
+            self::Meridian => __('Petrol on cool white. Crisp, and the closest to a drawing board.'),
+            self::Ember => __('Burnt umber on ivory. The one to use in a room lit by a lamp.'),
+            self::Nocturne => __('Deep indigo, the darkest rail of the five, on a paper with the same blue in it.'),
+            self::Moss => __('Forest on a trace of sage. The quietest scheme that still has a colour.'),
         };
     }
 

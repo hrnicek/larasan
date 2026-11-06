@@ -16,6 +16,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
 import { create as createProject } from '@/routes/projects';
 import { create as createTask } from '@/routes/tasks';
 import { create as createWorkspace, members } from '@/routes/workspaces';
@@ -40,7 +41,7 @@ const canInvite = computed(() =>
             class="inline-flex h-8 items-center gap-1.5 rounded-md bg-chrome-primary pr-2 pl-2.5 text-[13px] font-semibold text-chrome-primary-foreground transition-colors hover:bg-chrome-primary/90 focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:ring-offset-2 focus-visible:ring-offset-chrome focus-visible:outline-none"
         >
             <Plus class="size-4" />
-            <span>Create</span>
+            <span>{{ t('Create') }}</span>
             <ChevronDown class="size-3.5 opacity-70" />
         </DropdownMenuTrigger>
 
@@ -48,7 +49,7 @@ const canInvite = computed(() =>
             <DropdownMenuItem v-if="canCreateTask" as-child>
                 <Link :href="createTask()" class="block w-full cursor-pointer">
                     <CheckSquare class="mr-2 size-4 text-muted-foreground" />
-                    Task
+                    {{ t('Task') }}
                 </Link>
             </DropdownMenuItem>
 
@@ -58,7 +59,7 @@ const canInvite = computed(() =>
                     class="block w-full cursor-pointer"
                 >
                     <FolderPlus class="mr-2 size-4 text-muted-foreground" />
-                    Project
+                    {{ t('Project') }}
                 </Link>
             </DropdownMenuItem>
 
@@ -68,7 +69,7 @@ const canInvite = computed(() =>
                     class="block w-full cursor-pointer"
                 >
                     <Building2 class="mr-2 size-4 text-muted-foreground" />
-                    Workspace
+                    {{ t('Workspace') }}
                 </Link>
             </DropdownMenuItem>
 
@@ -77,7 +78,7 @@ const canInvite = computed(() =>
                 <DropdownMenuItem as-child>
                     <Link :href="members()" class="block w-full cursor-pointer">
                         <UserPlus class="mr-2 size-4 text-muted-foreground" />
-                        Invite
+                        {{ t('Invite') }}
                     </Link>
                 </DropdownMenuItem>
             </template>

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     open: boolean;
@@ -29,11 +30,12 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
     >
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Save this search</DialogTitle>
-                <DialogDescription
-                    >It becomes a chip in the palette, with the filters it has
-                    now.</DialogDescription
-                >
+                <DialogTitle>{{ t('Save this search') }}</DialogTitle>
+                <DialogDescription>{{
+                    t(
+                        'It becomes a chip in the palette, with the filters it has now.',
+                    )
+                }}</DialogDescription>
             </DialogHeader>
 
             <Form
@@ -64,7 +66,7 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
                 />
 
                 <div class="grid gap-2">
-                    <Label for="saved-search-name">Name</Label>
+                    <Label for="saved-search-name">{{ t('Name') }}</Label>
                     <Input
                         id="saved-search-name"
                         name="name"
@@ -80,11 +82,11 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
                         type="button"
                         variant="ghost"
                         @click="emit('update:open', false)"
-                        >Cancel</Button
+                        >{{ t('Cancel') }}</Button
                     >
-                    <Button type="submit" :disabled="processing"
-                        >Save search</Button
-                    >
+                    <Button type="submit" :disabled="processing">{{
+                        t('Save search')
+                    }}</Button>
                 </div>
             </Form>
         </DialogContent>

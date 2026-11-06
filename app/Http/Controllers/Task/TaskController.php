@@ -115,7 +115,7 @@ class TaskController extends Controller
             );
         } catch (DescriptionConflict $exception) {
             throw ValidationException::withMessages([
-                'description' => $exception->getMessage(),
+                'description' => __($exception->getMessage()),
                 'description_conflict' => '1',
             ]);
         }
@@ -170,7 +170,7 @@ class TaskController extends Controller
         try {
             $operation();
         } catch (TaskException $exception) {
-            throw ValidationException::withMessages([$field => $exception->getMessage()]);
+            throw ValidationException::withMessages([$field => __($exception->getMessage())]);
         }
     }
 

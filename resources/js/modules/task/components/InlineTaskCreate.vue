@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import ProjectTaskController from '@/actions/App/Http/Controllers/Project/ProjectTaskController';
+import { t } from '@/lib/i18n';
 
 const props = withDefaults(
     defineProps<{
@@ -71,7 +72,7 @@ function submit(): void {
             "
             @click="start"
         >
-            {{ compact ? '+ Add' : '+ Add task' }}
+            {{ compact ? t('+ Add') : t('+ Add task') }}
         </button>
 
         <input
@@ -79,7 +80,7 @@ function submit(): void {
             ref="input"
             v-model="title"
             type="text"
-            placeholder="Task name"
+            :placeholder="t('Task name')"
             :disabled="saving"
             class="w-full rounded border border-input bg-transparent disabled:opacity-50"
             :class="compact ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-sm'"

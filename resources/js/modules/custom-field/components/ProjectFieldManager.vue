@@ -4,6 +4,7 @@ import { Plus, X } from '@lucide/vue';
 import { ref } from 'vue';
 import ProjectCustomFieldController from '@/actions/App/Http/Controllers/CustomField/ProjectCustomFieldController';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 import { typeLabels } from '@/modules/custom-field/fieldTypes';
 import type { CustomFieldType } from '@/modules/custom-field/types';
 import { index as workspaceFields } from '@/routes/custom-fields';
@@ -72,7 +73,11 @@ function detach(id: string): void {
                     variant="ghost"
                     size="icon-sm"
                     :disabled="pending === field.id"
-                    :aria-label="`Remove ${field.name} from this project`"
+                    :aria-label="
+                        t('Remove :name from this project', {
+                            name: field.name,
+                        })
+                    "
                     @click="detach(field.id)"
                 >
                     <X class="size-4" />
@@ -81,8 +86,11 @@ function detach(id: string): void {
         </ul>
 
         <p v-else class="text-sm text-muted-foreground">
-            This project shows no custom fields. Its tasks still have a title,
-            an assignee and a due date.
+            {{
+                t(
+                    'This project shows no custom fields. Its tasks still have a title, an assignee and a due date.',
+                )
+            }}
         </p>
 
         <template v-if="props.canManage">
@@ -102,15 +110,18 @@ function detach(id: string): void {
             </div>
 
             <p class="text-xs text-muted-foreground">
-                Removing a field here keeps every answer already recorded in it
-                — putting it back brings them with it.
+                {{
+                    t(
+                        'Removing a field here keeps every answer already recorded in it — putting it back brings them with it.',
+                    )
+                }}
                 <Link
                     :href="workspaceFields()"
                     component="settings/Fields"
                     prefetch="click"
                     class="underline underline-offset-2"
                 >
-                    Fields are defined in workspace settings.
+                    {{ t('Fields are defined in workspace settings.') }}
                 </Link>
             </p>
         </template>

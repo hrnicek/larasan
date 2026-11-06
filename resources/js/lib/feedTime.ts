@@ -1,3 +1,5 @@
+import { currentLocale } from '@/lib/i18n';
+
 const units: [Intl.RelativeTimeFormatUnit, number][] = [
     ['second', 60],
     ['minute', 60],
@@ -16,7 +18,7 @@ export function formatFeedTime(iso: string): string {
 
     for (const [unit, span] of units) {
         if (Math.abs(value) < span) {
-            return new Intl.RelativeTimeFormat(undefined, {
+            return new Intl.RelativeTimeFormat(currentLocale(), {
                 numeric: 'auto',
             }).format(Math.round(value), unit);
         }
@@ -24,7 +26,7 @@ export function formatFeedTime(iso: string): string {
         value /= span;
     }
 
-    return at.toLocaleDateString(undefined, {
+    return at.toLocaleDateString(currentLocale(), {
         day: 'numeric',
         month: 'short',
         year:
@@ -37,5 +39,5 @@ export function formatFeedTime(iso: string): string {
 export function fullFeedTime(iso: string): string {
     const at = new Date(iso);
 
-    return Number.isNaN(at.getTime()) ? iso : at.toLocaleString();
+    return Number.isNaN(at.getTime()) ? iso : at.toLocaleString(currentLocale());
 }

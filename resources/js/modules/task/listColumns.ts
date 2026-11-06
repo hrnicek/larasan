@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 /**
  * Column classes shared by the list header and its rows. Widths are `md:`-scoped because below
  * `md` a row wraps onto two lines and its cells are no longer columns.
@@ -25,11 +27,13 @@ export type ListColumn = {
 };
 
 /** For lists outside a project (My Tasks, search), which have no stored column order. */
-export const defaultListColumns: ListColumn[] = [
-    { key: 'assignee', kind: 'assignee', label: 'Assignee', type: null },
-    { key: 'due', kind: 'due', label: 'Due', type: null },
-    { key: 'priority', kind: 'priority', label: 'Priority', type: null },
-];
+export function defaultListColumns(): ListColumn[] {
+    return [
+        { key: 'assignee', kind: 'assignee', label: t('Assignee'), type: null },
+        { key: 'due', kind: 'due', label: t('Due'), type: null },
+        { key: 'priority', kind: 'priority', label: t('Priority'), type: null },
+    ];
+}
 
 export function widthFor(kind: ListColumn['kind']): string {
     return kind === 'field' ? listColumns.field : listColumns[kind];

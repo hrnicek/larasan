@@ -7,6 +7,7 @@ import PagePlacementController from '@/actions/App/Http/Controllers/Page/PagePla
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import { Button } from '@/components/ui/button';
+import { t } from '@/lib/i18n';
 import PageRenameDialog from '@/modules/page/components/PageRenameDialog.vue';
 import PageTreeRow from '@/modules/page/components/PageTreeRow.vue';
 import { placementFor } from '@/modules/page/lib/movePage';
@@ -92,7 +93,7 @@ const remove = (): void => {
         >
             <Button variant="outline" size="sm" @click="addPage()">
                 <Plus class="size-4" />
-                New page
+                {{ t('New page') }}
             </Button>
         </div>
 
@@ -104,14 +105,14 @@ const remove = (): void => {
                 @click="addPage()"
             >
                 <Plus class="size-4" />
-                New page
+                {{ t('New page') }}
             </Button>
         </div>
 
         <ul
             v-if="pages.tree.length"
             role="tree"
-            aria-label="Pages"
+            :aria-label="t('Pages')"
             class="list-none"
         >
             <PageTreeRow
@@ -137,13 +138,17 @@ const remove = (): void => {
         <EmptyState
             v-else-if="variant === 'view'"
             :icon="FileText"
-            title="No pages yet"
-            description="A page is where the brief, the notes and the decisions live — beside the work rather than inside a task."
+            :title="t('No pages yet')"
+            :description="
+                t(
+                    'A page is where the brief, the notes and the decisions live — beside the work rather than inside a task.',
+                )
+            "
         >
             <template #action>
                 <Button v-if="pages.can.createPage" @click="addPage()">
                     <Plus class="size-4" />
-                    Write the first page
+                    {{ t('Write the first page') }}
                 </Button>
             </template>
         </EmptyState>
@@ -157,9 +162,14 @@ const remove = (): void => {
 
         <ConfirmDialog
             :open="removing !== null"
-            title="Delete this page?"
-            :description="`“${removing?.title}” and everything written inside it will be removed.`"
-            confirm-label="Delete page"
+            :title="t('Delete this page?')"
+            :description="
+                t(
+                    '“:title” and everything written inside it will be removed.',
+                    { title: removing?.title ?? '' },
+                )
+            "
+            :confirm-label="t('Delete page')"
             @update:open="(open) => !open && (removing = null)"
             @confirm="remove"
         />

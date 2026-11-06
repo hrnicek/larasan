@@ -3,6 +3,7 @@ import { http, router } from '@inertiajs/vue3';
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import PageTitleController from '@/actions/App/Http/Controllers/Page/PageTitleController';
+import { t } from '@/lib/i18n';
 import { UNTITLED } from '@/modules/page/lib/untitled';
 
 // The title endpoint carries no version, so a rename never conflicts with a document autosave. See ADR-0017.
@@ -80,7 +81,9 @@ const send = async (): Promise<void> => {
         }
     } catch (failure: unknown) {
         sent = previous;
-        toast.error(refusalOf(failure) ?? 'The page title could not be saved.');
+        toast.error(
+            refusalOf(failure) ?? t('The page title could not be saved.'),
+        );
     } finally {
         sending = false;
     }
@@ -140,8 +143,8 @@ onBeforeUnmount(() => {
             ref="field"
             v-model="draft"
             type="text"
-            :placeholder="UNTITLED"
-            aria-label="Page title"
+            :placeholder="t('Untitled')"
+            :aria-label="t('Page title')"
             maxlength="255"
             class="w-full border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
             @input="schedule"

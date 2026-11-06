@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue';
+import { t } from '@/lib/i18n';
 
 export type SlashCommand = {
     key: string;
@@ -26,7 +27,7 @@ const emit = defineEmits<{ select: [command: SlashCommand] }>();
         <ul
             id="page-slash-menu"
             role="listbox"
-            aria-label="Insert"
+            :aria-label="t('Insert')"
             class="max-h-72 overflow-y-auto p-1"
         >
             <li
@@ -68,7 +69,7 @@ const emit = defineEmits<{ select: [command: SlashCommand] }>();
                 v-if="!commands.length"
                 class="px-2 py-1.5 text-sm text-muted-foreground"
             >
-                Nothing matches that.
+                {{ t('Nothing matches that.') }}
             </li>
         </ul>
     </div>

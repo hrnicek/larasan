@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Enums\Locale;
 use App\Domain\Shared\Enums\UiTheme;
 use App\Domain\Shared\Enums\WorkspaceMembershipStatus;
 use App\Domain\Workspace\Models\Workspace;
@@ -10,6 +11,7 @@ use App\Domain\Workspace\Models\WorkspaceMembership;
 use Carbon\CarbonImmutable;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -37,6 +39,7 @@ use Laravel\Scout\Searchable;
  * @property CarbonImmutable|null $two_factor_confirmed_at
  * @property string|null $current_workspace_id
  * @property UiTheme $ui_theme
+ * @property Locale $locale
  * @property int|null $avatar_preset
  * @property string|null $avatar_path
  * @property string|null $remember_token
@@ -45,7 +48,7 @@ use Laravel\Scout\Searchable;
  */
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token', 'avatar_path'])]
-class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable, PasskeyUser
+class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail, OAuthenticatable, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, PasskeyAuthenticatable, Searchable, TwoFactorAuthenticatable;
@@ -62,6 +65,12 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable,
             'name' => (string) $this->name,
             'email' => (string) $this->email,
         ];
+    }
+
+    /** Mail and notifications go out in the language the recipient reads the app in. */
+    public function preferredLocale(): string
+    {
+        return $this->locale->value;
     }
 
     /** Workspace switches write this row, so only indexed fields trigger a reindex. */
@@ -121,6 +130,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable,
      */
     protected $attributes = [
         'ui_theme' => UiTheme::Slate->value,
+        'locale' => Locale::English->value,
     ];
 
     /**
@@ -133,6 +143,7 @@ class User extends Authenticatable implements MustVerifyEmail, OAuthenticatable,
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'ui_theme' => UiTheme::class,
+            'locale' => Locale::class,
         ];
     }
 }

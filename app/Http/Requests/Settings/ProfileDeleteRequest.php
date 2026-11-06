@@ -41,7 +41,7 @@ class ProfileDeleteRequest extends FormRequest
                 }
 
                 $validator->errors()->add('password', __('Transfer or delete these workspaces first: :workspaces', [
-                    'workspaces' => $owned->join(', ', ' and '),
+                    'workspaces' => $owned->join(', ', ' '.__('and').' '),
                 ]));
             },
         ];

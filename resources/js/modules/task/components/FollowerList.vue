@@ -10,6 +10,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t, tc } from '@/lib/i18n';
 import type { TaskAssignee } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -54,7 +55,7 @@ const toggle = (): void => {
         <Popover v-if="followers.length">
             <PopoverTrigger
                 class="flex items-center rounded-md pr-1 transition-opacity hover:opacity-80 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="`${followers.length} watching this task`"
+                :aria-label="tc(':count watching this task', followers.length)"
             >
                 <span class="flex -space-x-1.5">
                     <span
@@ -78,7 +79,7 @@ const toggle = (): void => {
                 <p
                     class="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground"
                 >
-                    Watching this task
+                    {{ t('Watching this task') }}
                 </p>
 
                 <ul class="max-h-56 overflow-y-auto p-1">
@@ -110,7 +111,11 @@ const toggle = (): void => {
                         :aria-pressed="following"
                         @click="toggle"
                     >
-                        {{ following ? 'Stop watching' : 'Watch this task' }}
+                        {{
+                            following
+                                ? t('Stop watching')
+                                : t('Watch this task')
+                        }}
                     </Button>
                 </div>
             </PopoverContent>
@@ -122,7 +127,7 @@ const toggle = (): void => {
             size="icon-sm"
             class="size-6 border border-dashed border-muted-foreground/50 text-muted-foreground"
             :disabled="working"
-            aria-label="Watch this task"
+            :aria-label="t('Watch this task')"
             @click="toggle"
         >
             <UserPlus class="size-3.5" />

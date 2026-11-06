@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { accentChipClass, accentVars } from '@/lib/accentColor';
+import { t, tc } from '@/lib/i18n';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import type { WorkspaceTag } from '@/modules/tag/types';
 
@@ -59,12 +60,13 @@ const deletionCost = computed(() => {
     }
 
     if (tag.taskCount === 0) {
-        return 'Nothing is labelled with it yet.';
+        return t('Nothing is labelled with it yet.');
     }
 
-    return tag.taskCount === 1
-        ? 'It comes off one task, which is not otherwise touched. Every saved filter that names it stops matching that task.'
-        : `It comes off ${tag.taskCount} tasks, which are not otherwise touched. Every saved filter that names it stops matching them.`;
+    return tc(
+        'It comes off one task, which is not otherwise touched. Every saved filter that names it stops matching that task.|It comes off :count tasks, which are not otherwise touched. Every saved filter that names it stops matching them.',
+        tag.taskCount,
+    );
 });
 
 function confirmDeletion(): void {
@@ -81,14 +83,18 @@ function confirmDeletion(): void {
 
 <template>
     <div class="flex flex-col space-y-6">
-        <Head title="Tags" />
+        <Head :title="t('Tags')" />
 
-        <h1 class="sr-only">Tags</h1>
+        <h1 class="sr-only">{{ t('Tags') }}</h1>
 
         <Heading
             variant="small"
-            title="Tags"
-            description="The words this workspace uses for its work, and the colours they are drawn in"
+            :title="t('Tags')"
+            :description="
+                t(
+                    'The words this workspace uses for its work, and the colours they are drawn in',
+                )
+            "
         />
 
         <form
@@ -98,20 +104,20 @@ function confirmDeletion(): void {
         >
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end">
                 <div class="grid flex-1 gap-2">
-                    <Label for="tag-name">Name</Label>
+                    <Label for="tag-name">{{ t('Name') }}</Label>
                     <Input
                         id="tag-name"
                         v-model="form.name"
                         required
                         maxlength="40"
-                        placeholder="Bug"
+                        :placeholder="t('Bug')"
                     />
                     <InputError :message="form.errors.name" />
                 </div>
 
-                <Button type="submit" :disabled="form.processing"
-                    >Add tag</Button
-                >
+                <Button type="submit" :disabled="form.processing">{{
+                    t('Add tag')
+                }}</Button>
             </div>
 
             <AccentColorGrid v-model="form.color" :disabled="form.processing" />
@@ -122,9 +128,11 @@ function confirmDeletion(): void {
             v-if="!props.tags.length"
             class="rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
         >
-            No tags yet. A tag is one word about a piece of work — a bug, a
-            client, a release — and every board and every search can filter by
-            it.
+            {{
+                t(
+                    'No tags yet. A tag is one word about a piece of work — a bug, a client, a release — and every board and every search can filter by it.',
+                )
+            }}
         </p>
 
         <ul v-else class="divide-y rounded-lg border">
@@ -132,9 +140,9 @@ function confirmDeletion(): void {
                 <div v-if="editing === tag.id" class="space-y-4">
                     <div class="flex flex-wrap items-end gap-2">
                         <div class="min-w-48 flex-1">
-                            <Label :for="`name-${tag.id}`" class="sr-only"
-                                >Tag name</Label
-                            >
+                            <Label :for="`name-${tag.id}`" class="sr-only">{{
+                                t('Tag name')
+                            }}</Label>
                             <Input
                                 :id="`name-${tag.id}`"
                                 v-model="edit.name"
@@ -149,13 +157,13 @@ function confirmDeletion(): void {
                             size="sm"
                             :disabled="edit.processing"
                             @click="save(tag.id)"
-                            >Save</Button
+                            >{{ t('Save') }}</Button
                         >
                         <Button
                             size="sm"
                             variant="ghost"
                             @click="editing = null"
-                            >Cancel</Button
+                            >{{ t('Cancel') }}</Button
                         >
                     </div>
 
@@ -176,9 +184,7 @@ function confirmDeletion(): void {
 
                     <span class="flex-1 truncate text-xs text-muted-foreground">
                         {{
-                            tag.taskCount === 1
-                                ? 'on 1 task'
-                                : `on ${tag.taskCount} tasks`
+                            tc('on :count task|on :count tasks', tag.taskCount)
                         }}
                     </span>
 
@@ -190,13 +196,13 @@ function confirmDeletion(): void {
                             size="sm"
                             variant="ghost"
                             @click="startEditing(tag)"
-                            >Edit</Button
+                            >{{ t('Edit') }}</Button
                         >
                         <Button
                             size="sm"
                             variant="ghost"
                             @click="deleting = tag"
-                            >Delete</Button
+                            >{{ t('Delete') }}</Button
                         >
                     </div>
                 </div>
@@ -205,10 +211,10 @@ function confirmDeletion(): void {
 
         <ConfirmDialog
             :open="deleting !== null"
-            :title="`Delete ${deleting?.name}?`"
+            :title="t('Delete :name?', { name: deleting?.name ?? '' })"
             :description="deletionCost"
-            confirm-label="Delete tag"
-            cancel-label="Keep it"
+            :confirm-label="t('Delete tag')"
+            :cancel-label="t('Keep it')"
             @update:open="(next) => !next && (deleting = null)"
             @confirm="confirmDeletion"
         />

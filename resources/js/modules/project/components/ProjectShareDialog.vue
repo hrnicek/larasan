@@ -15,6 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import { reloadOptional } from '@/lib/optionalProps';
 import type { ProjectMember, ProjectShare } from '@/modules/project/types';
 
@@ -60,10 +61,10 @@ watch(
 );
 
 const levelLabels: Record<string, string> = {
-    owner: 'Project owner',
-    editor: 'Editor',
-    commenter: 'Commenter',
-    viewer: 'Viewer',
+    owner: t('Project owner'),
+    editor: t('Editor'),
+    commenter: t('Commenter'),
+    viewer: t('Viewer'),
 };
 
 function labelFor(value: string): string {
@@ -135,17 +136,18 @@ async function copyLink(): Promise<void> {
             <Button size="sm">
                 <Lock v-if="share?.visibility === 'private'" class="size-4" />
                 <Globe v-else class="size-4" />
-                Share
+                {{ t('Share') }}
             </Button>
         </DialogTrigger>
 
         <DialogContent class="sm:max-w-lg">
             <DialogHeader>
-                <DialogTitle>Share {{ props.projectName }}</DialogTitle>
-                <DialogDescription
-                    >Who may reach this project, and what they may do
-                    here</DialogDescription
-                >
+                <DialogTitle>{{
+                    t('Share :name', { name: props.projectName })
+                }}</DialogTitle>
+                <DialogDescription>{{
+                    t('Who may reach this project, and what they may do here')
+                }}</DialogDescription>
             </DialogHeader>
 
             <div v-if="share === null" class="space-y-3" aria-hidden="true">
@@ -161,15 +163,17 @@ async function copyLink(): Promise<void> {
                     class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end"
                 >
                     <div class="grid min-w-0 flex-1 gap-2">
-                        <Label for="share-person"
-                            >Add someone from this workspace</Label
-                        >
+                        <Label for="share-person">{{
+                            t('Add someone from this workspace')
+                        }}</Label>
                         <select
                             id="share-person"
                             v-model="chosen"
                             class="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                         >
-                            <option value="">Choose a person…</option>
+                            <option value="">
+                                {{ t('Choose a person…') }}
+                            </option>
                             <option
                                 v-for="person in share.candidates"
                                 :key="person.id"
@@ -185,7 +189,7 @@ async function copyLink(): Promise<void> {
                     </div>
 
                     <div class="grid gap-2">
-                        <Label for="share-level">Access</Label>
+                        <Label for="share-level">{{ t('Access') }}</Label>
                         <select
                             id="share-level"
                             v-model="level"
@@ -201,15 +205,20 @@ async function copyLink(): Promise<void> {
                         </select>
                     </div>
 
-                    <Button :disabled="chosen === ''" @click="add">Add</Button>
+                    <Button :disabled="chosen === ''" @click="add">{{
+                        t('Add')
+                    }}</Button>
                 </div>
 
                 <p
                     v-if="share.canManage && !share.candidates.length"
                     class="text-xs text-muted-foreground"
                 >
-                    Everybody in this workspace already has access. Somebody new
-                    is invited in workspace settings first.
+                    {{
+                        t(
+                            'Everybody in this workspace already has access. Somebody new is invited in workspace settings first.',
+                        )
+                    }}
                 </p>
 
                 <div
@@ -222,8 +231,10 @@ async function copyLink(): Promise<void> {
                     <span class="flex-1">
                         {{
                             share.visibility === 'private'
-                                ? 'Private — only the people below'
-                                : 'Workspace — anybody in this workspace can open it'
+                                ? t('Private — only the people below')
+                                : t(
+                                      'Workspace — anybody in this workspace can open it',
+                                  )
                         }}
                     </span>
                 </div>
@@ -245,7 +256,7 @@ async function copyLink(): Promise<void> {
                                 <span
                                     v-if="member.isYou"
                                     class="text-xs text-muted-foreground"
-                                    >(you)</span
+                                    >{{ t('(you)') }}</span
                                 >
                             </p>
                             <p
@@ -267,7 +278,9 @@ async function copyLink(): Promise<void> {
                             <select
                                 :value="member.accessLevel"
                                 class="h-8 shrink-0 rounded-md border border-input bg-background px-2 text-sm"
-                                :aria-label="`Access for ${member.name}`"
+                                :aria-label="
+                                    t('Access for :name', { name: member.name })
+                                "
                                 @change="
                                     changeLevel(
                                         member,
@@ -288,10 +301,14 @@ async function copyLink(): Promise<void> {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                :aria-label="`Remove ${member.name} from this project`"
+                                :aria-label="
+                                    t('Remove :name from this project', {
+                                        name: member.name,
+                                    })
+                                "
                                 @click="revoke(member)"
                             >
-                                Remove
+                                {{ t('Remove') }}
                             </Button>
                         </template>
                     </li>
@@ -303,7 +320,7 @@ async function copyLink(): Promise<void> {
                             :is="copied ? Check : Link2"
                             class="size-4"
                         />
-                        {{ copied ? 'Link copied' : 'Copy project link' }}
+                        {{ copied ? t('Link copied') : t('Copy project link') }}
                     </Button>
                 </div>
             </template>

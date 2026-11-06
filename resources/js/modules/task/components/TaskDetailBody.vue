@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import { CornerLeftUp } from '@lucide/vue';
 import { computed } from 'vue';
+import { t } from '@/lib/i18n';
 import CustomFieldList from '@/modules/custom-field/components/CustomFieldList.vue';
 import AttachmentList from '@/modules/file/components/AttachmentList.vue';
 import TaskTags from '@/modules/tag/components/TaskTags.vue';
@@ -56,7 +57,7 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     :task-id="detail.task.id"
                     :value="detail.task.title"
                     :editable="fieldsEditable"
-                    placeholder="Task name"
+                    :placeholder="t('Task name')"
                     class="-mx-1.5"
                 />
             </div>
@@ -64,7 +65,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
             <dl
                 class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]"
             >
-                <dt class="text-[13px] text-muted-foreground">Assignee</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Assignee') }}
+                </dt>
                 <dd class="flex min-h-9 items-center">
                     <AssigneePicker
                         :task-id="detail.task.id"
@@ -75,7 +78,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     />
                 </dd>
 
-                <dt class="text-[13px] text-muted-foreground">Collaborators</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Collaborators') }}
+                </dt>
                 <dd class="flex min-h-9 min-w-0 items-center">
                     <CollaboratorPicker
                         :task-id="detail.task.id"
@@ -87,7 +92,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     />
                 </dd>
 
-                <dt class="text-[13px] text-muted-foreground">Due date</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Due date') }}
+                </dt>
                 <dd class="flex min-h-9 items-center">
                     <DueDatePicker
                         :task-id="detail.task.id"
@@ -97,7 +104,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     />
                 </dd>
 
-                <dt class="text-[13px] text-muted-foreground">Priority</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Priority') }}
+                </dt>
                 <dd class="flex min-h-9 items-center">
                     <PriorityControl
                         :task-id="detail.task.id"
@@ -108,7 +117,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     />
                 </dd>
 
-                <dt class="text-[13px] text-muted-foreground">Tags</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Tags') }}
+                </dt>
                 <dd class="flex min-h-9 items-center">
                     <TaskTags
                         :task-id="detail.task.id"
@@ -119,7 +130,9 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
                     />
                 </dd>
 
-                <dt class="text-[13px] text-muted-foreground">Created by</dt>
+                <dt class="text-[13px] text-muted-foreground">
+                    {{ t('Created by') }}
+                </dt>
                 <dd class="flex min-h-9 items-center">
                     <span class="px-1.5 text-sm">{{
                         detail.task.creator?.name ?? '—'
@@ -143,13 +156,13 @@ const fieldsEditable = computed<boolean>(() => props.detail.can.update);
             </TaskProjectMemberships>
 
             <section class="flex flex-col gap-1">
-                <h3 class="text-sm font-semibold">Description</h3>
+                <h3 class="text-sm font-semibold">{{ t('Description') }}</h3>
 
                 <TaskDescriptionField
                     :task-id="detail.task.id"
                     :value="detail.task.description"
                     :editable="fieldsEditable"
-                    placeholder="What is this task about?"
+                    :placeholder="t('What is this task about?')"
                     class="-mx-2"
                     @pending-change="
                         (pending) => emit('pendingChange', pending)

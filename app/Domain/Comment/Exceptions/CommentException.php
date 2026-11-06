@@ -43,6 +43,6 @@ final class CommentException extends DomainException implements DomainRefusal
 
     public static function tooManyMentions(): self
     {
-        return new self(sprintf('A comment can mention at most %d people.', Mentions::LIMIT));
+        return new self(__('A comment can mention at most :count people.', ['count' => Mentions::LIMIT]));
     }
 }

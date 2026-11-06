@@ -2,17 +2,18 @@
 import { Head } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 
 const nameWidths = ['w-40', 'w-32', 'w-48'];
 </script>
 
 <template>
     <div class="flex max-w-3xl flex-col space-y-6 p-4 md:p-6">
-        <Head title="Workspaces" />
+        <Head :title="t('Workspaces')" />
 
         <Heading
-            title="Workspaces"
-            description="The workspaces you belong to"
+            :title="t('Workspaces')"
+            :description="t('The workspaces you belong to')"
         />
 
         <div class="divide-y rounded-lg border" aria-hidden="true">

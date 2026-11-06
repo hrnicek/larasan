@@ -9,6 +9,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t, tc } from '@/lib/i18n';
 import type { TaskAssignee } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -42,7 +43,7 @@ const onTask = computed<Set<number>>(
 const summary = computed<string>(() =>
     props.collaborators.length === 1
         ? props.collaborators[0].name
-        : `${props.collaborators.length} people`,
+        : tc(':count person|:count people', props.collaborators.length),
 );
 
 const flatten = (value: string): string =>
@@ -164,8 +165,12 @@ function onEscape(event: KeyboardEvent): void {
             <PopoverTrigger
                 :aria-label="
                     collaborators.length
-                        ? `Collaborators: ${collaborators.map((person) => person.name).join(', ')}. Change`
-                        : 'No collaborators. Add people'
+                        ? t('Collaborators: :names. Change', {
+                              names: collaborators
+                                  .map((person) => person.name)
+                                  .join(', '),
+                          })
+                        : t('No collaborators. Add people')
                 "
                 class="flex h-8 min-h-11 min-w-0 items-center gap-1.5 rounded-md border border-border px-1.5 pr-2 text-left text-sm transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
             >
@@ -194,7 +199,9 @@ function onEscape(event: KeyboardEvent): void {
                     >
                         <UserPlus class="size-3.5" />
                     </span>
-                    <span class="text-muted-foreground">Add people</span>
+                    <span class="text-muted-foreground">{{
+                        t('Add people')
+                    }}</span>
                 </template>
             </PopoverTrigger>
 
@@ -207,8 +214,8 @@ function onEscape(event: KeyboardEvent): void {
                         role="combobox"
                         aria-expanded="true"
                         :aria-controls="listId"
-                        aria-label="Search members by name or email"
-                        placeholder="Name or email"
+                        :aria-label="t('Search members by name or email')"
+                        :placeholder="t('Name or email')"
                         class="h-8 w-full rounded-md bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
                         @keydown="onKeydown"
                     />
@@ -260,7 +267,7 @@ function onEscape(event: KeyboardEvent): void {
                             <span
                                 v-if="member.id === assigneeId"
                                 class="shrink-0 text-xs text-muted-foreground"
-                                >Assignee</span
+                                >{{ t('Assignee') }}</span
                             >
                             <Check
                                 v-else-if="onTask.has(member.id)"
@@ -273,7 +280,7 @@ function onEscape(event: KeyboardEvent): void {
                         v-if="matches.length === 0"
                         class="px-3 py-6 text-center text-sm text-muted-foreground"
                     >
-                        Nobody here matches “{{ query }}”.
+                        {{ t('Nobody here matches “:query”.', { query }) }}
                     </li>
                 </ul>
             </PopoverContent>
@@ -309,7 +316,7 @@ function onEscape(event: KeyboardEvent): void {
             :disabled="saving"
             @click="leave"
         >
-            Leave
+            {{ t('Leave') }}
         </button>
     </div>
 </template>

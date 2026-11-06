@@ -3,13 +3,31 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t, tc } from '@/lib/i18n';
 
 const page = usePage();
 
 const unread = computed<number>(() => page.props.unreadNotifications);
-const workspaceName = computed<string>(
-    () => page.props.workspace?.name ?? 'this workspace',
-);
+const description = computed<string>(() => {
+    const workspace = page.props.workspace?.name;
+
+    if (unread.value > 0) {
+        return workspace === undefined
+            ? tc(
+                  ':count unread in this workspace|:count unread in this workspace',
+                  unread.value,
+              )
+            : tc(
+                  ':count unread in :workspace|:count unread in :workspace',
+                  unread.value,
+                  { workspace },
+              );
+    }
+
+    return workspace === undefined
+        ? t('Everything in this workspace has been seen')
+        : t('Everything in :workspace has been seen', { workspace });
+});
 
 const lineWidths = [
     'w-2/3',
@@ -24,16 +42,9 @@ const lineWidths = [
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="Inbox" />
+        <Head :title="t('Inbox')" />
 
-        <PageHeader
-            title="Inbox"
-            :description="
-                unread > 0
-                    ? `${unread} unread in ${workspaceName}`
-                    : `Everything in ${workspaceName} has been seen`
-            "
-        />
+        <PageHeader :title="t('Inbox')" :description="description" />
 
         <div aria-hidden="true">
             <div class="border-b border-border px-4 pt-5 pb-2 md:px-6">

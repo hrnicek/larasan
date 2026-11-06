@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import { t } from '@/lib/i18n';
 import CommentForm from '@/modules/comment/components/CommentForm.vue';
 import CommentLine from '@/modules/comment/components/CommentLine.vue';
 import type {
@@ -39,55 +40,69 @@ const lines = computed<TaskFeedEntry[]>(() => {
 const nameOf = (id: unknown): string | null =>
     props.people.find((person) => person.id === id)?.name ?? null;
 
+const fieldLabel = (field: unknown): string => {
+    const labels: Record<string, string> = {
+        title: t('title'),
+        description: t('description'),
+        due_at: t('due date'),
+        priority: t('priority'),
+        parent_id: t('parent task'),
+    };
+
+    return typeof field === 'string' ? (labels[field] ?? field) : String(field);
+};
+
 const describe = (entry: TaskFeedEntry): string => {
     const changed = entry.properties?.changed;
     const collaboratorId = entry.properties?.collaborator_id;
 
     switch (entry.type) {
         case 'task.created':
-            return 'created this task';
+            return t('created this task');
         case 'task.completed':
-            return 'completed this task';
+            return t('completed this task');
         case 'task.reopened':
-            return 'reopened this task';
+            return t('reopened this task');
         case 'task.assigned':
             return entry.properties?.assignee_id === null
-                ? 'unassigned this task'
-                : 'assigned this task';
+                ? t('unassigned this task')
+                : t('assigned this task');
         case 'task.collaborator_added': {
             const name = nameOf(collaboratorId);
 
             return name === null
-                ? 'added a collaborator'
-                : `added ${name} as a collaborator`;
+                ? t('added a collaborator')
+                : t('added :name as a collaborator', { name });
         }
         case 'task.collaborator_removed': {
             if (entry.actor?.id === collaboratorId) {
-                return 'left this task';
+                return t('left this task');
             }
 
             const name = nameOf(collaboratorId);
 
             return name === null
-                ? 'removed a collaborator'
-                : `took ${name} off this task`;
+                ? t('removed a collaborator')
+                : t('took :name off this task', { name });
         }
         case 'task.attached_to_project':
-            return 'added this task to a project';
+            return t('added this task to a project');
         case 'task.detached_from_project':
-            return 'removed this task from a project';
+            return t('removed this task from a project');
         case 'task.updated':
             return Array.isArray(changed)
-                ? `changed ${changed.join(', ')}`
-                : 'changed this task';
+                ? t('changed :fields', {
+                      fields: changed.map(fieldLabel).join(', '),
+                  })
+                : t('changed this task');
         default:
-            return 'did something';
+            return t('did something');
     }
 };
 
 const tabs: { id: 'comments' | 'activity'; label: string }[] = [
-    { id: 'comments', label: 'Comments' },
-    { id: 'activity', label: 'All activity' },
+    { id: 'comments', label: t('Comments') },
+    { id: 'activity', label: t('All activity') },
 ];
 </script>
 
@@ -115,13 +130,13 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
                 class="mb-1.5 ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 :aria-label="
                     oldestFirst
-                        ? 'Showing oldest first. Show newest first'
-                        : 'Showing newest first. Show oldest first'
+                        ? t('Showing oldest first. Show newest first')
+                        : t('Showing newest first. Show oldest first')
                 "
                 @click="oldestFirst = !oldestFirst"
             >
                 <ArrowDownUp class="size-3.5" aria-hidden="true" />
-                {{ oldestFirst ? 'Oldest' : 'Newest' }}
+                {{ oldestFirst ? t('Oldest') : t('Newest') }}
             </button>
         </div>
 
@@ -157,7 +172,7 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
                             />
                             <span class="min-w-0">
                                 <span class="font-medium text-foreground">{{
-                                    entry.actor?.name ?? 'Someone'
+                                    entry.actor?.name ?? t('Someone')
                                 }}</span>
                                 {{ describe(entry) }} ·
                                 <time
@@ -174,8 +189,8 @@ const tabs: { id: 'comments' | 'activity'; label: string }[] = [
                 <p v-else class="text-sm text-muted-foreground">
                     {{
                         tab === 'comments'
-                            ? 'Nobody has said anything yet.'
-                            : 'Nothing has happened yet.'
+                            ? t('Nobody has said anything yet.')
+                            : t('Nothing has happened yet.')
                     }}
                 </p>
             </Deferred>

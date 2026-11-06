@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useCollapsed } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 // Wayfinder exports `switchMethod`: `switch` is a reserved word in JavaScript.
 import { create, index, switchMethod } from '@/routes/workspaces';
@@ -35,7 +36,11 @@ function switchTo(workspace: WorkspaceSummary): void {
         <DropdownMenuTrigger
             class="flex h-11 w-full items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-chrome-accent focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none data-[state=open]:bg-chrome-accent"
             :class="collapsed && 'justify-center px-0'"
-            :aria-label="`Current workspace: ${current.name}. Switch workspace`"
+            :aria-label="
+                t('Current workspace: :name. Switch workspace', {
+                    name: current.name,
+                })
+            "
         >
             <span
                 class="flex size-7 shrink-0 items-center justify-center rounded-md bg-chrome-primary text-[13px] font-bold text-chrome-primary-foreground"
@@ -61,9 +66,9 @@ function switchTo(workspace: WorkspaceSummary): void {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent class="min-w-60" align="start" side="bottom">
-            <DropdownMenuLabel class="text-xs text-muted-foreground"
-                >Workspaces</DropdownMenuLabel
-            >
+            <DropdownMenuLabel class="text-xs text-muted-foreground">{{
+                t('Workspaces')
+            }}</DropdownMenuLabel>
 
             <DropdownMenuItem
                 v-for="workspace in workspaces"
@@ -80,14 +85,14 @@ function switchTo(workspace: WorkspaceSummary): void {
             <DropdownMenuItem as-child class="gap-2">
                 <Link :href="index()" component="workspaces/Index">
                     <List class="size-4" />
-                    <span>All workspaces and invitations</span>
+                    <span>{{ t('All workspaces and invitations') }}</span>
                 </Link>
             </DropdownMenuItem>
 
             <DropdownMenuItem as-child class="gap-2">
                 <Link :href="create()">
                     <Plus class="size-4" />
-                    <span>New workspace</span>
+                    <span>{{ t('New workspace') }}</span>
                 </Link>
             </DropdownMenuItem>
         </DropdownMenuContent>
@@ -100,6 +105,8 @@ function switchTo(workspace: WorkspaceSummary): void {
         :class="collapsed && 'justify-center px-0'"
     >
         <Plus class="size-4 shrink-0" />
-        <span v-if="!collapsed" class="truncate">Find a workspace</span>
+        <span v-if="!collapsed" class="truncate">{{
+            t('Find a workspace')
+        }}</span>
     </Link>
 </template>

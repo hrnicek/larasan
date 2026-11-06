@@ -2,6 +2,7 @@
 import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { SidebarProject } from '@/modules/project/types';
 import { edit } from '@/routes/projects';
@@ -24,7 +25,10 @@ const sections = [3, 2];
 
 <template>
     <div class="flex flex-col">
-        <Head v-if="project" :title="`${project.name} settings`" />
+        <Head
+            v-if="project"
+            :title="t(':name settings', { name: project.name })"
+        />
 
         <div class="border-b border-border">
             <div class="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
@@ -43,7 +47,7 @@ const sections = [3, 2];
                             {{ project.name }}
                         </p>
                         <p class="mt-0.5 text-sm text-muted-foreground">
-                            Project settings
+                            {{ t('Project settings') }}
                         </p>
                     </div>
                 </template>

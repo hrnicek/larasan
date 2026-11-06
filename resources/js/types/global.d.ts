@@ -1,6 +1,7 @@
 import type { SidebarProject } from '@/modules/project/types';
 import type { WorkspaceSummary } from '@/modules/workspace/types';
 import type { Auth } from '@/types/auth';
+import type { LocaleOption } from '@/types/ui';
 
 declare module 'vite/client' {
     interface ImportMetaEnv {
@@ -27,6 +28,10 @@ declare module '@inertiajs/core' {
             workspaces: WorkspaceSummary[];
             projects: SidebarProject[];
             unreadNotifications: number;
+            locale: string;
+            locales: LocaleOption[];
+            // An empty PHP array arrives as [] rather than {} for the source language.
+            translations: Record<string, string> | [];
             [key: string]: unknown;
         };
     }

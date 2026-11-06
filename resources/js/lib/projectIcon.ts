@@ -29,6 +29,7 @@ import {
     Zap,
 } from '@lucide/vue';
 import type { Component } from 'vue';
+import { t } from '@/lib/i18n';
 
 // Imported statically so only these icons are bundled; the order is the picker's display order.
 const projectIcons = {
@@ -74,7 +75,9 @@ export function projectIconComponent(icon: string | null): Component | null {
 }
 
 export function projectIconLabel(icon: string): string {
-    return icon
-        .replace(/-/g, ' ')
-        .replace(/^./, (character) => character.toUpperCase());
+    return t(
+        icon
+            .replace(/-/g, ' ')
+            .replace(/^./, (character) => character.toUpperCase()),
+    );
 }

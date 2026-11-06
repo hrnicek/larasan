@@ -3,6 +3,7 @@
 use App\Domain\Shared\Exceptions\DomainRefusal;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\HandleLocale;
 use App\Http\Middleware\HandleUiTheme;
 use App\Http\Middleware\PreventContentSniffing;
 use App\Http\Middleware\ResolveCurrentWorkspace;
@@ -36,6 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ], append: [
             HandleAppearance::class,
             HandleUiTheme::class,
+            HandleLocale::class,
             ResolveCurrentWorkspace::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
@@ -46,9 +48,9 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
-        // Refusal messages are shown to the user verbatim.
+        // Refusal messages are shown to the user, so the English sentence is the translation key.
         $exceptions->render(function (DomainRefusal $refusal, Request $request) {
-            $message = $refusal instanceof Throwable ? $refusal->getMessage() : '';
+            $message = $refusal instanceof Throwable ? __($refusal->getMessage()) : '';
 
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json(['message' => $message], SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY);

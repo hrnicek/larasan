@@ -2,10 +2,12 @@
 import { Check } from '@lucide/vue';
 import { computed } from 'vue';
 import {
+    accentColorLabel,
     accentColorNames,
     accentDotClass,
     isCustomAccent,
 } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 
 const props = withDefaults(
     defineProps<{
@@ -41,7 +43,7 @@ function choose(event: Event): void {
             <h3
                 class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
             >
-                Colour
+                {{ t('Colour') }}
             </h3>
 
             <button
@@ -51,7 +53,7 @@ function choose(event: Event): void {
                 :disabled="props.disabled"
                 @click="emit('update:modelValue', null)"
             >
-                Clear
+                {{ t('Clear') }}
             </button>
         </div>
 
@@ -62,7 +64,7 @@ function choose(event: Event): void {
                 type="button"
                 class="flex items-center justify-center rounded-md text-white transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 :class="[swatch, accentDotClass(color)]"
-                :aria-label="color"
+                :aria-label="accentColorLabel(color)"
                 :aria-pressed="props.modelValue === color"
                 :disabled="props.disabled"
                 @click="emit('update:modelValue', color)"
@@ -82,7 +84,7 @@ function choose(event: Event): void {
                           }
                 "
             >
-                <span class="sr-only">Choose another colour</span>
+                <span class="sr-only">{{ t('Choose another colour') }}</span>
 
                 <Check v-if="isCustom" :class="mark" />
 
@@ -91,7 +93,7 @@ function choose(event: Event): void {
                     class="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
                     :value="customValue"
                     :disabled="props.disabled"
-                    aria-label="Choose another colour"
+                    :aria-label="t('Choose another colour')"
                     @change="choose"
                 />
             </label>

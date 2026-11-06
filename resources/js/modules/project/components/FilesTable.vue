@@ -23,6 +23,7 @@ import EmptyState from '@/components/EmptyState.vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
 import { formatFileSize } from '@/lib/fileSize';
+import { t } from '@/lib/i18n';
 import type { ProjectFile, ProjectFiles } from '@/modules/project/types';
 
 const props = defineProps<{
@@ -47,27 +48,27 @@ const tracked = {
 };
 
 const kinds: Record<string, { label: string; icon: Component }> = {
-    image: { label: 'Image', icon: FileImage },
-    video: { label: 'Video', icon: Film },
-    audio: { label: 'Audio', icon: FileMusic },
+    image: { label: t('Image'), icon: FileImage },
+    video: { label: t('Video'), icon: Film },
+    audio: { label: t('Audio'), icon: FileMusic },
     pdf: { label: 'PDF', icon: FileText },
-    document: { label: 'Document', icon: FileText },
-    spreadsheet: { label: 'Spreadsheet', icon: FileSpreadsheet },
-    presentation: { label: 'Presentation', icon: Presentation },
-    archive: { label: 'Archive', icon: FileArchive },
-    text: { label: 'Text', icon: FileType },
-    other: { label: 'Other', icon: FileIcon },
+    document: { label: t('Document'), icon: FileText },
+    spreadsheet: { label: t('Spreadsheet'), icon: FileSpreadsheet },
+    presentation: { label: t('Presentation'), icon: Presentation },
+    archive: { label: t('Compressed archive'), icon: FileArchive },
+    text: { label: t('Text'), icon: FileType },
+    other: { label: t('Other'), icon: FileIcon },
 };
 
 const kindOf = (file: ProjectFile) => kinds[file.kind] ?? kinds.other;
 
 const columns: { key: string | null; label: string; cell: string }[] = [
-    { key: 'name', label: 'File name', cell: 'py-2 pr-3' },
-    { key: 'size', label: 'Size', cell: 'px-3 py-2' },
-    { key: null, label: 'Attached by', cell: 'px-3 py-2' },
-    { key: null, label: 'Type', cell: 'px-3 py-2' },
-    { key: null, label: 'Attached to', cell: 'px-3 py-2' },
-    { key: 'added', label: 'Added', cell: 'px-3 py-2' },
+    { key: 'name', label: t('File name'), cell: 'py-2 pr-3' },
+    { key: 'size', label: t('Size'), cell: 'px-3 py-2' },
+    { key: null, label: t('Attached by'), cell: 'px-3 py-2' },
+    { key: null, label: t('Type'), cell: 'px-3 py-2' },
+    { key: null, label: t('Attached to'), cell: 'px-3 py-2' },
+    { key: 'added', label: t('Added'), cell: 'px-3 py-2' },
 ];
 
 const orderedBy = (key: string | null): boolean =>
@@ -127,7 +128,11 @@ const range = computed<string>(() => {
     const { page, perPage, total } = props.files.meta;
     const first = (page - 1) * perPage + 1;
 
-    return `${first}–${Math.min(page * perPage, total)} of ${total}`;
+    return t(':first–:last of :total', {
+        first,
+        last: Math.min(page * perPage, total),
+        total,
+    });
 });
 
 const goTo = (page: number): void => {
@@ -156,7 +161,9 @@ const remove = (): void => {
         >
             <table class="w-full min-w-3xl border-collapse text-sm">
                 <caption class="sr-only">
-                    Files attached to this project's tasks
+                    {{
+                        t("Files attached to this project's tasks")
+                    }}
                 </caption>
 
                 <thead>
@@ -190,7 +197,7 @@ const remove = (): void => {
                         </th>
 
                         <th scope="col" class="w-10 py-2">
-                            <span class="sr-only">Actions</span>
+                            <span class="sr-only">{{ t('Actions') }}</span>
                         </th>
                     </tr>
                 </thead>
@@ -238,9 +245,9 @@ const remove = (): void => {
                                     file.uploader.name
                                 }}</span>
                             </span>
-                            <span v-else class="text-muted-foreground"
-                                >Someone who has left</span
-                            >
+                            <span v-else class="text-muted-foreground">{{
+                                t('Someone who has left')
+                            }}</span>
                         </td>
 
                         <td class="px-3 py-2 text-muted-foreground">
@@ -275,7 +282,9 @@ const remove = (): void => {
                                 v-if="file.canDelete"
                                 type="button"
                                 class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:opacity-0 md:group-hover/file:opacity-100"
-                                :aria-label="`Remove ${file.name}`"
+                                :aria-label="
+                                    t('Remove :name', { name: file.name })
+                                "
                                 @click="removing = file"
                             >
                                 <X class="size-4" />
@@ -289,14 +298,18 @@ const remove = (): void => {
         <EmptyState
             v-else
             :icon="Paperclip"
-            title="No files here yet"
-            description="Files attached to this project's tasks are collected here. Open a task and add one to its Attachments."
+            :title="t('No files here yet')"
+            :description="
+                t(
+                    'Files attached to this project\'s tasks are collected here. Open a task and add one to its Attachments.',
+                )
+            "
         />
 
         <nav
             v-if="files.meta.total > files.meta.perPage"
             class="flex items-center gap-2 text-xs"
-            aria-label="Pages"
+            :aria-label="t('Pages')"
         >
             <button
                 type="button"
@@ -304,7 +317,7 @@ const remove = (): void => {
                 :disabled="files.meta.page === 1 || busy"
                 @click="goTo(files.meta.page - 1)"
             >
-                Newer
+                {{ t('Newer') }}
             </button>
 
             <button
@@ -313,7 +326,7 @@ const remove = (): void => {
                 :disabled="!files.meta.hasMore || busy"
                 @click="goTo(files.meta.page + 1)"
             >
-                Older
+                {{ t('Older') }}
             </button>
 
             <span
@@ -326,10 +339,14 @@ const remove = (): void => {
 
         <ConfirmDialog
             :open="removing !== null"
-            :title="`Remove ${removing?.name}?`"
-            description="It comes off the task it is attached to, for everybody. Nothing else on the task changes."
-            confirm-label="Remove"
-            cancel-label="Keep it"
+            :title="t('Remove :name?', { name: removing?.name ?? '' })"
+            :description="
+                t(
+                    'It comes off the task it is attached to, for everybody. Nothing else on the task changes.',
+                )
+            "
+            :confirm-label="t('Remove')"
+            :cancel-label="t('Keep it')"
             @update:open="(next) => !next && (removing = null)"
             @confirm="remove"
         />

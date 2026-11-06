@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check, CircleAlert, Loader2, TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
+import { t } from '@/lib/i18n';
 import type { SaveState } from '@/modules/page/composables/usePageAutosave';
 
 const props = defineProps<{ state: SaveState }>();
@@ -10,27 +11,27 @@ const wording = computed(
         ({
             idle: null,
             pending: {
-                label: 'Unsaved changes',
+                label: t('Unsaved changes'),
                 icon: Loader2,
                 tone: 'text-muted-foreground',
             },
             saving: {
-                label: 'Saving…',
+                label: t('Saving…'),
                 icon: Loader2,
                 tone: 'text-muted-foreground',
             },
             saved: {
-                label: 'Saved',
+                label: t('Saved'),
                 icon: Check,
                 tone: 'text-muted-foreground',
             },
             failed: {
-                label: 'Could not save — retrying',
+                label: t('Could not save — retrying'),
                 icon: CircleAlert,
                 tone: 'text-destructive',
             },
             conflict: {
-                label: 'This page changed elsewhere',
+                label: t('This page changed elsewhere'),
                 icon: TriangleAlert,
                 tone: 'text-destructive',
             },

@@ -17,6 +17,7 @@ import {
 import UserAvatar from '@/components/UserAvatar.vue';
 import { accentChipClass, accentVars } from '@/lib/accentColor';
 import { dayOf, formatDay, isOverdue } from '@/lib/dueDate';
+import { t, tc } from '@/lib/i18n';
 import type { BoardCardData, BoardColumnData } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -109,13 +110,13 @@ const dueLabel = computed<string>(() =>
             <span
                 v-else
                 class="flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-muted-foreground/40"
-                title="Unassigned"
+                :title="t('Unassigned')"
             >
                 <UserRound
                     class="size-3.5 text-muted-foreground/60"
                     aria-hidden="true"
                 />
-                <span class="sr-only">Unassigned</span>
+                <span class="sr-only">{{ t('Unassigned') }}</span>
             </span>
 
             <span
@@ -129,7 +130,7 @@ const dueLabel = computed<string>(() =>
                     aria-hidden="true"
                 />
                 {{ dueLabel }}
-                <span v-if="overdue" class="sr-only">overdue</span>
+                <span v-if="overdue" class="sr-only">{{ t('overdue') }}</span>
             </span>
 
             <span
@@ -138,7 +139,9 @@ const dueLabel = computed<string>(() =>
             >
                 <CheckSquare class="size-3.5" aria-hidden="true" />
                 {{ card.subtasks }}
-                <span class="sr-only">subtasks</span>
+                <span class="sr-only">{{
+                    tc('subtask|subtasks', card.subtasks)
+                }}</span>
             </span>
 
             <span
@@ -147,13 +150,15 @@ const dueLabel = computed<string>(() =>
             >
                 <MessageSquare class="size-3.5" aria-hidden="true" />
                 {{ card.comments }}
-                <span class="sr-only">comments</span>
+                <span class="sr-only">{{
+                    tc('comment|comments', card.comments)
+                }}</span>
             </span>
 
             <DropdownMenu v-if="editable">
                 <DropdownMenuTrigger
                     class="ml-auto inline-flex size-6 items-center justify-center rounded-md opacity-0 transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    aria-label="Move to another column"
+                    :aria-label="t('Move to another column')"
                     @click.stop
                     @pointerdown.stop
                 >
@@ -167,7 +172,7 @@ const dueLabel = computed<string>(() =>
                             emit('moveto', card.placementId, keyOf(column))
                         "
                     >
-                        {{ column.name ?? 'No section' }}
+                        {{ column.name ?? t('No section') }}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>

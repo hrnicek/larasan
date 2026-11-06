@@ -13,3 +13,8 @@ export type UiThemeOption = {
     label: string;
     description: string;
 };
+
+export type LocaleOption = {
+    value: string;
+    label: string;
+};

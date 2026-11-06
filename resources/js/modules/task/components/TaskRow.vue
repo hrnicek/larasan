@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { Check, ChevronRight, GripVertical, MessageSquare } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
+import { t, tc } from '@/lib/i18n';
 import AssigneePicker from '@/modules/task/components/AssigneePicker.vue';
 import DueDatePicker from '@/modules/task/components/DueDatePicker.vue';
 import PriorityControl from '@/modules/task/components/PriorityControl.vue';
@@ -27,7 +28,7 @@ const emit = defineEmits<{
 }>();
 
 const columns = computed<ListColumn[]>(
-    () => props.columns ?? defaultListColumns,
+    () => props.columns ?? defaultListColumns(),
 );
 
 const answerOf = (fieldId: string, type: string | null): string => {
@@ -98,7 +99,7 @@ function toggleCompletion(): void {
             v-if="editable && task.placementId"
             type="button"
             class="absolute top-1/2 left-0 z-10 hidden size-5 -translate-y-1/2 cursor-grab items-center justify-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/row:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none active:cursor-grabbing md:flex"
-            :aria-label="`Reorder ${task.title}`"
+            :aria-label="t('Reorder :title', { title: task.title })"
             @pointerdown="emit('pickup', $event, task)"
         >
             <GripVertical class="size-4" />
@@ -122,7 +123,9 @@ function toggleCompletion(): void {
                 v-if="editable"
                 type="button"
                 :disabled="pending"
-                :aria-label="completed() ? 'Reopen task' : 'Complete task'"
+                :aria-label="
+                    completed() ? t('Reopen task') : t('Complete task')
+                "
                 :aria-pressed="completed()"
                 class="-m-2 flex size-11 cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-50 md:-m-0.5 md:size-6"
                 @click="toggleCompletion"
@@ -180,13 +183,15 @@ function toggleCompletion(): void {
             >
                 <MessageSquare class="size-3.5" aria-hidden="true" />
                 {{ task.comments }}
-                <span class="sr-only">comments</span>
+                <span class="sr-only">{{
+                    tc('comment|comments', task.comments)
+                }}</span>
             </span>
 
             <button
                 type="button"
                 class="ml-auto inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-6 md:opacity-0 md:group-focus-within/row:opacity-100 md:group-hover/row:opacity-100"
-                :aria-label="`Open ${task.title}`"
+                :aria-label="t('Open :title', { title: task.title })"
                 @click="emit('open', task.id)"
             >
                 <ChevronRight class="size-4" />

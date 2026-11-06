@@ -8,6 +8,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { t } from '@/lib/i18n';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
@@ -39,7 +40,7 @@ defineProps<Props>();
                 prefetch
             >
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                {{ t('Settings') }}
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -53,7 +54,7 @@ defineProps<Props>();
             data-test="logout-button"
         >
             <LogOut class="mr-2 h-4 w-4" />
-            Log out
+            {{ t('Log out') }}
         </Link>
     </DropdownMenuItem>
 </template>

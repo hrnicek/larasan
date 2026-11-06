@@ -5,6 +5,7 @@ import CommentController from '@/actions/App/Http/Controllers/Comment/CommentCon
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import { t } from '@/lib/i18n';
 import MentionTextarea from '@/modules/comment/components/MentionTextarea.vue';
 import { segmentsOf, toDisplay, toStorage } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
@@ -67,7 +68,7 @@ const remove = (): void => {
         <div class="flex min-w-0 flex-1 flex-col gap-1">
             <p class="flex items-baseline gap-2">
                 <span class="font-medium">{{
-                    entry.actor?.name ?? 'Someone'
+                    entry.actor?.name ?? t('Someone')
                 }}</span>
                 <time
                     class="text-xs text-muted-foreground"
@@ -75,13 +76,15 @@ const remove = (): void => {
                 >
                     {{ formatFeedTime(entry.createdAt) }}
                 </time>
-                <span v-if="entry.edited" class="text-xs text-muted-foreground"
-                    >edited</span
+                <span
+                    v-if="entry.edited"
+                    class="text-xs text-muted-foreground"
+                    >{{ t('edited') }}</span
                 >
             </p>
 
             <p v-if="entry.deleted" class="text-muted-foreground italic">
-                Comment removed.
+                {{ t('Comment removed.') }}
             </p>
 
             <template v-else-if="editing">
@@ -107,14 +110,14 @@ const remove = (): void => {
                         :disabled="form.processing"
                         @click="save"
                     >
-                        Save
+                        {{ t('Save') }}
                     </button>
                     <button
                         type="button"
                         class="min-h-11 text-muted-foreground underline md:min-h-6"
                         @click="editing = false"
                     >
-                        Cancel
+                        {{ t('Cancel') }}
                     </button>
                 </div>
             </template>
@@ -147,7 +150,7 @@ const remove = (): void => {
                         class="min-h-11 underline md:min-h-6"
                         @click="startEditing"
                     >
-                        Edit
+                        {{ t('Edit') }}
                     </button>
                     <button
                         v-if="entry.canDelete"
@@ -155,7 +158,7 @@ const remove = (): void => {
                         class="min-h-11 underline md:min-h-6"
                         @click="removing = true"
                     >
-                        Delete
+                        {{ t('Delete') }}
                     </button>
                 </div>
             </template>
@@ -163,10 +166,14 @@ const remove = (): void => {
 
         <ConfirmDialog
             :open="removing"
-            title="Delete this comment?"
-            description="Its words go; its place in the thread stays, marked as removed, so the conversation still reads in order."
-            confirm-label="Delete"
-            cancel-label="Keep it"
+            :title="t('Delete this comment?')"
+            :description="
+                t(
+                    'Its words go; its place in the thread stays, marked as removed, so the conversation still reads in order.',
+                )
+            "
+            :confirm-label="t('Delete')"
+            :cancel-label="t('Keep it')"
             @update:open="(next) => (removing = next)"
             @confirm="remove"
         />

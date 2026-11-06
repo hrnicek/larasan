@@ -2,6 +2,7 @@
 import { PanelLeft, Search as SearchIcon } from '@lucide/vue';
 import CreateMenu from '@/components/CreateMenu.vue';
 import { useShell } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 
 const { toggle, openMobile } = useShell();
@@ -16,7 +17,7 @@ const { show: openSearch } = useCommandPalette();
         <button
             type="button"
             class="hidden size-8 shrink-0 items-center justify-center rounded-md text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none md:inline-flex"
-            aria-label="Toggle sidebar"
+            :aria-label="t('Toggle sidebar')"
             @click="toggle"
         >
             <PanelLeft class="size-4" />
@@ -25,7 +26,7 @@ const { show: openSearch } = useCommandPalette();
         <button
             type="button"
             class="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-chrome-muted-foreground transition-colors hover:bg-chrome-accent hover:text-chrome-foreground focus-visible:ring-2 focus-visible:ring-chrome-primary focus-visible:outline-none md:hidden"
-            aria-label="Open navigation"
+            :aria-label="t('Open navigation')"
             @click="openMobile"
         >
             <PanelLeft class="size-4" />
@@ -39,7 +40,7 @@ const { show: openSearch } = useCommandPalette();
             @click="openSearch()"
         >
             <SearchIcon class="size-4 shrink-0" />
-            <span class="truncate">Search</span>
+            <span class="truncate">{{ t('Search') }}</span>
             <kbd
                 class="ml-auto hidden shrink-0 rounded border border-chrome-border px-1.5 py-0.5 font-sans text-[10px] tracking-wide sm:inline"
                 >⌘K</kbd

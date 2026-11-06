@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { currentLocale, t } from '@/lib/i18n';
 import TimezonePicker from '@/modules/workspace/components/TimezonePicker.vue';
 
 const props = defineProps<{
@@ -33,7 +34,9 @@ const detected = props.options.timezones.includes(browserTimezone)
 const name = ref('');
 const timezone = ref(detected ?? 'UTC');
 
-const previewName = computed(() => name.value.trim() || 'Untitled workspace');
+const previewName = computed(
+    () => name.value.trim() || t('Untitled workspace'),
+);
 
 // Approximates `Str::slug` for the preview only; the server may append a suffix such as `-2`.
 const previewSlug = computed(
@@ -57,7 +60,7 @@ onBeforeUnmount(() => clearInterval(ticker));
 
 const localTime = computed(() => {
     try {
-        return new Intl.DateTimeFormat(undefined, {
+        return new Intl.DateTimeFormat(currentLocale(), {
             timeZone: timezone.value,
             hour: '2-digit',
             minute: '2-digit',
@@ -69,7 +72,7 @@ const localTime = computed(() => {
 
 const localDay = computed(() => {
     try {
-        return new Intl.DateTimeFormat(undefined, {
+        return new Intl.DateTimeFormat(currentLocale(), {
             timeZone: timezone.value,
             weekday: 'long',
             day: 'numeric',
@@ -85,18 +88,20 @@ const zoneCity = computed(() =>
 );
 
 const navigation = [
-    { label: 'Home', icon: Home },
-    { label: 'My Tasks', icon: CheckSquare },
-    { label: 'Inbox', icon: Bell },
-    { label: 'Projects', icon: FolderKanban },
+    { label: t('Home'), icon: Home },
+    { label: t('My Tasks'), icon: CheckSquare },
+    { label: t('Inbox'), icon: Bell },
+    { label: t('Projects'), icon: FolderKanban },
 ];
 </script>
 
 <template>
     <ModalShell
         v-slot="{ close }"
-        title="New workspace"
-        description="Projects, tasks and members all live inside a workspace"
+        :title="t('New workspace')"
+        :description="
+            t('Projects, tasks and members all live inside a workspace')
+        "
         max-width="4xl"
     >
         <Form
@@ -108,7 +113,7 @@ const navigation = [
             >
                 <div class="flex flex-col gap-5">
                     <div class="grid gap-2">
-                        <Label for="name">Workspace name</Label>
+                        <Label for="name">{{ t('Workspace name') }}</Label>
                         <Input
                             id="name"
                             v-model="name"
@@ -117,18 +122,21 @@ const navigation = [
                             autofocus
                             maxlength="255"
                             autocomplete="organization"
-                            placeholder="Acme Industries"
+                            :placeholder="t('Acme Industries')"
                             :aria-invalid="errors.name ? true : undefined"
                         />
                         <p class="text-xs text-muted-foreground">
-                            Usually your company or team. You can rename it
-                            later.
+                            {{
+                                t(
+                                    'Usually your company or team. You can rename it later.',
+                                )
+                            }}
                         </p>
                         <InputError :message="errors.name" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label id="timezone-label">Time zone</Label>
+                        <Label id="timezone-label">{{ t('Time zone') }}</Label>
                         <TimezonePicker
                             v-model="timezone"
                             labelledby="timezone-label"
@@ -145,23 +153,24 @@ const navigation = [
                                 v-if="
                                     detected !== null && timezone === detected
                                 "
-                                >Preselected from this browser's
-                                clock.</template
+                                >{{
+                                    t("Preselected from this browser's clock.")
+                                }}</template
                             >
-                            <template v-else
-                                >The clock this workspace keeps.</template
-                            >
+                            <template v-else>{{
+                                t('The clock this workspace keeps.')
+                            }}</template>
                         </p>
                         <InputError :message="errors.timezone" />
                     </div>
 
                     <div class="mt-auto flex justify-end gap-2 pt-1">
-                        <Button type="button" variant="ghost" @click="close"
-                            >Cancel</Button
-                        >
-                        <Button type="submit" :disabled="processing"
-                            >Create workspace</Button
-                        >
+                        <Button type="button" variant="ghost" @click="close">{{
+                            t('Cancel')
+                        }}</Button>
+                        <Button type="submit" :disabled="processing">{{
+                            t('Create workspace')
+                        }}</Button>
                     </div>
                 </div>
 
@@ -216,12 +225,12 @@ const navigation = [
                             <p
                                 class="px-2 text-[11px] font-semibold tracking-wide text-chrome-muted-foreground uppercase"
                             >
-                                Projects
+                                {{ t('Projects') }}
                             </p>
                             <p
                                 class="mt-2 rounded-md border border-dashed border-chrome-border px-2 py-2.5 text-[12px] text-chrome-muted-foreground"
                             >
-                                No projects yet
+                                {{ t('No projects yet') }}
                             </p>
                         </div>
 
@@ -237,7 +246,7 @@ const navigation = [
                                 >
                                 <span
                                     class="text-[11px] text-chrome-muted-foreground"
-                                    >Owner</span
+                                    >{{ t('Owner') }}</span
                                 >
                             </span>
                         </div>
@@ -269,8 +278,11 @@ const navigation = [
                         </div>
 
                         <p class="mt-auto text-xs text-muted-foreground">
-                            A new workspace starts empty, with you as its owner.
-                            Invite people and start a project once it exists.
+                            {{
+                                t(
+                                    'A new workspace starts empty, with you as its owner. Invite people and start a project once it exists.',
+                                )
+                            }}
                         </p>
                     </div>
                 </aside>

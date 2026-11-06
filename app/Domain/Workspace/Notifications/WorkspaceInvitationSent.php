@@ -38,7 +38,7 @@ class WorkspaceInvitationSent extends Notification implements ShouldQueue
             ->line(__(':inviter invited you to join :workspace as a :role.', [
                 'inviter' => $membership->invitedBy->name ?? __('Someone'),
                 'workspace' => $membership->workspace->name,
-                'role' => $membership->role->value,
+                'role' => $membership->role->noun(),
             ]))
             ->action(__('View the invitation'), $this->link($membership));
     }

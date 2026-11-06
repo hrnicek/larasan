@@ -8,6 +8,7 @@ import {
     Paperclip,
 } from '@lucide/vue';
 import type { Component } from 'vue';
+import { t } from '@/lib/i18n';
 import { warmView } from '@/modules/project/views';
 import { show } from '@/routes/projects';
 
@@ -23,6 +24,14 @@ const icons: Record<string, Component> = {
     calendar: CalendarDays,
     files: Paperclip,
     pages: FileText,
+};
+
+const labels: Record<string, string> = {
+    list: t('List'),
+    board: t('Board'),
+    calendar: t('Calendar'),
+    files: t('Files'),
+    pages: t('Pages'),
 };
 
 const isCurrent = (view: string): boolean => view === props.current;
@@ -44,7 +53,10 @@ const switchingTo =
 </script>
 
 <template>
-    <nav class="-mb-px flex items-end gap-1 overflow-x-auto" aria-label="View">
+    <nav
+        class="-mb-px flex items-end gap-1 overflow-x-auto"
+        :aria-label="t('View')"
+    >
         <Link
             v-for="view in views"
             :key="view"
@@ -63,7 +75,7 @@ const switchingTo =
             @focus="warmView(view)"
         >
             <component :is="icons[view]" v-if="icons[view]" class="size-4" />
-            {{ view }}
+            {{ labels[view] ?? view }}
         </Link>
     </nav>
 </template>

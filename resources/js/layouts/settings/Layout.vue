@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { usePendingSkeleton } from '@/composables/usePendingScreen';
+import { t } from '@/lib/i18n';
 import { toUrl } from '@/lib/utils';
 import { edit as editAppearance } from '@/routes/appearance';
 import { index as fields } from '@/routes/custom-fields';
@@ -16,37 +17,37 @@ import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: t('Profile'),
         href: editProfile(),
         component: 'settings/Profile',
     },
     {
-        title: 'Workspace',
+        title: t('Workspace'),
         href: editWorkspace(),
         component: 'settings/Workspace',
     },
     {
-        title: 'Members',
+        title: t('Members'),
         href: members(),
         component: 'settings/Members',
     },
     {
-        title: 'Fields',
+        title: t('Fields'),
         href: fields(),
         component: 'settings/Fields',
     },
     {
-        title: 'Tags',
+        title: t('Tags'),
         href: tags(),
         component: 'settings/Tags',
     },
     {
-        title: 'Security',
+        title: t('Security'),
         href: editSecurity(),
         component: 'settings/Security',
     },
     {
-        title: 'Appearance',
+        title: t('Appearance'),
         href: editAppearance(),
         component: 'settings/Appearance',
     },
@@ -60,15 +61,17 @@ const skeleton = usePendingSkeleton('settings');
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="You, this workspace, and how the application looks"
+            :title="t('Settings')"
+            :description="
+                t('You, this workspace, and how the application looks')
+            "
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav
                     class="flex flex-row gap-1 overflow-x-auto pb-2 md:flex-col md:gap-0 md:space-y-1 md:overflow-x-visible md:pb-0"
-                    aria-label="Settings"
+                    :aria-label="t('Settings')"
                 >
                     <Button
                         v-for="item in sidebarNavItems"
@@ -105,7 +108,7 @@ const skeleton = usePendingSkeleton('settings');
             <div class="flex-1 md:max-w-2xl">
                 <section class="max-w-xl space-y-12">
                     <div v-if="skeleton" data-screen-pending aria-busy="true">
-                        <p class="sr-only" role="status">Loading…</p>
+                        <p class="sr-only" role="status">{{ t('Loading…') }}</p>
 
                         <component :is="skeleton" />
                     </div>

@@ -15,6 +15,7 @@ import {
     CalendarPrev,
     CalendarRoot,
 } from 'reka-ui';
+import { currentLocale, t } from '@/lib/i18n';
 
 defineProps<{ modelValue?: DateValue }>();
 
@@ -25,13 +26,15 @@ defineEmits<{ 'update:modelValue': [DateValue | undefined] }>();
     <CalendarRoot
         v-slot="{ grid, weekDays }"
         :model-value="modelValue"
+        :locale="currentLocale()"
+        :calendar-label="t('Event Date')"
         class="p-3"
         @update:model-value="(value) => $emit('update:modelValue', value as DateValue | undefined)"
     >
         <CalendarHeader class="flex items-center justify-between pb-3">
             <CalendarPrev
                 class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                aria-label="Previous month"
+                :aria-label="t('Previous month')"
             >
                 <ChevronLeft class="size-4" />
             </CalendarPrev>
@@ -40,7 +43,7 @@ defineEmits<{ 'update:modelValue': [DateValue | undefined] }>();
 
             <CalendarNext
                 class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                aria-label="Next month"
+                :aria-label="t('Next month')"
             >
                 <ChevronRight class="size-4" />
             </CalendarNext>

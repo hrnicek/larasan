@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Plus } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { t, tc } from '@/lib/i18n';
 import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import type { CalendarCardData, CalendarDay } from '@/modules/task/types';
@@ -83,13 +84,13 @@ const startHere = (event: MouseEvent): void => {
                     {{ number }}
                 </time>
 
-                <span v-if="isToday" class="sr-only">Today</span>
+                <span v-if="isToday" class="sr-only">{{ t('Today') }}</span>
 
                 <button
                     v-if="creatable"
                     type="button"
                     class="inline-flex size-5 items-center justify-center rounded text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:opacity-0 md:group-focus-within/cell:opacity-100 md:group-hover/cell:opacity-100"
-                    :aria-label="`Add a task due ${day.date}`"
+                    :aria-label="t('Add a task due :date', { date: day.date })"
                     @click="composer?.start()"
                 >
                     <Plus class="size-3.5" aria-hidden="true" />
@@ -114,7 +115,7 @@ const startHere = (event: MouseEvent): void => {
                 class="rounded px-1.5 py-0.5 text-left text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 @click="emit('expand', day.date)"
             >
-                +{{ hidden }} more
+                {{ tc('+:count more', hidden) }}
             </button>
 
             <InlineTaskCreate

@@ -5,6 +5,8 @@ import WorkspaceInvitationController from '@/actions/App/Http/Controllers/Worksp
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { formatFeedTime } from '@/lib/feedTime';
+import { t } from '@/lib/i18n';
+import { roleName } from '@/modules/workspace/roles';
 import type {
     WorkspaceInvitation,
     WorkspaceSummary,
@@ -37,22 +39,25 @@ function decline(invitation: WorkspaceInvitation): void {
 
 function invitedBy(invitation: WorkspaceInvitation): string {
     return invitation.invitedBy === null
-        ? `Invited as ${invitation.role}`
-        : `${invitation.invitedBy} invited you as ${invitation.role}`;
+        ? t('Invited as :role', { role: roleName(invitation.role) })
+        : t(':name invited you as :role', {
+              name: invitation.invitedBy,
+              role: roleName(invitation.role),
+          });
 }
 </script>
 
 <template>
     <div class="flex max-w-3xl flex-col space-y-6 p-4 md:p-6">
-        <Head title="Workspaces" />
+        <Head :title="t('Workspaces')" />
 
         <Heading
-            title="Workspaces"
-            description="The workspaces you belong to"
+            :title="t('Workspaces')"
+            :description="t('The workspaces you belong to')"
         />
 
         <section v-if="invitations.length > 0" class="flex flex-col gap-3">
-            <h2 class="text-sm font-medium">Invitations</h2>
+            <h2 class="text-sm font-medium">{{ t('Invitations') }}</h2>
 
             <ul class="divide-y rounded-lg border">
                 <li
@@ -67,11 +72,17 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                         <p class="truncate text-xs text-muted-foreground">
                             {{ invitedBy(invitation) }}
                             <template v-if="invitation.hasExpired">
-                                · expired</template
+                                · {{ t('expired') }}</template
                             >
                             <template v-else-if="invitation.expiresAt">
-                                · expires
-                                {{ formatFeedTime(invitation.expiresAt) }}
+                                ·
+                                {{
+                                    t('expires :time', {
+                                        time: formatFeedTime(
+                                            invitation.expiresAt,
+                                        ),
+                                    })
+                                }}
                             </template>
                         </p>
                     </div>
@@ -81,10 +92,14 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                             v-if="!invitation.hasExpired"
                             @click="accept(invitation)"
                         >
-                            Accept
+                            {{ t('Accept') }}
                         </Button>
                         <Button variant="ghost" @click="decline(invitation)">
-                            {{ invitation.hasExpired ? 'Dismiss' : 'Decline' }}
+                            {{
+                                invitation.hasExpired
+                                    ? t('Dismiss')
+                                    : t('Decline')
+                            }}
                         </Button>
                     </div>
                 </li>
@@ -96,10 +111,10 @@ function invitedBy(invitation: WorkspaceInvitation): string {
             class="rounded-lg border border-dashed p-8 text-center"
         >
             <p class="text-sm text-muted-foreground">
-                You are not a member of any workspace yet.
+                {{ t('You are not a member of any workspace yet.') }}
             </p>
             <Button as-child class="mt-4">
-                <Link :href="create()">Create a workspace</Link>
+                <Link :href="create()">{{ t('Create a workspace') }}</Link>
             </Button>
         </div>
 
@@ -126,17 +141,17 @@ function invitedBy(invitation: WorkspaceInvitation): string {
                             :href="edit()"
                             component="settings/Workspace"
                             prefetch="click"
-                            >Settings</Link
+                            >{{ t('Settings') }}</Link
                         >
                     </Button>
                     <Button v-else variant="ghost" @click="open(workspace)">
-                        Open
+                        {{ t('Open') }}
                     </Button>
                 </li>
             </ul>
 
             <Button as-child variant="outline" class="self-start">
-                <Link :href="create()">Create a workspace</Link>
+                <Link :href="create()">{{ t('Create a workspace') }}</Link>
             </Button>
         </template>
     </div>

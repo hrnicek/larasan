@@ -6,6 +6,7 @@ import AvatarController from '@/actions/App/Http/Controllers/Settings/AvatarCont
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import type { AvatarChoice, AvatarPreset } from '@/modules/account/types';
 
 const props = defineProps<{
@@ -82,8 +83,8 @@ function remove(): void {
                         <Upload class="size-4" />
                         {{
                             props.current.uploaded
-                                ? 'Upload a different picture'
-                                : 'Upload a picture'
+                                ? t('Upload a different picture')
+                                : t('Upload a picture')
                         }}
                     </Button>
 
@@ -95,12 +96,16 @@ function remove(): void {
                         :disabled="busy"
                         @click="remove"
                     >
-                        Remove
+                        {{ t('Remove') }}
                     </Button>
                 </div>
 
                 <p class="text-xs text-muted-foreground">
-                    JPEG, PNG or WebP, up to {{ maxMegabytes }} MB.
+                    {{
+                        t('JPEG, PNG or WebP, up to :size MB.', {
+                            size: maxMegabytes,
+                        })
+                    }}
                 </p>
 
                 <input
@@ -118,7 +123,9 @@ function remove(): void {
         </div>
 
         <fieldset :disabled="busy">
-            <legend class="text-sm font-medium">Or pick an illustration</legend>
+            <legend class="text-sm font-medium">
+                {{ t('Or pick an illustration') }}
+            </legend>
 
             <div class="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-9">
                 <button
@@ -132,7 +139,9 @@ function remove(): void {
                             : 'hover:opacity-80'
                     "
                     :aria-pressed="props.current.preset === preset.id"
-                    :aria-label="`Illustration ${preset.id}`"
+                    :aria-label="
+                        t('Illustration :number', { number: preset.id })
+                    "
                     @click="choose(preset.id)"
                 >
                     <img

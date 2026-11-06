@@ -23,6 +23,7 @@ import {
     ContextMenuSubTrigger,
     ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import { t } from '@/lib/i18n';
 import ProjectAppearanceFields from '@/modules/project/components/ProjectAppearanceFields.vue';
 import ProjectRenameDialog from '@/modules/project/components/ProjectRenameDialog.vue';
 import type { SidebarProject } from '@/modules/project/types';
@@ -39,10 +40,10 @@ async function copyLink(): Promise<void> {
 
     try {
         await navigator.clipboard.writeText(url);
-        toast('Link copied.');
+        toast(t('Link copied.'));
     } catch {
         // The Clipboard API is unavailable outside a secure context.
-        toast('Could not copy — open the project and use the address bar.');
+        toast(t('Could not copy — open the project and use the address bar.'));
     }
 }
 
@@ -88,13 +89,13 @@ function archiveProject(): void {
                     class="cursor-default"
                 >
                     <ExternalLink class="mr-2 size-4" />
-                    Open in new tab
+                    {{ t('Open in new tab') }}
                 </a>
             </ContextMenuItem>
 
             <ContextMenuItem @select="copyLink">
                 <Copy class="mr-2 size-4" />
-                Copy link
+                {{ t('Copy link') }}
             </ContextMenuItem>
 
             <ContextMenuSeparator />
@@ -102,7 +103,7 @@ function archiveProject(): void {
             <ContextMenuSub v-if="props.project.canUpdate">
                 <ContextMenuSubTrigger>
                     <Palette class="mr-2 size-4" />
-                    Set colour &amp; icon
+                    {{ t('Set colour & icon') }}
                 </ContextMenuSubTrigger>
                 <ContextMenuSubContent class="w-72 p-3">
                     <ProjectAppearanceFields :project="props.project" />
@@ -114,7 +115,7 @@ function archiveProject(): void {
                 @select="renaming = true"
             >
                 <PencilLine class="mr-2 size-4" />
-                Rename
+                {{ t('Rename') }}
             </ContextMenuItem>
 
             <ContextMenuItem @select="toggleStar">
@@ -124,8 +125,8 @@ function archiveProject(): void {
                 />
                 {{
                     props.project.starred
-                        ? 'Remove from starred'
-                        : 'Add to starred'
+                        ? t('Remove from starred')
+                        : t('Add to starred')
                 }}
             </ContextMenuItem>
 
@@ -136,7 +137,7 @@ function archiveProject(): void {
                     class="w-full cursor-default"
                 >
                     <Settings class="mr-2 size-4" />
-                    Project settings
+                    {{ t('Project settings') }}
                 </Link>
             </ContextMenuItem>
 
@@ -147,7 +148,7 @@ function archiveProject(): void {
                     @select="archiving = true"
                 >
                     <Archive class="mr-2 size-4" />
-                    Archive project
+                    {{ t('Archive project') }}
                 </ContextMenuItem>
             </template>
         </ContextMenuContent>
@@ -161,10 +162,14 @@ function archiveProject(): void {
 
     <ConfirmDialog
         :open="archiving"
-        :title="`Archive ${props.project.name}?`"
-        description="Nothing is deleted. The project leaves the sidebar and becomes read-only, and it can be restored from its settings."
-        confirm-label="Archive project"
-        cancel-label="Keep it open"
+        :title="t('Archive :name?', { name: props.project.name })"
+        :description="
+            t(
+                'Nothing is deleted. The project leaves the sidebar and becomes read-only, and it can be restored from its settings.',
+            )
+        "
+        :confirm-label="t('Archive project')"
+        :cancel-label="t('Keep it open')"
         :pending="working"
         @update:open="(next) => (archiving = next)"
         @confirm="archiveProject"

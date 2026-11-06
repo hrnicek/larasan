@@ -16,6 +16,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { formatFeedTime } from '@/lib/feedTime';
+import { t } from '@/lib/i18n';
+import { roleName } from '@/modules/workspace/roles';
 import type {
     WorkspaceMember,
     WorkspacePendingInvitation,
@@ -81,29 +83,31 @@ function resend(invitation: WorkspacePendingInvitation): void {
 function invitationState(invitation: WorkspacePendingInvitation): string {
     const sender =
         invitation.invitedBy === null
-            ? 'Invited'
-            : `Invited by ${invitation.invitedBy}`;
+            ? t('Invited')
+            : t('Invited by :name', { name: invitation.invitedBy });
 
     if (invitation.hasExpired) {
-        return `${sender} · expired`;
+        return `${sender} · ${t('expired')}`;
     }
 
     return invitation.expiresAt === null
         ? sender
-        : `${sender} · expires ${formatFeedTime(invitation.expiresAt)}`;
+        : `${sender} · ${t('expires :time', { time: formatFeedTime(invitation.expiresAt) })}`;
 }
 </script>
 
 <template>
     <div class="flex flex-col space-y-6">
-        <Head title="Members" />
+        <Head :title="t('Members')" />
 
-        <h1 class="sr-only">Workspace members</h1>
+        <h1 class="sr-only">{{ t('Workspace members') }}</h1>
 
         <Heading
             variant="small"
-            title="Members"
-            description="Who belongs to this workspace, and what they may do"
+            :title="t('Members')"
+            :description="
+                t('Who belongs to this workspace, and what they may do')
+            "
         />
 
         <Form
@@ -115,7 +119,7 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
             reset-on-success
         >
             <div class="grid flex-1 gap-2">
-                <Label for="email">Invite by email</Label>
+                <Label for="email">{{ t('Invite by email') }}</Label>
                 <Input
                     id="email"
                     name="email"
@@ -127,22 +131,22 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
             </div>
 
             <div class="grid gap-2">
-                <Label for="role">Role</Label>
+                <Label for="role">{{ t('Role') }}</Label>
                 <select
                     id="role"
                     name="role"
                     class="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 >
                     <option v-for="role in roles" :key="role" :value="role">
-                        {{ role }}
+                        {{ roleName(role) }}
                     </option>
                 </select>
                 <InputError :message="errors.role" />
             </div>
 
-            <Button type="submit" :disabled="processing"
-                >Send invitation</Button
-            >
+            <Button type="submit" :disabled="processing">{{
+                t('Send invitation')
+            }}</Button>
         </Form>
 
         <ul class="divide-y rounded-lg border">
@@ -157,7 +161,7 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                         <span
                             v-if="member.isYou"
                             class="text-xs text-muted-foreground"
-                            >(you)</span
+                            >{{ t('(you)') }}</span
                         >
                     </p>
                     <p
@@ -177,7 +181,7 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                         "
                         class="text-sm text-muted-foreground"
                     >
-                        {{ member.role }}
+                        {{ roleName(member.role) }}
                     </span>
 
                     <Select
@@ -190,7 +194,9 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                     >
                         <SelectTrigger
                             class="w-36"
-                            :aria-label="`Role for ${member.name}`"
+                            :aria-label="
+                                t('Role for :name', { name: member.name })
+                            "
                         >
                             <SelectValue />
                         </SelectTrigger>
@@ -200,7 +206,7 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                                 :key="role"
                                 :value="role"
                             >
-                                {{ role }}
+                                {{ roleName(role) }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -215,14 +221,14 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                         variant="ghost"
                         @click="removing = member"
                     >
-                        Remove
+                        {{ t('Remove') }}
                     </Button>
                 </div>
             </li>
         </ul>
 
         <section v-if="invitations.length > 0" class="flex flex-col gap-3">
-            <h2 class="text-sm font-medium">Pending invitations</h2>
+            <h2 class="text-sm font-medium">{{ t('Pending invitations') }}</h2>
 
             <ul class="divide-y rounded-lg border">
                 <li
@@ -237,7 +243,7 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                                 v-if="!invitation.hasAccount"
                                 class="text-xs text-muted-foreground"
                             >
-                                (no account yet)
+                                {{ t('(no account yet)') }}
                             </span>
                         </p>
                         <p class="truncate text-xs text-muted-foreground">
@@ -262,7 +268,11 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                         >
                             <SelectTrigger
                                 class="w-36"
-                                :aria-label="`Role for ${invitation.email}`"
+                                :aria-label="
+                                    t('Role for :name', {
+                                        name: invitation.email,
+                                    })
+                                "
                             >
                                 <SelectValue />
                             </SelectTrigger>
@@ -272,16 +282,18 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
                                     :key="role"
                                     :value="role"
                                 >
-                                    {{ role }}
+                                    {{ roleName(role) }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
 
-                        <Button variant="outline" @click="resend(invitation)"
-                            >Resend</Button
-                        >
-                        <Button variant="ghost" @click="cancelling = invitation"
-                            >Cancel</Button
+                        <Button variant="outline" @click="resend(invitation)">{{
+                            t('Resend')
+                        }}</Button>
+                        <Button
+                            variant="ghost"
+                            @click="cancelling = invitation"
+                            >{{ t('Cancel') }}</Button
                         >
                     </div>
                 </li>
@@ -290,20 +302,32 @@ function invitationState(invitation: WorkspacePendingInvitation): string {
 
         <ConfirmDialog
             :open="removing !== null"
-            :title="`Remove ${removing?.name}?`"
-            description="They lose access to this workspace immediately. Their comments and activity stay, and they can be invited again later."
-            confirm-label="Remove"
-            cancel-label="Keep them"
+            :title="t('Remove :name?', { name: removing?.name ?? '' })"
+            :description="
+                t(
+                    'They lose access to this workspace immediately. Their comments and activity stay, and they can be invited again later.',
+                )
+            "
+            :confirm-label="t('Remove')"
+            :cancel-label="t('Keep them')"
             @update:open="(next) => !next && (removing = null)"
             @confirm="confirmRemoval"
         />
 
         <ConfirmDialog
             :open="cancelling !== null"
-            :title="`Cancel the invitation to ${cancelling?.email}?`"
-            description="The link in their invitation stops working. Nothing else changes, and the address can be invited again."
-            confirm-label="Cancel invitation"
-            cancel-label="Keep it"
+            :title="
+                t('Cancel the invitation to :email?', {
+                    email: cancelling?.email ?? '',
+                })
+            "
+            :description="
+                t(
+                    'The link in their invitation stops working. Nothing else changes, and the address can be invited again.',
+                )
+            "
+            :confirm-label="t('Cancel invitation')"
+            :cancel-label="t('Keep it')"
             @update:open="(next) => !next && (cancelling = null)"
             @confirm="confirmCancellation"
         />

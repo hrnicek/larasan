@@ -6,6 +6,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import type { ProjectPerson } from '@/modules/project/types';
 
 const props = defineProps<{
@@ -20,7 +21,7 @@ const hidden = computed(() => Math.max(props.total - props.members.length, 0));
     <span
         v-if="props.members.length"
         class="flex items-center -space-x-1"
-        :aria-label="`${props.total} on this project`"
+        :aria-label="t(':count on this project', { count: props.total })"
     >
         <Tooltip v-for="member in props.members" :key="member.id">
             <TooltipTrigger as-child>

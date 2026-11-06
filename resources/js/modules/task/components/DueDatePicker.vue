@@ -10,6 +10,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { dayOf, formatDay, isOverdue, today } from '@/lib/dueDate';
+import { t } from '@/lib/i18n';
 
 /** Sends only `due_at`; `tasks.update` leaves absent fields untouched. */
 const props = defineProps<{
@@ -69,7 +70,7 @@ function save(next: string | null): void {
         <span :class="overdue ? 'text-destructive' : ''">{{
             label || '—'
         }}</span>
-        <span v-if="overdue" class="sr-only">overdue</span>
+        <span v-if="overdue" class="sr-only">{{ t('overdue') }}</span>
     </span>
 
     <Popover v-else v-model:open="open">
@@ -86,8 +87,10 @@ function save(next: string | null): void {
             ]"
             :aria-label="
                 dueAt === null
-                    ? 'Set a due date'
-                    : `Due ${label}${overdue ? ', overdue' : ''}. Change it`
+                    ? t('Set a due date')
+                    : overdue
+                      ? t('Due :date, overdue. Change it', { date: label })
+                      : t('Due :date. Change it', { date: label })
             "
         >
             <TriangleAlert v-if="overdue" class="size-3.5" aria-hidden="true" />
@@ -99,9 +102,9 @@ function save(next: string | null): void {
             </span>
             <span v-else>{{ label }}</span>
 
-            <span v-if="variant === 'field' && dueAt === null"
-                >No due date</span
-            >
+            <span v-if="variant === 'field' && dueAt === null">{{
+                t('No due date')
+            }}</span>
         </PopoverTrigger>
 
         <PopoverContent class="w-auto p-0" align="start">
@@ -118,7 +121,7 @@ function save(next: string | null): void {
                     :disabled="saving"
                     @click="save(today())"
                 >
-                    Today
+                    {{ t('Today') }}
                 </Button>
 
                 <Button
@@ -127,11 +130,11 @@ function save(next: string | null): void {
                     size="sm"
                     class="h-8 text-xs text-muted-foreground"
                     :disabled="saving"
-                    aria-label="Clear the due date"
+                    :aria-label="t('Clear the due date')"
                     @click="save(null)"
                 >
                     <X class="size-3.5" />
-                    Clear
+                    {{ t('Clear') }}
                 </Button>
             </div>
         </PopoverContent>

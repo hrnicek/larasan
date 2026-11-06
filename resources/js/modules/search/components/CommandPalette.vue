@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 import type {
@@ -39,11 +40,11 @@ const { open, kind, hide } = useCommandPalette();
 
 const KINDS: { value: SearchKind; label: string; icon: typeof CheckCircle2 }[] =
     [
-        { value: 'tasks', label: 'Tasks', icon: CheckCircle2 },
-        { value: 'projects', label: 'Projects', icon: Clipboard },
-        { value: 'people', label: 'People', icon: UserIcon },
-        { value: 'messages', label: 'Messages', icon: MessageSquare },
-        { value: 'pages', label: 'Pages', icon: FileText },
+        { value: 'tasks', label: t('Tasks'), icon: CheckCircle2 },
+        { value: 'projects', label: t('Projects'), icon: Clipboard },
+        { value: 'people', label: t('People'), icon: UserIcon },
+        { value: 'messages', label: t('Messages'), icon: MessageSquare },
+        { value: 'pages', label: t('Pages'), icon: FileText },
     ];
 
 const DEBOUNCE = 180;
@@ -296,10 +297,13 @@ watch(open, (isOpen) => {
             @keydown.down.prevent="move(1)"
             @keydown.up.prevent="move(-1)"
         >
-            <DialogTitle class="sr-only">Search</DialogTitle>
+            <DialogTitle class="sr-only">{{ t('Search') }}</DialogTitle>
             <DialogDescription class="sr-only">
-                Search this workspace's tasks, projects, people, messages and
-                pages.
+                {{
+                    t(
+                        "Search this workspace's tasks, projects, people, messages and pages.",
+                    )
+                }}
             </DialogDescription>
 
             <div class="flex items-center gap-2 border-b border-border px-4">
@@ -309,8 +313,10 @@ watch(open, (isOpen) => {
                     v-model="term"
                     type="text"
                     class="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    placeholder="Search tasks, projects, people, messages and pages"
-                    aria-label="Search"
+                    :placeholder="
+                        t('Search tasks, projects, people, messages and pages')
+                    "
+                    :aria-label="t('Search')"
                     autocomplete="off"
                     @keydown.enter.prevent="openRow(rows[active])"
                 />
@@ -345,8 +351,11 @@ watch(open, (isOpen) => {
                 v-if="degraded"
                 class="border-b border-border bg-muted/40 px-4 py-2 text-xs text-muted-foreground"
             >
-                The search engine is unavailable, so these are tasks only,
-                matched by whole words.
+                {{
+                    t(
+                        'The search engine is unavailable, so these are tasks only, matched by whole words.',
+                    )
+                }}
             </p>
 
             <div ref="list" class="max-h-[22rem] overflow-y-auto p-2">
@@ -355,7 +364,7 @@ watch(open, (isOpen) => {
                         <p
                             class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                         >
-                            Recents
+                            {{ t('Recents') }}
                         </p>
 
                         <button
@@ -399,7 +408,7 @@ watch(open, (isOpen) => {
                                 <span
                                     v-if="item.archived"
                                     class="shrink-0 text-xs text-muted-foreground"
-                                    >Archived</span
+                                    >{{ t('Archived') }}</span
                                 >
                             </template>
                         </button>
@@ -409,7 +418,7 @@ watch(open, (isOpen) => {
                         <p
                             class="px-2 py-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                         >
-                            Saved searches
+                            {{ t('Saved searches') }}
                         </p>
 
                         <div class="flex flex-wrap gap-1.5 px-2 py-1">
@@ -429,7 +438,9 @@ watch(open, (isOpen) => {
                                 <button
                                     type="button"
                                     class="rounded-full p-0.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted focus-visible:opacity-100"
-                                    :aria-label="`Forget ${search.name}`"
+                                    :aria-label="
+                                        t('Forget :name', { name: search.name })
+                                    "
                                     @click="forget(search)"
                                 >
                                     <X class="size-3" />
@@ -442,7 +453,7 @@ watch(open, (isOpen) => {
                         v-if="recents.length === 0 && saved.length === 0"
                         class="px-2 py-6 text-center text-sm text-muted-foreground"
                     >
-                        Type to search this workspace.
+                        {{ t('Type to search this workspace.') }}
                     </p>
                 </template>
 
@@ -450,7 +461,7 @@ watch(open, (isOpen) => {
                     v-if="nothingFound"
                     class="px-2 py-6 text-center text-sm text-muted-foreground"
                 >
-                    Nothing matched “{{ term.trim() }}”.
+                    {{ t('Nothing matched “:term”.', { term: term.trim() }) }}
                 </p>
 
                 <div
@@ -515,7 +526,7 @@ watch(open, (isOpen) => {
                             <span
                                 v-if="row.archived"
                                 class="shrink-0 text-xs text-muted-foreground"
-                                >Archived</span
+                                >{{ t('Archived') }}</span
                             >
                         </template>
 
@@ -573,15 +584,15 @@ watch(open, (isOpen) => {
                     ><kbd class="ml-0.5 rounded border border-border px-1"
                         >↓</kbd
                     >
-                    to move</span
+                    {{ t('to move') }}</span
                 >
                 <span
-                    ><kbd class="rounded border border-border px-1">↵</kbd> to
-                    open</span
+                    ><kbd class="rounded border border-border px-1">↵</kbd>
+                    {{ t('to open') }}</span
                 >
                 <span
-                    ><kbd class="rounded border border-border px-1">esc</kbd> to
-                    close</span
+                    ><kbd class="rounded border border-border px-1">esc</kbd>
+                    {{ t('to close') }}</span
                 >
             </div>
         </DialogContent>

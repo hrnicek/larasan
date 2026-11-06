@@ -9,6 +9,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
+import { pageTitle } from '@/modules/page/lib/untitled';
 import type { PageNode } from '@/modules/page/types';
 import pageRoutes from '@/routes/pages';
 
@@ -79,7 +81,9 @@ const canMove = computed<boolean>(
                 type="button"
                 class="grid size-5 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 :aria-label="
-                    expanded ? `Collapse ${page.title}` : `Expand ${page.title}`
+                    expanded
+                        ? t('Collapse :title', { title: pageTitle(page.title) })
+                        : t('Expand :title', { title: pageTitle(page.title) })
                 "
                 @click="expanded = !expanded"
             >
@@ -112,7 +116,7 @@ const canMove = computed<boolean>(
                             ? 'font-medium text-foreground'
                             : 'text-foreground'
                     "
-                    >{{ page.title }}</span
+                    >{{ pageTitle(page.title) }}</span
                 >
 
                 <span
@@ -130,7 +134,11 @@ const canMove = computed<boolean>(
                     v-if="can.createPage && depth < 5"
                     type="button"
                     class="grid size-6 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                    :aria-label="`Add a page inside ${page.title}`"
+                    :aria-label="
+                        t('Add a page inside :title', {
+                            title: pageTitle(page.title),
+                        })
+                    "
                     @click="emit('addChild', page)"
                 >
                     <Plus class="size-4" />
@@ -139,7 +147,11 @@ const canMove = computed<boolean>(
                 <DropdownMenu v-if="can.updatePage || can.deletePage">
                     <DropdownMenuTrigger
                         class="grid size-6 place-items-center rounded text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                        :aria-label="`Actions for ${page.title}`"
+                        :aria-label="
+                            t('Actions for :title', {
+                                title: pageTitle(page.title),
+                            })
+                        "
                     >
                         <MoreHorizontal class="size-4" />
                     </DropdownMenuTrigger>
@@ -149,7 +161,7 @@ const canMove = computed<boolean>(
                             v-if="can.updatePage"
                             @select="emit('rename', page)"
                         >
-                            Rename
+                            {{ t('Rename') }}
                         </DropdownMenuItem>
 
                         <template v-if="can.updatePage && canMove">
@@ -161,7 +173,7 @@ const canMove = computed<boolean>(
                                     emit('move', { page, direction: 'up' })
                                 "
                             >
-                                Move up
+                                {{ t('Move up') }}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 v-if="movable.down"
@@ -169,7 +181,7 @@ const canMove = computed<boolean>(
                                     emit('move', { page, direction: 'down' })
                                 "
                             >
-                                Move down
+                                {{ t('Move down') }}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 v-if="movable.in"
@@ -177,7 +189,7 @@ const canMove = computed<boolean>(
                                     emit('move', { page, direction: 'in' })
                                 "
                             >
-                                Move inside the page above
+                                {{ t('Move inside the page above') }}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 v-if="movable.out"
@@ -185,7 +197,7 @@ const canMove = computed<boolean>(
                                     emit('move', { page, direction: 'out' })
                                 "
                             >
-                                Move out one level
+                                {{ t('Move out one level') }}
                             </DropdownMenuItem>
                         </template>
 
@@ -195,7 +207,7 @@ const canMove = computed<boolean>(
                                 variant="destructive"
                                 @select="emit('remove', page)"
                             >
-                                Delete
+                                {{ t('Delete') }}
                             </DropdownMenuItem>
                         </template>
                     </DropdownMenuContent>

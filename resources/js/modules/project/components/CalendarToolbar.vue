@@ -7,6 +7,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { currentLocale, t } from '@/lib/i18n';
 import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue';
 import type { CalendarCardData, ProjectCalendar } from '@/modules/task/types';
 import { show } from '@/routes/projects';
@@ -39,7 +40,7 @@ const shifted = (months: number): string => {
 
 const label = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(
-        undefined,
+        currentLocale(),
         { month: 'long', year: 'numeric' },
     ),
 );
@@ -60,7 +61,7 @@ const undated = computed(() => props.calendar.undated);
                 preserve-state
                 preserve-scroll
                 class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                aria-label="Previous month"
+                :aria-label="t('Previous month')"
                 @start="emit('navigating', true)"
                 @finish="emit('navigating', false)"
             >
@@ -81,7 +82,7 @@ const undated = computed(() => props.calendar.undated);
                 @start="emit('navigating', true)"
                 @finish="emit('navigating', false)"
             >
-                Today
+                {{ t('Today') }}
             </Link>
 
             <Link
@@ -90,7 +91,7 @@ const undated = computed(() => props.calendar.undated);
                 preserve-state
                 preserve-scroll
                 class="inline-flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                aria-label="Next month"
+                :aria-label="t('Next month')"
                 @start="emit('navigating', true)"
                 @finish="emit('navigating', false)"
             >
@@ -109,15 +110,15 @@ const undated = computed(() => props.calendar.undated);
                 class="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:ml-auto"
             >
                 <CalendarOff class="size-4" aria-hidden="true" />
-                No date ({{ undated.count }})
+                {{ t('No date (:count)', { count: undated.count }) }}
             </PopoverTrigger>
 
             <PopoverContent align="end" class="w-72 p-1.5">
                 <p class="px-1.5 pt-1 pb-2 text-xs text-muted-foreground">
                     {{
                         editable
-                            ? 'Drag one onto a day to schedule it.'
-                            : 'Nobody has given these a due date.'
+                            ? t('Drag one onto a day to schedule it.')
+                            : t('Nobody has given these a due date.')
                     }}
                 </p>
 
@@ -139,7 +140,12 @@ const undated = computed(() => props.calendar.undated);
                     v-if="undated.hasMore"
                     class="px-1.5 pt-2 text-xs text-muted-foreground"
                 >
-                    Showing {{ undated.tasks.length }} of {{ undated.count }}.
+                    {{
+                        t('Showing :shown of :count.', {
+                            shown: undated.tasks.length,
+                            count: undated.count,
+                        })
+                    }}
                 </p>
             </PopoverContent>
         </Popover>

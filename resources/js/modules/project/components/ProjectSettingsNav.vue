@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { t } from '@/lib/i18n';
 import type { ProjectSettingsNavGroup } from '@/modules/project/types';
 
 const props = defineProps<{ groups: ProjectSettingsNavGroup[] }>();
@@ -78,7 +79,7 @@ function go(id: string): void {
 <template>
     <nav
         class="flex [scrollbar-width:thin] flex-row gap-1 overflow-x-auto pb-1 lg:flex-col lg:gap-5 lg:overflow-x-visible lg:pb-0"
-        aria-label="Project settings"
+        :aria-label="t('Project settings')"
     >
         <!-- The group needs `shrink-0` too, or below `lg` its items overflow onto the next group. -->
         <div

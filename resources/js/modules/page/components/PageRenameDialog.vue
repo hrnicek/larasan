@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     open: boolean;
@@ -28,11 +29,12 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
     >
         <DialogContent class="sm:max-w-md">
             <DialogHeader>
-                <DialogTitle>Rename page</DialogTitle>
-                <DialogDescription
-                    >A page left without a name is called
-                    Untitled.</DialogDescription
-                >
+                <DialogTitle>{{ t('Rename page') }}</DialogTitle>
+                <DialogDescription>{{
+                    t('A page left without a name is called :untitled.', {
+                        untitled: t('Untitled'),
+                    })
+                }}</DialogDescription>
             </DialogHeader>
 
             <Form
@@ -43,7 +45,7 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
                 v-slot="{ errors, processing }"
             >
                 <div class="grid gap-2">
-                    <Label for="page-title">Title</Label>
+                    <Label for="page-title">{{ t('Title') }}</Label>
                     <Input
                         id="page-title"
                         name="title"
@@ -58,11 +60,11 @@ const emit = defineEmits<{ 'update:open': [boolean] }>();
                         type="button"
                         variant="ghost"
                         @click="emit('update:open', false)"
-                        >Cancel</Button
+                        >{{ t('Cancel') }}</Button
                     >
-                    <Button type="submit" :disabled="processing"
-                        >Save title</Button
-                    >
+                    <Button type="submit" :disabled="processing">{{
+                        t('Save title')
+                    }}</Button>
                 </div>
             </Form>
         </DialogContent>

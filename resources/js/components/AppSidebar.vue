@@ -10,6 +10,7 @@ import SidebarUserMenu from '@/components/SidebarUserMenu.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { useInboxRealtime } from '@/composables/useRealtime';
 import { provideCollapsed, useCollapsed } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 import ProjectNavList from '@/modules/project/components/ProjectNavList.vue';
 import WorkspaceSwitcher from '@/modules/workspace/components/WorkspaceSwitcher.vue';
 import { dashboard } from '@/routes';
@@ -33,26 +34,26 @@ useInboxRealtime();
 
 const primary = computed(() => [
     {
-        label: 'Home',
+        label: t('Home'),
         href: dashboard().url,
         icon: Home,
         component: 'Dashboard',
     },
     {
-        label: 'My Tasks',
+        label: t('My Tasks'),
         href: MyTasksController.index.url(),
         icon: CheckSquare,
         component: 'my-tasks/Index',
     },
     {
-        label: 'Inbox',
+        label: t('Inbox'),
         href: InboxController.index.url(),
         icon: Bell,
         badge: unread.value,
         component: 'inbox/Index',
     },
     {
-        label: 'Projects',
+        label: t('Projects'),
         href: projectIndex().url,
         icon: FolderKanban,
         component: 'projects/Index',
@@ -64,7 +65,7 @@ const primary = computed(() => [
     <nav
         class="flex h-full flex-col gap-1 overflow-y-auto bg-chrome p-2 text-chrome-foreground"
         :class="collapsed ? 'w-14' : 'w-64'"
-        aria-label="Main"
+        :aria-label="t('Main')"
     >
         <WorkspaceSwitcher />
 

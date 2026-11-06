@@ -6,6 +6,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 import type {
     WorkspaceAbilities,
     WorkspaceSettings,
@@ -19,18 +20,18 @@ defineProps<{
 
 <template>
     <div class="flex flex-col space-y-6">
-        <Head title="Workspace settings" />
+        <Head :title="t('Workspace settings')" />
 
-        <h1 class="sr-only">Workspace settings</h1>
+        <h1 class="sr-only">{{ t('Workspace settings') }}</h1>
 
         <Heading
             variant="small"
-            title="Workspace"
-            description="Name, address and time zone"
+            :title="t('Workspace')"
+            :description="t('Name, address and time zone')"
         />
 
         <p v-if="!can.update" class="text-sm text-muted-foreground">
-            You can view this workspace but not change its settings.
+            {{ t('You can view this workspace but not change its settings.') }}
         </p>
 
         <Form
@@ -42,7 +43,7 @@ defineProps<{
             <input type="hidden" name="id" :value="workspace.id" />
 
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">{{ t('Name') }}</Label>
                 <Input
                     id="name"
                     name="name"
@@ -54,13 +55,13 @@ defineProps<{
             </div>
 
             <div class="grid gap-2">
-                <Label for="slug">Address</Label>
+                <Label for="slug">{{ t('Address') }}</Label>
                 <Input id="slug" name="slug" :default-value="workspace.slug" />
                 <InputError :message="errors.slug" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="timezone">Time zone</Label>
+                <Label for="timezone">{{ t('Time zone') }}</Label>
                 <Input
                     id="timezone"
                     name="timezone"
@@ -69,7 +70,9 @@ defineProps<{
                 <InputError :message="errors.timezone" />
             </div>
 
-            <Button type="submit" :disabled="processing">Save changes</Button>
+            <Button type="submit" :disabled="processing">{{
+                t('Save changes')
+            }}</Button>
         </Form>
     </div>
 </template>

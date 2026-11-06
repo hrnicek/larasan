@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useId } from 'vue';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import { foldForSearch } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
 import type { TaskAssignee } from '@/modules/task/types';
@@ -185,7 +186,7 @@ const onKeyup = (event: KeyboardEvent): void => {
             v-if="open"
             :id="listId"
             role="listbox"
-            aria-label="People to mention"
+            :aria-label="t('People to mention')"
             class="absolute bottom-full left-0 z-30 mb-1 max-h-64 w-72 max-w-full overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
         >
             <li

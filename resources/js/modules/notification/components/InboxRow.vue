@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { accentDotClass, accentVars } from '@/lib/accentColor';
 import { formatFeedTime, fullFeedTime } from '@/lib/feedTime';
+import { currentLocale, t } from '@/lib/i18n';
 import type { InboxNotification } from '@/modules/notification/types';
 
 const props = defineProps<{
@@ -19,21 +20,41 @@ const emit = defineEmits<{
     markRead: [notification: InboxNotification];
 }>();
 
+/** `sentence` keeps `:actor` and `:task` unreplaced so each can be drawn with its own emphasis. */
 const kinds: Record<
     InboxNotification['type'],
-    { verb: string; icon: Component }
+    { sentence: () => string; icon: Component }
 > = {
-    'task.assigned': { verb: 'assigned you', icon: UserPlus },
-    'task.collaborator_added': {
-        verb: 'added you as a collaborator on',
+    'task.assigned': {
+        sentence: () => t(':actor assigned you :task'),
         icon: UserPlus,
     },
-    'comment.posted': { verb: 'commented on', icon: MessageSquare },
-    'comment.mentioned': { verb: 'mentioned you on', icon: AtSign },
-    unknown: { verb: 'did something about', icon: Bell },
+    'task.collaborator_added': {
+        sentence: () => t(':actor added you as a collaborator on :task'),
+        icon: UserPlus,
+    },
+    'comment.posted': {
+        sentence: () => t(':actor commented on :task'),
+        icon: MessageSquare,
+    },
+    'comment.mentioned': {
+        sentence: () => t(':actor mentioned you on :task'),
+        icon: AtSign,
+    },
+    unknown: {
+        sentence: () => t(':actor did something about :task'),
+        icon: Bell,
+    },
 };
 
 const kind = computed(() => kinds[props.notification.type] ?? kinds.unknown);
+
+const sentence = computed<string[]>(() =>
+    kind.value
+        .sentence()
+        .split(/(:actor|:task)/)
+        .filter((part) => part !== ''),
+);
 
 const opens = computed<boolean>(() => Boolean(props.notification.subject?.url));
 const lostAccess = computed<boolean>(
@@ -53,7 +74,7 @@ const time = computed<string>(() => {
     }
 
     return props.timeStyle === 'clock'
-        ? new Date(at).toLocaleTimeString(undefined, {
+        ? new Date(at).toLocaleTimeString(currentLocale(), {
               hour: 'numeric',
               minute: '2-digit',
           })
@@ -90,7 +111,9 @@ const open = (): void => {
                 class="mt-[11px] size-1.5 shrink-0 rounded-full transition-colors duration-200"
                 :class="notification.read ? 'bg-transparent' : 'bg-primary'"
             />
-            <span v-if="!notification.read" class="sr-only">Unread:</span>
+            <span v-if="!notification.read" class="sr-only">{{
+                t('Unread:')
+            }}</span>
 
             <span class="relative mt-px shrink-0">
                 <UserAvatar
@@ -125,31 +148,39 @@ const open = (): void => {
                             : 'text-foreground'
                     "
                 >
-                    <span
-                        :class="
-                            notification.read
-                                ? 'font-medium text-foreground/85'
-                                : 'font-semibold'
-                        "
-                    >
-                        {{ notification.actor?.name ?? 'Somebody' }}
-                    </span>
-                    {{ ` ${kind.verb} ` }}
-                    <span
-                        v-if="notification.subject?.title"
-                        :class="
-                            notification.read
-                                ? 'font-medium text-foreground/85'
-                                : 'font-semibold'
-                        "
-                        >{{ notification.subject.title }}</span
-                    >
-                    <span v-else-if="notification.subject" class="italic"
-                        >a task</span
-                    >
-                    <span v-else class="italic"
-                        >something that has since been removed</span
-                    >
+                    <template v-for="(part, index) in sentence" :key="index">
+                        <span
+                            v-if="part === ':actor'"
+                            :class="
+                                notification.read
+                                    ? 'font-medium text-foreground/85'
+                                    : 'font-semibold'
+                            "
+                            >{{
+                                notification.actor?.name ?? t('Somebody')
+                            }}</span
+                        >
+                        <template v-else-if="part === ':task'">
+                            <span
+                                v-if="notification.subject?.title"
+                                :class="
+                                    notification.read
+                                        ? 'font-medium text-foreground/85'
+                                        : 'font-semibold'
+                                "
+                                >{{ notification.subject.title }}</span
+                            >
+                            <span
+                                v-else-if="notification.subject"
+                                class="italic"
+                                >{{ t('a task') }}</span
+                            >
+                            <span v-else class="italic">{{
+                                t('something that has since been removed')
+                            }}</span>
+                        </template>
+                        <template v-else>{{ part }}</template>
+                    </template>
                 </span>
 
                 <span
@@ -189,7 +220,7 @@ const open = (): void => {
                     <span
                         v-else-if="lostAccess"
                         class="w-full truncate md:w-auto"
-                        >You can no longer open this task</span
+                        >{{ t('You can no longer open this task') }}</span
                     >
                 </span>
             </span>
@@ -217,8 +248,8 @@ const open = (): void => {
             v-if="!notification.read"
             type="button"
             class="absolute top-2 right-3 hidden size-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-focus-within/row:opacity-100 group-hover/row:opacity-100 hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:right-4 md:flex"
-            title="Mark as read (E)"
-            aria-label="Mark as read"
+            :title="t('Mark as read (E)')"
+            :aria-label="t('Mark as read')"
             @click="emit('markRead', notification)"
         >
             <Check class="size-4" />

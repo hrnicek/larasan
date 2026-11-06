@@ -10,6 +10,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import type { TaskAssignee } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -86,8 +87,8 @@ function unassign(): void {
             return;
         }
 
-        toast(`${previous.name} removed from this task.`, {
-            action: { label: 'Undo', onClick: () => assign(previous.id) },
+        toast(t(':name removed from this task.', { name: previous.name }), {
+            action: { label: t('Undo'), onClick: () => assign(previous.id) },
         });
     });
 }
@@ -133,13 +134,15 @@ function onKeydown(event: KeyboardEvent): void {
                 :disabled="saving"
                 :aria-label="
                     assignee
-                        ? `Assigned to ${assignee.name}. Change assignee`
-                        : 'Unassigned. Assign someone'
+                        ? t('Assigned to :name. Change assignee', {
+                              name: assignee.name,
+                          })
+                        : t('Unassigned. Assign someone')
                 "
                 :title="
                     variant === 'field'
                         ? undefined
-                        : (assignee?.name ?? 'Unassigned')
+                        : (assignee?.name ?? t('Unassigned'))
                 "
                 class="flex min-h-11 items-center gap-1.5 rounded-md text-left transition-colors focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-8"
                 :class="
@@ -164,7 +167,7 @@ function onKeydown(event: KeyboardEvent): void {
                     <span
                         v-if="variant === 'field'"
                         class="text-muted-foreground"
-                        >Unassigned</span
+                        >{{ t('Unassigned') }}</span
                     >
                 </template>
             </PopoverTrigger>
@@ -178,8 +181,8 @@ function onKeydown(event: KeyboardEvent): void {
                         role="combobox"
                         aria-expanded="true"
                         :aria-controls="listId"
-                        aria-label="Search members by name or email"
-                        placeholder="Name or email"
+                        :aria-label="t('Search members by name or email')"
+                        :placeholder="t('Name or email')"
                         class="h-8 w-full rounded-md bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground"
                         @keydown="onKeydown"
                     />
@@ -236,7 +239,7 @@ function onKeydown(event: KeyboardEvent): void {
                         v-if="matches.length === 0"
                         class="px-3 py-6 text-center text-sm text-muted-foreground"
                     >
-                        Nobody here matches “{{ query }}”.
+                        {{ t('Nobody here matches “:query”.', { query }) }}
                     </li>
                 </ul>
             </PopoverContent>
@@ -247,7 +250,9 @@ function onKeydown(event: KeyboardEvent): void {
             type="button"
             class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             :disabled="saving"
-            :aria-label="`Remove ${assignee.name} from this task`"
+            :aria-label="
+                t('Remove :name from this task', { name: assignee.name })
+            "
             @click="unassign"
         >
             <X class="size-3.5" />

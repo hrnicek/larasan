@@ -107,7 +107,7 @@ class TagController extends Controller
         try {
             $operation();
         } catch (TagException $exception) {
-            throw ValidationException::withMessages(['name' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['name' => __($exception->getMessage())]);
         }
     }
 }

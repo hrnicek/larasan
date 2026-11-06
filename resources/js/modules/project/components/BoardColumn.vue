@@ -4,6 +4,7 @@ import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
 import { accentBandClass, accentDotClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskCard from '@/modules/task/components/TaskCard.vue';
@@ -80,7 +81,11 @@ const emit = defineEmits<{
                 v-model="draft"
                 type="text"
                 class="min-w-0 flex-1 rounded-md border border-input bg-transparent px-1.5 py-0.5 text-[13px] font-semibold focus:outline-none"
-                :aria-label="`Rename ${column.name ?? 'this column'}`"
+                :aria-label="
+                    column.name
+                        ? t('Rename :name', { name: column.name })
+                        : t('Rename this column')
+                "
                 @blur="saveRename"
                 @keydown.enter.prevent="saveRename"
                 @keydown.esc.prevent="renaming = false"
@@ -93,7 +98,7 @@ const emit = defineEmits<{
                 aria-hidden="true"
             />
             <span v-if="!renaming" class="flex-1 truncate">{{
-                column.name ?? 'No section'
+                column.name ?? t('No section')
             }}</span>
 
             <span
@@ -124,10 +129,12 @@ const emit = defineEmits<{
             <EmptyState
                 v-if="column.tasks.length === 0"
                 compact
-                :title="creatable ? 'Nothing in this column' : 'Nothing here'"
+                :title="
+                    creatable ? t('Nothing in this column') : t('Nothing here')
+                "
                 :description="
                     creatable
-                        ? 'Drop a card here, or add one below.'
+                        ? t('Drop a card here, or add one below.')
                         : undefined
                 "
             />
@@ -168,7 +175,7 @@ const emit = defineEmits<{
                 :disabled="loading"
                 @click="emit('expand', column.id)"
             >
-                Show all {{ column.count }}
+                {{ t('Show all :count', { count: column.count }) }}
             </button>
         </div>
 

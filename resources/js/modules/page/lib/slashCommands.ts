@@ -12,6 +12,7 @@ import {
     Type,
 } from '@lucide/vue';
 import type { Editor, Range } from '@tiptap/vue-3';
+import { t } from '@/lib/i18n';
 import type { SlashCommand } from '@/modules/page/components/PageSlashMenu.vue';
 
 type SlashCommandDefinition = SlashCommand & {
@@ -19,11 +20,11 @@ type SlashCommandDefinition = SlashCommand & {
     run: (editor: Editor, range: Range) => void;
 };
 
-export const slashCommands: SlashCommandDefinition[] = [
+export const slashCommands = (): SlashCommandDefinition[] => [
     {
         key: 'paragraph',
-        label: 'Text',
-        hint: 'Plain paragraph',
+        label: t('Text'),
+        hint: t('Plain paragraph'),
         icon: Type,
         aliases: ['text', 'paragraph', 'plain'],
         run: (editor, range) =>
@@ -31,8 +32,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'heading-1',
-        label: 'Heading 1',
-        hint: 'Section title',
+        label: t('Heading 1'),
+        hint: t('Section title'),
         icon: Heading1,
         aliases: ['h1', 'title', 'heading'],
         run: (editor, range) =>
@@ -45,8 +46,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'heading-2',
-        label: 'Heading 2',
-        hint: 'Subsection',
+        label: t('Heading 2'),
+        hint: t('Subsection'),
         icon: Heading2,
         aliases: ['h2', 'heading'],
         run: (editor, range) =>
@@ -59,8 +60,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'heading-3',
-        label: 'Heading 3',
-        hint: 'Smaller subsection',
+        label: t('Heading 3'),
+        hint: t('Smaller subsection'),
         icon: Heading3,
         aliases: ['h3', 'heading'],
         run: (editor, range) =>
@@ -73,8 +74,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'bullet-list',
-        label: 'Bulleted list',
-        hint: 'Items in no order',
+        label: t('Bulleted list'),
+        hint: t('Items in no order'),
         icon: List,
         aliases: ['bullet', 'unordered', 'ul'],
         run: (editor, range) =>
@@ -82,8 +83,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'ordered-list',
-        label: 'Numbered list',
-        hint: 'Items in order',
+        label: t('Numbered list'),
+        hint: t('Items in order'),
         icon: ListOrdered,
         aliases: ['number', 'ordered', 'ol'],
         run: (editor, range) =>
@@ -91,8 +92,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'task-list',
-        label: 'To-do list',
-        hint: 'Items to tick off',
+        label: t('To-do list'),
+        hint: t('Items to tick off'),
         icon: ListTodo,
         aliases: ['todo', 'task', 'checkbox'],
         run: (editor, range) =>
@@ -100,8 +101,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'blockquote',
-        label: 'Quote',
-        hint: 'Somebody else’s words',
+        label: t('Quote'),
+        hint: t('Somebody else’s words'),
         icon: Quote,
         aliases: ['quote', 'blockquote'],
         run: (editor, range) =>
@@ -109,8 +110,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'code-block',
-        label: 'Code block',
-        hint: 'Code, kept as written',
+        label: t('Code block'),
+        hint: t('Code, kept as written'),
         icon: Code,
         aliases: ['code', 'snippet'],
         run: (editor, range) =>
@@ -118,8 +119,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'table',
-        label: 'Table',
-        hint: 'Three columns to start',
+        label: t('Table'),
+        hint: t('Three columns to start'),
         icon: TableIcon,
         aliases: ['table', 'grid'],
         run: (editor, range) =>
@@ -132,8 +133,8 @@ export const slashCommands: SlashCommandDefinition[] = [
     },
     {
         key: 'divider',
-        label: 'Divider',
-        hint: 'A line between things',
+        label: t('Divider'),
+        hint: t('A line between things'),
         icon: Minus,
         aliases: ['divider', 'rule', 'hr', 'separator'],
         run: (editor, range) =>
@@ -144,11 +145,13 @@ export const slashCommands: SlashCommandDefinition[] = [
 export function matchingCommands(query: string): SlashCommandDefinition[] {
     const term = query.trim().toLowerCase();
 
+    const commands = slashCommands();
+
     if (term === '') {
-        return slashCommands;
+        return commands;
     }
 
-    return slashCommands.filter(
+    return commands.filter(
         (command) =>
             command.label.toLowerCase().includes(term) ||
             command.aliases.some((alias) => alias.includes(term)),

@@ -28,7 +28,7 @@ final class WorkspaceMembershipException extends DomainException implements Doma
 
     public static function roleRequiresCapability(WorkspaceRole $role): self
     {
-        return new self("The actor may not grant the {$role->value} role in this workspace.");
+        return new self(__('The actor may not grant the :role role in this workspace.', ['role' => $role->noun()]));
     }
 
     public static function notTheInvitee(): self
@@ -36,9 +36,16 @@ final class WorkspaceMembershipException extends DomainException implements Doma
         return new self('An invitation can only be answered by the person it was sent to.');
     }
 
+    /** One sentence per status, because the translated adjective has to agree with "invitation". */
     public static function invitationNotPending(WorkspaceMembershipStatus $status): self
     {
-        return new self("This invitation is {$status->value} and can no longer be answered.");
+        return new self(match ($status) {
+            WorkspaceMembershipStatus::Invited => 'This invitation is invited and can no longer be answered.',
+            WorkspaceMembershipStatus::Active => 'This invitation is active and can no longer be answered.',
+            WorkspaceMembershipStatus::Declined => 'This invitation is declined and can no longer be answered.',
+            WorkspaceMembershipStatus::Revoked => 'This invitation is revoked and can no longer be answered.',
+            WorkspaceMembershipStatus::Expired => 'This invitation is expired and can no longer be answered.',
+        });
     }
 
     public static function invitationExpired(): self

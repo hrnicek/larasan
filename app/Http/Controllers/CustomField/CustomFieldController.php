@@ -128,7 +128,7 @@ class CustomFieldController extends Controller
         try {
             $operation();
         } catch (CustomFieldException $exception) {
-            throw ValidationException::withMessages(['name' => $exception->getMessage()]);
+            throw ValidationException::withMessages(['name' => __($exception->getMessage())]);
         }
     }
 }

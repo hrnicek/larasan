@@ -11,12 +11,12 @@ final class SavedSearchException extends DomainException implements DomainRefusa
 {
     public static function nameIsTaken(string $name): self
     {
-        return new self("You already have a saved search called “{$name}”.");
+        return new self(__('You already have a saved search called “:name”.', ['name' => $name]));
     }
 
     public static function tooMany(int $limit): self
     {
-        return new self("A workspace holds at most {$limit} saved searches per person.");
+        return new self(__('A workspace holds at most :limit saved searches per person.', ['limit' => $limit]));
     }
 
     public static function termIsEmpty(): self

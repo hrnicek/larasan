@@ -4,6 +4,7 @@ import { X } from '@lucide/vue';
 import { ref, useId, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { provideModalPortalTarget } from '@/composables/useModalPortalTarget';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     title: string;
@@ -60,7 +61,7 @@ watch(panel, (element) => {
                     variant="ghost"
                     size="icon"
                     class="-mt-1 -mr-1 size-7 shrink-0"
-                    aria-label="Close"
+                    :aria-label="t('Close')"
                     @click="close"
                 >
                     <X class="size-4" />

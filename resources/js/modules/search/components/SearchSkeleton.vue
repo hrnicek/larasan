@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 
 const filterWidths = ['w-32', 'w-28', 'w-36'];
 const rowWidths = ['w-2/3', 'w-1/2', 'w-3/5', 'w-2/5', 'w-1/2'];
@@ -9,11 +10,15 @@ const rowWidths = ['w-2/3', 'w-1/2', 'w-3/5', 'w-2/5', 'w-1/2'];
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="Search" />
+        <Head :title="t('Search')" />
 
         <PageHeader
-            title="Search"
-            description="Task names and descriptions, across every project you can reach"
+            :title="t('Search')"
+            :description="
+                t(
+                    'Task names and descriptions, across every project you can reach',
+                )
+            "
         />
 
         <div

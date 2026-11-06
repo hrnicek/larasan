@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight, FolderOpen, Lock, Plus, Settings } from '@lucide/vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import { t } from '@/lib/i18n';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
 import type { ProjectSummary } from '@/modules/project/types';
 import { create, edit, show } from '@/routes/projects';
@@ -16,11 +17,11 @@ defineProps<{
 
 <template>
     <div class="flex flex-col">
-        <Head title="Projects" />
+        <Head :title="t('Projects')" />
 
         <PageHeader
-            title="Projects"
-            description="Everything you can reach in this workspace"
+            :title="t('Projects')"
+            :description="t('Everything you can reach in this workspace')"
         >
             <template v-if="can.create" #actions>
                 <Link
@@ -28,7 +29,7 @@ defineProps<{
                     class="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-2.5 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                     <Plus class="size-4" />
-                    New project
+                    {{ t('New project') }}
                 </Link>
             </template>
         </PageHeader>
@@ -61,7 +62,7 @@ defineProps<{
                         class="inline-flex shrink-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground"
                     >
                         <Lock class="size-3" aria-hidden="true" />
-                        Private
+                        {{ t('Private') }}
                     </span>
                 </Link>
 
@@ -70,7 +71,9 @@ defineProps<{
                     component="projects/Settings"
                     prefetch="click"
                     class="inline-flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-8 md:opacity-0 md:group-hover/row:opacity-100"
-                    :aria-label="`Settings for ${project.name}`"
+                    :aria-label="
+                        t('Settings for :name', { name: project.name })
+                    "
                 >
                     <Settings class="size-4" />
                 </Link>
@@ -86,11 +89,15 @@ defineProps<{
             v-else
             class="mx-4 mt-6 md:mx-6"
             :icon="FolderOpen"
-            title="No projects yet"
+            :title="t('No projects yet')"
             :description="
                 can.create
-                    ? 'Make the first one — a project is where sections, tasks and people meet.'
-                    : 'Nothing has been shared with you in this workspace yet.'
+                    ? t(
+                          'Make the first one — a project is where sections, tasks and people meet.',
+                      )
+                    : t(
+                          'Nothing has been shared with you in this workspace yet.',
+                      )
             "
         >
             <template v-if="can.create" #action>
@@ -99,7 +106,7 @@ defineProps<{
                     class="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                     <Plus class="size-4" />
-                    New project
+                    {{ t('New project') }}
                 </Link>
             </template>
         </EmptyState>

@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
+import { t } from '@/lib/i18n';
 
 /** Sends only `title`; `tasks.update` leaves absent fields untouched. */
 const props = defineProps<{
@@ -94,8 +95,10 @@ const save = (): void => {
         </div>
 
         <p v-if="failed" class="text-xs text-destructive">
-            Could not save. Your text is still here — try again.
-            <button type="button" class="underline" @click="save">Retry</button>
+            {{ t('Could not save. Your text is still here — try again.') }}
+            <button type="button" class="underline" @click="save">
+                {{ t('Retry') }}
+            </button>
         </p>
     </div>
 </template>

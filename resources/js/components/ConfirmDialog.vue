@@ -8,6 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { t } from '@/lib/i18n';
 
 withDefaults(
     defineProps<{
@@ -19,7 +20,6 @@ withDefaults(
         pending?: boolean;
     }>(),
     {
-        cancelLabel: 'Cancel',
         pending: false,
     },
 );
@@ -41,7 +41,7 @@ const emit = defineEmits<{ 'update:open': [boolean]; confirm: [] }>();
                     :disabled="pending"
                     @click="emit('update:open', false)"
                 >
-                    {{ cancelLabel }}
+                    {{ cancelLabel ?? t('Cancel') }}
                 </Button>
                 <Button
                     variant="destructive"

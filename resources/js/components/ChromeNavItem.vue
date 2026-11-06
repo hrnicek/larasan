@@ -8,6 +8,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useCollapsed } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     href: string;
@@ -61,7 +62,7 @@ const warm = (): void => {
                     :class="collapsed && 'absolute top-1 right-1 ml-0'"
                 >
                     {{ badge > 99 ? '99+' : badge }}
-                    <span class="sr-only">unread</span>
+                    <span class="sr-only">{{ t('unread') }}</span>
                 </span>
             </Link>
         </TooltipTrigger>

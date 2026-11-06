@@ -22,6 +22,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
 import FollowerList from '@/modules/task/components/FollowerList.vue';
 import type { TaskDetail } from '@/modules/task/types';
 import { show, star, unstar } from '@/routes/tasks';
@@ -63,10 +64,10 @@ async function copyLink(): Promise<void> {
 
     try {
         await navigator.clipboard.writeText(url);
-        toast('Link copied.');
+        toast(t('Link copied.'));
     } catch {
         // The Clipboard API is unavailable outside a secure context.
-        toast('Could not copy — the address is in the URL bar.');
+        toast(t('Could not copy — the address is in the URL bar.'));
     }
 }
 
@@ -117,7 +118,7 @@ function destroy(): void {
             @click="toggleCompletion"
         >
             <Check class="size-4" aria-hidden="true" />
-            {{ completed() ? 'Completed' : 'Mark complete' }}
+            {{ completed() ? t('Completed') : t('Mark complete') }}
         </button>
 
         <p v-else-if="collapsed" class="flex min-w-0 items-center gap-2">
@@ -136,7 +137,7 @@ function destroy(): void {
         </p>
 
         <span v-else class="text-sm text-muted-foreground">
-            {{ completed() ? 'Completed' : 'Open' }}
+            {{ completed() ? t('Completed') : t('Incomplete') }}
         </span>
 
         <div class="ml-auto flex shrink-0 items-center gap-1">
@@ -159,8 +160,8 @@ function destroy(): void {
                 :aria-pressed="detail.starred"
                 :aria-label="
                     detail.starred
-                        ? 'Remove this task from starred'
-                        : 'Add this task to starred'
+                        ? t('Remove this task from starred')
+                        : t('Add this task to starred')
                 "
                 @click="toggleStar"
             >
@@ -174,7 +175,7 @@ function destroy(): void {
                 variant="ghost"
                 size="icon-sm"
                 class="text-muted-foreground"
-                aria-label="Copy a link to this task"
+                :aria-label="t('Copy a link to this task')"
                 @click="copyLink"
             >
                 <Link2 class="size-4" />
@@ -189,7 +190,7 @@ function destroy(): void {
             >
                 <Link
                     :href="show(detail.task.id)"
-                    aria-label="Open as a full page"
+                    :aria-label="t('Open as a full page')"
                 >
                     <Maximize2 class="size-4" />
                 </Link>
@@ -201,7 +202,7 @@ function destroy(): void {
                         variant="ghost"
                         size="icon-sm"
                         class="text-muted-foreground"
-                        aria-label="More actions"
+                        :aria-label="t('More actions')"
                     >
                         <Ellipsis class="size-4" />
                     </Button>
@@ -210,7 +211,7 @@ function destroy(): void {
                 <DropdownMenuContent align="end" class="w-52">
                     <DropdownMenuItem @select="copyLink">
                         <Link2 class="size-4" />
-                        Copy link
+                        {{ t('Copy link') }}
                     </DropdownMenuItem>
 
                     <template v-if="detail.can.delete">
@@ -221,7 +222,7 @@ function destroy(): void {
                             @select="deleting = true"
                         >
                             <Trash2 class="size-4" />
-                            Delete task
+                            {{ t('Delete task') }}
                         </DropdownMenuItem>
                     </template>
                 </DropdownMenuContent>
@@ -232,7 +233,7 @@ function destroy(): void {
                 variant="ghost"
                 size="icon-sm"
                 class="text-muted-foreground"
-                aria-label="Close"
+                :aria-label="t('Close')"
                 @click="emit('close')"
             >
                 <PanelRightClose class="size-4" />
@@ -241,10 +242,14 @@ function destroy(): void {
 
         <ConfirmDialog
             :open="deleting"
-            title="Delete this task?"
-            description="Its subtasks, comments and attachments go with it. This cannot be undone."
-            confirm-label="Delete"
-            cancel-label="Keep it"
+            :title="t('Delete this task?')"
+            :description="
+                t(
+                    'Its subtasks, comments and attachments go with it. This cannot be undone.',
+                )
+            "
+            :confirm-label="t('Delete')"
+            :cancel-label="t('Keep it')"
             :pending="working"
             @update:open="(next) => (deleting = next)"
             @confirm="destroy"

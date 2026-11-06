@@ -42,7 +42,7 @@ class WorkspaceMemberJoined extends Notification implements ShouldQueue
                 'email' => $membership->address(),
                 'inviter' => $membership->invitedBy->name ?? __('someone'),
                 'workspace' => $membership->workspace->name,
-                'role' => $membership->role->value,
+                'role' => $membership->role->noun(),
             ]))
             ->action(__('View members'), route('workspaces.members'));
     }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { t } from '@/lib/i18n';
 import type { ListFieldColumn } from '@/modules/task/types';
 import { show } from '@/routes/projects';
 
@@ -44,9 +45,9 @@ const marker = (field: ListFieldColumn): string => {
 <template>
     <nav
         class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-        aria-label="Sort by field"
+        :aria-label="t('Sort by field')"
     >
-        <span>Sort:</span>
+        <span>{{ t('Sort:') }}</span>
 
         <Link
             v-for="field in fields"

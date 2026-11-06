@@ -76,7 +76,7 @@ final readonly class CreateProject
             $positions = SparsePosition::spread(count(Section::DEFAULT_NAMES));
 
             foreach (Section::DEFAULT_NAMES as $index => $name) {
-                $section = new Section(['name' => $name, 'color' => CreateSectionData::DEFAULT_COLOR, 'position' => $positions[$index]]);
+                $section = new Section(['name' => __($name), 'color' => CreateSectionData::DEFAULT_COLOR, 'position' => $positions[$index]]);
                 $section->project_id = $project->id;
                 $section->save();
             }

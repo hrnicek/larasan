@@ -9,6 +9,7 @@ import ModalShell from '@/components/ModalShell.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t } from '@/lib/i18n';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
 import ProjectTile from '@/modules/project/components/ProjectTile.vue';
@@ -24,19 +25,21 @@ const color = ref<string | null>(null);
 const icon = ref<string | null>(null);
 const visibility = ref(props.options.visibilities[0] ?? 'workspace');
 
-const previewName = computed(() => name.value.trim() || 'Untitled project');
+const previewName = computed(() => name.value.trim() || t('Untitled project'));
 
 type Choice = { label: string; hint: string; icon: Component };
 
 const visibilities = computed<Record<string, Choice>>(() => ({
     workspace: {
-        label: workspace.value?.name ?? 'Everyone in the workspace',
-        hint: 'Everyone in your workspace can find and open this project.',
+        label: workspace.value?.name ?? t('Everyone in the workspace'),
+        hint: t('Everyone in your workspace can find and open this project.'),
         icon: Users,
     },
     private: {
-        label: 'Private',
-        hint: 'Only invited members can find it. Until you invite somebody, that is you.',
+        label: t('Private'),
+        hint: t(
+            'Only invited members can find it. Until you invite somebody, that is you.',
+        ),
         icon: Lock,
     },
 }));
@@ -51,8 +54,8 @@ function choice(option: string): Choice {
 <template>
     <ModalShell
         v-slot="{ close }"
-        title="New project"
-        description="Tasks, sections and members live inside a project"
+        :title="t('New project')"
+        :description="t('Tasks, sections and members live inside a project')"
         max-width="4xl"
     >
         <Form
@@ -64,20 +67,20 @@ function choice(option: string): Choice {
             >
                 <div class="space-y-5">
                     <div class="grid gap-2">
-                        <Label for="name">Project name</Label>
+                        <Label for="name">{{ t('Project name') }}</Label>
                         <Input
                             id="name"
                             v-model="name"
                             name="name"
                             required
                             autofocus
-                            placeholder="Web redesign"
+                            :placeholder="t('Web redesign')"
                         />
                         <InputError :message="errors.name" />
                     </div>
 
                     <div class="grid gap-2">
-                        <Label>Project access</Label>
+                        <Label>{{ t('Project access') }}</Label>
 
                         <label
                             v-for="option in props.options.visibilities"
@@ -129,12 +132,12 @@ function choice(option: string): Choice {
                     <InputError :message="errors.icon" />
 
                     <div class="flex justify-end gap-2 pt-1">
-                        <Button type="button" variant="ghost" @click="close"
-                            >Cancel</Button
-                        >
-                        <Button type="submit" :disabled="processing"
-                            >Create project</Button
-                        >
+                        <Button type="button" variant="ghost" @click="close">{{
+                            t('Cancel')
+                        }}</Button>
+                        <Button type="submit" :disabled="processing">{{
+                            t('Create project')
+                        }}</Button>
                     </div>
                 </div>
 
@@ -177,8 +180,9 @@ function choice(option: string): Choice {
 
                     <div class="space-y-3 p-5">
                         <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold tracking-tight"
-                                >Untitled section</span
+                            <span
+                                class="text-sm font-semibold tracking-tight"
+                                >{{ t('Untitled section') }}</span
                             >
                             <span class="text-xs text-muted-foreground">0</span>
                         </div>
@@ -187,12 +191,15 @@ function choice(option: string): Choice {
                             class="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground"
                         >
                             <Plus class="size-4" />
-                            Add task
+                            {{ t('Add task') }}
                         </div>
 
                         <p class="pt-1 text-xs text-muted-foreground">
-                            A new project opens with one section. Rename it, or
-                            add more, once there is something to put in them.
+                            {{
+                                t(
+                                    'A new project opens with one section. Rename it, or add more, once there is something to put in them.',
+                                )
+                            }}
                         </p>
                     </div>
                 </aside>

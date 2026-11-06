@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
 
 const workspaceName = computed<string | undefined>(
@@ -14,9 +15,9 @@ const tabWidths = ['w-10', 'w-16', 'w-14', 'w-16', 'w-12'];
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="My Tasks" />
+        <Head :title="t('My Tasks')" />
 
-        <PageHeader title="My Tasks" :description="workspaceName">
+        <PageHeader :title="t('My Tasks')" :description="workspaceName">
             <template #tabs>
                 <div class="flex h-9 items-end gap-1" aria-hidden="true">
                     <span

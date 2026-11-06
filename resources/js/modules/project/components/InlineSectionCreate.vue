@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
+import { t } from '@/lib/i18n';
 
 const props = defineProps<{
     projectId: string;
@@ -67,7 +68,7 @@ function submit(): void {
             "
             @click="start"
         >
-            + Add section
+            {{ t('+ Add section') }}
         </button>
 
         <input
@@ -75,7 +76,7 @@ function submit(): void {
             ref="input"
             v-model="name"
             type="text"
-            placeholder="Section name"
+            :placeholder="t('Section name')"
             :disabled="saving"
             class="w-full rounded border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-50"
             @keydown.enter.prevent="submit"

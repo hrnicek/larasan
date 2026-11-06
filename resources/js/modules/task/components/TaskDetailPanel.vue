@@ -5,6 +5,7 @@ let focusAwaitingRestore: string | null = null;
 
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { t } from '@/lib/i18n';
 import TaskActivitySkeleton from '@/modules/task/components/TaskActivitySkeleton.vue';
 import TaskDetailBody from '@/modules/task/components/TaskDetailBody.vue';
 import TaskDetailToolbar from '@/modules/task/components/TaskDetailToolbar.vue';
@@ -31,7 +32,7 @@ const descriptionPending = ref(false);
 const close = (): void => {
     if (
         !descriptionPending.value ||
-        window.confirm('Discard the unsaved description?')
+        window.confirm(t('Discard the unsaved description?'))
     ) {
         emit('close');
     }

@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import AttachmentController from '@/actions/App/Http/Controllers/File/AttachmentController';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import { formatFileSize } from '@/lib/fileSize';
+import { t } from '@/lib/i18n';
 import AttachmentGrid from '@/modules/file/components/AttachmentGrid.vue';
 import AttachmentLightbox from '@/modules/file/components/AttachmentLightbox.vue';
 import TaskSectionHeading from '@/modules/task/components/TaskSectionHeading.vue';
@@ -62,8 +63,10 @@ const uploadErrors = computed((): string[] =>
 
 const uploadLabel = computed((): string =>
     form.progress === null || form.progress === undefined
-        ? 'Uploading…'
-        : `Uploading ${form.progress.percentage ?? 0}%…`,
+        ? t('Uploading…')
+        : t('Uploading :percentage%…', {
+              percentage: form.progress.percentage ?? 0,
+          }),
 );
 
 const removing = ref<TaskAttachment | null>(null);
@@ -83,7 +86,7 @@ const remove = (): void => {
 <template>
     <section class="flex flex-col gap-1">
         <TaskSectionHeading
-            title="Attachments"
+            :title="t('Attachments')"
             :count="attachments.length ? String(attachments.length) : null"
         >
             <template v-if="canAttach && attachments.length" #add>
@@ -92,11 +95,11 @@ const remove = (): void => {
                     :class="
                         form.processing ? 'pointer-events-none opacity-60' : ''
                     "
-                    :title="form.processing ? uploadLabel : 'Add files'"
+                    :title="form.processing ? uploadLabel : t('Add files')"
                 >
                     <Plus class="size-4" aria-hidden="true" />
                     <span class="sr-only">{{
-                        form.processing ? uploadLabel : 'Add files'
+                        form.processing ? uploadLabel : t('Add files')
                     }}</span>
 
                     <input
@@ -167,7 +170,7 @@ const remove = (): void => {
             :class="form.processing ? 'pointer-events-none opacity-60' : ''"
         >
             <Plus class="size-4" aria-hidden="true" />
-            {{ form.processing ? uploadLabel : 'Add files' }}
+            {{ form.processing ? uploadLabel : t('Add files') }}
 
             <input
                 ref="input"
@@ -179,7 +182,9 @@ const remove = (): void => {
             />
         </label>
 
-        <p v-else class="text-sm text-muted-foreground">No attachments.</p>
+        <p v-else class="text-sm text-muted-foreground">
+            {{ t('No attachments.') }}
+        </p>
 
         <p
             v-for="message in uploadErrors"
@@ -196,10 +201,14 @@ const remove = (): void => {
 
         <ConfirmDialog
             :open="removing !== null"
-            :title="`Remove ${removing?.name}?`"
-            description="It comes off this task for everybody. Nothing else on the task changes."
-            confirm-label="Remove"
-            cancel-label="Keep it"
+            :title="t('Remove :name?', { name: removing?.name ?? '' })"
+            :description="
+                t(
+                    'It comes off this task for everybody. Nothing else on the task changes.',
+                )
+            "
+            :confirm-label="t('Remove')"
+            :cancel-label="t('Keep it')"
             @update:open="(next) => !next && (removing = null)"
             @confirm="remove"
         />

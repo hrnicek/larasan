@@ -2,17 +2,18 @@
 import { Head } from '@inertiajs/vue3';
 import PageHeader from '@/components/PageHeader.vue';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 
 const nameWidths = ['w-48', 'w-36', 'w-56', 'w-40', 'w-32', 'w-44'];
 </script>
 
 <template>
     <div class="flex flex-col">
-        <Head title="Projects" />
+        <Head :title="t('Projects')" />
 
         <PageHeader
-            title="Projects"
-            description="Everything you can reach in this workspace"
+            :title="t('Projects')"
+            :description="t('Everything you can reach in this workspace')"
         />
 
         <div

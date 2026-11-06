@@ -24,6 +24,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { t } from '@/lib/i18n';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 
 const props = defineProps<{
@@ -76,7 +77,7 @@ function add(): void {
 
     router.post(
         SectionController.store.url(props.projectId),
-        { name: 'New section' },
+        { name: t('New section') },
         { preserveScroll: true, onFinish: () => (working.value = false) },
     );
 }
@@ -122,7 +123,9 @@ function remove(): void {
     <DropdownMenu v-if="can.create || can.update || can.delete">
         <DropdownMenuTrigger
             class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/section:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none data-[state=open]:opacity-100"
-            :aria-label="`Actions for ${name ?? 'No section'}`"
+            :aria-label="
+                t('Actions for :name', { name: name ?? t('No section') })
+            "
         >
             <MoreHorizontal class="size-4" />
         </DropdownMenuTrigger>
@@ -133,13 +136,13 @@ function remove(): void {
                 @select="emit('rename')"
             >
                 <Pencil class="mr-2 size-4 text-muted-foreground" />
-                Rename section
+                {{ t('Rename section') }}
             </DropdownMenuItem>
 
             <DropdownMenuSub v-if="can.update && sectionId !== null">
                 <DropdownMenuSubTrigger>
                     <Palette class="mr-2 size-4 text-muted-foreground" />
-                    Colour
+                    {{ t('Colour') }}
                 </DropdownMenuSubTrigger>
 
                 <DropdownMenuSubContent class="w-56 p-3">
@@ -164,7 +167,7 @@ function remove(): void {
                         :is="variant === 'board' ? ChevronLeft : ChevronUp"
                         class="mr-2 size-4 text-muted-foreground"
                     />
-                    {{ variant === 'board' ? 'Move left' : 'Move up' }}
+                    {{ variant === 'board' ? t('Move left') : t('Move up') }}
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -175,7 +178,7 @@ function remove(): void {
                         :is="variant === 'board' ? ChevronRight : ChevronDown"
                         class="mr-2 size-4 text-muted-foreground"
                     />
-                    {{ variant === 'board' ? 'Move right' : 'Move down' }}
+                    {{ variant === 'board' ? t('Move right') : t('Move down') }}
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -187,7 +190,7 @@ function remove(): void {
                 @select="add"
             >
                 <Plus class="mr-2 size-4 text-muted-foreground" />
-                Add section
+                {{ t('Add section') }}
             </DropdownMenuItem>
 
             <template v-if="can.delete && sectionId !== null">
@@ -197,7 +200,7 @@ function remove(): void {
                     @select="deleting = true"
                 >
                     <Trash2 class="mr-2 size-4" />
-                    Delete section
+                    {{ t('Delete section') }}
                 </DropdownMenuItem>
             </template>
         </DropdownMenuContent>
@@ -205,10 +208,14 @@ function remove(): void {
 
     <ConfirmDialog
         :open="deleting"
-        :title="`Delete ${name ?? 'this section'}?`"
-        description="The tasks in it are not deleted — they move to the project's ungrouped list and keep everything else about them."
-        confirm-label="Delete section"
-        cancel-label="Keep it"
+        :title="name ? t('Delete :name?', { name }) : t('Delete this section?')"
+        :description="
+            t(
+                'The tasks in it are not deleted — they move to the project\'s ungrouped list and keep everything else about them.',
+            )
+        "
+        :confirm-label="t('Delete section')"
+        :cancel-label="t('Keep it')"
         :pending="working"
         @update:open="(next) => (deleting = next)"
         @confirm="remove"

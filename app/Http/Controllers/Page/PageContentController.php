@@ -30,7 +30,7 @@ class PageContentController extends Controller
             ));
         } catch (PageChangedElsewhere $conflict) {
             return response()->json([
-                'message' => $conflict->getMessage(),
+                'message' => __($conflict->getMessage()),
                 'version' => $page->fresh()?->version,
             ], Response::HTTP_CONFLICT);
         }

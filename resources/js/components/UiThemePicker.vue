@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
+import { t } from '@/lib/i18n';
 import { update } from '@/routes/appearance';
 import type { UiTheme, UiThemeOption } from '@/types/ui';
 
@@ -91,7 +92,7 @@ function submit(): void {
                 class="rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover active:bg-primary-active disabled:opacity-60"
                 :disabled="form.processing || form.ui_theme === current"
             >
-                Save theme
+                {{ t('Save theme') }}
             </button>
         </div>
     </form>

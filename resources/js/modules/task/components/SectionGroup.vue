@@ -5,6 +5,7 @@ import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
 import EmptyState from '@/components/EmptyState.vue';
 import { accentBandClass, accentDotClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
 import InlineTaskCreate from '@/modules/task/components/InlineTaskCreate.vue';
 import TaskListSkeleton from '@/modules/task/components/TaskListSkeleton.vue';
@@ -94,8 +95,12 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 :aria-expanded="!collapsed"
                 :aria-label="
                     collapsed
-                        ? `Expand ${section.name ?? 'No section'}`
-                        : `Collapse ${section.name ?? 'No section'}`
+                        ? t('Expand :section', {
+                              section: section.name ?? t('No section'),
+                          })
+                        : t('Collapse :section', {
+                              section: section.name ?? t('No section'),
+                          })
                 "
                 @click="toggle"
             >
@@ -111,7 +116,11 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                 v-model="draft"
                 type="text"
                 class="min-w-0 flex-1 rounded-md border border-input bg-transparent px-1.5 py-1 text-sm font-medium focus:outline-none"
-                :aria-label="`Rename ${section.name ?? 'this section'}`"
+                :aria-label="
+                    section.name
+                        ? t('Rename :section', { section: section.name })
+                        : t('Rename this section')
+                "
                 @blur="saveRename"
                 @keydown.enter.prevent="saveRename"
                 @keydown.esc.prevent="renaming = false"
@@ -129,7 +138,9 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                     :style="accentVars(section.color)"
                     aria-hidden="true"
                 />
-                <span class="truncate">{{ section.name ?? 'No section' }}</span>
+                <span class="truncate">{{
+                    section.name ?? t('No section')
+                }}</span>
             </button>
 
             <span class="shrink-0 text-xs text-muted-foreground">{{
@@ -159,7 +170,11 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
                     })
                 "
                 class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="`Add a task to ${section.name ?? 'No section'}`"
+                :aria-label="
+                    section.name
+                        ? t('Add a task to :section', { section: section.name })
+                        : t('Add a task to No section')
+                "
             >
                 <Plus class="size-4" />
             </Link>
@@ -218,9 +233,15 @@ const isDropSlot = (placementId: string | null | undefined): boolean =>
             <EmptyState
                 v-if="section.tasks.length === 0"
                 compact
-                :title="`Nothing in ${section.name ?? 'this list'} yet`"
+                :title="
+                    section.name
+                        ? t('Nothing in :section yet', {
+                              section: section.name,
+                          })
+                        : t('Nothing in this list yet')
+                "
                 :description="
-                    creatable ? 'Add the first one below.' : undefined
+                    creatable ? t('Add the first one below.') : undefined
                 "
             />
 

@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { t, tc } from '@/lib/i18n';
 import ProjectFieldManager from '@/modules/custom-field/components/ProjectFieldManager.vue';
 import AccentColorGrid from '@/modules/project/components/AccentColorGrid.vue';
 import ProjectIconGrid from '@/modules/project/components/ProjectIconGrid.vue';
@@ -72,23 +73,33 @@ type Choice = { label: string; hint: string; icon: Component };
 
 const visibilities: Record<string, Choice> = {
     workspace: {
-        label: 'Everyone in the workspace',
-        hint: 'Any member can find it, open it and work in it.',
+        label: t('Everyone in the workspace'),
+        hint: t('Any member can find it, open it and work in it.'),
         icon: Users,
     },
     private: {
-        label: 'Only invited members',
-        hint: 'It stays out of the sidebar and out of search for everybody else.',
+        label: t('Only invited members'),
+        hint: t(
+            'It stays out of the sidebar and out of search for everybody else.',
+        ),
         icon: Lock,
     },
 };
 
 const views: Record<string, Choice> = {
-    list: { label: 'List', hint: 'Rows grouped by section', icon: List },
-    board: { label: 'Board', hint: 'A column per section', icon: Kanban },
+    list: {
+        label: t('List'),
+        hint: t('Rows grouped by section'),
+        icon: List,
+    },
+    board: {
+        label: t('Board'),
+        hint: t('A column per section'),
+        icon: Kanban,
+    },
     calendar: {
-        label: 'Calendar',
-        hint: 'Tasks by due date',
+        label: t('Calendar'),
+        hint: t('Tasks by due date'),
         icon: CalendarDays,
     },
 };
@@ -122,20 +133,28 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
     ...(props.can.update
         ? [
               {
-                  label: 'Project',
+                  label: t('Project'),
                   items: [
-                      { id: 'general', label: 'General', icon: Type },
-                      { id: 'appearance', label: 'Appearance', icon: Palette },
+                      { id: 'general', label: t('General'), icon: Type },
+                      {
+                          id: 'appearance',
+                          label: t('Appearance'),
+                          icon: Palette,
+                      },
                   ],
               },
               {
-                  label: 'Behaviour',
+                  label: t('Behaviour'),
                   items: [
-                      { id: 'access', label: 'Access', icon: Users },
-                      { id: 'views', label: 'Default view', icon: Columns3 },
+                      { id: 'access', label: t('Access'), icon: Users },
+                      {
+                          id: 'views',
+                          label: t('Default view'),
+                          icon: Columns3,
+                      },
                       {
                           id: 'timeline',
-                          label: 'Timeline',
+                          label: t('Timeline'),
                           icon: CalendarRange,
                       },
                   ],
@@ -143,17 +162,19 @@ const navGroups = computed<ProjectSettingsNavGroup[]>(() => [
           ]
         : []),
     {
-        label: 'Structure',
-        items: [{ id: 'fields', label: 'Fields', icon: ListChecks }],
+        label: t('Structure'),
+        items: [{ id: 'fields', label: t('Fields'), icon: ListChecks }],
     },
     ...(props.can.archive
         ? [
               {
-                  label: 'Danger zone',
+                  label: t('Danger zone'),
                   items: [
                       {
                           id: 'danger',
-                          label: props.project.archived ? 'Restore' : 'Archive',
+                          label: props.project.archived
+                              ? t('Restore')
+                              : t('Archive'),
                           icon: TriangleAlert,
                       },
                   ],
@@ -177,7 +198,7 @@ function discard(reset: () => void): void {
 
 <template>
     <div class="flex flex-col">
-        <Head :title="`${props.project.name} settings`" />
+        <Head :title="t(':name settings', { name: props.project.name })" />
 
         <header class="border-b border-border">
             <div class="flex flex-wrap items-center gap-3 px-4 py-4 md:px-6">
@@ -193,7 +214,7 @@ function discard(reset: () => void): void {
                         {{ props.project.name }}
                     </h1>
                     <p class="mt-0.5 text-sm text-muted-foreground">
-                        Project settings
+                        {{ t('Project settings') }}
                     </p>
                 </div>
 
@@ -201,7 +222,7 @@ function discard(reset: () => void): void {
                     v-if="props.project.archived"
                     class="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                 >
-                    Archived
+                    {{ t('Archived') }}
                 </span>
 
                 <Link
@@ -211,7 +232,7 @@ function discard(reset: () => void): void {
                     class="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-input px-2.5 text-[13px] font-medium transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                 >
                     <ArrowLeft class="size-4" />
-                    Back to project
+                    {{ t('Back to project') }}
                 </Link>
             </div>
         </header>
@@ -245,17 +266,23 @@ function discard(reset: () => void): void {
                             <h2
                                 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                             >
-                                Project
+                                {{ t('Project') }}
                             </h2>
 
                             <ProjectSettingsSection
                                 id="general"
-                                title="General"
-                                description="What this project is called and what it is for"
+                                :title="t('General')"
+                                :description="
+                                    t(
+                                        'What this project is called and what it is for',
+                                    )
+                                "
                             >
                                 <div class="grid gap-5 sm:grid-cols-2">
                                     <div class="grid gap-2">
-                                        <Label for="name">Name</Label>
+                                        <Label for="name">{{
+                                            t('Name')
+                                        }}</Label>
                                         <Input
                                             id="name"
                                             name="name"
@@ -267,7 +294,9 @@ function discard(reset: () => void): void {
                                     </div>
 
                                     <div class="grid gap-2">
-                                        <Label for="slug">Address</Label>
+                                        <Label for="slug">{{
+                                            t('Address')
+                                        }}</Label>
                                         <Input
                                             id="slug"
                                             name="slug"
@@ -276,17 +305,19 @@ function discard(reset: () => void): void {
                                         <p
                                             class="text-xs text-muted-foreground"
                                         >
-                                            A short handle, unique in this
-                                            workspace. Search matches it as well
-                                            as the name.
+                                            {{
+                                                t(
+                                                    'A short handle, unique in this workspace. Search matches it as well as the name.',
+                                                )
+                                            }}
                                         </p>
                                         <InputError :message="errors.slug" />
                                     </div>
 
                                     <div class="grid gap-2 sm:col-span-2">
-                                        <Label for="description"
-                                            >Description</Label
-                                        >
+                                        <Label for="description">{{
+                                            t('Description')
+                                        }}</Label>
                                         <textarea
                                             id="description"
                                             name="description"
@@ -299,9 +330,11 @@ function discard(reset: () => void): void {
                                         <p
                                             class="text-xs text-muted-foreground"
                                         >
-                                            Shown beside the project in a list
-                                            of them, and searched along with its
-                                            tasks.
+                                            {{
+                                                t(
+                                                    'Shown beside the project in a list of them, and searched along with its tasks.',
+                                                )
+                                            }}
                                         </p>
                                         <InputError
                                             :message="errors.description"
@@ -312,8 +345,12 @@ function discard(reset: () => void): void {
 
                             <ProjectSettingsSection
                                 id="appearance"
-                                title="Appearance"
-                                description="How this project is recognised in the sidebar and in a list of them"
+                                :title="t('Appearance')"
+                                :description="
+                                    t(
+                                        'How this project is recognised in the sidebar and in a list of them',
+                                    )
+                                "
                             >
                                 <template #aside>
                                     <div
@@ -364,13 +401,17 @@ function discard(reset: () => void): void {
                             <h2
                                 class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                             >
-                                Behaviour
+                                {{ t('Behaviour') }}
                             </h2>
 
                             <ProjectSettingsSection
                                 id="access"
-                                title="Access"
-                                description="Who can reach this project without being invited to it"
+                                :title="t('Access')"
+                                :description="
+                                    t(
+                                        'Who can reach this project without being invited to it',
+                                    )
+                                "
                             >
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label
@@ -428,8 +469,12 @@ function discard(reset: () => void): void {
 
                             <ProjectSettingsSection
                                 id="views"
-                                title="Default view"
-                                description="Which view opens when the project is reached without one named"
+                                :title="t('Default view')"
+                                :description="
+                                    t(
+                                        'Which view opens when the project is reached without one named',
+                                    )
+                                "
                             >
                                 <div class="flex flex-wrap gap-3">
                                     <label
@@ -475,12 +520,18 @@ function discard(reset: () => void): void {
 
                             <ProjectSettingsSection
                                 id="timeline"
-                                title="Timeline"
-                                description="When this project runs. Both dates are optional."
+                                :title="t('Timeline')"
+                                :description="
+                                    t(
+                                        'When this project runs. Both dates are optional.',
+                                    )
+                                "
                             >
                                 <div class="grid gap-5 sm:grid-cols-2">
                                     <div class="grid gap-2">
-                                        <Label for="start_date">Starts</Label>
+                                        <Label for="start_date">{{
+                                            t('Starts')
+                                        }}</Label>
                                         <Input
                                             id="start_date"
                                             v-model="startDate"
@@ -493,7 +544,9 @@ function discard(reset: () => void): void {
                                     </div>
 
                                     <div class="grid gap-2">
-                                        <Label for="due_date">Due</Label>
+                                        <Label for="due_date">{{
+                                            t('Due')
+                                        }}</Label>
                                         <Input
                                             id="due_date"
                                             v-model="dueDate"
@@ -512,15 +565,24 @@ function discard(reset: () => void): void {
                                 >
                                     {{
                                         days === 0
-                                            ? 'Both dates fall on the same day.'
-                                            : `${days} days from start to due.`
+                                            ? t(
+                                                  'Both dates fall on the same day.',
+                                              )
+                                            : tc(
+                                                  ':count day from start to due.|:count days from start to due.',
+                                                  days,
+                                              )
                                     }}
                                 </p>
                                 <p
                                     v-else-if="days !== null"
                                     class="mt-3 text-xs text-destructive"
                                 >
-                                    The due date falls before the start date.
+                                    {{
+                                        t(
+                                            'The due date falls before the start date.',
+                                        )
+                                    }}
                                 </p>
                             </ProjectSettingsSection>
                         </section>
@@ -529,7 +591,9 @@ function discard(reset: () => void): void {
                             v-if="hasChanges(isDirty)"
                             class="sticky bottom-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card/95 px-4 py-3 shadow-md backdrop-blur"
                         >
-                            <p class="text-sm font-medium">Unsaved changes</p>
+                            <p class="text-sm font-medium">
+                                {{ t('Unsaved changes') }}
+                            </p>
 
                             <div class="ml-auto flex items-center gap-2">
                                 <Button
@@ -538,12 +602,12 @@ function discard(reset: () => void): void {
                                     :disabled="processing"
                                     @click="discard(reset)"
                                 >
-                                    Discard
+                                    {{ t('Discard') }}
                                 </Button>
 
-                                <Button type="submit" :disabled="processing"
-                                    >Save changes</Button
-                                >
+                                <Button type="submit" :disabled="processing">{{
+                                    t('Save changes')
+                                }}</Button>
                             </div>
                         </div>
                     </Form>
@@ -552,20 +616,28 @@ function discard(reset: () => void): void {
                         v-else
                         class="rounded-xl border border-border bg-card px-6 py-4 text-sm text-muted-foreground"
                     >
-                        You can open this project but not change its settings.
+                        {{
+                            t(
+                                'You can open this project but not change its settings.',
+                            )
+                        }}
                     </p>
 
                     <section class="space-y-4">
                         <h2
                             class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                         >
-                            Structure
+                            {{ t('Structure') }}
                         </h2>
 
                         <ProjectSettingsSection
                             id="fields"
-                            title="Fields"
-                            description="What this project records about a task beyond its title and dates"
+                            :title="t('Fields')"
+                            :description="
+                                t(
+                                    'What this project records about a task beyond its title and dates',
+                                )
+                            "
                         >
                             <ProjectFieldManager
                                 :project-id="props.project.id"
@@ -580,7 +652,7 @@ function discard(reset: () => void): void {
                         <h2
                             class="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
                         >
-                            Danger zone
+                            {{ t('Danger zone') }}
                         </h2>
 
                         <ProjectSettingsSection
@@ -588,8 +660,8 @@ function discard(reset: () => void): void {
                             tone="danger"
                             :title="
                                 props.project.archived
-                                    ? 'Restore project'
-                                    : 'Archive project'
+                                    ? t('Restore project')
+                                    : t('Archive project')
                             "
                             :icon="
                                 props.project.archived
@@ -598,8 +670,12 @@ function discard(reset: () => void): void {
                             "
                             :description="
                                 props.project.archived
-                                    ? 'Put this project back in the sidebar for everyone who can see it'
-                                    : 'Hide this project from the sidebar and from lists. Nothing is deleted.'
+                                    ? t(
+                                          'Put this project back in the sidebar for everyone who can see it',
+                                      )
+                                    : t(
+                                          'Hide this project from the sidebar and from lists. Nothing is deleted.',
+                                      )
                             "
                         >
                             <div class="flex flex-wrap items-center gap-4">
@@ -608,8 +684,12 @@ function discard(reset: () => void): void {
                                 >
                                     {{
                                         props.project.archived
-                                            ? 'Its tasks, sections and members are exactly where they were left.'
-                                            : 'Its tasks, sections and members stay as they are, and you can restore it here.'
+                                            ? t(
+                                                  'Its tasks, sections and members are exactly where they were left.',
+                                              )
+                                            : t(
+                                                  'Its tasks, sections and members stay as they are, and you can restore it here.',
+                                              )
                                     }}
                                 </p>
 
@@ -628,7 +708,7 @@ function discard(reset: () => void): void {
                                         :disabled="processing"
                                     >
                                         <ArchiveRestore />
-                                        Restore project
+                                        {{ t('Restore project') }}
                                     </Button>
                                 </Form>
 
@@ -636,7 +716,7 @@ function discard(reset: () => void): void {
                                     <DialogTrigger as-child>
                                         <Button variant="destructive">
                                             <Archive />
-                                            Archive project
+                                            {{ t('Archive project') }}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
@@ -650,24 +730,25 @@ function discard(reset: () => void): void {
                                             v-slot="{ processing }"
                                         >
                                             <DialogHeader class="space-y-3">
-                                                <DialogTitle
-                                                    >Archive
-                                                    {{
-                                                        props.project.name
-                                                    }}?</DialogTitle
-                                                >
+                                                <DialogTitle>{{
+                                                    t('Archive :name?', {
+                                                        name: props.project
+                                                            .name,
+                                                    })
+                                                }}</DialogTitle>
                                                 <DialogDescription>
-                                                    Its tasks and members stay
-                                                    exactly as they are, and you
-                                                    can restore it here. Type
-                                                    the project name to confirm.
+                                                    {{
+                                                        t(
+                                                            'Its tasks and members stay exactly as they are, and you can restore it here. Type the project name to confirm.',
+                                                        )
+                                                    }}
                                                 </DialogDescription>
                                             </DialogHeader>
 
                                             <div class="grid gap-2">
-                                                <Label for="confirmation"
-                                                    >Project name</Label
-                                                >
+                                                <Label for="confirmation">{{
+                                                    t('Project name')
+                                                }}</Label>
                                                 <Input
                                                     id="confirmation"
                                                     v-model="confirmation"
@@ -686,7 +767,7 @@ function discard(reset: () => void): void {
                                                         !confirmed || processing
                                                     "
                                                 >
-                                                    Archive project
+                                                    {{ t('Archive project') }}
                                                 </Button>
                                             </DialogFooter>
                                         </Form>

@@ -1,3 +1,11 @@
+import { currentLocale } from '@/lib/i18n';
+
+const oneDecimal = (value: number): string =>
+    new Intl.NumberFormat(currentLocale(), {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+    }).format(value);
+
 export function formatFileSize(bytes: number): string {
     if (bytes < 1024) {
         return `${bytes} B`;
@@ -8,6 +16,6 @@ export function formatFileSize(bytes: number): string {
     }
 
     return bytes < 1024 * 1024 * 1024
-        ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-        : `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+        ? `${oneDecimal(bytes / (1024 * 1024))} MB`
+        : `${oneDecimal(bytes / (1024 * 1024 * 1024))} GB`;
 }

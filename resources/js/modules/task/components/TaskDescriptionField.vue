@@ -10,6 +10,7 @@ import {
 } from 'vue';
 import TaskController from '@/actions/App/Http/Controllers/Task/TaskController';
 import { Skeleton } from '@/components/ui/skeleton';
+import { t } from '@/lib/i18n';
 
 /** Descriptions are sanitized by RichText before storage; this is the only user-authored HTML rendered here. */
 const props = defineProps<{
@@ -140,13 +141,13 @@ const save = (): void => {
                 conflict.value = errors.description_conflict === '1';
                 error.value =
                     errors.description ??
-                    'Could not save. Your text is still here.';
+                    t('Could not save. Your text is still here.');
             },
             onFinish: () => {
                 saving.value = false;
 
                 if (!completed) {
-                    error.value = 'Could not save. Your text is still here.';
+                    error.value = t('Could not save. Your text is still here.');
                 } else if (
                     error.value === null &&
                     nextValue.value !== savedValue.value
@@ -180,7 +181,9 @@ const onFocusOut = (): void => {
 
 const reloadAfterConflict = (): void => {
     if (
-        window.confirm('Discard your draft and reload the latest description?')
+        window.confirm(
+            t('Discard your draft and reload the latest description?'),
+        )
     ) {
         cancel();
         router.reload();
@@ -202,7 +205,7 @@ const stopListening = router.on('before', ({ detail: { visit } }) => {
         visit.method === 'get' &&
         visit.url.href !== window.location.href
     ) {
-        return window.confirm('Discard the unsaved description?');
+        return window.confirm(t('Discard the unsaved description?'));
     }
 });
 
@@ -249,11 +252,13 @@ onBeforeUnmount(() => {
                             class="mr-1 inline size-3.5 animate-spin"
                             aria-hidden="true"
                         />
-                        Saving…
+                        {{ t('Saving…') }}
                     </template>
                     <template v-else-if="error">{{ error }}</template>
-                    <template v-else-if="dirty">Unsaved changes</template>
-                    <template v-else>Changes saved</template>
+                    <template v-else-if="dirty">{{
+                        t('Unsaved changes')
+                    }}</template>
+                    <template v-else>{{ t('Changes saved') }}</template>
                 </span>
                 <button
                     type="button"
@@ -261,7 +266,7 @@ onBeforeUnmount(() => {
                     :disabled="saving"
                     @click="cancel"
                 >
-                    Cancel
+                    {{ t('Cancel') }}
                 </button>
                 <button
                     type="button"
@@ -269,7 +274,7 @@ onBeforeUnmount(() => {
                     :disabled="saving || !dirty || conflict"
                     @click="save"
                 >
-                    {{ error ? 'Retry save' : 'Save' }}
+                    {{ error ? t('Retry save') : t('Save') }}
                 </button>
                 <button
                     v-if="conflict"
@@ -277,7 +282,7 @@ onBeforeUnmount(() => {
                     class="min-h-11 rounded-md px-2 text-xs underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
                     @click="reloadAfterConflict"
                 >
-                    Reload latest
+                    {{ t('Reload latest') }}
                 </button>
             </div>
         </div>
@@ -292,7 +297,7 @@ onBeforeUnmount(() => {
             <button
                 type="button"
                 class="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/description:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-8 pointer-coarse:opacity-100"
-                aria-label="Edit the description"
+                :aria-label="t('Edit the description')"
                 @click="start"
             >
                 <Pencil class="size-4" aria-hidden="true" />
@@ -303,7 +308,7 @@ onBeforeUnmount(() => {
             v-else-if="editable"
             type="button"
             class="min-h-11 w-full cursor-text rounded-lg border border-dashed border-input px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-            aria-label="Add a description"
+            :aria-label="t('Add a description')"
             @click="start"
         >
             {{ placeholder }}
@@ -311,9 +316,9 @@ onBeforeUnmount(() => {
 
         <div v-else class="px-2 py-1.5">
             <div v-if="value" class="rich-text" v-html="rendered" />
-            <span v-else class="text-sm text-muted-foreground"
-                >No description.</span
-            >
+            <span v-else class="text-sm text-muted-foreground">{{
+                t('No description.')
+            }}</span>
         </div>
 
         <p
@@ -322,7 +327,7 @@ onBeforeUnmount(() => {
             role="status"
         >
             <Check class="size-3.5" aria-hidden="true" />
-            Saved
+            {{ t('Saved') }}
         </p>
     </div>
 </template>

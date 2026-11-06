@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import CommentController from '@/actions/App/Http/Controllers/Comment/CommentController';
 import { Button } from '@/components/ui/button';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { t } from '@/lib/i18n';
 import MentionTextarea from '@/modules/comment/components/MentionTextarea.vue';
 import { toStorage } from '@/modules/comment/mentions';
 import type { NamedPerson } from '@/modules/comment/mentions';
@@ -58,7 +59,7 @@ const onBlur = (): void => {
                 :people="people"
                 :rows="writing ? 3 : 1"
                 :disabled="form.processing"
-                placeholder="Add a comment"
+                :placeholder="t('Add a comment')"
                 class="w-full resize-none rounded-lg bg-transparent px-3 py-2 text-sm outline-none disabled:opacity-70"
                 @focus="writing = true"
                 @blur="onBlur"
@@ -73,7 +74,7 @@ const onBlur = (): void => {
                     {{ form.errors.body }}
                 </p>
                 <p v-else class="text-xs text-muted-foreground">
-                    @ to mention · ⌘/Ctrl + Enter to send
+                    {{ t('@ to mention · ⌘/Ctrl + Enter to send') }}
                 </p>
 
                 <Button
@@ -82,7 +83,7 @@ const onBlur = (): void => {
                     class="h-7 text-xs"
                     :disabled="form.processing || draft.trim() === ''"
                 >
-                    Send
+                    {{ t('Send') }}
                 </Button>
             </div>
         </div>

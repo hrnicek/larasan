@@ -6,6 +6,7 @@ import MyTasksController from '@/actions/App/Http/Controllers/Task/MyTasksContro
 import EmptyState from '@/components/EmptyState.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { usePagedRows } from '@/composables/usePagedRows';
+import { t } from '@/lib/i18n';
 import TaskListHeader from '@/modules/task/components/TaskListHeader.vue';
 import TaskRow from '@/modules/task/components/TaskRow.vue';
 import { useTaskPanel } from '@/modules/task/composables/useTaskPanel';
@@ -39,11 +40,11 @@ const props = defineProps<{
 }>();
 
 const labels: Record<string, string> = {
-    today: 'Today',
-    upcoming: 'Upcoming',
-    overdue: 'Overdue',
-    completed: 'Completed',
-    starred: 'Starred',
+    today: t('Today'),
+    upcoming: t('Upcoming'),
+    overdue: t('Overdue'),
+    completed: t('Completed'),
+    starred: t('Starred'),
 };
 
 const workspaceName = computed<string | undefined>(
@@ -51,20 +52,21 @@ const workspaceName = computed<string | undefined>(
 );
 
 const emptyDescriptions: Record<string, string> = {
-    today: 'Nothing is scheduled for today in this workspace.',
-    upcoming: 'Nothing with a date on it is waiting for you.',
-    overdue: 'Nothing has slipped past its date.',
-    completed: 'Tasks you finish appear here.',
-    starred:
+    today: t('Nothing is scheduled for today in this workspace.'),
+    upcoming: t('Nothing with a date on it is waiting for you.'),
+    overdue: t('Nothing has slipped past its date.'),
+    completed: t('Tasks you finish appear here.'),
+    starred: t(
         'Star a task from its panel to keep it here, whoever it belongs to.',
+    ),
 };
 
 const emptyMessages: Record<string, string> = {
-    today: 'Nothing due today.',
-    upcoming: 'Nothing coming up.',
-    overdue: 'Nothing overdue.',
-    completed: 'Nothing finished yet.',
-    starred: 'Nothing starred.',
+    today: t('Nothing due today.'),
+    upcoming: t('Nothing coming up.'),
+    overdue: t('Nothing overdue.'),
+    completed: t('Nothing finished yet.'),
+    starred: t('Nothing starred.'),
 };
 
 const { rows, hasMore, loading, loadFailed, loadMore } = usePagedRows({
@@ -106,14 +108,14 @@ const { open, close: closeTask } = useTaskPanel();
 
 <template>
     <div class="flex h-full flex-1 flex-col">
-        <Head title="My Tasks" />
+        <Head :title="t('My Tasks')" />
 
         <div class="sticky top-0 z-20 bg-background">
-            <PageHeader title="My Tasks" :description="workspaceName">
+            <PageHeader :title="t('My Tasks')" :description="workspaceName">
                 <template #tabs>
                     <nav
                         class="-mb-px flex items-end gap-1 overflow-x-auto"
-                        aria-label="My Tasks views"
+                        :aria-label="t('My Tasks views')"
                     >
                         <button
                             v-for="tab in tabs"
@@ -170,7 +172,7 @@ const { open, close: closeTask } = useTaskPanel();
             <EmptyState
                 v-else-if="!switching"
                 class="mx-4 mt-4 md:mx-6"
-                :title="emptyMessages[meta.tab] ?? 'Nothing here.'"
+                :title="emptyMessages[meta.tab] ?? t('Nothing here.')"
                 :description="emptyDescriptions[meta.tab]"
                 :icon="CheckCheck"
             >
@@ -180,7 +182,7 @@ const { open, close: closeTask } = useTaskPanel();
                         class="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                         <Plus class="size-4" />
-                        Add a task
+                        {{ t('Add a task') }}
                     </Link>
                 </template>
             </EmptyState>
@@ -190,13 +192,13 @@ const { open, close: closeTask } = useTaskPanel();
                 class="mx-4 flex items-center gap-2 text-sm text-muted-foreground md:mx-6"
                 role="status"
             >
-                More tasks did not load.
+                {{ t('More tasks did not load.') }}
                 <button
                     type="button"
                     class="font-medium text-foreground underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
                     @click="loadMore"
                 >
-                    Try again
+                    {{ t('Try again') }}
                 </button>
             </p>
 
@@ -207,7 +209,7 @@ const { open, close: closeTask } = useTaskPanel();
                 :disabled="loading || switching"
                 @click="loadMore"
             >
-                {{ loading || switching ? 'Loading…' : 'Load more' }}
+                {{ loading || switching ? t('Loading…') : t('Load more') }}
             </button>
 
             <TaskDetailPanel

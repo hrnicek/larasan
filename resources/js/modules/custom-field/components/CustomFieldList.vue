@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import TaskCustomFieldController from '@/actions/App/Http/Controllers/CustomField/TaskCustomFieldController';
+import { t } from '@/lib/i18n';
 import { inputTypeFor } from '@/modules/custom-field/fieldTypes';
 import type { TaskCustomField } from '@/modules/task/types';
 
@@ -54,7 +55,7 @@ const onText = (field: TaskCustomField, event: Event): void => {
 
 <template>
     <p v-if="!fields.length" class="text-sm text-muted-foreground">
-        No custom fields in these projects.
+        {{ t('No custom fields in these projects.') }}
     </p>
 
     <dl
@@ -113,7 +114,7 @@ const onText = (field: TaskCustomField, event: Event): void => {
                 />
 
                 <p v-if="failed === field.id" class="text-xs text-destructive">
-                    Could not save that value.
+                    {{ t('Could not save that value.') }}
                 </p>
             </dd>
         </template>

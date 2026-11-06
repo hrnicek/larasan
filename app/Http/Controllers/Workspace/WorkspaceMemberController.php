@@ -134,7 +134,7 @@ class WorkspaceMemberController extends Controller
         try {
             $operation();
         } catch (WorkspaceMembershipException $exception) {
-            throw ValidationException::withMessages([$field => $exception->getMessage()]);
+            throw ValidationException::withMessages([$field => __($exception->getMessage())]);
         }
     }
 }

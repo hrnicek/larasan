@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { t } from '@/lib/i18n';
 import {
     projectIconComponent,
     projectIconLabel,
@@ -32,7 +33,7 @@ const grid = computed(() =>
             <h3
                 class="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
             >
-                Icon
+                {{ t('Icon') }}
             </h3>
 
             <button
@@ -42,7 +43,7 @@ const grid = computed(() =>
                 :disabled="props.disabled"
                 @click="emit('update:modelValue', null)"
             >
-                Clear
+                {{ t('Clear') }}
             </button>
         </div>
 
@@ -69,7 +70,7 @@ const grid = computed(() =>
         </div>
 
         <p class="mt-3 text-[11px] text-muted-foreground">
-            Without an icon, the tile carries the project's initial.
+            {{ t("Without an icon, the tile carries the project's initial.") }}
         </p>
     </div>
 </template>

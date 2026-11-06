@@ -2,6 +2,7 @@
 import { CalendarDays } from '@lucide/vue';
 import { computed } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
+import { currentLocale, t, tc } from '@/lib/i18n';
 import CalendarDayCell from '@/modules/project/components/CalendarDayCell.vue';
 import CalendarTaskChip from '@/modules/project/components/CalendarTaskChip.vue';
 import type {
@@ -30,9 +31,12 @@ const emit = defineEmits<{
 const weekdays = computed<{ date: string; label: string }[]>(() =>
     props.calendar.days.slice(0, 7).map((day) => ({
         date: day.date,
-        label: new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, {
-            weekday: 'short',
-        }),
+        label: new Date(`${day.date}T00:00:00`).toLocaleDateString(
+            currentLocale(),
+            {
+                weekday: 'short',
+            },
+        ),
     })),
 );
 
@@ -53,19 +57,22 @@ const weeks = computed<CalendarDay[][]>(() => {
 
 const monthLabel = computed<string>(() =>
     new Date(`${props.calendar.month}-01T00:00:00`).toLocaleDateString(
-        undefined,
+        currentLocale(),
         { month: 'long', year: 'numeric' },
     ),
 );
 
 const emptyDetail = computed<string>(() =>
     props.calendar.undated.count > 0
-        ? `${props.calendar.undated.count} task${props.calendar.undated.count === 1 ? '' : 's'} in this project have no due date yet.`
-        : 'Give a task a due date and it appears on the day it is due.',
+        ? tc(
+              ':count task in this project has no due date yet.|:count tasks in this project have no due date yet.',
+              props.calendar.undated.count,
+          )
+        : t('Give a task a due date and it appears on the day it is due.'),
 );
 
 const dayLabel = (date: string): string =>
-    new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+    new Date(`${date}T00:00:00`).toLocaleDateString(currentLocale(), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -136,7 +143,7 @@ const dayLabel = (date: string): string =>
                 >
                     {{ dayLabel(day.date) }}
                     <span v-if="day.date === calendar.today" class="normal-case"
-                        >· today</span
+                        >· {{ t('today') }}</span
                     >
                 </h3>
 
@@ -156,7 +163,7 @@ const dayLabel = (date: string): string =>
                     class="min-h-11 self-start rounded px-2 text-left text-[13px] font-medium text-muted-foreground hover:text-foreground"
                     @click="emit('expand', day.date)"
                 >
-                    +{{ day.count - day.tasks.length }} more
+                    {{ tc('+:count more', day.count - day.tasks.length) }}
                 </button>
             </section>
         </div>
@@ -165,14 +172,15 @@ const dayLabel = (date: string): string =>
             v-if="!withTasks.length"
             class="hidden px-4 py-3 text-sm text-muted-foreground md:block md:px-6"
         >
-            Nothing is due in {{ monthLabel }}. {{ emptyDetail }}
+            {{ t('Nothing is due in :month.', { month: monthLabel }) }}
+            {{ emptyDetail }}
         </p>
 
         <EmptyState
             v-if="!withTasks.length"
             class="mx-4 mt-4 md:hidden"
             :icon="CalendarDays"
-            :title="`Nothing is due in ${monthLabel}`"
+            :title="t('Nothing is due in :month', { month: monthLabel })"
             :description="emptyDetail"
         />
     </div>

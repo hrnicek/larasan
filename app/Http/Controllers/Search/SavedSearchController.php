@@ -29,7 +29,7 @@ class SavedSearchController extends Controller
         try {
             $save->handle($workspace, $this->actor($request), SaveSearchData::fromRequest($request));
         } catch (SavedSearchException $refused) {
-            return back()->withErrors(['name' => $refused->getMessage()]);
+            return back()->withErrors(['name' => __($refused->getMessage())]);
         }
 
         return back();

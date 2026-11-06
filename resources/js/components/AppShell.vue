@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePendingScreen } from '@/composables/usePendingScreen';
 import { provideShell } from '@/composables/useShell';
+import { t } from '@/lib/i18n';
 import CommandPalette from '@/modules/search/components/CommandPalette.vue';
 import { useCommandPalette } from '@/modules/search/composables/useCommandPalette';
 
@@ -55,7 +56,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                         side="left"
                         class="w-72 border-chrome-border bg-chrome p-0 text-chrome-foreground"
                     >
-                        <SheetTitle class="sr-only">Navigation</SheetTitle>
+                        <SheetTitle class="sr-only">{{
+                            t('Navigation')
+                        }}</SheetTitle>
                         <AppSidebar variant="drawer" />
                     </SheetContent>
                 </Sheet>
@@ -76,13 +79,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                         class="mx-4 mt-4 flex items-center justify-between gap-4 rounded-lg border border-destructive/40 px-4 py-3 text-sm md:mx-6"
                         role="alert"
                     >
-                        <span>This page did not load.</span>
+                        <span>{{ t('This page did not load.') }}</span>
                         <button
                             type="button"
                             class="font-medium underline"
                             @click="retry"
                         >
-                            Try again
+                            {{ t('Try again') }}
                         </button>
                     </div>
 
@@ -92,7 +95,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleShortcut));
                         class="flex flex-col"
                         aria-busy="true"
                     >
-                        <p class="sr-only" role="status">Loading…</p>
+                        <p class="sr-only" role="status">{{ t('Loading…') }}</p>
 
                         <component :is="skeleton" />
                     </div>

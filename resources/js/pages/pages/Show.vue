@@ -5,6 +5,7 @@ import { ref } from 'vue';
 import { useRealtime } from '@/composables/useRealtime';
 import PageDocumentPane from '@/modules/page/components/PageDocumentPane.vue';
 import PageTreePanel from '@/modules/page/components/PageTreePanel.vue';
+import { pageTitle } from '@/modules/page/lib/untitled';
 import type { PageDetail, ProjectPages } from '@/modules/page/types';
 import { show as showProject } from '@/routes/projects';
 
@@ -36,7 +37,7 @@ const reload = (): void => {
 
 <template>
     <div class="flex w-full">
-        <Head :title="page.title" />
+        <Head :title="pageTitle(page.title)" />
 
         <aside
             class="hidden w-72 shrink-0 border-r border-border py-4 lg:block"

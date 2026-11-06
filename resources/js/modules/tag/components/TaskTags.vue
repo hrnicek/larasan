@@ -9,6 +9,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { accentChipClass, accentVars } from '@/lib/accentColor';
+import { t } from '@/lib/i18n';
 import type { TaskTag } from '@/modules/task/types';
 
 const props = defineProps<{
@@ -101,7 +102,7 @@ const remove = (tag: TaskTag): void => {
                 v-if="editable"
                 type="button"
                 class="-mr-0.5 rounded transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="`Remove ${tag.name}`"
+                :aria-label="t('Remove :name', { name: tag.name })"
                 @click="remove(tag)"
             >
                 <X class="size-3" />
@@ -111,10 +112,12 @@ const remove = (tag: TaskTag): void => {
         <Popover v-if="editable" :open="picking" @update:open="open">
             <PopoverTrigger
                 class="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/50 px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
-                :aria-label="tags.length ? 'Add another tag' : 'Add a tag'"
+                :aria-label="
+                    tags.length ? t('Add another tag') : t('Add a tag')
+                "
             >
                 <Plus class="size-3" />
-                <span v-if="!tags.length">Add tag</span>
+                <span v-if="!tags.length">{{ t('Add tag') }}</span>
             </PopoverTrigger>
 
             <PopoverContent align="start" class="w-60 p-1">
@@ -125,9 +128,9 @@ const remove = (tag: TaskTag): void => {
                     maxlength="40"
                     class="mb-1 h-8 w-full rounded-md border border-input bg-transparent px-2 text-sm focus:outline-none"
                     :placeholder="
-                        canCreate ? 'Find or create a tag' : 'Find a tag'
+                        canCreate ? t('Find or create a tag') : t('Find a tag')
                     "
-                    aria-label="Find or create a tag"
+                    :aria-label="t('Find or create a tag')"
                     @keydown.enter.prevent="confirm"
                 />
 
@@ -156,7 +159,9 @@ const remove = (tag: TaskTag): void => {
                     @click="attach({ name: query.trim() })"
                 >
                     <Plus class="size-3.5 shrink-0 text-muted-foreground" />
-                    <span class="truncate">Create “{{ query.trim() }}”</span>
+                    <span class="truncate">{{
+                        t('Create “:name”', { name: query.trim() })
+                    }}</span>
                 </button>
 
                 <p
@@ -165,8 +170,8 @@ const remove = (tag: TaskTag): void => {
                 >
                     {{
                         query.trim()
-                            ? 'No tag by that name.'
-                            : 'Every tag is already on this task.'
+                            ? t('No tag by that name.')
+                            : t('Every tag is already on this task.')
                     }}
                 </p>
             </PopoverContent>
@@ -175,7 +180,7 @@ const remove = (tag: TaskTag): void => {
         <span
             v-else-if="!tags.length"
             class="px-1.5 text-sm text-muted-foreground"
-            >None</span
+            >{{ t('None') }}</span
         >
     </div>
 </template>

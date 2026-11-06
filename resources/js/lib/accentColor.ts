@@ -1,3 +1,5 @@
+import { t } from '@/lib/i18n';
+
 // Class names are written out in full because Tailwind cannot detect interpolated ones.
 const accentDotClasses = {
     slate: 'bg-slate-400',
@@ -105,4 +107,25 @@ export function accentChipClass(color: string | null): string {
     }
 
     return named(accentChipClasses, color, accentChipClasses.slate);
+}
+
+export function accentColorLabel(color: AccentColor): string {
+    switch (color) {
+        case 'slate':
+            return t('Slate grey');
+        case 'red':
+            return t('Red');
+        case 'amber':
+            return t('Amber');
+        case 'emerald':
+            return t('Emerald');
+        case 'teal':
+            return t('Teal');
+        case 'sky':
+            return t('Sky');
+        case 'violet':
+            return t('Violet');
+        case 'rose':
+            return t('Rose');
+    }
 }
