@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
     <div ref="wrapper" class="flex flex-col gap-2" @focusout="onFocusOut">
         <div
             v-if="editing"
-            class="overflow-hidden rounded-lg border border-input bg-background transition-colors focus-within:border-ring"
+            class="grid grid-cols-1 rounded-lg border border-input bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-foreground/25 focus-within:shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] [&>.ql-container]:col-span-full [&>.ql-container]:row-start-1 [&>.ql-toolbar]:row-start-2"
             @keydown.ctrl.enter.prevent="save"
             @keydown.meta.enter.prevent="save"
         >
@@ -231,7 +231,10 @@ onBeforeUnmount(() => {
                 <RichTextEditor v-model="draft" :placeholder="placeholder" />
 
                 <template #fallback>
-                    <div class="flex flex-col gap-2 p-3" aria-hidden="true">
+                    <div
+                        class="col-span-full flex flex-col gap-2 p-2"
+                        aria-hidden="true"
+                    >
                         <Skeleton class="h-4 w-2/3 animate-pulse" />
                         <Skeleton class="h-4 w-1/2 animate-pulse" />
                     </div>
@@ -239,10 +242,10 @@ onBeforeUnmount(() => {
             </Suspense>
 
             <div
-                class="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2"
+                class="sticky bottom-0 z-10 flex items-center justify-end gap-1 rounded-b-lg border-t border-border bg-background px-2 py-1 sm:col-start-2 sm:row-start-2 sm:rounded-bl-none"
             >
                 <span
-                    class="mr-auto text-xs text-muted-foreground"
+                    class="mr-auto truncate px-1 text-xs text-muted-foreground sm:mr-1"
                     :class="error && 'text-destructive'"
                     aria-live="polite"
                     :role="error ? 'alert' : 'status'"
@@ -258,11 +261,10 @@ onBeforeUnmount(() => {
                     <template v-else-if="dirty">{{
                         t('Unsaved changes')
                     }}</template>
-                    <template v-else>{{ t('Changes saved') }}</template>
                 </span>
                 <button
                     type="button"
-                    class="min-h-11 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
+                    class="min-h-11 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-7"
                     :disabled="saving"
                     @click="cancel"
                 >
@@ -270,8 +272,9 @@ onBeforeUnmount(() => {
                 </button>
                 <button
                     type="button"
-                    class="min-h-11 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-60 md:min-h-8"
+                    class="min-h-11 rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none disabled:opacity-50 md:min-h-7"
                     :disabled="saving || !dirty || conflict"
+                    aria-keyshortcuts="Meta+Enter Control+Enter"
                     @click="save"
                 >
                     {{ error ? t('Retry save') : t('Save') }}
@@ -279,7 +282,7 @@ onBeforeUnmount(() => {
                 <button
                     v-if="conflict"
                     type="button"
-                    class="min-h-11 rounded-md px-2 text-xs underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-8"
+                    class="min-h-11 rounded-md px-2 text-xs underline focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:min-h-7"
                     @click="reloadAfterConflict"
                 >
                     {{ t('Reload latest') }}
@@ -289,14 +292,14 @@ onBeforeUnmount(() => {
 
         <div v-else-if="editable && value" class="group/description relative">
             <div
-                class="rich-text cursor-text rounded-lg border border-transparent py-2 pr-12 pl-2 transition-colors hover:border-input"
+                class="rich-text cursor-text rounded-lg border border-transparent p-2 transition-colors hover:border-input"
                 @click="startUnlessReading"
                 v-html="rendered"
             />
 
             <button
                 type="button"
-                class="absolute top-0 right-0 inline-flex size-11 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover/description:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-8 pointer-coarse:opacity-100"
+                class="absolute top-1 right-1 inline-flex size-11 items-center justify-center rounded-md border border-border bg-background text-muted-foreground opacity-0 shadow-xs transition-opacity group-hover/description:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none md:size-8 pointer-coarse:opacity-100"
                 :aria-label="t('Edit the description')"
                 @click="start"
             >
@@ -307,7 +310,7 @@ onBeforeUnmount(() => {
         <button
             v-else-if="editable"
             type="button"
-            class="min-h-11 w-full cursor-text rounded-lg border border-dashed border-input px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
+            class="min-h-11 w-full cursor-text rounded-lg border border-transparent p-2 text-left text-sm text-muted-foreground transition-colors hover:border-input focus-visible:ring-2 focus-visible:ring-primary-ring focus-visible:outline-none"
             :aria-label="t('Add a description')"
             @click="start"
         >

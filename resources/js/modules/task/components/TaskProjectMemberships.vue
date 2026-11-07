@@ -219,7 +219,7 @@ const detach = (): void => {
             {{ t('In no project — reachable from My Tasks and search.') }}
         </p>
 
-        <div class="py-2">
+        <div class="py-2 empty:hidden">
             <slot name="fields" />
         </div>
 

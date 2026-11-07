@@ -54,12 +54,8 @@ const onText = (field: TaskCustomField, event: Event): void => {
 </script>
 
 <template>
-    <p v-if="!fields.length" class="text-sm text-muted-foreground">
-        {{ t('No custom fields in these projects.') }}
-    </p>
-
     <dl
-        v-else
+        v-if="fields.length"
         class="grid grid-cols-1 items-center gap-x-3 gap-y-1 md:grid-cols-[7.5rem_minmax(0,1fr)]"
     >
         <template v-for="field in fields" :key="field.id">
