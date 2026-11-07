@@ -11,7 +11,12 @@ type Replacements = Record<string, string | number>;
 function dictionary(): Record<string, string> {
     const translations = usePage().props.translations;
 
-    return Array.isArray(translations) ? {} : translations;
+    // Absent while a deploy serves the new assets before PHP-FPM reloads the new server code.
+    if (translations === undefined || Array.isArray(translations)) {
+        return {};
+    }
+
+    return translations;
 }
 
 export function currentLocale(): string {
