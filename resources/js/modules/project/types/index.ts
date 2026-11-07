@@ -31,6 +31,8 @@ export type ProjectHeading = {
     icon: string | null;
     archived: boolean;
     canUpdate: boolean;
+    /** The view the project opens on without `?view=`. */
+    defaultView: string;
     starred: boolean;
     canCustomize: boolean;
     /** At most five; `memberCount` is the total. */

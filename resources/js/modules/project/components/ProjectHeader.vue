@@ -131,6 +131,8 @@ function toggleStar(): void {
                 :project-id="project.id"
                 :current="view"
                 :views="views"
+                :default-view="project.defaultView"
+                :can-set-default="project.canUpdate && !project.archived"
             />
         </div>
     </header>

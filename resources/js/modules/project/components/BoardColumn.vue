@@ -2,7 +2,6 @@
 import { router } from '@inertiajs/vue3';
 import { nextTick, ref } from 'vue';
 import SectionController from '@/actions/App/Http/Controllers/Section/SectionController';
-import EmptyState from '@/components/EmptyState.vue';
 import { accentBandClass, accentDotClass, accentVars } from '@/lib/accentColor';
 import { t } from '@/lib/i18n';
 import SectionMenu from '@/modules/project/components/SectionMenu.vue';
@@ -122,23 +121,10 @@ const emit = defineEmits<{
 
         <!-- The board's drag handler reads `data-column-key` from the element under the pointer. -->
         <div
-            class="flex max-h-[60vh] min-h-24 [scrollbar-width:thin] flex-col gap-2 overflow-y-auto border-t border-border p-2"
+            class="flex max-h-[60vh] min-h-12 [scrollbar-width:thin] flex-col gap-2 overflow-y-auto border-t border-border p-2"
             :class="over ? 'bg-accent/40' : ''"
             :data-column-key="column.id ?? 'ungrouped'"
         >
-            <EmptyState
-                v-if="column.tasks.length === 0"
-                compact
-                :title="
-                    creatable ? t('Nothing in this column') : t('Nothing here')
-                "
-                :description="
-                    creatable
-                        ? t('Drop a card here, or add one below.')
-                        : undefined
-                "
-            />
-
             <template v-for="card in column.tasks" :key="card.placementId">
                 <div v-if="isDropSlot(card.placementId)" class="relative h-0">
                     <span
@@ -183,6 +169,7 @@ const emit = defineEmits<{
             v-if="creatable"
             :project-id="projectId"
             :section-id="column.id"
+            card
         />
     </section>
 </template>

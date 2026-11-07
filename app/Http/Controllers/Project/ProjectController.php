@@ -249,6 +249,7 @@ class ProjectController extends Controller
             'icon' => $project->icon?->value,
             'archived' => $project->isArchived(),
             'canUpdate' => $actor->can('update', $project),
+            'defaultView' => $project->default_view->value,
             'starred' => $project->stars()->where('user_id', $actor->id)->exists(),
             'canCustomize' => $actor->can(Capability::CustomFieldManage->value, $project->workspace),
             'members' => array_values($people

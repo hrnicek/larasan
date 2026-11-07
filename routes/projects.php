@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Project\ProjectAppearanceController;
 use App\Http\Controllers\Project\ProjectColumnController;
 use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\ProjectDefaultViewController;
 use App\Http\Controllers\Project\ProjectMemberController;
 use App\Http\Controllers\Project\ProjectNameController;
 use App\Http\Controllers\Project\ProjectStarController;
@@ -23,12 +24,15 @@ Route::middleware(['auth', 'verified'])->whereUuid('project')->group(function ()
 
     Route::post('projects/{project}/tasks', [ProjectTaskController::class, 'store'])->name('projects.tasks.store');
 
-    // Appearance and name get their own routes: `projects.update` clears absent nullable fields.
+    // Appearance, name and default view get their own routes: `projects.update` clears absent nullable fields.
     Route::put('projects/{project}/appearance', [ProjectAppearanceController::class, 'update'])
         ->name('projects.appearance.update');
 
     Route::put('projects/{project}/name', [ProjectNameController::class, 'update'])
         ->name('projects.name.update');
+
+    Route::put('projects/{project}/default-view', [ProjectDefaultViewController::class, 'update'])
+        ->name('projects.default-view.update');
 
     Route::post('projects/{project}/star', [ProjectStarController::class, 'store'])->name('projects.star');
     Route::delete('projects/{project}/star', [ProjectStarController::class, 'destroy'])->name('projects.unstar');
